@@ -1,4 +1,4 @@
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -6,14 +6,15 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/breadcrumb";
+import { ModeToggle } from "@/components/ui/light-dark-toggle";
+import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-export default function Layout({children}: {children:React.ReactNode}) {
+} from "@/components/ui/sidebar";
+export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -38,10 +39,13 @@ export default function Layout({children}: {children:React.ReactNode}) {
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
+          <div className="ml-auto">
+            <ModeToggle />
+          </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4">
           {/* Main body content */}
-          { children } 
+          {children}
           {/* <div className="grid auto-rows-min gap-4 md:grid-cols-3">
             <div className="bg-muted/50 aspect-video rounded-xl" />
             <div className="bg-muted/50 aspect-video rounded-xl" />
@@ -51,5 +55,5 @@ export default function Layout({children}: {children:React.ReactNode}) {
         </div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

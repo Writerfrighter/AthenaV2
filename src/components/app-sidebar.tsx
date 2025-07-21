@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   BookOpen,
   Frame,
@@ -11,21 +11,22 @@ import {
   Database,
   ListOrdered,
   ChartColumnIncreasing,
-  Table
-} from "lucide-react"
+  Table,
+  Home,
+} from "lucide-react";
 
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { NavMain } from "@/components/nav-main";
+import { NavProjects } from "@/components/nav-projects";
+import { NavUser } from "@/components/nav-user";
+import { TeamSwitcher } from "@/components/team-switcher";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-} from "@/components/ui/sidebar"
-import { SearchForm } from "./search-form"
+} from "@/components/ui/sidebar";
+import { SearchForm } from "./search-form";
 
 // This is sample data.
 const data = {
@@ -37,24 +38,25 @@ const data = {
   teams: [
     {
       name: "Titan Robotics Club",
-      logo: '/TRCLogo.webp',
+      logo: "/TRCLogo.webp",
       number: "492",
     },
     {
       name: "Acme Corp.",
-      logo: '/TRCLogo.webp',
+      logo: "/TRCLogo.webp",
       number: "999",
     },
     {
       name: "Evil Corp.",
-      logo: '/TRCLogo.webp',
+      logo: "/TRCLogo.webp",
       number: "9999",
     },
   ],
   navMain: [
+    { title: "Home", url: "/dashboard", icon: Home },
     {
       title: "Analysis",
-      url: "/analysis",
+      url: "/dashboard/analysis",
       icon: ChartColumnIncreasing,
     },
     {
@@ -63,22 +65,22 @@ const data = {
       items: [
         {
           title: "Pit Scouting",
-          url: "/pit-scouting",
+          url: "/dashboard/pitscouting",
         },
         {
           title: "Match Scouting",
-          url: "/match-scouting",
+          url: "/dashboard/matchscouting",
         },
       ],
     },
     {
       title: "Team List",
-      url: "/team-list",
-      icon: Table
+      url: "/dashboard/teamlist",
+      icon: Table,
     },
     {
       title: "Picklist",
-      url: "/picklist",
+      url: "/dashboard/picklist",
       icon: ListOrdered,
       // items: [
       //   {
@@ -139,7 +141,7 @@ const data = {
   //     icon: Map,
   //   },
   // ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -157,5 +159,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

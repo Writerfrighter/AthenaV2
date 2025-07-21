@@ -1,16 +1,7 @@
 const CACHE_NAME = 'athena-cache-v1';
 const URLS_TO_CACHE = [
-    '/pit_scouting',
-    '/game_scouting',
-    '/static/script.js',
-    '/static/style.css',
-    '/static/images/favicon.ico',
-    '/static/images/TRC+Logo.png',
-    '/static/fonts/Inter-Regular.ttf',
-    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
-    'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
-    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
-    'https://unpkg.com/dexie/dist/dexie.js'
+    '/dashboard/pit_scouting',
+    '/dashboard/game_scouting',
 ];
 
 // Install event: cache the specified URLs
