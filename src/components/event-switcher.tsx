@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronsUpDown, Plus } from "lucide-react"
+import { CalendarDays, ChevronsUpDown, Plus } from "lucide-react"
 import Image from "next/image"
 import {
   DropdownMenu,
@@ -19,19 +19,19 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-export function TeamSwitcher({
-  teams,
+export function EventSwitcher({
+  events,
 }: {
-  teams: {
+  events: {
     name: string
-    logo: string
+    // logo: string
     number: string
   }[]
 }) {
   const { isMobile } = useSidebar()
-  const [activeTeam, setActiveTeam] = React.useState(teams[0])
+  const [activeEvent, setActiveEvent] = React.useState(events[0])
 
-  if (!activeTeam) {
+  if (!activeEvent) {
     return null
   }
 
@@ -45,16 +45,18 @@ export function TeamSwitcher({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <Image 
-                  src={activeTeam.logo}
+                {/* <Image 
+                  src={activeEvent.logo}
                   width= {150}
                   height={150}
                   alt="The Logo of {activeTeam.name}"
-                />
+                /> */}
+                <CalendarDays color="black" size={20} />
+
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{activeTeam.name}</span>
-                <span className="truncate text-xs">{activeTeam.number}</span>
+                <span className="truncate font-medium">{activeEvent.name}</span>
+                <span className="truncate text-xs">{activeEvent.number}</span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -66,24 +68,23 @@ export function TeamSwitcher({
             sideOffset={4}
           >
             <DropdownMenuLabel className="text-muted-foreground text-xs">
-              Teams
+              Events
             </DropdownMenuLabel>
-            {teams.map((team, index) => (
+            {events.map((event, index) => (
               <DropdownMenuItem
-                key={team.name}
-                onClick={() => setActiveTeam(team)}
+                key={event.name}
+                onClick={() => setActiveEvent(event)}
                 className="gap-2 p-2"
               >
-                <div className="flex size-6 items-center justify-center rounded-md border">
+                {/* <div className="flex size-6 items-center justify-center rounded-md border">
                   <Image
-                    src={ team.logo }
+                    src={ event.logo }
                     width={125}
                     height={125}
                     alt="The Logo of a team"
                   />
-                   {/* <team.logo className="size-3.5 shrink-0" /> */}
-                </div>
-                {team.name}
+                </div> */}
+                {event.name}
                 <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
               </DropdownMenuItem>
             ))}
@@ -92,7 +93,7 @@ export function TeamSwitcher({
               <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                 <Plus className="size-4" />
               </div>
-              <div className="text-muted-foreground font-medium">Add team</div>
+              <div className="text-muted-foreground font-medium">Add event</div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

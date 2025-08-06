@@ -13,6 +13,6 @@ async function getFromNexus<T>(path: string): Promise<T> {
   });
 }
 
-export async function getEventMap(eventKey: string): Promise<any> {
+export async function getEventMap(eventKey: string): Promise<JSON> {
   return getFromNexus(`event/${eventKey}/map`);
 }

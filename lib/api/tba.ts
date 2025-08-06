@@ -1,9 +1,22 @@
 import { fetchJSON } from "../fetcher";
+import {
+  TbaStatus,
+  TbaEventSimple,
+  TbaMatchSimple,
+  TbaTeamSimple,
+  TbaEvent,
+  TbaOprs,
+  TbaMatch,
+  TbaRankingItem,
+  TbaEventRanking,
+  TbaTeam,
+  TbaMedia,
+} from "./types";
 
 export type Team = { id: string; name: string };
 export type TeamImage = { url: string };
 
-const BASE = "https://api.thebluealliance.com/api/v3/";
+const BASE = "https://thebluealliance.com/api/v3/";
 const AUTH_KEY = process.env.TBA_API_KEY!;
 
 async function getFromTba<T>(path: string): Promise<T> {
@@ -14,20 +27,11 @@ async function getFromTba<T>(path: string): Promise<T> {
 }
 
 /** 1. API Status **/
-export interface TbaStatus {
-  is_datafeed_down: boolean;
-}
 export function getStatus(): Promise<TbaStatus> {
   return getFromTba<TbaStatus>("status");
 }
 
 /** 2. Events for a Team **/
-export interface TbaEventSimple {
-  key: string;
-  name: string;
-  start_date: string;
-  end_date: string;
-}
 export function getTeamEvents(
   teamNumber: number,
   season: number
@@ -50,17 +54,20 @@ export async function getTeamEventDateMap(
 }
 
 /** 3. Teams at an Event **/
-export interface TbaTeamSimple {
-  key: string;
-  team_number: number;
-  nickname: string;
+export async function getEventTeams(eventKey: string): Promise<TbaTeam[]> {
+  const teams = await getFromTba<TbaTeam[]>(
+    `event/${eventKey}/teams`
+  );
+  return teams
 }
-export async function getEventTeams(eventKey: string): Promise<number[]> {
+
+export async function getEventTeamNumbers(eventKey: string): Promise<number[]> {
   const teams = await getFromTba<TbaTeamSimple[]>(
     `event/${eventKey}/teams/simple`
   );
   return teams.map((t) => t.team_number);
 }
+
 export async function getEventTeamsInfo(
   eventKey: string
 ): Promise<Record<string, { nickname: string; team_number: number }>> {
@@ -86,18 +93,18 @@ export async function getEventTeamNumberMap(
 }
 
 /** 4. Single Event Data **/
-export function getEventDetails(eventCode: string): Promise<any> {
+export function getEventDetails(eventCode: string): Promise<TbaEvent> {
   return getFromTba(`event/${eventCode}`);
 }
 export function getEventSummary(eventCode: string): Promise<TbaEventSimple> {
   return getFromTba(`event/${eventCode}/simple`);
 }
-export function getEventOprs(eventCode: string): Promise<any> {
+export function getEventOprs(eventCode: string): Promise<TbaOprs> {
   return getFromTba(`event/${eventCode}/oprs`);
 }
 export async function getCurrentEventForTeam(
   teamNumber: number
-): Promise<TbaEventSimple | {}> {
+): Promise<TbaEventSimple | object> {
   const year = new Date().getFullYear();
   const events = await getFromTba<TbaEventSimple[]>(
     `team/frc${teamNumber}/events/${year}`
@@ -111,11 +118,7 @@ export async function getEventDateRange(eventCode: string): Promise<string> {
 }
 
 /** 5. Matches **/
-export interface TbaMatchSimple {
-  comp_level: string;
-  match_number: number;
-  key: string;
-}
+
 export async function getTeamMatchesForEvent(
   teamNumber: number,
   eventCode: string
@@ -133,29 +136,28 @@ export async function getTeamMatchesForEvent(
       : a.match_number - b.match_number
   );
 }
-export function getEventMatches(eventCode: string): Promise<any[]> {
+export function getEventMatches(eventCode: string): Promise<TbaMatch[]> {
   return getFromTba(`event/${eventCode}/matches`);
 }
-export async function getEventRankings(eventCode: string): Promise<any[]> {
-  const r = await getFromTba<any>(`event/${eventCode}/rankings`);
-  return r.rankings;
+export async function getEventRankings(
+  eventCode: string
+): Promise<TbaEventRanking[]> {
+  const r = await getFromTba<TbaEventRanking[]>(`event/${eventCode}/rankings`);
+  return r;
 }
-export function getMatchSummary(matchKey: string): Promise<any> {
+export function getMatchSummary(matchKey: string): Promise<TbaMatchSimple> {
   return getFromTba(`match/${matchKey}/simple`);
 }
-export function getMatchDetails(matchKey: string): Promise<any> {
+export function getMatchDetails(matchKey: string): Promise<TbaMatch> {
   return getFromTba(`match/${matchKey}`);
-}
-export function getMatchMotionworks(matchKey: string): Promise<any> {
-  return getFromTba(`match/${matchKey}/zebra_motionworks`);
 }
 
 /** 6. Team Info & Media **/
-export function getTeamInfo(teamNumber: number): Promise<any> {
+export function getTeamInfo(teamNumber: number): Promise<TbaTeam> {
   return getFromTba(`team/frc${teamNumber}`);
 }
 export async function getTeamMedia(teamNumber: number): Promise<string[]> {
-  const resp = await getFromTba<any[]>(
+  const resp = await getFromTba<TbaMedia[]>(
     `team/frc${teamNumber}/media/${new Date().getFullYear()}`
   );
   const images: string[] = [];

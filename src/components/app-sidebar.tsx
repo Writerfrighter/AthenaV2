@@ -18,7 +18,7 @@ import {
 import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
-import { TeamSwitcher } from "@/components/team-switcher";
+import { EventSwitcher } from "@/components/event-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -35,21 +35,21 @@ const data = {
     username: "writerfrighter",
     avatar: "/TRCLogo.webp",
   },
-  teams: [
+  events: [
     {
-      name: "Titan Robotics Club",
-      logo: "/TRCLogo.webp",
-      number: "492",
+      name: "District Championships",
+      // logo: "/TRCLogo.webp",
+      number: "PNW: 2025",
     },
     {
-      name: "Acme Corp.",
-      logo: "/TRCLogo.webp",
-      number: "999",
+      name: "District Sammamish Event",
+      // logo: "/TRCLogo.webp",
+      number: "PNW: 2025",
     },
     {
-      name: "Evil Corp.",
-      logo: "/TRCLogo.webp",
-      number: "9999",
+      name: "District Sundome Event",
+      // logo: "/TRCLogo.webp",
+      number: "PNW: 2025",
     },
   ],
   navMain: [
@@ -101,28 +101,7 @@ const data = {
       //   },
       // ],
     },
-    {
-      title: "Settings",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
+    // },
   ],
   // projects: [
   //   {
@@ -147,7 +126,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props} variant="floating">
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <EventSwitcher events={data.events} />
         <SearchForm />
       </SidebarHeader>
       <SidebarContent>

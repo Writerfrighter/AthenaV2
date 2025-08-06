@@ -14,6 +14,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
@@ -26,19 +27,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             orientation="vertical"
             className="mr-2 data-[orientation=vertical]:h-4"
           />
-          <Breadcrumb>
+          {/* <Breadcrumbs items={dashboardCrumb}/> */}
+          {/* <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">
-                  Building Your Application
+                <BreadcrumbLink href="/dashboard">
+                  Dashboard
                 </BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-              </BreadcrumbItem>
+              { page && 
+                <div>
+                  <BreadcrumbSeparator className="hidden md:block" /> 
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{ page }</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </div>
+              }
             </BreadcrumbList>
-          </Breadcrumb>
+          </Breadcrumb> */}
           <div className="ml-auto">
             <ModeToggle />
           </div>

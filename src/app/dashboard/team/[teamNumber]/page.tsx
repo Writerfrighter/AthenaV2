@@ -1,3 +1,5 @@
+import Layout from "../../layout";
+
 export async function generateStaticParams() {
   // Example team numbers to pre-render
   const teamNumbers = [492];
@@ -15,8 +17,8 @@ export default async function TeamPage({
   const { teamNumber } = await params;
 
   return (
-    <div>
-      <h1>Scouting Info for Team {teamNumber}</h1>
-    </div>
+      <div>
+        <h1>Scouting Info for Team {teamNumber}</h1>
+      </div>
   );
 }
