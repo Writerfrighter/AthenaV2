@@ -1,7 +1,14 @@
 const CACHE_NAME = 'athena-cache-v1';
 const URLS_TO_CACHE = [
-    '/dashboard/pitscouting',
-    // '/dashboard/gamescouting',
+    '/',
+    '/login',
+    '/signup',
+    '/dashboard',
+    '/scout/matchscout',
+    '/scout/pitscout',
+    '/dashboard/teamlist',
+    '/dashboard/analysis',
+    '/dashboard/picklist'
 ];
 
 // Install event: cache the specified URLs

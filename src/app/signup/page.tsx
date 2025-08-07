@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from "react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -11,20 +12,30 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { ModeToggle } from "@/components/ui/light-dark-toggle"
-import { ArrowLeft, Users, UserRound } from "lucide-react"
+import { ArrowLeft, Users, UserPlus } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
 interface SignupFormData {
+  name: string
+  email: string
   username: string
   password: string
+  confirmPassword: string
+  teamNumber: string
 }
 
 export default function Page() {
   const [formData, setFormData] = useState<SignupFormData>({
+    name: '',
+    email: '',
     username: '',
     password: '',
+    confirmPassword: '',
+    teamNumber: '',
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -35,6 +46,11 @@ export default function Page() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords don't match")
+      return
+    }
     setIsSubmitting(true)
     
     // Simulate API call
@@ -67,16 +83,29 @@ export default function Page() {
           <Card className="shadow-lg border border-primary/10 rounded-2xl bg-white/80 dark:bg-background/80 backdrop-blur-sm">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 p-3 bg-primary/10 dark:bg-primary/20 rounded-full w-12 h-12 flex items-center justify-center shadow-sm">
-                <UserRound className="h-6 w-6 text-primary" />
+                <UserPlus className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle className="text-2xl font-semibold text-primary/90">Sign In</CardTitle>
+              <CardTitle className="text-2xl font-semibold text-primary/90">Create Account</CardTitle>
               <CardDescription className="text-muted-foreground/80">
-                Log in to your TRC Athena account
+                Join the TRC Athena Scouting platform
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Username */}
+                {/* Personal Information */}
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      placeholder="John Doe"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      required
+                      className="focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
                   <Input
@@ -84,10 +113,26 @@ export default function Page() {
                     placeholder="johndoe492"
                     value={formData.username}
                     onChange={(e) => handleInputChange('username', e.target.value)}
-                    className="focus:ring-2 focus:ring-primary/30"
                     required
+                    className="focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
+
+                {/* Team Information */}
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="teamNumber">Team Number</Label>
+                    <Input
+                      id="teamNumber"
+                      placeholder="492"
+                      value={formData.teamNumber}
+                      onChange={(e) => handleInputChange('teamNumber', e.target.value)}
+                      required
+                      className="focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                </div>
+
                 {/* Password */}
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
@@ -96,8 +141,20 @@ export default function Page() {
                     type="password"
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
-                    className="focus:ring-2 focus:ring-primary/30"
                     required
+                    className="focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    required
+                    className="focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
 
@@ -110,12 +167,12 @@ export default function Page() {
                   {isSubmitting ? (
                     <>
                       <Users className="mr-2 h-4 w-4 animate-spin" />
-                      Logging In...
+                      Creating Account...
                     </>
                   ) : (
                     <>
-                      <UserRound className="mr-2 h-4 w-4" />
-                      Log In
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Create Account
                     </>
                   )}
                 </Button>
@@ -151,14 +208,14 @@ export default function Page() {
                       fill="#EA4335"
                     />
                   </svg>
-                  Sign In with Google
+                  Sign up with Google
                 </Button> */}
               </form>
 
               <div className="mt-6 text-center text-sm">
-                Don't have an account?{" "}
-                <Link href="/signup" className="underline underline-offset-4 hover:text-primary">
-                  Sign up
+                Already have an account?{" "}
+                <Link href="/login" className="underline underline-offset-4 hover:text-primary">
+                  Sign in
                 </Link>
               </div>
             </CardContent>

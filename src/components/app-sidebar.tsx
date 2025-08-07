@@ -65,11 +65,11 @@ const data = {
       items: [
         {
           title: "Pit Scouting",
-          url: "/dashboard/pitscouting",
+          url: "/scout/pitscout",
         },
         {
           title: "Match Scouting",
-          url: "/dashboard/matchscouting",
+          url: "/scout/matchscout",
         },
       ],
     },

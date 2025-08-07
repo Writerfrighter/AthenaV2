@@ -8,6 +8,8 @@ import {
   LogOut,
 } from "lucide-react"
 
+import { useAccountSettingsDialog } from "@/app/dashboard/layout"
+
 import {
   Avatar,
   AvatarFallback,
@@ -39,6 +41,10 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  let openAccountSettings: (() => void) | undefined = undefined;
+  try {
+    openAccountSettings = useAccountSettingsDialog().openAccountSettings;
+  } catch {}
 
   return (
     <SidebarMenu>
@@ -87,7 +93,7 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator /> */}
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openAccountSettings && openAccountSettings()}>
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
