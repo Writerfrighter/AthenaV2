@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { GameConfigProvider } from "@/hooks/use-game-config";
 import { Toaster } from "sonner";
 
 const inter = Inter({
@@ -30,7 +31,9 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <GameConfigProvider>
+              {children}
+            </GameConfigProvider>
             <Toaster />
           </ThemeProvider>
           <script

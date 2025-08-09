@@ -1,0 +1,294 @@
+{
+  "2025": {
+    "gameName": "REEFSCAPE",
+    "scoring": {
+      "autonomous": {
+        "L1": {
+          "label": "Level 1 Coral (Auto)",
+          "points": 3,
+          "description": "Coral placed in Level 1 during autonomous"
+        },
+        "L2": {
+          "label": "Level 2 Coral (Auto)",
+          "points": 4,
+          "description": "Coral placed in Level 2 during autonomous"
+        },
+        "L3": {
+          "label": "Level 3 Coral (Auto)",
+          "points": 6,
+          "description": "Coral placed in Level 3 during autonomous"
+        },
+        "L4": {
+          "label": "Level 4 Coral (Auto)",
+          "points": 10,
+          "description": "Coral placed in Level 4 during autonomous"
+        },
+        "Net": {
+          "label": "Net Scoring (Auto)",
+          "points": 5,
+          "description": "Algae scored in Net during autonomous"
+        },
+        "Processor": {
+          "label": "Processor Scoring (Auto)",
+          "points": 8,
+          "description": "Algae scored in Processor during autonomous"
+        },
+        "mobility": {
+          "label": "Mobility",
+          "points": 3,
+          "description": "Robot exits starting zone during autonomous"
+        }
+      },
+      "teleop": {
+        "L1": {
+          "label": "Level 1 Coral (Teleop)",
+          "points": 2,
+          "description": "Coral placed in Level 1 during teleoperated"
+        },
+        "L2": {
+          "label": "Level 2 Coral (Teleop)",
+          "points": 4,
+          "description": "Coral placed in Level 2 during teleoperated"
+        },
+        "L3": {
+          "label": "Level 3 Coral (Teleop)",
+          "points": 6,
+          "description": "Coral placed in Level 3 during teleoperated"
+        },
+        "L4": {
+          "label": "Level 4 Coral (Teleop)",
+          "points": 10,
+          "description": "Coral placed in Level 4 during teleoperated"
+        },
+        "Net": {
+          "label": "Net Scoring (Teleop)",
+          "points": 3,
+          "description": "Algae scored in Net during teleoperated"
+        },
+        "Processor": {
+          "label": "Processor Scoring (Teleop)",
+          "points": 6,
+          "description": "Algae scored in Processor during teleoperated"
+        }
+      },
+      "endgame": {
+        "shallow": {
+          "label": "Shallow Climb",
+          "points": 3,
+          "description": "Robot climbing to shallow depth"
+        },
+        "deep": {
+          "label": "Deep Climb",
+          "points": 6,
+          "description": "Robot climbing to deep depth"
+        },
+        "barge": {
+          "label": "Barge Scoring",
+          "points": 12,
+          "description": "Coral placed on barge during endgame"
+        }
+      }
+    },
+    "pitScouting": {
+      "customFields": [
+        {
+          "name": "coralPreference",
+          "label": "Coral Collection Preference",
+          "type": "select",
+          "options": ["Ground pickup", "Human player", "Both", "Neither"]
+        },
+        {
+          "name": "algaePreference",
+          "label": "Algae Collection Preference", 
+          "type": "select",
+          "options": ["Ground pickup", "Human player", "Both", "Neither"]
+        },
+        {
+          "name": "climbCapability",
+          "label": "Climbing Capability",
+          "type": "select",
+          "options": ["No climb", "Shallow only", "Deep only", "Both"]
+        },
+        {
+          "name": "bargeCapability",
+          "label": "Barge Scoring Capability",
+          "type": "boolean"
+        },
+        {
+          "name": "cycleTime",
+          "label": "Estimated Cycle Time (seconds)",
+          "type": "number"
+        }
+      ]
+    }
+  },
+  "2024": {
+    "gameName": "CRESCENDO",
+    "scoring": {
+      "autonomous": {
+        "Speaker": {
+          "label": "Speaker (Auto)",
+          "points": 5,
+          "description": "Notes scored in Speaker during autonomous"
+        },
+        "Amp": {
+          "label": "Amp (Auto)",
+          "points": 2,
+          "description": "Notes scored in Amp during autonomous"
+        },
+        "mobility": {
+          "label": "Mobility",
+          "points": 2,
+          "description": "Robot leaves starting zone during autonomous"
+        }
+      },
+      "teleop": {
+        "Speaker": {
+          "label": "Speaker (Teleop)",
+          "points": 2,
+          "description": "Notes scored in Speaker during teleoperated"
+        },
+        "Amp": {
+          "label": "Amp (Teleop)",
+          "points": 1,
+          "description": "Notes scored in Amp during teleoperated"
+        },
+        "Trap": {
+          "label": "Trap",
+          "points": 5,
+          "description": "Notes scored in Trap"
+        }
+      },
+      "endgame": {
+        "park": {
+          "label": "Park",
+          "points": 1,
+          "description": "Robot parked in stage zone"
+        },
+        "onstage": {
+          "label": "Onstage",
+          "points": 3,
+          "description": "Robot climbed onstage"
+        },
+        "harmony": {
+          "label": "Harmony",
+          "points": 2,
+          "description": "Multiple robots on stage (team bonus)"
+        }
+      }
+    },
+    "pitScouting": {
+      "customFields": [
+        {
+          "name": "shootingRange",
+          "label": "Shooting Range",
+          "type": "select",
+          "options": ["Contact", "Short", "Medium", "Long", "Variable"]
+        },
+        {
+          "name": "intakeCapability",
+          "label": "Intake Capability",
+          "type": "select",
+          "options": ["Ground only", "Source only", "Both", "Neither"]
+        },
+        {
+          "name": "climbCapability",
+          "label": "Climbing Capability",
+          "type": "boolean"
+        },
+        {
+          "name": "cycleTime",
+          "label": "Estimated Cycle Time (seconds)",
+          "type": "number"
+        }
+      ]
+    }
+  },
+  "2023": {
+    "gameName": "CHARGED UP",
+    "scoring": {
+      "autonomous": {
+        "Cones": {
+          "label": "Cones (Auto)",
+          "points": 6,
+          "description": "Cones scored during autonomous"
+        },
+        "Cubes": {
+          "label": "Cubes (Auto)",
+          "points": 6,
+          "description": "Cubes scored during autonomous"
+        },
+        "mobility": {
+          "label": "Mobility",
+          "points": 3,
+          "description": "Robot leaves community during autonomous"
+        },
+        "docking": {
+          "label": "Auto Docking",
+          "points": 8,
+          "description": "Robot docks during autonomous"
+        },
+        "engaging": {
+          "label": "Auto Engaging",
+          "points": 12,
+          "description": "Robot engages charge station during autonomous"
+        }
+      },
+      "teleop": {
+        "Cones": {
+          "label": "Cones (Teleop)",
+          "points": 5,
+          "description": "Cones scored during teleoperated"
+        },
+        "Cubes": {
+          "label": "Cubes (Teleop)",
+          "points": 3,
+          "description": "Cubes scored during teleoperated"
+        }
+      },
+      "endgame": {
+        "park": {
+          "label": "Park",
+          "points": 2,
+          "description": "Robot parked in community"
+        },
+        "docking": {
+          "label": "Docking",
+          "points": 6,
+          "description": "Robot docks on charge station"
+        },
+        "engaging": {
+          "label": "Engaging",
+          "points": 10,
+          "description": "Robot engages charge station"
+        }
+      }
+    },
+    "pitScouting": {
+      "customFields": [
+        {
+          "name": "gamePiecePreference",
+          "label": "Game Piece Preference",
+          "type": "select",
+          "options": ["Cones only", "Cubes only", "Both", "Neither"]
+        },
+        {
+          "name": "scoringLevels",
+          "label": "Scoring Levels",
+          "type": "select",
+          "options": ["Hybrid only", "Mid only", "High only", "Multiple"]
+        },
+        {
+          "name": "balanceCapability",
+          "label": "Balance Capability",
+          "type": "boolean"
+        },
+        {
+          "name": "cycleTime",
+          "label": "Estimated Cycle Time (seconds)",
+          "type": "number"
+        }
+      ]
+    }
+  }
+}

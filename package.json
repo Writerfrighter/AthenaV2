@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@azure/cosmos": "^4.5.0",
+    "@azure/identity": "^4.11.1",
     "@hookform/resolvers": "^5.1.1",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",

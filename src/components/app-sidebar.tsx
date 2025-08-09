@@ -13,6 +13,7 @@ import {
   ChartColumnIncreasing,
   Table,
   Home,
+  Settings,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -82,24 +83,11 @@ const data = {
       title: "Picklist",
       url: "/dashboard/picklist",
       icon: ListOrdered,
-      // items: [
-      //   {
-      //     title: "Introduction",
-      //     url: "#",
-      //   },
-      //   {
-      //     title: "Get Started",
-      //     url: "#",
-      //   },
-      //   {
-      //     title: "Tutorials",
-      //     url: "#",
-      //   },
-      //   {
-      //     title: "Changelog",
-      //     url: "#",
-      //   },
-      // ],
+    },
+    {
+      title: "Settings",
+      url: "/dashboard/settings",
+      icon: Settings,
     },
     // },
   ],
