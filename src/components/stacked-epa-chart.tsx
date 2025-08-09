@@ -1,24 +1,68 @@
 "use client";
 
-import { TrendingUp } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import {
-  ChartConfig,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/ui/chart";
+
+import React from "react";
+
+// Define types for better type safety
+interface TooltipPayload {
+  dataKey: string;
+  name: string;
+  value: number;
+  color: string;
+  payload: Record<string, unknown>;
+}
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+// Custom tooltip content to include total
+function CustomChartTooltipContent(props: TooltipProps) {
+  const { active, payload, label } = props;
+  if (!active || !payload || !payload.length) return null;
+
+  // Calculate total (sum of all positive and negative values except team)
+  const total = Object.keys(payload[0].payload)
+    .filter((key) => key !== "team")
+    .reduce((sum, key) => {
+      const value = payload[0].payload[key];
+      return typeof value === "number" ? sum + value : sum;
+    }, 0);
+
+  return (
+    <div className="p-2 bg-background rounded-md shadow-md border">
+      <div className="font-semibold mb-1">Team: {label}</div>
+      {payload.map((entry: TooltipPayload) => (
+        <div key={entry.dataKey} className="flex justify-between gap-2">
+          <span style={{ color: entry.color }}>{entry.name}:</span>
+          <span>{entry.value}</span>
+        </div>
+      ))}
+      <div className="flex justify-between gap-2 mt-2 font-bold">
+        <span>Total:</span>
+        <span>{total}</span>
+      </div>
+    </div>
+  );
+}
 
 export const description = "A stacked bar chart with a legend";
 
@@ -68,7 +112,7 @@ const chartConfig = {
     label: "Auto",
     color: "var(--chart-4)",
   },
-} satisfies ChartConfig;
+};
 
 export function StackedEPAChart() {
   return (
@@ -88,7 +132,7 @@ export function StackedEPAChart() {
               axisLine={false}
               tickFormatter={(value) => value.slice(0, 3)}
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip content={<CustomChartTooltipContent />} />
             <ChartLegend content={<ChartLegendContent />} />
             <Bar
               dataKey="penalties"
@@ -119,14 +163,6 @@ export function StackedEPAChart() {
           </BarChart>
         </ChartContainer>
       </CardContent>
-      {/* <CardFooter className="flex-col items-start gap-2 text-sm">
-        <div className="flex gap-2 leading-none font-medium">
-          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-        </div>
-        <div className="text-muted-foreground leading-none">
-          Showing total visitors for the last 6 months
-        </div>
-      </CardFooter> */}
     </Card>
   );
 }

@@ -11,7 +11,7 @@ import {
 import { useSidebar } from "@/components/ui/sidebar"
 
 export function SearchForm({ ...props }: React.ComponentProps<"form">) {
-  const { isMobile, state } = useSidebar()
+  const { state } = useSidebar()
   const router = useRouter()
   const [teamId, setTeamId] = useState("")
 

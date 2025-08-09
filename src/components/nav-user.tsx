@@ -41,10 +41,10 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  let openAccountSettings: (() => void) | undefined = undefined;
-  try {
-    openAccountSettings = useAccountSettingsDialog().openAccountSettings;
-  } catch {}
+  
+  // Call the hook unconditionally at the top level
+  const accountSettingsDialog = useAccountSettingsDialog();
+  const openAccountSettings = accountSettingsDialog?.openAccountSettings;
 
   return (
     <SidebarMenu>
