@@ -44,17 +44,19 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
     const teleopStats: Record<string, number> = {};
     
     // Calculate averages for each scoring category
-    Object.keys(gameConfig.autonomous.scoring).forEach(key => {
-      const total = matchEntries.reduce((sum, match) => 
-        sum + (match.gameSpecificData?.autonomous?.[key] || 0), 0
-      );
+    Object.keys(gameConfig.scoring.autonomous).forEach(key => {
+      const total = matchEntries.reduce((sum, match) => {
+        const autonomousData = match.gameSpecificData?.autonomous as Record<string, number> | undefined;
+        return sum + (autonomousData?.[key] as number || 0);
+      }, 0);
       autoStats[key] = total / matchEntries.length;
     });
 
-    Object.keys(gameConfig.teleop.scoring).forEach(key => {
-      const total = matchEntries.reduce((sum, match) => 
-        sum + (match.gameSpecificData?.teleop?.[key] || 0), 0
-      );
+    Object.keys(gameConfig.scoring.teleop).forEach(key => {
+      const total = matchEntries.reduce((sum, match) => {
+        const teleopData = match.gameSpecificData?.teleop as Record<string, number> | undefined;
+        return sum + (teleopData?.[key] as number || 0);
+      }, 0);
       teleopStats[key] = total / matchEntries.length;
     });
 
@@ -64,8 +66,8 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
   const stats = calculateStats();
 
   // Prepare chart data
-  const chartData = stats ? Object.entries(gameConfig.autonomous.scoring).map(([key, config]) => ({
-    name: config.label,
+  const chartData = stats ? Object.entries(gameConfig.scoring.autonomous).map(([key, config]) => ({
+    name: (config as { label: string }).label,
     autonomous: stats.autoStats[key] || 0,
     teleop: stats.teleopStats[key] || 0,
   })) : [];
@@ -115,7 +117,7 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
               </div>
               <div>
                 <span className="font-semibold text-muted-foreground">Dimensions:</span>
-                <p className="text-lg">{pitEntry.length}" × {pitEntry.width}"</p>
+                <p className="text-lg">{pitEntry.length}&quot; × {pitEntry.width}&quot;</p>
               </div>
             </div>
             
@@ -127,7 +129,11 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
                   {Object.entries(pitEntry.gameSpecificData).map(([key, value]) => (
                     <div key={key}>
                       <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
-                      <span className="ml-2">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}</span>
+                      <span className="ml-2">
+                        {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : 
+                         typeof value === 'object' ? JSON.stringify(value) : 
+                         String(value)}
+                      </span>
                     </div>
                   ))}
                 </div>

@@ -20,7 +20,10 @@ const pwaConfig = {
   register: true,
   skipWaiting: true,
   disable: !isProd,
+  // Only include runtime caching in production
   runtimeCaching: isProd ? require('./runtimeCaching') : [],
+  // Prevent build manifest issues in development
+  buildExcludes: isProd ? [] : [/.*\.js\.map$/, /app-build-manifest\.json$/],
 };
 
 export default withPWA(pwaConfig)(nextConfig);

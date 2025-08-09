@@ -40,15 +40,15 @@ export function Team2024Page({ teamNumber }: Team2024PageProps) {
     if (!matchEntries || matchEntries.length === 0) return null;
 
     const totals = matchEntries.reduce((acc, match) => {
-      const auto = match.gameSpecificData?.autonomous || {};
-      const teleop = match.gameSpecificData?.teleop || {};
+      const auto = match.gameSpecificData?.autonomous as Record<string, number> | undefined || {};
+      const teleop = match.gameSpecificData?.teleop as Record<string, number> | undefined || {};
       
       return {
-        auto_speaker: acc.auto_speaker + (auto.speaker || 0),
-        auto_amp: acc.auto_amp + (auto.amp || 0),
-        teleop_speaker: acc.teleop_speaker + (teleop.speaker || 0),
-        teleop_amp: acc.teleop_amp + (teleop.amp || 0),
-        teleop_trap: acc.teleop_trap + (teleop.trap || 0),
+        auto_speaker: acc.auto_speaker + (auto.speaker as number || 0),
+        auto_amp: acc.auto_amp + (auto.amp as number || 0),
+        teleop_speaker: acc.teleop_speaker + (teleop.speaker as number || 0),
+        teleop_amp: acc.teleop_amp + (teleop.amp as number || 0),
+        teleop_trap: acc.teleop_trap + (teleop.trap as number || 0),
       };
     }, { auto_speaker: 0, auto_amp: 0, teleop_speaker: 0, teleop_amp: 0, teleop_trap: 0 });
 

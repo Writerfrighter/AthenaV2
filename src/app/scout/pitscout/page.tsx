@@ -1,13 +1,30 @@
 'use client';
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
 import { YearSelector } from "@/components/year-selector";
 import { DynamicPitScoutForm } from "@/components/dynamic-pit-scout-form";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Page() {
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    const updateOnlineStatus = () => setIsOnline(navigator.onLine);
+    
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    
+    // Set initial status
+    updateOnlineStatus();
+    
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
   return (
     <div className="min-h-screen bg-background dark:bg-background">
       {/* Header Bar */}
@@ -27,8 +44,18 @@ export default function Page() {
             <ModeToggle />
           </div>
           {/* Year selector on second row */}
-          <div className="mt-2 pt-2 border-t border-border/50">
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
             <YearSelector />
+            <div className="flex items-center gap-2">
+              {isOnline ? (
+                <Wifi className="h-4 w-4 text-foreground" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-orange-500" />
+              )}
+              <span className="text-sm text-muted-foreground">
+                {isOnline ? "Online" : "Offline"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

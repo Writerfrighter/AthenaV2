@@ -260,7 +260,7 @@ export function DatabaseSyncComponent() {
                 </div>
                 <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg">
                   <strong>Azure Authentication:</strong> This uses managed identity authentication. 
-                  Ensure you're signed into Azure CLI or deployed to Azure with proper permissions.
+                  Ensure you&apos;re signed into Azure CLI or deployed to Azure with proper permissions.
                   No connection string or keys required!
                 </div>
               </div>

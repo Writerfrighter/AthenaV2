@@ -23,7 +23,7 @@ interface DynamicPitData {
   width: string;
   hasAuto: boolean;
   notes: string;
-  gameSpecificData: Record<string, any>;
+  gameSpecificData: Record<string, number | string | boolean>;
 }
 
 export function DynamicPitScoutForm() {
@@ -49,7 +49,7 @@ export function DynamicPitScoutForm() {
     setFormData((f) => ({ ...f, [name]: value }));
   };
 
-  const handleGameSpecificChange = (field: string, value: any) => {
+  const handleGameSpecificChange = (field: string, value: number | string | boolean) => {
     setFormData((f) => ({ 
       ...f, 
       gameSpecificData: { ...f.gameSpecificData, [field]: value }
@@ -103,7 +103,7 @@ export function DynamicPitScoutForm() {
     }
   };
 
-  const renderCustomField = (field: any) => {
+  const renderCustomField = (field: { name: string; label: string; type: string; options?: string[] }) => {
     const value = formData.gameSpecificData[field.name] || '';
     
     switch (field.type) {
@@ -118,7 +118,7 @@ export function DynamicPitScoutForm() {
               id={field.name}
               name={field.name}
               type={field.type}
-              value={value}
+              value={String(value || '')}
               onChange={(e) => handleGameSpecificChange(field.name, e.target.value)}
               className="h-12 text-base"
             />
@@ -130,7 +130,7 @@ export function DynamicPitScoutForm() {
           <div key={field.name} className="flex items-center space-x-4">
             <Switch
               id={field.name}
-              checked={value || false}
+              checked={Boolean(value)}
               onCheckedChange={(checked) => handleGameSpecificChange(field.name, checked)}
               className="scale-125"
             />
@@ -147,7 +147,7 @@ export function DynamicPitScoutForm() {
               {field.label}
             </Label>
             <Select 
-              value={value} 
+              value={String(value || '')} 
               onValueChange={(value) => handleGameSpecificChange(field.name, value)}
             >
               <SelectTrigger className="h-12 text-base">
@@ -176,7 +176,7 @@ export function DynamicPitScoutForm() {
       {/* Game Title */}
       <div className="text-center">
         <Badge variant="outline" className="text-lg px-4 py-2">
-          {gameConfig.gameName} - Pit Scouting
+          {gameConfig?.gameName || 'Unknown Game'} - Pit Scouting
         </Badge>
       </div>
 

@@ -136,7 +136,7 @@ export class CosmosDatabaseService implements DatabaseService {
     this.ensureInitialized();
     try {
       let query;
-      let options: any = {};
+      const options: Record<string, unknown> = {};
 
       if (year) {
         query = {
@@ -237,7 +237,7 @@ export class CosmosDatabaseService implements DatabaseService {
     this.ensureInitialized();
     try {
       let query;
-      let options: any = {};
+      const options: Record<string, unknown> = {};
 
       if (year) {
         query = {
@@ -270,7 +270,7 @@ export class CosmosDatabaseService implements DatabaseService {
     this.ensureInitialized();
     try {
       let query;
-      let options: any = {};
+      const options: Record<string, unknown> = {};
 
       if (year) {
         query = {
@@ -466,31 +466,31 @@ export class CosmosDatabaseService implements DatabaseService {
     }
   }
 
-  private mapCosmosToPitEntry(cosmosItem: any): PitEntry {
+  private mapCosmosToPitEntry(cosmosItem: Record<string, unknown>): PitEntry {
     return {
-      id: cosmosItem.teamNumber,
-      teamNumber: cosmosItem.teamNumber,
-      name: cosmosItem.name,
-      year: cosmosItem.year,
-      driveTrain: cosmosItem.driveTrain,
-      weight: cosmosItem.weight,
-      length: cosmosItem.length,
-      width: cosmosItem.width,
-      gameSpecificData: cosmosItem.gameSpecificData || {}
+      id: cosmosItem.teamNumber as number,
+      teamNumber: cosmosItem.teamNumber as number,
+      name: cosmosItem.name as string,
+      year: cosmosItem.year as number,
+      driveTrain: cosmosItem.driveTrain as "Swerve" | "Mecanum" | "Tank" | "Other",
+      weight: cosmosItem.weight as number,
+      length: cosmosItem.length as number,
+      width: cosmosItem.width as number,
+      gameSpecificData: (cosmosItem.gameSpecificData as Record<string, number | string | boolean | Record<string, number | string | boolean>>) || {}
     };
   }
 
-  private mapCosmosToMatchEntry(cosmosItem: any): MatchEntry {
+  private mapCosmosToMatchEntry(cosmosItem: Record<string, unknown>): MatchEntry {
     return {
-      id: parseInt(cosmosItem.id.split('-').pop() || '0'),
-      matchNumber: cosmosItem.matchNumber,
-      teamNumber: cosmosItem.teamNumber,
-      year: cosmosItem.year,
-      alliance: cosmosItem.alliance,
-      position: cosmosItem.position,
-      gameSpecificData: cosmosItem.gameSpecificData || {},
-      notes: cosmosItem.notes || '',
-      timestamp: new Date(cosmosItem.timestamp)
+      id: parseInt((cosmosItem.id as string).split('-').pop() || '0'),
+      matchNumber: cosmosItem.matchNumber as string,
+      teamNumber: cosmosItem.teamNumber as string,
+      year: cosmosItem.year as number,
+      alliance: cosmosItem.alliance as "red" | "blue",
+      position: cosmosItem.position as "1" | "2" | "3",
+      gameSpecificData: (cosmosItem.gameSpecificData as Record<string, number | string | boolean | Record<string, number | string | boolean>>) || {},
+      notes: (cosmosItem.notes as string) || '',
+      timestamp: new Date(cosmosItem.timestamp as string | number)
     };
   }
 

@@ -88,21 +88,21 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
     const epaBreakdown = calculateEPA(matchEntries, 2025);
     
     const totals = matchEntries.reduce((acc, match) => {
-      const auto = match.gameSpecificData?.autonomous || {};
-      const teleop = match.gameSpecificData?.teleop || {};
+      const auto = match.gameSpecificData?.autonomous as Record<string, number> | undefined || {};
+      const teleop = match.gameSpecificData?.teleop as Record<string, number> | undefined || {};
       
       return {
-        auto_l2: acc.auto_l2 + (auto.l2 || 0),
-        auto_l3: acc.auto_l3 + (auto.l3 || 0),
-        auto_l4: acc.auto_l4 + (auto.l4 || 0),
-        auto_net: acc.auto_net + (auto.net || 0),
-        auto_processor: acc.auto_processor + (auto.processor || 0),
+        auto_l2: acc.auto_l2 + (auto.l2 as number || 0),
+        auto_l3: acc.auto_l3 + (auto.l3 as number || 0),
+        auto_l4: acc.auto_l4 + (auto.l4 as number || 0),
+        auto_net: acc.auto_net + (auto.net as number || 0),
+        auto_processor: acc.auto_processor + (auto.processor as number || 0),
         
-        teleop_l2: acc.teleop_l2 + (teleop.l2 || 0),
-        teleop_l3: acc.teleop_l3 + (teleop.l3 || 0),
-        teleop_l4: acc.teleop_l4 + (teleop.l4 || 0),
-        teleop_net: acc.teleop_net + (teleop.net || 0),
-        teleop_processor: acc.teleop_processor + (teleop.processor || 0),
+        teleop_l2: acc.teleop_l2 + (teleop.l2 as number || 0),
+        teleop_l3: acc.teleop_l3 + (teleop.l3 as number || 0),
+        teleop_l4: acc.teleop_l4 + (teleop.l4 as number || 0),
+        teleop_net: acc.teleop_net + (teleop.net as number || 0),
+        teleop_processor: acc.teleop_processor + (teleop.processor as number || 0),
         
         // For backwards compatibility with generic coral/algae tracking
         auto_coral: acc.auto_coral + (auto.coral || 0),

@@ -35,9 +35,9 @@ interface DynamicMatchData {
   position: '1' | '2' | '3';
   
   // Game-specific data stored as flexible object
-  autonomous: Record<string, any>;
-  teleop: Record<string, any>;
-  endgame: Record<string, any>;
+  autonomous: Record<string, number | string | boolean>;
+  teleop: Record<string, number | string | boolean>;
+  endgame: Record<string, number | string | boolean>;
   
   // Common fields
   notes: string;
@@ -59,22 +59,22 @@ export function DynamicMatchScoutForm() {
   const [formData, setFormData] = useState<DynamicMatchData>(defaultData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (section: string, field: string, value: any) => {
+  const handleInputChange = (section: string, field: string, value: number | string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [section]: {
-        ...(prev[section as keyof DynamicMatchData] as Record<string, any> || {}),
+        ...(prev[section as keyof DynamicMatchData] as Record<string, number | string | boolean> || {}),
         [field]: value
       }
     }));
   };
 
-  const handleBasicInputChange = (field: keyof DynamicMatchData, value: any) => {
+  const handleBasicInputChange = (field: keyof DynamicMatchData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleNumberChange = (section: string, field: string, increment: boolean) => {
-    const currentValue = (formData[section as keyof DynamicMatchData] as Record<string, any>)[field] || 0;
+    const currentValue = (formData[section as keyof DynamicMatchData] as Record<string, number | string | boolean>)[field] as number || 0;
     const newValue = Math.max(0, currentValue + (increment ? 1 : -1));
     handleInputChange(section, field, newValue);
   };
@@ -117,8 +117,8 @@ export function DynamicMatchScoutForm() {
     }
   };
 
-  const renderScoringField = (section: 'autonomous' | 'teleop', fieldKey: string, fieldConfig: any) => {
-    const currentValue = (formData[section] as Record<string, any>)[fieldKey] || 0;
+  const renderScoringField = (section: 'autonomous' | 'teleop' | 'endgame', fieldKey: string, fieldConfig: { label: string; points: number; description: string }) => {
+    const currentValue = (formData[section] as Record<string, number | string | boolean>)[fieldKey] as number || 0;
     
     return (
       <div key={fieldKey} className="space-y-2">
@@ -162,7 +162,7 @@ export function DynamicMatchScoutForm() {
       {/* Game Title */}
       <div className="text-center">
         <Badge variant="outline" className="text-lg px-4 py-2">
-          {gameConfig.gameName} - Match Scouting
+          {gameConfig?.gameName || 'Unknown Game'} - Match Scouting
         </Badge>
       </div>
 
@@ -242,7 +242,7 @@ export function DynamicMatchScoutForm() {
             <div className="space-y-2">
               <Label>Starting Position</Label>
               <Select 
-                value={(formData.autonomous as any).startPosition || ''} 
+                value={String((formData.autonomous as Record<string, unknown>).startPosition || '')} 
                 onValueChange={(value) => handleInputChange('autonomous', 'startPosition', value)}
               >
                 <SelectTrigger className="focus:border-green-500">
@@ -258,8 +258,8 @@ export function DynamicMatchScoutForm() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {gameConfig && (gameConfig as any).scoring && Object.entries((gameConfig as any).scoring.autonomous).map(([key, config]) => 
-              renderScoringField('autonomous', key, config)
+            {gameConfig && gameConfig.scoring && Object.entries(gameConfig.scoring.autonomous).map(([key, config]) => 
+              renderScoringField('autonomous', key, config as { label: string; points: number; description: string })
             )}
           </div>
 
@@ -282,8 +282,8 @@ export function DynamicMatchScoutForm() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {gameConfig && (gameConfig as any).scoring && Object.entries((gameConfig as any).scoring.teleop).map(([key, config]) => 
-              renderScoringField('teleop', key, config)
+            {gameConfig && gameConfig.scoring && Object.entries(gameConfig.scoring.teleop).map(([key, config]) => 
+              renderScoringField('teleop', key, config as { label: string; points: number; description: string })
             )}
           </div>
         </CardContent>
@@ -301,7 +301,7 @@ export function DynamicMatchScoutForm() {
           <div className="space-y-2">
             <Label>Endgame Position</Label>
             <Select 
-              value={(formData.endgame as any).position || ''} 
+              value={String((formData.endgame as Record<string, unknown>).position || '')} 
               onValueChange={(value) => handleInputChange('endgame', 'position', value)}
             >
               <SelectTrigger className="focus:border-green-500">
@@ -317,8 +317,8 @@ export function DynamicMatchScoutForm() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {gameConfig && (gameConfig as any).scoring && Object.entries((gameConfig as any).scoring.endgame).map(([key, config]) => 
-              renderScoringField('endgame' as any, key, config)
+            {gameConfig && gameConfig.scoring && Object.entries(gameConfig.scoring.endgame).map(([key, config]) => 
+              renderScoringField('endgame', key, config as { label: string; points: number; description: string })
             )}
           </div>
         </CardContent>

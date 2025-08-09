@@ -4,7 +4,7 @@ import { PitEntry, MatchEntry } from './db';
 // Firebase implementation - requires firebase SDK
 export class FirebaseDatabaseService implements DatabaseService {
   private firebaseConfig: DatabaseConfig['firebase'];
-  private db: any; // Firebase Firestore instance
+  private db: unknown; // Firebase Firestore instance
 
   constructor(config: DatabaseConfig['firebase']) {
     this.firebaseConfig = config;

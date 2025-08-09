@@ -31,9 +31,9 @@ export function calculateEPA(matches: MatchEntry[], year: number): EPABreakdown 
   let totalEndgamePoints = 0;
 
   for (const match of matches) {
-    const autoPoints = calculateAutonomousPoints(match.gameSpecificData?.autonomous || {}, year);
-    const teleopPoints = calculateTeleopPoints(match.gameSpecificData?.teleop || {}, year);
-    const endgamePoints = calculateEndgamePoints(match.gameSpecificData?.endgame || {}, year);
+    const autoPoints = calculateAutonomousPoints((match.gameSpecificData?.autonomous as unknown as Record<string, number | string | boolean>) || {}, year);
+    const teleopPoints = calculateTeleopPoints((match.gameSpecificData?.teleop as unknown as Record<string, number | string | boolean>) || {}, year);
+    const endgamePoints = calculateEndgamePoints((match.gameSpecificData?.endgame as unknown as Record<string, number | string | boolean>) || {}, year);
 
     totalAutoPoints += autoPoints;
     totalTeleopPoints += teleopPoints;
@@ -52,26 +52,26 @@ export function calculateEPA(matches: MatchEntry[], year: number): EPABreakdown 
 /**
  * Calculate autonomous points based on year and scoring data
  */
-function calculateAutonomousPoints(autoData: Record<string, any>, year: number): number {
+function calculateAutonomousPoints(autoData: Record<string, number | string | boolean>, year: number): number {
   let points = 0;
 
   switch (year) {
     case 2025: // REEFSCAPE
-      points += (autoData.l2 || 0) * 4;
-      points += (autoData.l3 || 0) * 6;
-      points += (autoData.l4 || 0) * 10;
-      points += (autoData.net || 0) * 3;
-      points += (autoData.processor || 0) * 3;
+      points += (Number(autoData.l2) || 0) * 4;
+      points += (Number(autoData.l3) || 0) * 6;
+      points += (Number(autoData.l4) || 0) * 10;
+      points += (Number(autoData.net) || 0) * 3;
+      points += (Number(autoData.processor) || 0) * 3;
       points += autoData.mobility ? 3 : 0;
       break;
     case 2024: // CRESCENDO
-      points += (autoData.speaker || 0) * 5;
-      points += (autoData.amp || 0) * 2;
+      points += (Number(autoData.speaker) || 0) * 5;
+      points += (Number(autoData.amp) || 0) * 2;
       points += autoData.mobility ? 2 : 0;
       break;
     case 2023: // CHARGED UP
-      points += (autoData.cones || 0) * 6;
-      points += (autoData.cubes || 0) * 4;
+      points += (Number(autoData.cones) || 0) * 6;
+      points += (Number(autoData.cubes) || 0) * 4;
       points += autoData.mobility ? 3 : 0;
       points += autoData.docking ? 8 : 0;
       points += autoData.engagement ? 12 : 0;
@@ -89,25 +89,25 @@ function calculateAutonomousPoints(autoData: Record<string, any>, year: number):
 /**
  * Calculate teleop points based on year and scoring data
  */
-function calculateTeleopPoints(teleopData: Record<string, any>, year: number): number {
+function calculateTeleopPoints(teleopData: Record<string, number | string | boolean>, year: number): number {
   let points = 0;
 
   switch (year) {
     case 2025: // REEFSCAPE
-      points += (teleopData.l2 || 0) * 2;
-      points += (teleopData.l3 || 0) * 4;
-      points += (teleopData.l4 || 0) * 7;
-      points += (teleopData.net || 0) * 2;
-      points += (teleopData.processor || 0) * 1;
+      points += (Number(teleopData.l2) || 0) * 2;
+      points += (Number(teleopData.l3) || 0) * 4;
+      points += (Number(teleopData.l4) || 0) * 7;
+      points += (Number(teleopData.net) || 0) * 2;
+      points += (Number(teleopData.processor) || 0) * 1;
       break;
     case 2024: // CRESCENDO
-      points += (teleopData.speaker || 0) * 2;
-      points += (teleopData.amp || 0) * 1;
-      points += (teleopData.trap || 0) * 5;
+      points += (Number(teleopData.speaker) || 0) * 2;
+      points += (Number(teleopData.amp) || 0) * 1;
+      points += (Number(teleopData.trap) || 0) * 5;
       break;
     case 2023: // CHARGED UP
-      points += (teleopData.cones || 0) * 5;
-      points += (teleopData.cubes || 0) * 3;
+      points += (Number(teleopData.cones) || 0) * 5;
+      points += (Number(teleopData.cubes) || 0) * 3;
       break;
     default:
       // Generic calculation
@@ -122,7 +122,7 @@ function calculateTeleopPoints(teleopData: Record<string, any>, year: number): n
 /**
  * Calculate endgame points based on year and scoring data
  */
-function calculateEndgamePoints(endgameData: Record<string, any>, year: number): number {
+function calculateEndgamePoints(endgameData: Record<string, number | string | boolean>, year: number): number {
   let points = 0;
 
   switch (year) {

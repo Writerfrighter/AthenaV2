@@ -37,8 +37,6 @@ class DatabaseManager {
           throw new Error('Azure Cosmos DB configuration required');
         }
         const cosmosService = new CosmosDatabaseService(config.cosmos);
-        // Initialize Cosmos DB client (fire and forget for now)
-        (cosmosService as any).initializeClient().catch(console.error);
         return cosmosService;
       case 'supabase':
         // TODO: Implement Supabase service

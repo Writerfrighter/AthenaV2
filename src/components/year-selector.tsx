@@ -34,7 +34,7 @@ export function YearSelector() {
               <div className="flex items-center gap-2">
                 <span>{year}</span>
                 <Badge variant="outline" className="text-xs hidden sm:inline-block">
-                  {(config as any)[year].gameName}
+                  {(config as Record<string, { gameName: string }>)[year].gameName}
                 </Badge>
               </div>
             </SelectItem>

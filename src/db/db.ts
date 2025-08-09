@@ -9,7 +9,7 @@ interface PitEntry {
   weight: number;
   length: number;
   width: number;
-  gameSpecificData: Record<string, any>; // Flexible object for year-specific fields
+  gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>; // Flexible object for year-specific fields
   [extra: string]: unknown
 }
 
@@ -20,7 +20,7 @@ interface MatchEntry {
   year: number;
   alliance: 'red' | 'blue';
   position: '1' | '2' | '3';
-  gameSpecificData: Record<string, any>; // Flexible object for year-specific fields
+  gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>; // Flexible object for year-specific fields
   notes: string;
   timestamp: Date;
 }

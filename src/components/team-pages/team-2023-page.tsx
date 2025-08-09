@@ -40,14 +40,14 @@ export function Team2023Page({ teamNumber }: Team2023PageProps) {
     if (!matchEntries || matchEntries.length === 0) return null;
 
     const totals = matchEntries.reduce((acc, match) => {
-      const auto = match.gameSpecificData?.autonomous || {};
-      const teleop = match.gameSpecificData?.teleop || {};
+      const auto = match.gameSpecificData?.autonomous as Record<string, number> | undefined || {};
+      const teleop = match.gameSpecificData?.teleop as Record<string, number> | undefined || {};
       
       return {
-        auto_cones: acc.auto_cones + (auto.cones || 0),
-        auto_cubes: acc.auto_cubes + (auto.cubes || 0),
-        teleop_cones: acc.teleop_cones + (teleop.cones || 0),
-        teleop_cubes: acc.teleop_cubes + (teleop.cubes || 0),
+        auto_cones: acc.auto_cones + (auto.cones as number || 0),
+        auto_cubes: acc.auto_cubes + (auto.cubes as number || 0),
+        teleop_cones: acc.teleop_cones + (teleop.cones as number || 0),
+        teleop_cubes: acc.teleop_cubes + (teleop.cubes as number || 0),
       };
     }, { auto_cones: 0, auto_cubes: 0, teleop_cones: 0, teleop_cubes: 0 });
 
