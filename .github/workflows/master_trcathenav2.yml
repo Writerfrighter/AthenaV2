@@ -44,7 +44,6 @@ jobs:
             src/
             public/
             package.json
-            pnpm-lock.yaml
             next.config.js
             config/
                   
@@ -75,4 +74,5 @@ jobs:
           app-name: 'TRCAthenaV2'
           slot-name: 'Production'
           package: .
+
 
