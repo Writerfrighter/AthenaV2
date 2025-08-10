@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { EventInfoCard } from "@/components/event-info-card"
 import { 
   Trophy, 
   Users, 
@@ -18,7 +19,11 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
+import { useSelectedEvent } from "@/hooks/use-event-config"
+
 export default function Page() {
+  const selectedEvent = useSelectedEvent();
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -30,11 +35,17 @@ export default function Page() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="flex items-center gap-1 border-green-200 text-green-700">
-            <MapPin className="h-3 w-3" />
-            District Championships
-          </Badge>
-          <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">PNW 2025</Badge>
+          {selectedEvent && (
+            <>
+              <Badge variant="outline" className="flex items-center gap-1 border-green-200 text-green-700">
+                <MapPin className="h-3 w-3" />
+                {selectedEvent.name}
+              </Badge>
+              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                {selectedEvent.number}
+              </Badge>
+            </>
+          )}
         </div>
       </div>
 
@@ -92,6 +103,9 @@ export default function Page() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Event Information */}
+      <EventInfoCard />
 
       {/* Quick Actions & Event Progress */}
       <div className="grid gap-6 lg:grid-cols-2">

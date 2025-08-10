@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useCurrentGameConfig } from '@/hooks/use-game-config';
+import { useSelectedEvent } from '@/hooks/use-event-config';
+import { useEventTeamNumbers } from '@/hooks/use-event-teams';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +58,8 @@ const defaultData: DynamicMatchData = {
 
 export function DynamicMatchScoutForm() {
   const gameConfig = useCurrentGameConfig();
+  const selectedEvent = useSelectedEvent();
+  const eventTeamNumbers = useEventTeamNumbers();
   const [formData, setFormData] = useState<DynamicMatchData>(defaultData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -94,6 +98,8 @@ export function DynamicMatchScoutForm() {
         year: new Date().getFullYear(),
         alliance: formData.alliance,
         position: formData.position,
+        eventName: selectedEvent?.name || 'Unknown Event',
+        eventCode: selectedEvent?.code || selectedEvent?.number || 'Unknown Code',
         gameSpecificData: {
           autonomous: formData.autonomous,
           teleop: formData.teleop,
@@ -188,13 +194,24 @@ export function DynamicMatchScoutForm() {
           
           <div className="space-y-2">
             <Label htmlFor="teamNumber">Team Number</Label>
-            <Input
-              id="teamNumber"
-              placeholder="492"
-              value={formData.teamNumber}
-              onChange={(e) => handleBasicInputChange('teamNumber', e.target.value)}
-              className="focus:border-green-500"
-            />
+            <Select value={formData.teamNumber} onValueChange={(value) => handleBasicInputChange('teamNumber', value)}>
+              <SelectTrigger className="focus:border-green-500">
+                <SelectValue placeholder="Select team number" />
+              </SelectTrigger>
+              <SelectContent>
+                {eventTeamNumbers.length > 0 ? (
+                  eventTeamNumbers.map((teamNumber) => (
+                    <SelectItem key={teamNumber} value={String(teamNumber)}>
+                      Team {teamNumber}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    No teams available for this event
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">

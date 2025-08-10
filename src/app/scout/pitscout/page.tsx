@@ -2,14 +2,17 @@
 
 import { ArrowLeft, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
 import { YearSelector } from "@/components/year-selector";
 import { DynamicPitScoutForm } from "@/components/dynamic-pit-scout-form";
+import { useSelectedEvent } from "@/hooks/use-event-config";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Page() {
   const [isOnline, setIsOnline] = useState(true);
+  const selectedEvent = useSelectedEvent();
 
   useEffect(() => {
     const updateOnlineStatus = () => setIsOnline(navigator.onLine);
@@ -45,7 +48,14 @@ export default function Page() {
           </div>
           {/* Year selector on second row */}
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
-            <YearSelector />
+            <div className="flex items-center gap-3">
+              <YearSelector />
+              {selectedEvent && (
+                <Badge variant="outline" className="text-xs">
+                  {selectedEvent.name}
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               {isOnline ? (
                 <Wifi className="h-4 w-4 text-foreground" />

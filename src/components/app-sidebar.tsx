@@ -36,23 +36,6 @@ const data = {
     username: "writerfrighter",
     avatar: "/TRCLogo.webp",
   },
-  events: [
-    {
-      name: "District Championships",
-      // logo: "/TRCLogo.webp",
-      number: "PNW: 2025",
-    },
-    {
-      name: "District Sammamish Event",
-      // logo: "/TRCLogo.webp",
-      number: "PNW: 2025",
-    },
-    {
-      name: "District Sundome Event",
-      // logo: "/TRCLogo.webp",
-      number: "PNW: 2025",
-    },
-  ],
   navMain: [
     { title: "Home", url: "/dashboard", icon: Home },
     {
@@ -114,7 +97,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props} variant="floating">
       <SidebarHeader>
-        <EventSwitcher events={data.events} />
+        <EventSwitcher />
         <SearchForm />
       </SidebarHeader>
       <SidebarContent>

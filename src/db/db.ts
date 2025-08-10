@@ -9,6 +9,8 @@ interface PitEntry {
   weight: number;
   length: number;
   width: number;
+  eventName?: string;
+  eventCode?: string;
   gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>; // Flexible object for year-specific fields
   [extra: string]: unknown
 }
@@ -20,6 +22,8 @@ interface MatchEntry {
   year: number;
   alliance: 'red' | 'blue';
   position: '1' | '2' | '3';
+  eventName?: string;
+  eventCode?: string;
   gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>; // Flexible object for year-specific fields
   notes: string;
   timestamp: Date;
@@ -50,6 +54,32 @@ db.version(2).stores({
       entry.gameSpecificData = {};
     }
   });
+});
+
+// Add event fields
+db.version(3).stores({
+  pitEntries: "++id, teamNumber, year, name, drivetrain, weight, length, width, gameSpecificData, eventName, eventCode",
+  matchEntries: "++id, teamNumber, year, matchNumber, alliance, position, gameSpecificData, timestamp, eventName, eventCode"
+}).upgrade(tx => {
+  // Add event fields to existing entries
+  return Promise.all([
+    tx.table("pitEntries").toCollection().modify(entry => {
+      if (!entry.eventName) {
+        entry.eventName = 'Unknown Event';
+      }
+      if (!entry.eventCode) {
+        entry.eventCode = 'Unknown Code';
+      }
+    }),
+    tx.table("matchEntries").toCollection().modify(entry => {
+      if (!entry.eventName) {
+        entry.eventName = 'Unknown Event';
+      }
+      if (!entry.eventCode) {
+        entry.eventCode = 'Unknown Code';
+      }
+    })
+  ]);
 });
 
 export type { PitEntry, MatchEntry };

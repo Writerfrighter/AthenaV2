@@ -18,20 +18,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { useEventConfig } from "@/hooks/use-event-config"
 
-export function EventSwitcher({
-  events,
-}: {
-  events: {
-    name: string
-    // logo: string
-    number: string
-  }[]
-}) {
+export function EventSwitcher() {
   const { isMobile } = useSidebar()
-  const [activeEvent, setActiveEvent] = React.useState(events[0])
+  const { events, selectedEvent, setSelectedEvent } = useEventConfig()
 
-  if (!activeEvent) {
+  if (!selectedEvent) {
     return null
   }
 
@@ -55,8 +48,8 @@ export function EventSwitcher({
 
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{activeEvent.name}</span>
-                <span className="truncate text-xs">{activeEvent.number}</span>
+                <span className="truncate font-medium">{selectedEvent.name}</span>
+                <span className="truncate text-xs">{selectedEvent.number}</span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -73,7 +66,7 @@ export function EventSwitcher({
             {events.map((event, index) => (
               <DropdownMenuItem
                 key={event.name}
-                onClick={() => setActiveEvent(event)}
+                onClick={() => setSelectedEvent(event)}
                 className="gap-2 p-2"
               >
                 {/* <div className="flex size-6 items-center justify-center rounded-md border">

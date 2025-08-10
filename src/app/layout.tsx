@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GameConfigProvider } from "@/hooks/use-game-config";
+import { EventProvider } from "@/hooks/use-event-config";
 import { ServiceWorkerManager } from "@/components/service-worker-manager";
 import { Toaster } from "sonner";
 
@@ -33,7 +34,9 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <GameConfigProvider>
-              {children}
+              <EventProvider>
+                {children}
+              </EventProvider>
             </GameConfigProvider>
             <Toaster />
             <ServiceWorkerManager />
