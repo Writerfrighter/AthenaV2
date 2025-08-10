@@ -55,7 +55,7 @@ export function useEventTeams() {
         }
 
         // The API route returns teams with team_number, nickname, etc.
-        const teams: TeamInfo[] = (data || []).map((team: any) => ({
+        const teams: TeamInfo[] = (data || []).map((team: { team_number: number; nickname?: string; key?: string }) => ({
           teamNumber: team.team_number,
           nickname: team.nickname || `Team ${team.team_number}`,
           key: team.key || `frc${team.team_number}`,

@@ -1,5 +1,5 @@
 import { MatchEntry } from '../db/db';
-import { YearConfig } from '../hooks/use-game-config';
+import { YearConfig, ScoringDefinition } from '../hooks/use-game-config';
 
 export interface TeamStats {
   totalMatches: number;
@@ -52,24 +52,36 @@ export function calculateEPA(matches: MatchEntry[], year: number, config: YearCo
 
 /**
  * Calculate points for a period (autonomous, teleop, endgame) using config
+ * 
+ * Supports two scoring types:
+ * 1. Simple scoring: { points: 5 } - awards 5 points for boolean true or multiplies by number
+ * 2. Enum scoring: { pointValues: { "shallow": 3, "deep": 6, "none": 0 } } - awards based on string value
+ * 
+ * Example match data:
+ * - climbing: "deep" -> awards 6 points (enum-based)
+ * - mobility: true -> awards 3 points (simple boolean)
+ * - speakerNotes: 4 -> awards 4 * 2 = 8 points (simple number multiplication)
  */
-function calculatePeriodPoints(periodData: Record<string, number | string | boolean>, periodConfig: Record<string, any>): number {
+function calculatePeriodPoints(periodData: Record<string, number | string | boolean>, periodConfig: Record<string, ScoringDefinition>): number {
   let points = 0;
   for (const [key, value] of Object.entries(periodData)) {
     // Find config key case-insensitively
     const configKey = Object.keys(periodConfig).find(k => k.toLowerCase() === key.toLowerCase());
     if (!configKey) continue;
     const scoringDef = periodConfig[configKey];
+    
     if (typeof value === 'number') {
+      // For numeric values, multiply by points (simple scoring)
       points += value * (scoringDef.points || 0);
     } else if (typeof value === 'boolean' && value) {
+      // For boolean values, add points if true (simple scoring)
       points += scoringDef.points || 0;
-    } else if (typeof value === 'string') {
-      // For enum/string values, try to match config subkeys (e.g., climb: 'onstage')
-      if (scoringDef[value]) {
-        points += scoringDef[value].points || 0;
+    } else if (typeof value === 'string' && value !== '' && value !== 'none') {
+      // For string values, check if we have enum-based scoring first
+      if (scoringDef.pointValues && scoringDef.pointValues[value] !== undefined) {
+        points += scoringDef.pointValues[value];
       } else if (scoringDef.points) {
-        // fallback: treat as boolean if config has points
+        // Fallback to simple scoring for valid string values
         points += scoringDef.points;
       }
     }

@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/db';
 import { calculateEPA, calculateTeamStats, formatStat } from '@/lib/statistics';
+import { useGameConfig } from '@/hooks/use-game-config';
 import { 
   BarChart, 
   Bar, 
@@ -61,6 +62,8 @@ interface ReefscapeData {
 
 export function Team2025Page({ teamNumber }: Team2025PageProps) {
   const [searchNote, setSearchNote] = useState("");
+  const { config } = useGameConfig();
+  const yearConfig = config['2025'];
   
   // Query 2025 specific data
   const matchEntries = useLiveQuery(() => 
@@ -84,8 +87,8 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
     if (!matchEntries || matchEntries.length === 0) return null;
 
     // Use the corrected statistics functions
-    const teamStats = calculateTeamStats(matchEntries, 2025);
-    const epaBreakdown = calculateEPA(matchEntries, 2025);
+    const teamStats = calculateTeamStats(matchEntries, 2025, yearConfig);
+    const epaBreakdown = calculateEPA(matchEntries, 2025, yearConfig);
     
     const totals = matchEntries.reduce((acc, match) => {
       const auto = match.gameSpecificData?.autonomous as Record<string, number> | undefined || {};

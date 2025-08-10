@@ -72,15 +72,14 @@
         }
       },
       "endgame": {
-        "shallow": {
-          "label": "Shallow Climb",
-          "points": 3,
-          "description": "Robot climbing to shallow depth"
-        },
-        "deep": {
-          "label": "Deep Climb",
-          "points": 6,
-          "description": "Robot climbing to deep depth"
+        "climbing": {
+          "label": "Robot Climbing",
+          "description": "Robot climbing capability during endgame",
+          "pointValues": {
+            "shallow": 3,
+            "deep": 6,
+            "none": 0
+          }
         },
         "barge": {
           "label": "Barge Scoring",
@@ -160,15 +159,14 @@
         }
       },
       "endgame": {
-        "park": {
-          "label": "Park",
-          "points": 1,
-          "description": "Robot parked in stage zone"
-        },
-        "onstage": {
-          "label": "Onstage",
-          "points": 3,
-          "description": "Robot climbed onstage"
+        "climbState": {
+          "label": "Climb State",
+          "description": "Robot's final position during endgame",
+          "pointValues": {
+            "park": 1,
+            "onstage": 3,
+            "none": 0
+          }
         },
         "harmony": {
           "label": "Harmony",

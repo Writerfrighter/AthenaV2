@@ -3,12 +3,22 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import gameConfig from '../../config/game-config.json';
 
+export interface ScoringDefinition {
+  label: string;
+  description: string;
+  // Simple scoring: use points for boolean values or as multiplier for numbers
+  points?: number;
+  // Enum scoring: use pointValues for string-based enum scoring
+  // Example: pointValues: { "shallow": 3, "deep": 6, "none": 0 }
+  pointValues?: Record<string, number>;
+}
+
 export interface YearConfig {
   gameName: string;
   scoring: {
-    autonomous: Record<string, { label: string; points: number; description: string }>;
-    teleop: Record<string, { label: string; points: number; description: string }>;
-    endgame: Record<string, { label: string; points: number; description: string }>;
+    autonomous: Record<string, ScoringDefinition>;
+    teleop: Record<string, ScoringDefinition>;
+    endgame: Record<string, ScoringDefinition>;
   };
   pitScouting: {
     customFields: Array<{
