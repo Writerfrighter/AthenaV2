@@ -40,10 +40,14 @@ jobs:
         with:
           name: nextjs-app
           path: |
-            .next
-            public
+            .next/
+            src/
+            public/
             package.json
             pnpm-lock.yaml
+            next.config.js
+            config/
+                  
 
   deploy:
     runs-on: ubuntu-latest
@@ -72,10 +76,3 @@ jobs:
           slot-name: 'Production'
           package: .
 
-      # Optionally, run pnpm install --prod as a post-deployment script
-      - name: 'Install production dependencies on Azure'
-        run: |
-          curl -fsSL https://get.pnpm.io/install.sh | sh -
-          pnpm install --prod
-        shell: bash
-        # You may need to adjust this depending on your Azure Web App settings.
