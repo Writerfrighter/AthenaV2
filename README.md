@@ -1,36 +1,82 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+# AthenaV2
+
+AthenaV2 is a modern scouting and analytics platform designed for competitive robotics teams. Built with Next.js and TypeScript, it provides a robust, extensible, and user-friendly interface for collecting, managing, and analyzing match and pit scouting data. The platform supports real-time collaboration, offline-first capabilities, and seamless integration with various data sources.
+
+## Features
+
+- **Event & Team Management:**
+	- Switch between events and configure event-specific settings.
+	- Manage team lists, view detailed team pages, and analyze team performance.
+
+- **Scouting Forms:**
+	- Dynamic match and pit scouting forms that adapt to game configuration.
+	- Mobile-friendly UI for easy data entry at events.
+
+- **Data Sync & Storage:**
+	- Supports local, Firebase, and Cosmos DB backends for flexible data storage.
+	- Offline support with automatic sync when connectivity is restored.
+
+- **Analytics & Visualization:**
+	- EPA (Estimated Performance Average) tables and charts.
+	- Picklist generation and advanced statistics.
+	- Customizable dashboards for in-depth analysis.
+
+- **User Management:**
+	- Secure login and signup flows.
+	- Account settings and role-based access.
+
+- **Progressive Web App (PWA):**
+	- Installable on devices with offline caching and background sync.
+
+## Tech Stack
+
+- **Frontend:** Next.js, React, TypeScript, Tailwind CSS
+- **Backend/Data:** Firebase, Azure Cosmos DB, Local Storage
+- **State Management:** React Context, custom hooks
+- **Other:** Workbox for service workers, ESLint, PostCSS
+
 ## Getting Started
 
-First, run the development server:
+1. **Install dependencies:**
+	 ```sh
+	 pnpm install
+	 ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2. **Run the development server:**
+	 ```sh
+	 pnpm dev
+	 ```
+	 The app will be available at `http://localhost:3000`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. **Build for production:**
+	 ```sh
+	 pnpm build
+	 ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+4. **Configuration:**
+	 - Edit `config/game-config.json` for game-specific settings.
+	 - Set up database credentials in environment variables as needed.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+- `src/app/` — Main application pages and API routes
+- `src/components/` — Reusable UI and app components
+- `src/db/` — Database service abstractions
+- `src/hooks/` — Custom React hooks
+- `src/lib/` — Utility functions and server logic
+- `public/` — Static assets and service worker
+- `config/` — Game and event configuration files
 
-To learn more about Next.js, take a look at the following resources:
+## Contributing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Contributions are welcome! Please open issues or pull requests for bug fixes, new features, or improvements. See the `IMPROVEMENTS.md` for ideas and guidelines.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
+This project is licensed under the MIT License.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For more information, see the in-depth documentation in the `README.md` and the various `*_README.md` files throughout the project.

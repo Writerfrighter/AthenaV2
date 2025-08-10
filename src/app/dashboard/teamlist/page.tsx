@@ -1,11 +1,12 @@
 import { Suspense } from 'react';
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users } from "lucide-react";
 import { getTeamMedia, getEventTeams } from "@/lib/api/tba";
 import { TbaTeam } from "@/lib/api/types";
 import { getSelectedEvent } from "@/lib/server-event-utils";
 import { DynamicTeamList } from "./dynamic-team-list";
+import { TeamCardSkeleton } from '@/components/team-card-skeleton';
 
 export interface TeamWithImages extends TbaTeam {
   images: string[];
@@ -105,13 +106,7 @@ function TeamListSkeleton() {
         <div className="p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {Array.from({ length: 12 }).map((_, i) => (
-              <Card key={i}>
-                <div className="p-4">
-                  <Skeleton className="h-20 w-full mb-2" />
-                  <Skeleton className="h-4 w-3/4 mb-1" />
-                  <Skeleton className="h-3 w-1/2" />
-                </div>
-              </Card>
+              <TeamCardSkeleton key={i} />
             ))}
           </div>
         </div>

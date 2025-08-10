@@ -1,5 +1,5 @@
 import { MatchEntry } from '../db/db';
-import { GameConfig } from '../hooks/use-game-config';
+import { YearConfig } from '../hooks/use-game-config';
 
 export interface TeamStats {
   totalMatches: number;
@@ -21,7 +21,7 @@ export interface EPABreakdown {
  * Calculate Expected Points Added (EPA) for a team based on their match performance
  * EPA represents how many points a team contributes above average
  */
-export function calculateEPA(matches: MatchEntry[], year: number): EPABreakdown {
+export function calculateEPA(matches: MatchEntry[], year: number, config: YearConfig): EPABreakdown {
   if (matches.length === 0) {
     return { autoEPA: 0, teleopEPA: 0, endgameEPA: 0, totalEPA: 0 };
   }
@@ -31,9 +31,9 @@ export function calculateEPA(matches: MatchEntry[], year: number): EPABreakdown 
   let totalEndgamePoints = 0;
 
   for (const match of matches) {
-    const autoPoints = calculateAutonomousPoints((match.gameSpecificData?.autonomous as unknown as Record<string, number | string | boolean>) || {}, year);
-    const teleopPoints = calculateTeleopPoints((match.gameSpecificData?.teleop as unknown as Record<string, number | string | boolean>) || {}, year);
-    const endgamePoints = calculateEndgamePoints((match.gameSpecificData?.endgame as unknown as Record<string, number | string | boolean>) || {}, year);
+    const autoPoints = calculatePeriodPoints((match.gameSpecificData?.autonomous as Record<string, number | string | boolean>) || {}, config.scoring.autonomous);
+    const teleopPoints = calculatePeriodPoints((match.gameSpecificData?.teleop as Record<string, number | string | boolean>) || {}, config.scoring.teleop);
+    const endgamePoints = calculatePeriodPoints((match.gameSpecificData?.endgame as Record<string, number | string | boolean>) || {}, config.scoring.endgame);
 
     totalAutoPoints += autoPoints;
     totalTeleopPoints += teleopPoints;
@@ -49,115 +49,38 @@ export function calculateEPA(matches: MatchEntry[], year: number): EPABreakdown 
   return { autoEPA, teleopEPA, endgameEPA, totalEPA };
 }
 
-/**
- * Calculate autonomous points based on year and scoring data
- */
-function calculateAutonomousPoints(autoData: Record<string, number | string | boolean>, year: number): number {
-  let points = 0;
-
-  switch (year) {
-    case 2025: // REEFSCAPE
-      points += (Number(autoData.l2) || 0) * 4;
-      points += (Number(autoData.l3) || 0) * 6;
-      points += (Number(autoData.l4) || 0) * 10;
-      points += (Number(autoData.net) || 0) * 3;
-      points += (Number(autoData.processor) || 0) * 3;
-      points += autoData.mobility ? 3 : 0;
-      break;
-    case 2024: // CRESCENDO
-      points += (Number(autoData.speaker) || 0) * 5;
-      points += (Number(autoData.amp) || 0) * 2;
-      points += autoData.mobility ? 2 : 0;
-      break;
-    case 2023: // CHARGED UP
-      points += (Number(autoData.cones) || 0) * 6;
-      points += (Number(autoData.cubes) || 0) * 4;
-      points += autoData.mobility ? 3 : 0;
-      points += autoData.docking ? 8 : 0;
-      points += autoData.engagement ? 12 : 0;
-      break;
-    default:
-      // Generic calculation - sum all numeric values
-      Object.values(autoData).forEach(value => {
-        if (typeof value === 'number') points += value;
-      });
-  }
-
-  return points;
-}
 
 /**
- * Calculate teleop points based on year and scoring data
+ * Calculate points for a period (autonomous, teleop, endgame) using config
  */
-function calculateTeleopPoints(teleopData: Record<string, number | string | boolean>, year: number): number {
+function calculatePeriodPoints(periodData: Record<string, number | string | boolean>, periodConfig: Record<string, any>): number {
   let points = 0;
-
-  switch (year) {
-    case 2025: // REEFSCAPE
-      points += (Number(teleopData.l2) || 0) * 2;
-      points += (Number(teleopData.l3) || 0) * 4;
-      points += (Number(teleopData.l4) || 0) * 7;
-      points += (Number(teleopData.net) || 0) * 2;
-      points += (Number(teleopData.processor) || 0) * 1;
-      break;
-    case 2024: // CRESCENDO
-      points += (Number(teleopData.speaker) || 0) * 2;
-      points += (Number(teleopData.amp) || 0) * 1;
-      points += (Number(teleopData.trap) || 0) * 5;
-      break;
-    case 2023: // CHARGED UP
-      points += (Number(teleopData.cones) || 0) * 5;
-      points += (Number(teleopData.cubes) || 0) * 3;
-      break;
-    default:
-      // Generic calculation
-      Object.values(teleopData).forEach(value => {
-        if (typeof value === 'number') points += value;
-      });
+  for (const [key, value] of Object.entries(periodData)) {
+    // Find config key case-insensitively
+    const configKey = Object.keys(periodConfig).find(k => k.toLowerCase() === key.toLowerCase());
+    if (!configKey) continue;
+    const scoringDef = periodConfig[configKey];
+    if (typeof value === 'number') {
+      points += value * (scoringDef.points || 0);
+    } else if (typeof value === 'boolean' && value) {
+      points += scoringDef.points || 0;
+    } else if (typeof value === 'string') {
+      // For enum/string values, try to match config subkeys (e.g., climb: 'onstage')
+      if (scoringDef[value]) {
+        points += scoringDef[value].points || 0;
+      } else if (scoringDef.points) {
+        // fallback: treat as boolean if config has points
+        points += scoringDef.points;
+      }
+    }
   }
-
-  return points;
-}
-
-/**
- * Calculate endgame points based on year and scoring data
- */
-function calculateEndgamePoints(endgameData: Record<string, number | string | boolean>, year: number): number {
-  let points = 0;
-
-  switch (year) {
-    case 2025: // REEFSCAPE
-      if (endgameData.barge === 'low') points += 2;
-      else if (endgameData.barge === 'high') points += 6;
-      if (endgameData.deep) points += 3;
-      if (endgameData.shallow) points += 3;
-      if (endgameData.net) points += 3;
-      break;
-    case 2024: // CRESCENDO
-      if (endgameData.climb === 'park') points += 1;
-      else if (endgameData.climb === 'onstage') points += 3;
-      if (endgameData.harmony) points += 2;
-      if (endgameData.spotlit) points += 1;
-      break;
-    case 2023: // CHARGED UP
-      if (endgameData.climb === 'dock') points += 6;
-      else if (endgameData.climb === 'engage') points += 10;
-      if (endgameData.park) points += 2;
-      break;
-    default:
-      // Generic calculation
-      Object.values(endgameData).forEach(value => {
-        if (typeof value === 'number') points += value;
-      });
-  }
-
   return points;
 }
 
 /**
  * Calculate comprehensive team statistics
  */
-export function calculateTeamStats(matches: MatchEntry[], year: number): TeamStats {
+export function calculateTeamStats(matches: MatchEntry[], year: number, config: YearConfig): TeamStats {
   if (matches.length === 0) {
     return {
       totalMatches: 0,
@@ -169,7 +92,7 @@ export function calculateTeamStats(matches: MatchEntry[], year: number): TeamSta
     };
   }
 
-  const epaBreakdown = calculateEPA(matches, year);
+  const epaBreakdown = calculateEPA(matches, year, config);
   const autoStats = calculatePeriodAverages(matches, 'autonomous');
   const teleopStats = calculatePeriodAverages(matches, 'teleop');
   const endgameStats = calculatePeriodAverages(matches, 'endgame');
@@ -213,10 +136,9 @@ function calculatePeriodAverages(matches: MatchEntry[], period: string): Record<
 /**
  * Calculate team rankings based on EPA
  */
-export function calculateTeamRankings(allMatches: MatchEntry[], year: number): Array<{teamNumber: string, epa: number, rank: number}> {
+export function calculateTeamRankings(allMatches: MatchEntry[], year: number, config: YearConfig): Array<{teamNumber: string, epa: number, rank: number}> {
   // Group matches by team
   const teamMatches = new Map<string, MatchEntry[]>();
-  
   for (const match of allMatches) {
     if (!teamMatches.has(match.teamNumber)) {
       teamMatches.set(match.teamNumber, []);
@@ -226,13 +148,12 @@ export function calculateTeamRankings(allMatches: MatchEntry[], year: number): A
 
   // Calculate EPA for each team
   const teamEPAs = Array.from(teamMatches.entries()).map(([teamNumber, matches]) => {
-    const epa = calculateEPA(matches, year);
+  const epa = calculateEPA(matches, year, config);
     return { teamNumber, epa: epa.totalEPA, matches: matches.length };
   });
 
   // Sort by EPA (descending) and assign ranks
   teamEPAs.sort((a, b) => b.epa - a.epa);
-  
   return teamEPAs.map((team, index) => ({
     teamNumber: team.teamNumber,
     epa: team.epa,
@@ -243,12 +164,10 @@ export function calculateTeamRankings(allMatches: MatchEntry[], year: number): A
 /**
  * Get percentile ranking for a team
  */
-export function getTeamPercentile(teamNumber: string, allMatches: MatchEntry[], year: number): number {
-  const rankings = calculateTeamRankings(allMatches, year);
+export function getTeamPercentile(teamNumber: string, allMatches: MatchEntry[], year: number, config: YearConfig): number {
+  const rankings = calculateTeamRankings(allMatches, year, config);
   const teamRank = rankings.find(r => r.teamNumber === teamNumber);
-  
   if (!teamRank) return 0;
-  
   return Math.round((1 - (teamRank.rank - 1) / rankings.length) * 100);
 }
 
@@ -262,18 +181,15 @@ export function formatStat(value: number, decimals: number = 1): string {
 /**
  * Calculate consistency score (lower is more consistent)
  */
-export function calculateConsistency(matches: MatchEntry[], year: number): number {
+export function calculateConsistency(matches: MatchEntry[], year: number, config: YearConfig): number {
   if (matches.length < 2) return 0;
-
   const epas = matches.map(match => {
-    const singleMatchEPA = calculateEPA([match], year);
+    const singleMatchEPA = calculateEPA([match], year, config);
     return singleMatchEPA.totalEPA;
   });
-
   const mean = epas.reduce((sum, epa) => sum + epa, 0) / epas.length;
   const variance = epas.reduce((sum, epa) => sum + Math.pow(epa - mean, 2), 0) / epas.length;
   const standardDeviation = Math.sqrt(variance);
-
   // Return coefficient of variation (CV) as consistency score
   return mean !== 0 ? standardDeviation / Math.abs(mean) : 0;
 }

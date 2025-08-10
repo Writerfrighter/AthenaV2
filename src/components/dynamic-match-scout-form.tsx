@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useCurrentGameConfig } from '@/hooks/use-game-config';
 import { useSelectedEvent } from '@/hooks/use-event-config';
-import { useEventTeamNumbers } from '@/hooks/use-event-teams';
+import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +60,7 @@ export function DynamicMatchScoutForm() {
   const gameConfig = useCurrentGameConfig();
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
+  const { loading: teamsLoading } = useEventTeams();
   const [formData, setFormData] = useState<DynamicMatchData>(defaultData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -194,24 +195,38 @@ export function DynamicMatchScoutForm() {
           
           <div className="space-y-2">
             <Label htmlFor="teamNumber">Team Number</Label>
-            <Select value={formData.teamNumber} onValueChange={(value) => handleBasicInputChange('teamNumber', value)}>
-              <SelectTrigger className="focus:border-green-500">
-                <SelectValue placeholder="Select team number" />
-              </SelectTrigger>
-              <SelectContent>
-                {eventTeamNumbers.length > 0 ? (
-                  eventTeamNumbers.map((teamNumber) => (
+            {eventTeamNumbers.length > 0 ? (
+              <Select value={formData.teamNumber} onValueChange={(value) => handleBasicInputChange('teamNumber', value)}>
+                <SelectTrigger className="focus:border-green-500">
+                  <SelectValue placeholder="Select team number" />
+                </SelectTrigger>
+                <SelectContent>
+                  {eventTeamNumbers.map((teamNumber) => (
                     <SelectItem key={teamNumber} value={String(teamNumber)}>
                       Team {teamNumber}
                     </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="" disabled>
-                    No teams available for this event
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : teamsLoading ? (
+              <Select disabled>
+                <SelectTrigger className="focus:border-green-500">
+                  <SelectValue placeholder="Loading teams..." />
+                </SelectTrigger>
+              </Select>
+            ) : (
+              <Input
+                name="teamNumber"
+                type="number"
+                value={formData.teamNumber}
+                onChange={(e) => handleBasicInputChange('teamNumber', e.target.value)}
+                placeholder="Enter team number (e.g. 254)"
+                required
+                min="1"
+                max="9999"
+                className="focus:border-green-500"
+              />
+            )}
           </div>
           
           <div className="space-y-2">

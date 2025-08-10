@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useSelectedEvent } from './use-event-config';
-import { getEventTeamsInfo, getEventTeamNumbers } from '@/lib/api/tba';
 
 export interface TeamInfo {
   teamNumber: number;
@@ -42,24 +41,24 @@ export function useEventTeams() {
       }));
 
       try {
-        // Check if we have a TBA API key
-        if (!process.env.NEXT_PUBLIC_TBA_API_KEY && !process.env.TBA_API_KEY) {
-          // Fallback to mock data if no API key
-          console.warn('No TBA API key found, using mock data');
-          setTeamState({
-            teams: getMockTeams(selectedEvent.code),
-            loading: false,
-            error: null,
-          });
-          return;
+        // Fetch data from our server-side API route
+        const response = await fetch(`/api/events/${selectedEvent.code}/teams`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          throw new Error(data.error);
         }
 
-        // Fetch real data from TBA
-        const teamsInfo = await getEventTeamsInfo(selectedEvent.code);
-        const teams: TeamInfo[] = Object.entries(teamsInfo).map(([key, info]) => ({
-          teamNumber: info.team_number,
-          nickname: info.nickname,
-          key,
+        // The API route returns teams with team_number, nickname, etc.
+        const teams: TeamInfo[] = (data || []).map((team: any) => ({
+          teamNumber: team.team_number,
+          nickname: team.nickname || `Team ${team.team_number}`,
+          key: team.key || `frc${team.team_number}`,
         }));
 
         setTeamState({
@@ -70,11 +69,10 @@ export function useEventTeams() {
       } catch (error) {
         console.error('Error fetching teams:', error);
         
-        // Fallback to mock data on error
         setTeamState({
-          teams: getMockTeams(selectedEvent.code),
+          teams: [],
           loading: false,
-          error: `Failed to fetch teams from TBA. Using mock data.`,
+          error: `Failed to fetch teams: ${error instanceof Error ? error.message : 'Unknown error'}`,
         });
       }
     }
@@ -85,49 +83,12 @@ export function useEventTeams() {
   return teamState;
 }
 
-// Mock data for development and fallback
-function getMockTeams(eventCode: string): TeamInfo[] {
-  const baseMockTeams = [
-    { teamNumber: 254, nickname: "The Cheesy Poofs", key: "frc254" },
-    { teamNumber: 1678, nickname: "Citrus Circuits", key: "frc1678" },
-    { teamNumber: 2056, nickname: "OP Robotics", key: "frc2056" },
-    { teamNumber: 4499, nickname: "The Highlanders", key: "frc4499" },
-    { teamNumber: 6995, nickname: "Nomad Stormz", key: "frc6995" },
-    { teamNumber: 1983, nickname: "Skunk Works Robotics", key: "frc1983" },
-    { teamNumber: 3219, nickname: "Team Titanium", key: "frc3219" },
-    { teamNumber: 360, nickname: "The Revolution", key: "frc360" },
-    { teamNumber: 1540, nickname: "The Flaming Chickens", key: "frc1540" },
-    { teamNumber: 5687, nickname: "The Outliers", key: "frc5687" },
-  ];
-
-  // Add some event-specific variation
-  const eventVariations: Record<string, TeamInfo[]> = {
-    '2025pncmp': [
-      ...baseMockTeams,
-      { teamNumber: 847, nickname: "PHRED", key: "frc847" },
-      { teamNumber: 1318, nickname: "Issaquah Robotics Society", key: "frc1318" },
-      { teamNumber: 2930, nickname: "Sonic Squirrels", key: "frc2930" },
-    ],
-    '2025wasam': [
-      ...baseMockTeams.slice(0, 8),
-      { teamNumber: 1510, nickname: "Wild Cards", key: "frc1510" },
-      { teamNumber: 2927, nickname: "Team Optimus", key: "frc2927" },
-    ],
-    '2025wayak': [
-      ...baseMockTeams.slice(0, 6),
-      { teamNumber: 1890, nickname: "S.P.A.M.", key: "frc1890" },
-      { teamNumber: 4091, nickname: "Highlander Robotics", key: "frc4091" },
-      { teamNumber: 5803, nickname: "Aluminati", key: "frc5803" },
-    ],
-  };
-
-  return eventVariations[eventCode] || baseMockTeams;
-}
-
 // Hook to get just team numbers for dropdowns
 export function useEventTeamNumbers(): number[] {
   const { teams } = useEventTeams();
-  return teams.map(team => team.teamNumber);
+  return teams
+    .map(team => team.teamNumber)
+    .filter(teamNumber => teamNumber && teamNumber > 0);
 }
 
 // Hook to get team info by number
