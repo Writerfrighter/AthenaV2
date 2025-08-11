@@ -19,6 +19,7 @@ export interface YearConfig {
     autonomous: Record<string, ScoringDefinition>;
     teleop: Record<string, ScoringDefinition>;
     endgame: Record<string, ScoringDefinition>;
+    fouls?: Record<string, ScoringDefinition>;
   };
   pitScouting: {
     customFields: Array<{

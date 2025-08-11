@@ -3,102 +3,117 @@
     "gameName": "REEFSCAPE",
     "scoring": {
       "autonomous": {
-        "L1": {
-          "label": "Level 1 Coral (Auto)",
+        "leave": {
+          "label": "Leave Starting Zone",
           "points": 3,
-          "description": "Coral placed in Level 1 during autonomous"
+          "description": "Robot leaves starting zone during autonomous",
+          "type": "boolean"
         },
-        "L2": {
-          "label": "Level 2 Coral (Auto)",
+        "L1_coral": {
+          "label": "L1 Coral (Auto)",
+          "points": 3,
+          "description": "Coral scored in trough (L1) during autonomous"
+        },
+        "L2_coral": {
+          "label": "L2 Coral (Auto)",
           "points": 4,
-          "description": "Coral placed in Level 2 during autonomous"
+          "description": "Coral scored on L2 branch during autonomous"
         },
-        "L3": {
-          "label": "Level 3 Coral (Auto)",
+        "L3_coral": {
+          "label": "L3 Coral (Auto)",
           "points": 6,
-          "description": "Coral placed in Level 3 during autonomous"
+          "description": "Coral scored on L3 branch during autonomous"
         },
-        "L4": {
-          "label": "Level 4 Coral (Auto)",
-          "points": 10,
-          "description": "Coral placed in Level 4 during autonomous"
+        "L4_coral": {
+          "label": "L4 Coral (Auto)",
+          "points": 7,
+          "description": "Coral scored on L4 branch during autonomous"
         },
-        "Net": {
-          "label": "Net Scoring (Auto)",
-          "points": 5,
-          "description": "Algae scored in Net during autonomous"
+        "processor_algae": {
+          "label": "Processor Algae (Auto)",
+          "points": 6,
+          "description": "Algae scored in processor during autonomous"
         },
-        "Processor": {
-          "label": "Processor Scoring (Auto)",
-          "points": 8,
-          "description": "Algae scored in Processor during autonomous"
-        },
-        "mobility": {
-          "label": "Mobility",
-          "points": 3,
-          "description": "Robot exits starting zone during autonomous"
+        "net_algae": {
+          "label": "Net Algae (Auto)",
+          "points": 4,
+          "description": "Algae scored in net during autonomous"
         }
       },
       "teleop": {
-        "L1": {
-          "label": "Level 1 Coral (Teleop)",
+        "L1_coral": {
+          "label": "L1 Coral (Teleop)",
           "points": 2,
-          "description": "Coral placed in Level 1 during teleoperated"
+          "description": "Coral scored in trough (L1) during teleoperated"
         },
-        "L2": {
-          "label": "Level 2 Coral (Teleop)",
-          "points": 4,
-          "description": "Coral placed in Level 2 during teleoperated"
-        },
-        "L3": {
-          "label": "Level 3 Coral (Teleop)",
-          "points": 6,
-          "description": "Coral placed in Level 3 during teleoperated"
-        },
-        "L4": {
-          "label": "Level 4 Coral (Teleop)",
-          "points": 10,
-          "description": "Coral placed in Level 4 during teleoperated"
-        },
-        "Net": {
-          "label": "Net Scoring (Teleop)",
+        "L2_coral": {
+          "label": "L2 Coral (Teleop)",
           "points": 3,
-          "description": "Algae scored in Net during teleoperated"
+          "description": "Coral scored on L2 branch during teleoperated"
         },
-        "Processor": {
-          "label": "Processor Scoring (Teleop)",
+        "L3_coral": {
+          "label": "L3 Coral (Teleop)",
+          "points": 4,
+          "description": "Coral scored on L3 branch during teleoperated"
+        },
+        "L4_coral": {
+          "label": "L4 Coral (Teleop)",
+          "points": 5,
+          "description": "Coral scored on L4 branch during teleoperated"
+        },
+        "processor_algae": {
+          "label": "Processor Algae (Teleop)",
           "points": 6,
-          "description": "Algae scored in Processor during teleoperated"
+          "description": "Algae scored in processor during teleoperated"
+        },
+        "net_algae": {
+          "label": "Net Algae (Teleop)",
+          "points": 4,
+          "description": "Algae scored in net during teleoperated"
         }
       },
       "endgame": {
-        "climbing": {
-          "label": "Robot Climbing",
-          "description": "Robot climbing capability during endgame",
+        "ending_robot_state": {
+          "label": "Ending Robot State",
+          "description": "Robot's final position during endgame",
           "pointValues": {
-            "shallow": 3,
-            "deep": 6,
-            "none": 0
+            "none": 0,
+            "park": 3,
+            "shallow": 6,
+            "deep": 12
           }
+        }
+      },
+      "fouls": {
+        "fouls": {
+          "label": "Fouls",
+          "points": -2,
+          "description": "Minor penalties committed"
         },
-        "barge": {
-          "label": "Barge Scoring",
-          "points": 12,
-          "description": "Coral placed on barge during endgame"
+        "tech_fouls": {
+          "label": "Tech Fouls",
+          "points": -5,
+          "description": "Technical fouls committed"
         }
       }
     },
     "pitScouting": {
       "customFields": [
         {
-          "name": "coralPreference",
-          "label": "Coral Collection Preference",
+          "name": "coralCapability",
+          "label": "Coral Scoring Capability",
           "type": "select",
-          "options": ["Ground pickup", "Human player", "Both", "Neither"]
+          "options": ["L1 only", "L1-L2", "L1-L3", "L1-L4", "L2-L4", "None"]
         },
         {
-          "name": "algaePreference",
-          "label": "Algae Collection Preference", 
+          "name": "algaeCapability",
+          "label": "Algae Scoring Capability",
+          "type": "select",
+          "options": ["Net only", "Processor only", "Both", "Neither"]
+        },
+        {
+          "name": "intakeType",
+          "label": "Intake Method",
           "type": "select",
           "options": ["Ground pickup", "Human player", "Both", "Neither"]
         },
@@ -106,17 +121,24 @@
           "name": "climbCapability",
           "label": "Climbing Capability",
           "type": "select",
-          "options": ["No climb", "Shallow only", "Deep only", "Both"]
+          "options": ["No climb", "Shallow cage only", "Deep cage only", "Both cages"]
         },
         {
-          "name": "bargeCapability",
-          "label": "Barge Scoring Capability",
-          "type": "boolean"
+          "name": "autoCapability",
+          "label": "Autonomous Capability",
+          "type": "select",
+          "options": ["Leave only", "Leave + Score", "Complex auto", "None"]
         },
         {
           "name": "cycleTime",
           "label": "Estimated Cycle Time (seconds)",
           "type": "number"
+        },
+        {
+          "name": "reliability",
+          "label": "Robot Reliability",
+          "type": "select",
+          "options": ["Very Reliable", "Mostly Reliable", "Somewhat Reliable", "Unreliable"]
         }
       ]
     }
@@ -138,7 +160,8 @@
         "mobility": {
           "label": "Mobility",
           "points": 2,
-          "description": "Robot leaves starting zone during autonomous"
+          "description": "Robot leaves starting zone during autonomous",
+          "type": "boolean"
         }
       },
       "teleop": {
@@ -171,7 +194,8 @@
         "harmony": {
           "label": "Harmony",
           "points": 2,
-          "description": "Multiple robots on stage (team bonus)"
+          "description": "Multiple robots on stage (team bonus)",
+          "type": "boolean"
         }
       }
     },
@@ -219,17 +243,20 @@
         "mobility": {
           "label": "Mobility",
           "points": 3,
-          "description": "Robot leaves community during autonomous"
+          "description": "Robot leaves community during autonomous",
+          "type": "boolean"
         },
         "docking": {
           "label": "Auto Docking",
           "points": 8,
-          "description": "Robot docks during autonomous"
+          "description": "Robot docks during autonomous",
+          "type": "boolean"
         },
         "engaging": {
           "label": "Auto Engaging",
           "points": 12,
-          "description": "Robot engages charge station during autonomous"
+          "description": "Robot engages charge station during autonomous",
+          "type": "boolean"
         }
       },
       "teleop": {
@@ -248,17 +275,20 @@
         "park": {
           "label": "Park",
           "points": 2,
-          "description": "Robot parked in community"
+          "description": "Robot parked in community",
+          "type": "boolean"
         },
         "docking": {
           "label": "Docking",
           "points": 6,
-          "description": "Robot docks on charge station"
+          "description": "Robot docks on charge station",
+          "type": "boolean"
         },
         "engaging": {
           "label": "Engaging",
           "points": 10,
-          "description": "Robot engages charge station"
+          "description": "Robot engages charge station",
+          "type": "boolean"
         }
       }
     },

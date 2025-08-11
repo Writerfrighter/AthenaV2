@@ -40,6 +40,7 @@ interface DynamicMatchData {
   autonomous: Record<string, number | string | boolean>;
   teleop: Record<string, number | string | boolean>;
   endgame: Record<string, number | string | boolean>;
+  fouls: Record<string, number | string | boolean>;
   
   // Common fields
   notes: string;
@@ -53,6 +54,7 @@ const defaultData: DynamicMatchData = {
   autonomous: {},
   teleop: {},
   endgame: {},
+  fouls: {},
   notes: ''
 };
 
@@ -104,7 +106,8 @@ export function DynamicMatchScoutForm() {
         gameSpecificData: {
           autonomous: formData.autonomous,
           teleop: formData.teleop,
-          endgame: formData.endgame
+          endgame: formData.endgame,
+          fouls: formData.fouls
         },
         notes: formData.notes,
         timestamp: new Date()
@@ -124,42 +127,140 @@ export function DynamicMatchScoutForm() {
     }
   };
 
-  const renderScoringField = (section: 'autonomous' | 'teleop' | 'endgame', fieldKey: string, fieldConfig: { label: string; points: number; description: string }) => {
-    const currentValue = (formData[section] as Record<string, number | string | boolean>)[fieldKey] as number || 0;
+  // Determine field type based on configuration structure
+  const getFieldType = (fieldConfig: any) => {
+    // First check if type is explicitly defined
+    if (fieldConfig.type) {
+      return fieldConfig.type;
+    }
     
-    return (
-      <div key={fieldKey} className="space-y-2">
-        <Label className="text-sm font-medium">{fieldConfig.label}</Label>
-        <div className="flex items-center justify-center gap-3">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => handleNumberChange(section, fieldKey, false)}
-            className="h-12 w-12 hover:bg-green-50 p-0 flex-shrink-0"
-          >
-            <Minus className="h-5 w-5" />
-          </Button>
-          <div className="flex flex-col justify-center items-center flex-grow">
-            <Input
-              type="number"
-              min={0}
-              value={currentValue}
-              onChange={e => handleInputChange(section, fieldKey, Math.max(0, Number(e.target.value)))}
-              className="hide-spinners min-w-[4rem] w-full text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-green-400"
-              style={{height: '3rem'}}
-            />
+    // Fall back to inference based on structure
+    if (fieldConfig.pointValues && typeof fieldConfig.pointValues === 'object') {
+      return 'select';
+    }
+    if (fieldConfig.points !== undefined && typeof fieldConfig.points === 'number') {
+      // Check if this is typically a boolean field based on label
+      const label = fieldConfig.label.toLowerCase();
+      if (label.includes('mobility') || label.includes('park') || label.includes('climb') || 
+          label.includes('dock') || label.includes('engage') || label.includes('harmony') ||
+          label.includes('barge')) {
+        return 'boolean';
+      }
+      return 'number';
+    }
+    return 'number';
+  };
+
+  const renderScoringField = (section: 'autonomous' | 'teleop' | 'endgame' | 'fouls', fieldKey: string, fieldConfig: any) => {
+    const fieldType = getFieldType(fieldConfig);
+    const currentValue = (formData[section] as Record<string, number | string | boolean>)[fieldKey];
+    
+    switch (fieldType) {
+      case 'boolean':
+        return (
+          <div key={fieldKey} className="space-y-2">
+            <Label className="text-sm font-medium">{fieldConfig.label}</Label>
+            <div className="flex items-center justify-center">
+              <Button
+                variant={Boolean(currentValue) ? "default" : "outline"}
+                size="lg"
+                onClick={() => handleInputChange(section, fieldKey, !Boolean(currentValue))}
+                className={`h-12 w-full font-semibold transition-all duration-200 ${
+                  Boolean(currentValue) 
+                    ? 'bg-green-600 hover:bg-green-700 text-white' 
+                    : 'hover:bg-green-50 border-2'
+                }`}
+              >
+                {Boolean(currentValue) ? (
+                  <>
+                    <CheckCircle className="mr-2 h-5 w-5" />
+                    Yes
+                  </>
+                ) : (
+                  <>
+                    <Minus className="mr-2 h-5 w-5" />
+                    No
+                  </>
+                )}
+              </Button>
+            </div>
+            <div className="text-xs text-center text-muted-foreground">
+              {fieldConfig.points} points
+            </div>
           </div>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => handleNumberChange(section, fieldKey, true)}
-            className="h-12 w-12 hover:bg-green-50 p-0 flex-shrink-0"
-          >
-            <Plus className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-    );
+        );
+        
+      case 'select':
+        const selectValue = String(currentValue || Object.keys(fieldConfig.pointValues)[0]);
+        return (
+          <div key={fieldKey} className="space-y-2">
+            <Label className="text-sm font-medium">{fieldConfig.label}</Label>
+            <div className="flex items-center justify-center">
+              <Select 
+                value={selectValue}
+                onValueChange={(value) => handleInputChange(section, fieldKey, value)}
+              >
+                <SelectTrigger className="h-12 w-full text-base font-semibold focus:border-green-500 focus:ring-2 focus:ring-green-400 bg-muted border-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(fieldConfig.pointValues).map(([option, points]) => (
+                    <SelectItem key={option} value={option} className="text-base py-3">
+                      <div className="flex justify-between items-center w-full">
+                        <span className="font-medium">{option.charAt(0).toUpperCase() + option.slice(1)}</span>
+                        <span className="text-muted-foreground ml-4 text-sm">({String(points)} pts)</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-xs text-center text-muted-foreground">
+              Points vary by selection
+            </div>
+          </div>
+        );
+        
+      case 'number':
+      default:
+        const numValue = Number(currentValue) || 0;
+        return (
+          <div key={fieldKey} className="space-y-2">
+            <Label className="text-sm font-medium">{fieldConfig.label}</Label>
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => handleNumberChange(section, fieldKey, false)}
+                className="h-12 w-12 hover:bg-green-50 p-0 flex-shrink-0"
+              >
+                <Minus className="h-5 w-5" />
+              </Button>
+              <div className="flex flex-col justify-center items-center flex-grow">
+                <Input
+                  type="number"
+                  min={0}
+                  value={numValue}
+                  onChange={e => handleInputChange(section, fieldKey, Math.max(0, Number(e.target.value)))}
+                  className="hide-spinners min-w-[4rem] w-full text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-green-400"
+                  style={{height: '3rem'}}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => handleNumberChange(section, fieldKey, true)}
+                className="h-12 w-12 hover:bg-green-50 p-0 flex-shrink-0"
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="text-xs text-center text-muted-foreground">
+              {fieldConfig.points} points each
+            </div>
+          </div>
+        );
+    }
   };
 
   return (
@@ -291,7 +392,7 @@ export function DynamicMatchScoutForm() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {gameConfig && gameConfig.scoring && Object.entries(gameConfig.scoring.autonomous).map(([key, config]) => 
-              renderScoringField('autonomous', key, config as { label: string; points: number; description: string })
+              renderScoringField('autonomous', key, config)
             )}
           </div>
 
@@ -315,7 +416,7 @@ export function DynamicMatchScoutForm() {
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {gameConfig && gameConfig.scoring && Object.entries(gameConfig.scoring.teleop).map(([key, config]) => 
-              renderScoringField('teleop', key, config as { label: string; points: number; description: string })
+              renderScoringField('teleop', key, config)
             )}
           </div>
         </CardContent>
@@ -330,31 +431,35 @@ export function DynamicMatchScoutForm() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label>Endgame Position</Label>
-            <Select 
-              value={String((formData.endgame as Record<string, unknown>).position || '')} 
-              onValueChange={(value) => handleInputChange('endgame', 'position', value)}
-            >
-              <SelectTrigger className="focus:border-green-500">
-                <SelectValue placeholder="Select endgame position" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="park">Park</SelectItem>
-                <SelectItem value="climb">Climb</SelectItem>
-                <SelectItem value="hang">Hang</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {gameConfig && gameConfig.scoring && Object.entries(gameConfig.scoring.endgame).map(([key, config]) => 
-              renderScoringField('endgame', key, config as { label: string; points: number; description: string })
+              renderScoringField('endgame', key, config)
             )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Fouls */}
+      {gameConfig && gameConfig.scoring && gameConfig.scoring.fouls && (
+        <Card className="border rounded-xl shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-primary/90">
+              <AlertTriangle className="h-5 w-5" />
+              Fouls & Penalties
+            </CardTitle>
+            <CardDescription>
+              Track penalties and fouls committed
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {Object.entries(gameConfig.scoring.fouls).map(([key, config]) => 
+                renderScoringField('fouls', key, config)
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Notes */}
       <Card className="border rounded-xl shadow-sm">

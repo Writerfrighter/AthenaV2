@@ -32,7 +32,7 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-background dark:bg-background">
       {/* Header Bar */}
-      <div className="bg-white/80 dark:bg-background/80 border-b sticky top-0 z-50 backdrop-blur-sm">
+      <div className="bg-white/80 dark:bg-background/80 border-b top-0 z-50 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
