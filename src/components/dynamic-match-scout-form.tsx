@@ -9,12 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Target, Zap, Award, AlertTriangle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { db } from '@/db/db';
+import { matchApi } from '@/lib/api/database-client';
+import type { ScoringDefinition } from '@/hooks/use-game-config';
 
 // CSS to hide number input spinners
 const hideSpinnersStyle = `
@@ -31,10 +31,9 @@ const hideSpinnersStyle = `
 
 interface DynamicMatchData {
   // Basic match info
-  matchNumber: string;
-  teamNumber: string;
+  matchNumber: number;
+  teamNumber: number;
   alliance: 'red' | 'blue';
-  position: '1' | '2' | '3';
   
   // Game-specific data stored as flexible object
   autonomous: Record<string, number | string | boolean>;
@@ -47,10 +46,9 @@ interface DynamicMatchData {
 }
 
 const defaultData: DynamicMatchData = {
-  matchNumber: '',
-  teamNumber: '',
+  matchNumber: 0,
+  teamNumber: 0,
   alliance: 'red',
-  position: '1',
   autonomous: {},
   teleop: {},
   endgame: {},
@@ -75,11 +73,12 @@ export function DynamicMatchScoutForm() {
       }
     }));
   };
-
-  const handleBasicInputChange = (field: keyof DynamicMatchData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleBasicInputChange = (field: keyof DynamicMatchData, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
-
   const handleNumberChange = (section: string, field: string, increment: boolean) => {
     const currentValue = (formData[section as keyof DynamicMatchData] as Record<string, number | string | boolean>)[field] as number || 0;
     const newValue = Math.max(0, currentValue + (increment ? 1 : -1));
@@ -95,14 +94,13 @@ export function DynamicMatchScoutForm() {
     setIsSubmitting(true);
 
     try {
-      await db.matchEntries.add({
+      const entryToSave = {
         matchNumber: formData.matchNumber,
         teamNumber: formData.teamNumber,
         year: new Date().getFullYear(),
         alliance: formData.alliance,
-        position: formData.position,
         eventName: selectedEvent?.name || 'Unknown Event',
-        eventCode: selectedEvent?.code || selectedEvent?.number || 'Unknown Code',
+        eventCode: selectedEvent?.code || 'Unknown Code',
         gameSpecificData: {
           autonomous: formData.autonomous,
           teleop: formData.teleop,
@@ -111,7 +109,9 @@ export function DynamicMatchScoutForm() {
         },
         notes: formData.notes,
         timestamp: new Date()
-      });
+      };
+
+      await matchApi.create(entryToSave);
 
       toast.success("Match data saved!", {
         description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} saved successfully`
@@ -128,7 +128,7 @@ export function DynamicMatchScoutForm() {
   };
 
   // Determine field type based on configuration structure
-  const getFieldType = (fieldConfig: any) => {
+  const getFieldType = (fieldConfig: ScoringDefinition) => {
     // First check if type is explicitly defined
     if (fieldConfig.type) {
       return fieldConfig.type;
@@ -151,7 +151,7 @@ export function DynamicMatchScoutForm() {
     return 'number';
   };
 
-  const renderScoringField = (section: 'autonomous' | 'teleop' | 'endgame' | 'fouls', fieldKey: string, fieldConfig: any) => {
+  const renderScoringField = (section: 'autonomous' | 'teleop' | 'endgame' | 'fouls', fieldKey: string, fieldConfig: ScoringDefinition) => {
     const fieldType = getFieldType(fieldConfig);
     const currentValue = (formData[section] as Record<string, number | string | boolean>)[fieldKey];
     
@@ -185,13 +185,13 @@ export function DynamicMatchScoutForm() {
               </Button>
             </div>
             <div className="text-xs text-center text-muted-foreground">
-              {fieldConfig.points} points
+              {fieldConfig.points || 0} points
             </div>
           </div>
         );
         
       case 'select':
-        const selectValue = String(currentValue || Object.keys(fieldConfig.pointValues)[0]);
+        const selectValue = String(currentValue || Object.keys(fieldConfig.pointValues || {})[0]);
         return (
           <div key={fieldKey} className="space-y-2">
             <Label className="text-sm font-medium">{fieldConfig.label}</Label>
@@ -204,7 +204,7 @@ export function DynamicMatchScoutForm() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(fieldConfig.pointValues).map(([option, points]) => (
+                  {Object.entries(fieldConfig.pointValues || {}).map(([option, points]) => (
                     <SelectItem key={option} value={option} className="text-base py-3">
                       <div className="flex justify-between items-center w-full">
                         <span className="font-medium">{option.charAt(0).toUpperCase() + option.slice(1)}</span>
@@ -256,7 +256,7 @@ export function DynamicMatchScoutForm() {
               </Button>
             </div>
             <div className="text-xs text-center text-muted-foreground">
-              {fieldConfig.points} points each
+              {fieldConfig.points || 0} points each
             </div>
           </div>
         );
@@ -282,7 +282,7 @@ export function DynamicMatchScoutForm() {
             Match Information
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="matchNumber">Match Number</Label>
             <Input
@@ -297,7 +297,7 @@ export function DynamicMatchScoutForm() {
           <div className="space-y-2">
             <Label htmlFor="teamNumber">Team Number</Label>
             {eventTeamNumbers.length > 0 ? (
-              <Select value={formData.teamNumber} onValueChange={(value) => handleBasicInputChange('teamNumber', value)}>
+              <Select value={formData.teamNumber === 0 ? undefined : String(formData.teamNumber)} onValueChange={(value) => handleBasicInputChange('teamNumber', Number(value))}>
                 <SelectTrigger className="focus:border-green-500">
                   <SelectValue placeholder="Select team number" />
                 </SelectTrigger>
@@ -339,20 +339,6 @@ export function DynamicMatchScoutForm() {
               <SelectContent>
                 <SelectItem value="red">Red Alliance</SelectItem>
                 <SelectItem value="blue">Blue Alliance</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label>Position</Label>
-            <Select value={formData.position} onValueChange={(value) => handleBasicInputChange('position', value)}>
-              <SelectTrigger className="focus:border-green-500">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Position 1</SelectItem>
-                <SelectItem value="2">Position 2</SelectItem>
-                <SelectItem value="3">Position 3</SelectItem>
               </SelectContent>
             </Select>
           </div>

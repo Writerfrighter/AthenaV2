@@ -13,6 +13,43 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  webpack: (config, { isServer }) => {
+    // Exclude database service from client-side bundles
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+        stream: false,
+        url: false,
+        zlib: false,
+        http: false,
+        https: false,
+        assert: false,
+        os: false,
+        path: false,
+        // Add Node.js built-in modules
+        'node:stream': false,
+        'node:url': false,
+        'node:crypto': false,
+        'node:buffer': false,
+        'node:util': false,
+      };
+
+      // Exclude mssql and related packages from client bundle
+      config.externals = config.externals || [];
+      config.externals.push({
+        'mssql': 'mssql',
+        'tedious': 'tedious',
+        'node:stream': 'node:stream',
+        'node:url': 'node:url',
+      });
+    }
+
+    return config;
+  },
 };
 
 const pwaConfig = {

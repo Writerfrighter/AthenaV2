@@ -1,5 +1,6 @@
 import { DatabaseService } from './database-service';
-import { db, PitEntry, MatchEntry } from './db';
+import { db } from './db';
+import { PitEntry, MatchEntry } from './types';
 
 export class LocalDatabaseService implements DatabaseService {
   // Pit scouting methods
@@ -37,7 +38,7 @@ export class LocalDatabaseService implements DatabaseService {
     return id as number;
   }
 
-  async getMatchEntries(teamNumber: string, year?: number): Promise<MatchEntry[]> {
+  async getMatchEntries(teamNumber: number, year?: number): Promise<MatchEntry[]> {
     let query = db.matchEntries.where('teamNumber').equals(teamNumber);
     if (year) {
       query = query.and(entry => entry.year === year);

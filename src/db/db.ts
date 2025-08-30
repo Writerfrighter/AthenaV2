@@ -1,33 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
-
-interface PitEntry {
-  id?: number;
-  teamNumber: number;
-  name: string;
-  year: number;
-  driveTrain: "Swerve" | "Mecanum" | "Tank" | "Other";
-  weight: number;
-  length: number;
-  width: number;
-  eventName?: string;
-  eventCode?: string;
-  gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>; // Flexible object for year-specific fields
-  [extra: string]: unknown
-}
-
-interface MatchEntry {
-  id?: number;
-  matchNumber: string;
-  teamNumber: string;
-  year: number;
-  alliance: 'red' | 'blue';
-  position: '1' | '2' | '3';
-  eventName?: string;
-  eventCode?: string;
-  gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>; // Flexible object for year-specific fields
-  notes: string;
-  timestamp: Date;
-}
+import { PitEntry, MatchEntry } from './types';
 
 const db = new Dexie("ScoutingDatabase") as Dexie & {
   pitEntries: EntityTable<PitEntry, "id">;
@@ -80,6 +52,44 @@ db.version(3).stores({
       }
     })
   ]);
+});
+
+db.version(4).stores({
+  pitEntries: "++id, teamNumber, year, name, drivetrain, weight, length, width, gameSpecificData, eventName, eventCode",
+  matchEntries: "++id, teamNumber, year, matchNumber, alliance, position, gameSpecificData, timestamp, eventName, eventCode"
+}).upgrade(tx => {
+  // Add cast teamNumber to number and matchnumber "Q<number>" to a number
+  return Promise.all([
+    tx.table("pitEntries").toCollection().modify(entry => {
+      entry.teamNumber = Number(entry.teamNumber);
+    }),
+    tx.table("matchEntries").toCollection().modify(entry => {
+      entry.teamNumber = Number(entry.teamNumber);
+      entry.matchNumber = Number(entry.matchNumber.replace("Q", ""));
+    })
+  ]);
+});
+
+// Remove name field from pitEntries as team number is sufficient
+db.version(5).stores({
+  pitEntries: "++id, teamNumber, year, drivetrain, weight, length, width, gameSpecificData, eventName, eventCode",
+  matchEntries: "++id, teamNumber, year, matchNumber, alliance, position, gameSpecificData, timestamp, eventName, eventCode"
+}).upgrade(tx => {
+  // Remove name field from existing entries
+  return tx.table("pitEntries").toCollection().modify(entry => {
+    delete entry.name;
+  });
+});
+
+// Remove position field from matchEntries
+db.version(6).stores({
+  pitEntries: "++id, teamNumber, year, drivetrain, weight, length, width, gameSpecificData, eventName, eventCode",
+  matchEntries: "++id, teamNumber, year, matchNumber, alliance, gameSpecificData, timestamp, eventName, eventCode"
+}).upgrade(tx => {
+  // Remove position field from existing entries
+  return tx.table("matchEntries").toCollection().modify(entry => {
+    delete entry.position;
+  });
 });
 
 export type { PitEntry, MatchEntry };

@@ -104,10 +104,6 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <span className="font-semibold text-muted-foreground">Team Name:</span>
-                <p className="text-lg">{pitEntry.name}</p>
-              </div>
-              <div>
                 <span className="font-semibold text-muted-foreground">Drivetrain:</span>
                 <p className="text-lg">{pitEntry.driveTrain}</p>
               </div>

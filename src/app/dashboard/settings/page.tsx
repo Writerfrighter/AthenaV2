@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Database, Users, Bell } from "lucide-react";
 import { DatabaseSyncComponent } from "@/components/database-sync";
+import { DataExportImportComponent } from "@/components/data-export-import";
 
 export default function SettingsPage() {
   return (
@@ -43,6 +44,7 @@ export default function SettingsPage() {
 
         <TabsContent value="database" className="space-y-4">
           <DatabaseSyncComponent />
+          <DataExportImportComponent />
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">

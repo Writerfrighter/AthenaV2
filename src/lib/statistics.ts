@@ -1,4 +1,4 @@
-import { MatchEntry } from '../db/db';
+import { MatchEntry } from '../db/types';
 import { YearConfig, ScoringDefinition } from '../hooks/use-game-config';
 
 export interface TeamStats {
@@ -41,10 +41,10 @@ export function calculateEPA(matches: MatchEntry[], year: number, config: YearCo
   }
 
   const matchCount = matches.length;
-  const autoEPA = totalAutoPoints / matchCount;
-  const teleopEPA = totalTeleopPoints / matchCount;
-  const endgameEPA = totalEndgamePoints / matchCount;
-  const totalEPA = autoEPA + teleopEPA + endgameEPA;
+  const autoEPA = isNaN(totalAutoPoints / matchCount) ? 0 : totalAutoPoints / matchCount;
+  const teleopEPA = isNaN(totalTeleopPoints / matchCount) ? 0 : totalTeleopPoints / matchCount;
+  const endgameEPA = isNaN(totalEndgamePoints / matchCount) ? 0 : totalEndgamePoints / matchCount;
+  const totalEPA = isNaN(autoEPA + teleopEPA + endgameEPA) ? 0 : autoEPA + teleopEPA + endgameEPA;
 
   return { autoEPA, teleopEPA, endgameEPA, totalEPA };
 }
@@ -72,17 +72,29 @@ function calculatePeriodPoints(periodData: Record<string, number | string | bool
     
     if (typeof value === 'number') {
       // For numeric values, multiply by points (simple scoring)
-      points += value * (scoringDef.points || 0);
+      const multiplier = scoringDef.points || 0;
+      if (!isNaN(multiplier) && !isNaN(value)) {
+        points += value * multiplier;
+      }
     } else if (typeof value === 'boolean' && value) {
       // For boolean values, add points if true (simple scoring)
-      points += scoringDef.points || 0;
+      const pts = scoringDef.points || 0;
+      if (!isNaN(pts)) {
+        points += pts;
+      }
     } else if (typeof value === 'string' && value !== '' && value !== 'none') {
       // For string values, check if we have enum-based scoring first
       if (scoringDef.pointValues && scoringDef.pointValues[value] !== undefined) {
-        points += scoringDef.pointValues[value];
+        const pts = scoringDef.pointValues[value];
+        if (!isNaN(pts)) {
+          points += pts;
+        }
       } else if (scoringDef.points) {
         // Fallback to simple scoring for valid string values
-        points += scoringDef.points;
+        const pts = scoringDef.points;
+        if (!isNaN(pts)) {
+          points += pts;
+        }
       }
     }
   }
@@ -148,9 +160,9 @@ function calculatePeriodAverages(matches: MatchEntry[], period: string): Record<
 /**
  * Calculate team rankings based on EPA
  */
-export function calculateTeamRankings(allMatches: MatchEntry[], year: number, config: YearConfig): Array<{teamNumber: string, epa: number, rank: number}> {
+export function calculateTeamRankings(allMatches: MatchEntry[], year: number, config: YearConfig): Array<{teamNumber: number, epa: number, rank: number}> {
   // Group matches by team
-  const teamMatches = new Map<string, MatchEntry[]>();
+  const teamMatches = new Map<number, MatchEntry[]>();
   for (const match of allMatches) {
     if (!teamMatches.has(match.teamNumber)) {
       teamMatches.set(match.teamNumber, []);
@@ -176,7 +188,7 @@ export function calculateTeamRankings(allMatches: MatchEntry[], year: number, co
 /**
  * Get percentile ranking for a team
  */
-export function getTeamPercentile(teamNumber: string, allMatches: MatchEntry[], year: number, config: YearConfig): number {
+export function getTeamPercentile(teamNumber: number, allMatches: MatchEntry[], year: number, config: YearConfig): number {
   const rankings = calculateTeamRankings(allMatches, year, config);
   const teamRank = rankings.find(r => r.teamNumber === teamNumber);
   if (!teamRank) return 0;

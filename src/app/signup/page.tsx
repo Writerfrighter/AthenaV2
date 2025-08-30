@@ -21,21 +21,17 @@ import { toast } from "sonner"
 
 interface SignupFormData {
   name: string
-  email: string
   username: string
   password: string
   confirmPassword: string
-  teamNumber: string
 }
 
 export default function Page() {
   const [formData, setFormData] = useState<SignupFormData>({
     name: '',
-    email: '',
     username: '',
     password: '',
     confirmPassword: '',
-    teamNumber: '',
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -51,16 +47,47 @@ export default function Page() {
       toast.error("Passwords don't match")
       return
     }
+
+    if (formData.password.length < 8) {
+      toast.error("Password must be at least 8 characters long")
+      return
+    }
+
     setIsSubmitting(true)
     
-    // Simulate API call
-    setTimeout(() => {
-      toast.success("Account created successfully!", {
-        description: "Welcome to TRC Athena Scouting!"
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          username: formData.username,
+          password: formData.password,
+        }),
       })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success("Account created successfully!", {
+          description: "Welcome to TRC Athena Scouting! Please sign in."
+        })
+        // Redirect to login page
+        window.location.href = '/login'
+      } else {
+        toast.error("Registration failed", {
+          description: data.error || "An error occurred during registration"
+        })
+      }
+    } catch (error) {
+      toast.error("Registration failed", {
+        description: "Network error. Please try again."
+      })
+    } finally {
       setIsSubmitting(false)
-      // In a real app, redirect to dashboard or login
-    }, 2000)
+    }
   }
 
   return (
@@ -116,21 +143,6 @@ export default function Page() {
                     required
                     className="focus:ring-2 focus:ring-primary/30"
                   />
-                </div>
-
-                {/* Team Information */}
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="teamNumber">Team Number</Label>
-                    <Input
-                      id="teamNumber"
-                      placeholder="492"
-                      value={formData.teamNumber}
-                      onChange={(e) => handleInputChange('teamNumber', e.target.value)}
-                      required
-                      className="focus:ring-2 focus:ring-primary/30"
-                    />
-                  </div>
                 </div>
 
                 {/* Password */}

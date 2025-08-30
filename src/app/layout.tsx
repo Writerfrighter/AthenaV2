@@ -6,6 +6,7 @@ import { GameConfigProvider } from "@/hooks/use-game-config";
 import { EventProvider } from "@/hooks/use-event-config";
 import { ServiceWorkerManager } from "@/components/service-worker-manager";
 import { Toaster } from "sonner";
+import { SessionProvider } from "@/components/session-provider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,20 +28,22 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <head />
         <body className={inter.className}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <GameConfigProvider>
-              <EventProvider>
-                {children}
-              </EventProvider>
-            </GameConfigProvider>
-            <Toaster />
-            <ServiceWorkerManager />
-          </ThemeProvider>
+          <SessionProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <GameConfigProvider>
+                <EventProvider>
+                  {children}
+                </EventProvider>
+              </GameConfigProvider>
+              <Toaster />
+              <ServiceWorkerManager />
+            </ThemeProvider>
+          </SessionProvider>
         </body>
       </html>
     </>

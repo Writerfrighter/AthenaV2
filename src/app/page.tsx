@@ -37,7 +37,7 @@ export default function Page() {
         <div className="text-center">
           <div className="flex justify-center mb-6">
             <div className="relative flex items-center justify-center">
-              <div className="absolute inset-0 rounded-xl bg-white dark:bg-white/80 shadow-lg ring-2 ring-primary/10" style={{ zIndex: 0 }} />
+              <div className="absolute inset-0 rounded-xl bg-white dark:bg-white/80 shadow-lg ring-2 ring-primary/10"/>
               <Image
                 src="/TRCLogo.webp"
                 alt="TRC Scouting Logo"

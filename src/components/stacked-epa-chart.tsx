@@ -114,7 +114,8 @@ const chartConfig = {
   },
 };
 
-export function StackedEPAChart() {
+export function StackedEPAChart({ data }: { data?: typeof chartData }) {
+  const displayData = data || chartData;
   return (
     <Card>
       <CardHeader>
@@ -123,7 +124,7 @@ export function StackedEPAChart() {
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
-          <BarChart accessibilityLayer data={chartData} stackOffset="sign"  >
+          <BarChart accessibilityLayer data={displayData} stackOffset="sign" >
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="team"

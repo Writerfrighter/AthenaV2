@@ -28,6 +28,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { SearchForm } from "./search-form";
+import { useSession } from "next-auth/react";
 
 // This is sample data.
 const data = {
@@ -94,6 +95,19 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { data: session } = useSession();
+
+  // Use session data if available, otherwise fallback to default
+  const userData = session?.user ? {
+    name: session.user.name || "User",
+    username: session.user.username || "user",
+    avatar: "/TRCLogo.webp", // You can update this to use session.user.image if available
+  } : {
+    name: "Guest",
+    username: "guest",
+    avatar: "/TRCLogo.webp",
+  };
+
   return (
     <Sidebar collapsible="icon" {...props} variant="floating">
       <SidebarHeader>
@@ -105,7 +119,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

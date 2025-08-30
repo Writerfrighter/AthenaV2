@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 
 import { useAccountSettingsDialog } from "@/app/dashboard/layout"
+import { signOut } from "next-auth/react"
 
 import {
   Avatar,
@@ -45,6 +46,10 @@ export function NavUser({
   // Call the hook unconditionally at the top level
   const accountSettingsDialog = useAccountSettingsDialog();
   const openAccountSettings = accountSettingsDialog?.openAccountSettings;
+
+  const handleLogout = () => {
+    signOut({ callbackUrl: "/" });
+  };
 
   return (
     <SidebarMenu>
@@ -107,7 +112,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>

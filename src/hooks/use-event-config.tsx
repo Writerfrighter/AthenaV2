@@ -4,8 +4,8 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 
 export interface Event {
   name: string;
-  number: string; // This will be the event code like "2025pncmp"
-  code: string;   // Alternative field for the code
+  region: string; // Region as used by FIRST API
+  code: string;   // Event Code as used by FIRST API
   // logo?: string; // Uncomment when logos are implemented
 }
 
@@ -23,17 +23,17 @@ export function EventProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<Event[]>([
     {
       name: "District Championships",
-      number: "PNW: 2025",
+      region: "PNW: 2025",
       code: "2025pncmp",
     },
     {
       name: "District Sammamish Event", 
-      number: "PNW: 2025",
+      region: "PNW: 2025",
       code: "2025wasam",
     },
     {
       name: "District Sundome Event",
-      number: "PNW: 2025", 
+      region: "PNW: 2025", 
       code: "2025wayak",
     },
   ]);
@@ -48,8 +48,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
         const parsedEvent = JSON.parse(savedEvent);
         // Verify the saved event still exists in the events list
         const eventExists = events.find(e => 
-          (e.name === parsedEvent.name && e.number === parsedEvent.number) ||
-          (e.code === parsedEvent.code)
+          (e.name === parsedEvent.name || e.region === parsedEvent.region || e.code === parsedEvent.code)
         );
         if (eventExists) {
           setSelectedEventState(parsedEvent);
@@ -116,7 +115,7 @@ export function useEventFilter() {
     
     return data.filter(item => 
       item.eventName === selectedEvent.name || 
-      item.eventCode === selectedEvent.number ||
+      item.eventCode === selectedEvent.region ||
       item.eventCode === selectedEvent.code
     );
   };

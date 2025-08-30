@@ -11,6 +11,8 @@ export interface ScoringDefinition {
   // Enum scoring: use pointValues for string-based enum scoring
   // Example: pointValues: { "shallow": 3, "deep": 6, "none": 0 }
   pointValues?: Record<string, number>;
+  // Explicit type definition for form rendering
+  type?: 'boolean' | 'select' | 'number';
 }
 
 export interface YearConfig {

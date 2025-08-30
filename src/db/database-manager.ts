@@ -1,6 +1,6 @@
 import { DatabaseService, DatabaseConfig, DatabaseProvider } from './database-service';
 import { LocalDatabaseService } from './local-database-service';
-import { CosmosDatabaseService } from './cosmos-database-service';
+import { AzureSqlDatabaseService } from './azuresql-database-service';
 
 class DatabaseManager {
   private static instance: DatabaseManager;
@@ -8,12 +8,40 @@ class DatabaseManager {
   private config: DatabaseConfig;
 
   private constructor() {
-    // Default to local database
-    this.config = {
-      provider: 'local',
-      local: { name: 'ScoutingDatabase' }
-    };
-    this.currentService = new LocalDatabaseService();
+    // Check if Azure SQL is properly configured
+    const azureSqlServer = process.env.AZURE_SQL_SERVER;
+    const azureSqlDatabase = process.env.AZURE_SQL_DATABASE;
+    const azureSqlUser = process.env.AZURE_SQL_USER;
+    const azureSqlPassword = process.env.AZURE_SQL_PASSWORD;
+
+    const isAzureSqlConfigured = azureSqlServer && azureSqlDatabase && azureSqlUser && azureSqlPassword &&
+                                 !azureSqlServer.includes('your-server') &&
+                                 !azureSqlDatabase.includes('ScoutingDatabase') &&
+                                 !azureSqlUser.includes('your-username') &&
+                                 !azureSqlPassword.includes('your-password');
+
+    if (isAzureSqlConfigured) {
+      this.config = {
+        provider: 'azuresql',
+        azuresql: {
+          server: azureSqlServer,
+          database: azureSqlDatabase,
+          user: azureSqlUser,
+          password: azureSqlPassword,
+          useManagedIdentity: false
+        }
+      };
+      this.currentService = new AzureSqlDatabaseService(this.config.azuresql!);
+    } else {
+      // Fall back to local database
+      this.config = {
+        provider: 'local',
+        local: {
+          name: 'AthenaScouting'
+        }
+      };
+      this.currentService = new LocalDatabaseService();
+    }
   }
 
   static getInstance(): DatabaseManager {
@@ -29,24 +57,12 @@ class DatabaseManager {
   }
 
   private createService(config: DatabaseConfig): DatabaseService {
-    switch (config.provider) {
-      case 'local':
-        return new LocalDatabaseService();
-      case 'cosmos':
-        if (!config.cosmos) {
-          throw new Error('Azure Cosmos DB configuration required');
-        }
-        const cosmosService = new CosmosDatabaseService(config.cosmos);
-        return cosmosService;
-      case 'supabase':
-        // TODO: Implement Supabase service
-        throw new Error('Supabase not implemented yet');
-      case 'mongodb':
-        // TODO: Implement MongoDB service
-        throw new Error('MongoDB not implemented yet');
-      default:
-        throw new Error(`Unsupported database provider: ${config.provider}`);
+    if (config.provider === 'azuresql' && config.azuresql) {
+      return new AzureSqlDatabaseService(config.azuresql);
+    } else if (config.provider === 'local') {
+      return new LocalDatabaseService();
     }
+    throw new Error('Invalid database configuration');
   }
 
   getService(): DatabaseService {

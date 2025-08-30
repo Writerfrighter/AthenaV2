@@ -102,7 +102,7 @@ export function Team2024Page({ teamNumber }: Team2024PageProps) {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-4xl font-bold">{pitEntry?.name || `Team ${teamNumber}`}</h1>
+        <h1 className="text-4xl font-bold">Team {teamNumber}</h1>
         <Badge variant="outline" className="text-lg px-3 py-1">
           2024 - CRESCENDO
         </Badge>
@@ -115,7 +115,6 @@ export function Team2024Page({ teamNumber }: Team2024PageProps) {
             <CardTitle>Team Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div><strong>Team Name:</strong> {pitEntry?.name || "Unknown"}</div>
             <div><strong>Team Number:</strong> {teamNumber}</div>
             <div><strong>Drivetrain:</strong> {pitEntry?.driveTrain || "Unknown"}</div>
             <div><strong>Weight:</strong> {pitEntry?.weight || "Unknown"} lbs</div>
@@ -149,7 +148,7 @@ export function Team2024Page({ teamNumber }: Team2024PageProps) {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-6 text-center">
-              <div className="text-2xl font-bold">{crescendoData.avg_total.toFixed(1)}</div>
+              <div className="text-2xl font-bold">{isNaN(crescendoData.avg_total) ? 0 : crescendoData.avg_total.toFixed(1)}</div>
               <div className="text-sm text-muted-foreground">Average Total Score</div>
             </CardContent>
           </Card>

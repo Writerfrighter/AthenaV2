@@ -20,9 +20,11 @@ import {
 import Link from "next/link"
 
 import { useSelectedEvent } from "@/hooks/use-event-config"
+import { useDashboardStats } from "@/hooks/use-dashboard-stats"
 
 export default function Page() {
   const selectedEvent = useSelectedEvent();
+  const { stats, loading } = useDashboardStats();
 
   return (
     <div className="space-y-6">
@@ -42,7 +44,7 @@ export default function Page() {
                 {selectedEvent.name}
               </Badge>
               <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                {selectedEvent.number}
+                {selectedEvent.region}
               </Badge>
             </>
           )}
@@ -50,16 +52,16 @@ export default function Page() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Teams Scouted</CardTitle>
             <Users className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">47</div>
+            <div className="text-2xl font-bold">{loading ? "..." : stats.teamsScouted}</div>
             <p className="text-xs text-muted-foreground">
-              +12 from yesterday
+              {loading ? "Loading..." : `Pit scouting: ${stats.pitScoutingProgress.current}/${stats.pitScoutingProgress.total}`}
             </p>
           </CardContent>
         </Card>
@@ -70,25 +72,25 @@ export default function Page() {
             <ClipboardList className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">156</div>
+            <div className="text-2xl font-bold">{loading ? "..." : stats.matchesRecorded}</div>
             <p className="text-xs text-muted-foreground">
-              +23 today
+              {loading ? "Loading..." : `Qualification: ${stats.qualificationProgress.current}/${stats.qualificationProgress.total}`}
             </p>
           </CardContent>
         </Card>
         
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Data Quality</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">94%</div>
+            <div className="text-2xl font-bold">{loading ? "..." : `${stats.dataQuality}%`}</div>
             <p className="text-xs text-muted-foreground">
-              +2% from last event
+              {loading ? "Loading..." : "Teams with complete data"}
             </p>
           </CardContent>
-        </Card>
+        </Card> */}
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -96,9 +98,9 @@ export default function Page() {
             <Trophy className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">#3</div>
+            <div className="text-2xl font-bold">{loading ? "..." : `#${stats.ranking}`}</div>
             <p className="text-xs text-muted-foreground">
-              Alliance Captain
+              {loading ? "Loading..." : "Based on EPA performance"}
             </p>
           </CardContent>
         </Card>
@@ -168,31 +170,31 @@ export default function Page() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Qualification Matches</span>
-                <span>72/90</span>
+                <span>{loading ? "..." : `${stats.qualificationProgress.current}/${stats.qualificationProgress.total}`}</span>
               </div>
-              <Progress value={80} className="h-2" />
+              <Progress value={loading ? 0 : (stats.qualificationProgress.current / stats.qualificationProgress.total) * 100} className="h-2" />
             </div>
             
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Pit Scouting</span>
-                <span>47/54</span>
+                <span>{loading ? "..." : `${stats.pitScoutingProgress.current}/${stats.pitScoutingProgress.total}`}</span>
               </div>
-              <Progress value={87} className="h-2" />
+              <Progress value={loading ? 0 : (stats.pitScoutingProgress.current / stats.pitScoutingProgress.total) * 100} className="h-2" />
             </div>
             
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Data Analysis</span>
-                <span>Complete</span>
+                <span>{loading ? "..." : stats.dataQuality > 80 ? "Complete" : "In Progress"}</span>
               </div>
-              <Progress value={100} className="h-2" />
+              <Progress value={loading ? 0 : stats.dataQuality} className="h-2" />
             </div>
 
             <div className="pt-4 border-t">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4" />
-                Next match: QF1-1 in 23 minutes
+                <span>Next match: {loading ? "..." : (stats.nextMatch || "Event Complete")}</span>
               </div>
             </div>
           </CardContent>
@@ -211,37 +213,26 @@ export default function Page() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Team 254 pit scouting completed</p>
-                  <p className="text-xs text-muted-foreground">2 minutes ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Match Q47 data recorded</p>
-                  <p className="text-xs text-muted-foreground">5 minutes ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Picklist updated with 3 teams</p>
-                  <p className="text-xs text-muted-foreground">12 minutes ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Analysis report generated</p>
-                  <p className="text-xs text-muted-foreground">18 minutes ago</p>
-                </div>
-              </div>
+              {loading ? (
+                <div className="text-center text-muted-foreground">Loading activity...</div>
+              ) : stats.recentActivity.length > 0 ? (
+                stats.recentActivity.map((activity, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${
+                      activity.type === 'pit' ? 'bg-green-500' :
+                      activity.type === 'match' ? 'bg-blue-500' : 'bg-purple-500'
+                    }`}></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{activity.message}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.timestamp.toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground">No recent activity</div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -251,54 +242,29 @@ export default function Page() {
           <CardHeader>
             <CardTitle>Top Performing Teams</CardTitle>
             <CardDescription>
-              Based on current scouting data and rankings
+              Based on current scouting data and EPA rankings
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="w-8 justify-center">1</Badge>
-                  <div>
-                    <p className="font-medium">Team 254</p>
-                    <p className="text-sm text-muted-foreground">The Cheesy Poofs</p>
+              {loading ? (
+                <div className="text-center text-muted-foreground">Loading teams...</div>
+              ) : stats.topTeams.length > 0 ? (
+                stats.topTeams.map((team, index) => (
+                  <div key={team.teamNumber} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary" className="w-8 justify-center">{index + 1}</Badge>
+                      <div>
+                        <p className="font-medium">Team {team.teamNumber}</p>
+                        <p className="text-sm text-muted-foreground">{team.name}</p>
+                      </div>
+                    </div>
+                    <Badge variant="default">{(isNaN(team.epa) ? 0 : team.epa).toFixed(1)} EPA</Badge>
                   </div>
-                </div>
-                <Badge variant="default">98.5 EPA</Badge>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="w-8 justify-center">2</Badge>
-                  <div>
-                    <p className="font-medium">Team 1678</p>
-                    <p className="text-sm text-muted-foreground">Citrus Circuits</p>
-                  </div>
-                </div>
-                <Badge variant="default">94.2 EPA</Badge>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="w-8 justify-center">3</Badge>
-                  <div>
-                    <p className="font-medium">Team 492</p>
-                    <p className="text-sm text-muted-foreground">Titan Robotics</p>
-                  </div>
-                </div>
-                <Badge variant="default">91.8 EPA</Badge>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="w-8 justify-center">4</Badge>
-                  <div>
-                    <p className="font-medium">Team 971</p>
-                    <p className="text-sm text-muted-foreground">Spartan Robotics</p>
-                  </div>
-                </div>
-                <Badge variant="default">89.7 EPA</Badge>
-              </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground">No team data available</div>
+              )}
             </div>
           </CardContent>
         </Card>

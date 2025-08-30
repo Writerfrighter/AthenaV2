@@ -14,11 +14,10 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { db } from '@/db/db';
+import { pitApi } from '@/lib/api/database-client';
 
 interface DynamicPitData {
-  team: string;
-  name: string;
+  team: number;
   drivetrain: string;
   weight: string;
   length: string;
@@ -34,8 +33,7 @@ export function DynamicPitScoutForm() {
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
   const [formData, setFormData] = useState<DynamicPitData>({
-    team: '',
-    name: '',
+    team: 0,
     drivetrain: '',
     weight: '',
     length: '',
@@ -47,11 +45,19 @@ export function DynamicPitScoutForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((f) => ({ ...f, [name]: value }));
+    if (name === 'team') {
+      setFormData((f) => ({ ...f, [name]: Number(value) }));
+    } else {
+      setFormData((f) => ({ ...f, [name]: value }));
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((f) => ({ ...f, [name]: value }));
+    if (name === 'team') {
+      setFormData((f) => ({ ...f, [name]: Number(value) }));
+    } else {
+      setFormData((f) => ({ ...f, [name]: value }));
+    }
   };
 
   const handleGameSpecificChange = (field: string, value: number | string | boolean) => {
@@ -71,21 +77,20 @@ export function DynamicPitScoutForm() {
     try {
       const entryToSave = {
         teamNumber: Number(formData.team),
-        name: formData.name,
         year: new Date().getFullYear(),
         driveTrain: formData.drivetrain as "Swerve" | "Mecanum" | "Tank" | "Other",
         weight: Number(formData.weight),
         length: Number(formData.length),
         width: Number(formData.width),
         eventName: selectedEvent?.name || 'Unknown Event',
-        eventCode: selectedEvent?.code || selectedEvent?.number || 'Unknown Code',
+        eventCode: selectedEvent?.code || 'Unknown Code',
         gameSpecificData: {
           hasAuto: formData.hasAuto,
           ...formData.gameSpecificData
         }
       };
 
-      await db.pitEntries.add(entryToSave);
+      await pitApi.create(entryToSave);
       
       toast("Scouting data saved!", {
         description: `Team ${formData.team} entry stored successfully.`
@@ -93,8 +98,7 @@ export function DynamicPitScoutForm() {
       
       // Reset form
       setFormData({
-        team: '',
-        name: '',
+        team: 0,
         drivetrain: '',
         weight: '',
         length: '',
@@ -201,7 +205,7 @@ export function DynamicPitScoutForm() {
                       Team Number
                     </Label>
                     {eventTeamNumbers.length > 0 ? (
-                      <Select value={formData.team} onValueChange={(value) => handleSelectChange('team', value)}>
+                      <Select value={formData.team === 0 ? undefined : String(formData.team)} onValueChange={(value) => handleSelectChange('team', value)}>
                         <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder="Select team number" />
                         </SelectTrigger>
@@ -232,19 +236,6 @@ export function DynamicPitScoutForm() {
                         className="h-12 text-base"
                       />
                     )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-base font-medium">
-                      Team Name
-                    </Label>
-                    <Input
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="The Titans"
-                      required
-                      className="h-12 text-base"
-                    />
                   </div>
                 </div>
               </div>

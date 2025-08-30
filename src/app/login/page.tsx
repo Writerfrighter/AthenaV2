@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from "react"
+import { signIn } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -16,35 +18,52 @@ import { ArrowLeft, Users, UserRound } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
-interface SignupFormData {
+interface LoginFormData {
   username: string
   password: string
 }
 
 export default function Page() {
-  const [formData, setFormData] = useState<SignupFormData>({
+  const router = useRouter()
+  const [formData, setFormData] = useState<LoginFormData>({
     username: '',
     password: '',
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleInputChange = (field: keyof SignupFormData, value: string | boolean) => {
+  const handleInputChange = (field: keyof LoginFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      toast.success("Account created successfully!", {
-        description: "Welcome to TRC Athena Scouting!"
+
+    try {
+      const result = await signIn("credentials", {
+        username: formData.username,
+        password: formData.password,
+        redirect: false,
       })
+
+      if (result?.error) {
+        toast.error("Login failed", {
+          description: "Invalid email or password"
+        })
+      } else {
+        toast.success("Login successful!", {
+          description: "Welcome back to TRC Athena Scouting!"
+        })
+        router.push("/dashboard")
+      }
+    } catch (error) {
+      toast.error("Login failed", {
+        description: "An unexpected error occurred"
+      })
+    } finally {
       setIsSubmitting(false)
-      // In a real app, redirect to dashboard or login
-    }, 2000)
+    }
   }
 
   return (
@@ -76,12 +95,13 @@ export default function Page() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Username */}
+                {/* Email */}
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
                   <Input
                     id="username"
-                    placeholder="johndoe492"
+                    type="text"
+                    placeholder="Enter your username"
                     value={formData.username}
                     onChange={(e) => handleInputChange('username', e.target.value)}
                     className="focus:ring-2 focus:ring-primary/30"

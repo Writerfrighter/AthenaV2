@@ -137,7 +137,7 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Region</p>
-                <p className="text-sm font-semibold">{currentEvent.number}</p>
+                <p className="text-sm font-semibold">{(currentEvent as { number: string }).number}</p>
               </div>
               <div className="p-2 bg-muted rounded-lg">
                 <MapPin className="h-5 w-5 text-muted-foreground" />

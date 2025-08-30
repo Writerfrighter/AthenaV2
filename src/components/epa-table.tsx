@@ -123,7 +123,7 @@ export const columns: ColumnDef<Team>[] = [
   },
 ];
 
-export function EPATable() {
+export function EPATable({ data }: { data?: Team[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -132,8 +132,10 @@ export function EPATable() {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
+  const tableData = data || chartData;
+
   const table = useReactTable({
-    data: chartData, // <-- use `data`, not chartData:
+    data: tableData,
     columns,
     state: {
       sorting,

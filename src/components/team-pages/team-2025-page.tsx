@@ -203,13 +203,12 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
         {/* Team Info Column */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center gap-3 mb-4">
-            <h1 className="text-4xl font-bold">{pitEntry?.name || `Team ${teamNumber}`}</h1>
+            <h1 className="text-4xl font-bold">Team {teamNumber}</h1>
           </div>
           
           <Card className="shadow">
             <CardContent className="pt-6">
               <ul className="space-y-3 text-lg">
-                <li><strong>Team Name:</strong> {pitEntry?.name || "Unknown"}</li>
                 <li><strong>Team Number:</strong> {teamNumber}</li>
                 <li><strong>Location:</strong> San Francisco, CA</li>
                 <li><strong>Rookie Year:</strong> 2008</li>
@@ -253,11 +252,11 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
             <CardContent className="pt-6 text-center">
               <div className="space-y-2">
                 <p className="font-semibold">Average Total Score</p>
-                <p className="text-2xl font-bold">{reefscapeData?.avg_total.toFixed(1) || 0}</p>
+                <p className="text-2xl font-bold">{reefscapeData ? (isNaN(reefscapeData.avg_total) ? 0 : reefscapeData.avg_total).toFixed(1) : 0}</p>
               </div>
               <div className="space-y-2 mt-4">
                 <p className="font-semibold">EPA</p>
-                <p className="text-2xl font-bold">{reefscapeData?.epa.toFixed(1) || 0}</p>
+                <p className="text-2xl font-bold">{reefscapeData ? (isNaN(reefscapeData.epa) ? 0 : reefscapeData.epa).toFixed(1) : 0}</p>
               </div>
             </CardContent>
           </Card>
@@ -266,7 +265,7 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
             <CardContent className="pt-6 text-center">
               <div className="space-y-2">
                 <p className="font-semibold">Average Auto Coral</p>
-                <p className="text-2xl font-bold">{reefscapeData?.avg_auto_coral.toFixed(1) || 0}</p>
+                <p className="text-2xl font-bold">{reefscapeData ? (isNaN(reefscapeData.avg_auto_coral) ? 0 : reefscapeData.avg_auto_coral).toFixed(1) : 0}</p>
               </div>
               <div className="space-y-2 mt-4">
                 <p className="font-semibold">Average Auto Algae</p>
