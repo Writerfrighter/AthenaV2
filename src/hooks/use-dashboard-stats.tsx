@@ -94,7 +94,7 @@ export function useDashboardStats() {
     }
 
     fetchStats();
-  }, [selectedEvent?.code, currentYear]);
+  }, [selectedEvent, currentYear, gameConfig]);
 
   return { stats, loading, error };
 }

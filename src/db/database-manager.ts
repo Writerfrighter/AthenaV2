@@ -82,6 +82,10 @@ class DatabaseManager {
     return this.currentService.importData(data);
   }
 
+  async resetDatabase() {
+    return this.currentService.resetDatabase();
+  }
+
   async switchProvider(provider: DatabaseProvider, config?: Partial<DatabaseConfig>) {
     const newConfig: DatabaseConfig = {
       ...this.config,

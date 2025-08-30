@@ -84,4 +84,10 @@ export class LocalDatabaseService implements DatabaseService {
     await db.pitEntries.bulkAdd(data.pitEntries);
     await db.matchEntries.bulkAdd(data.matchEntries);
   }
+
+  async resetDatabase(): Promise<void> {
+    // Clear all data from tables
+    await db.pitEntries.clear();
+    await db.matchEntries.clear();
+  }
 }

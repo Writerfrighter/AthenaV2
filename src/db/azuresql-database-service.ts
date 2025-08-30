@@ -406,6 +406,19 @@ export class AzureSqlDatabaseService implements DatabaseService {
     }
   }
 
+  async resetDatabase(): Promise<void> {
+    const pool = await this.getPool();
+    
+    // Clear all data from tables
+    await pool.request().query('DELETE FROM pitEntries');
+    await pool.request().query('DELETE FROM matchEntries');
+    // await pool.request().query('DELETE FROM users');
+    
+    // Reset identity columns
+    await pool.request().query('DBCC CHECKIDENT (pitEntries, RESEED, 0)');
+    await pool.request().query('DBCC CHECKIDENT (matchEntries, RESEED, 0)');
+  }
+
   // Optional sync methods (not implemented for Azure SQL)
   async syncToCloud?(): Promise<void> {
     // Not applicable for Azure SQL as it's already cloud-based

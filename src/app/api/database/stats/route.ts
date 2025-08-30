@@ -3,6 +3,7 @@ import { DatabaseManager } from '@/db/database-manager';
 import { calculateEPA } from '@/lib/statistics';
 import gameConfigRaw from '../../../../../config/game-config.json';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const gameConfig = gameConfigRaw as any;
 
 // Get database service from manager

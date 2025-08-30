@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AzureSqlDatabaseService } from '@/db/azuresql-database-service';
-import { calculateEPA, calculateTeamStats } from '@/lib/statistics';
+import { calculateEPA } from '@/lib/statistics';
 import gameConfigRaw from '../../../../../config/game-config.json';
 
 // Hardcoded Azure SQL configuration
@@ -12,6 +12,7 @@ const AZURE_SQL_CONFIG = {
   useManagedIdentity: false
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const gameConfig = gameConfigRaw as any;
 
 // Initialize Azure SQL service

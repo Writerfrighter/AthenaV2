@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCurrentGameConfig } from '@/hooks/use-game-config';
 import { useSelectedEvent } from '@/hooks/use-event-config';
 import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
@@ -56,13 +56,113 @@ const defaultData: DynamicMatchData = {
   notes: ''
 };
 
+// Function to initialize form data with all game config fields
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const initializeFormData = (gameConfig: any): DynamicMatchData => {
+  const data: DynamicMatchData = {
+    matchNumber: 0,
+    teamNumber: 0,
+    alliance: 'red',
+    autonomous: {},
+    teleop: {},
+    endgame: {},
+    fouls: {},
+    notes: ''
+  };
+
+  if (!gameConfig?.scoring) return data;
+
+  // Initialize autonomous fields
+  if (gameConfig.scoring.autonomous) {
+    Object.keys(gameConfig.scoring.autonomous).forEach(key => {
+      const fieldConfig = gameConfig.scoring.autonomous[key];
+      if (fieldConfig.type === 'boolean') {
+        data.autonomous[key] = false;
+      } else if (fieldConfig.type === 'number' || fieldConfig.points !== undefined) {
+        data.autonomous[key] = 0;
+      } else if (fieldConfig.pointValues) {
+        // For select fields, use the first option as default
+        const options = Object.keys(fieldConfig.pointValues);
+        data.autonomous[key] = options.length > 0 ? options[0] : '';
+      } else {
+        data.autonomous[key] = 0; // Default to number
+      }
+    });
+  }
+
+  // Add hardcoded startPosition field for autonomous
+  data.autonomous.startPosition = 'center';
+
+  // Initialize teleop fields
+  if (gameConfig.scoring.teleop) {
+    Object.keys(gameConfig.scoring.teleop).forEach(key => {
+      const fieldConfig = gameConfig.scoring.teleop[key];
+      if (fieldConfig.type === 'boolean') {
+        data.teleop[key] = false;
+      } else if (fieldConfig.type === 'number' || fieldConfig.points !== undefined) {
+        data.teleop[key] = 0;
+      } else if (fieldConfig.pointValues) {
+        const options = Object.keys(fieldConfig.pointValues);
+        data.teleop[key] = options.length > 0 ? options[0] : '';
+      } else {
+        data.teleop[key] = 0;
+      }
+    });
+  }
+
+  // Initialize endgame fields
+  if (gameConfig.scoring.endgame) {
+    Object.keys(gameConfig.scoring.endgame).forEach(key => {
+      const fieldConfig = gameConfig.scoring.endgame[key];
+      if (fieldConfig.type === 'boolean') {
+        data.endgame[key] = false;
+      } else if (fieldConfig.type === 'number' || fieldConfig.points !== undefined) {
+        data.endgame[key] = 0;
+      } else if (fieldConfig.pointValues) {
+        const options = Object.keys(fieldConfig.pointValues);
+        data.endgame[key] = options.length > 0 ? options[0] : '';
+      } else {
+        data.endgame[key] = 0;
+      }
+    });
+  }
+
+  // Initialize fouls fields
+  if (gameConfig.scoring.fouls) {
+    Object.keys(gameConfig.scoring.fouls).forEach(key => {
+      const fieldConfig = gameConfig.scoring.fouls[key];
+      if (fieldConfig.type === 'boolean') {
+        data.fouls[key] = false;
+      } else if (fieldConfig.type === 'number' || fieldConfig.points !== undefined) {
+        data.fouls[key] = 0;
+      } else if (fieldConfig.pointValues) {
+        const options = Object.keys(fieldConfig.pointValues);
+        data.fouls[key] = options.length > 0 ? options[0] : '';
+      } else {
+        data.fouls[key] = 0;
+      }
+    });
+  }
+
+  return data;
+};
+
 export function DynamicMatchScoutForm() {
   const gameConfig = useCurrentGameConfig();
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
-  const [formData, setFormData] = useState<DynamicMatchData>(defaultData);
+  const [formData, setFormData] = useState<DynamicMatchData>(() => 
+    gameConfig ? initializeFormData(gameConfig) : defaultData
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reinitialize form data when game config changes
+  useEffect(() => {
+    if (gameConfig) {
+      setFormData(initializeFormData(gameConfig));
+    }
+  }, [gameConfig]);
 
   const handleInputChange = (section: string, field: string, value: number | string | boolean) => {
     setFormData(prev => ({
@@ -117,7 +217,7 @@ export function DynamicMatchScoutForm() {
         description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} saved successfully`
       });
       
-      setFormData(defaultData);
+      setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData);
     } catch (error) {
       toast.error("Failed to save data", {
         description: error instanceof Error ? error.message : "Unknown error"
@@ -472,7 +572,7 @@ export function DynamicMatchScoutForm() {
             <div className="flex flex-col md:flex-row gap-3">
               <Button 
                 variant="outline" 
-                onClick={() => setFormData(defaultData)}
+                onClick={() => setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData)}
                 className="hover:bg-green-50 h-12"
                 size="lg"
               >

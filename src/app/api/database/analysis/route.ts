@@ -3,6 +3,7 @@ import { AzureSqlDatabaseService } from '@/db/azuresql-database-service';
 import { calculateEPA } from '@/lib/statistics';
 import gameConfigRaw from '../../../../../config/game-config.json';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const gameConfig = gameConfigRaw as any;
 
 // Hardcoded Azure SQL configuration
@@ -72,11 +73,19 @@ export async function GET(request: NextRequest) {
     }));
 
     // Calculate team-specific EPA data using proper statistics
-    const teamEPAs: Record<number, { teamNumber: number; epa: number; matches: number }> = {};
+    const teamEPAs: Record<number, { 
+      teamNumber: number; 
+      epaBreakdown: { autoEPA: number; teleopEPA: number; endgameEPA: number; penaltiesEPA: number; totalEPA: number }; 
+      matches: number 
+    }> = {};
 
     filteredEntries.forEach(entry => {
       if (!teamEPAs[entry.teamNumber]) {
-        teamEPAs[entry.teamNumber] = { teamNumber: entry.teamNumber, epa: 0, matches: 0 };
+        teamEPAs[entry.teamNumber] = { 
+          teamNumber: entry.teamNumber, 
+          epaBreakdown: { autoEPA: 0, teleopEPA: 0, endgameEPA: 0, penaltiesEPA: 0, totalEPA: 0 }, 
+          matches: 0 
+        };
       }
       teamEPAs[entry.teamNumber].matches += 1;
     });
@@ -90,7 +99,7 @@ export async function GET(request: NextRequest) {
         try {
           const yearConfig = gameConfig[year.toString() as keyof typeof gameConfig];
           const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
-          teamEPAs[teamNumber].epa = epaBreakdown.totalEPA;
+          teamEPAs[teamNumber].epaBreakdown = epaBreakdown;
         } catch (error) {
           console.error(`Error calculating EPA for team ${teamNumber}:`, error);
           // Fallback to simple calculation
@@ -104,7 +113,7 @@ export async function GET(request: NextRequest) {
               });
             }
           });
-          teamEPAs[teamNumber].epa = totalEPA;
+          teamEPAs[teamNumber].epaBreakdown = { autoEPA: 0, teleopEPA: 0, endgameEPA: 0, penaltiesEPA: 0, totalEPA };
         }
       } else {
         // Fallback to simple calculation if no year config
@@ -118,7 +127,7 @@ export async function GET(request: NextRequest) {
             });
           }
         });
-        teamEPAs[teamNumber].epa = totalEPA;
+        teamEPAs[teamNumber].epaBreakdown = { autoEPA: 0, teleopEPA: 0, endgameEPA: 0, penaltiesEPA: 0, totalEPA };
       }
     });
 
@@ -128,8 +137,12 @@ export async function GET(request: NextRequest) {
         teamNumber: team.teamNumber,
         name: `Team ${team.teamNumber}`, // Could be enhanced to get actual team names
         matchesPlayed: team.matches,
-        avgEPA: team.epa,
-        totalEPA: team.epa * team.matches
+        avgEPA: team.epaBreakdown.totalEPA,
+        totalEPA: team.epaBreakdown.totalEPA * team.matches,
+        autoEPA: team.epaBreakdown.autoEPA,
+        teleopEPA: team.epaBreakdown.teleopEPA,
+        endgameEPA: team.epaBreakdown.endgameEPA,
+        penaltiesEPA: team.epaBreakdown.penaltiesEPA
       }))
       .sort((a, b) => b.avgEPA - a.avgEPA);
 

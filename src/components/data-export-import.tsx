@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Upload, FileText, FileSpreadsheet, Database } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Download, Upload, FileText, FileSpreadsheet, Database, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 type ExportFormat = 'json' | 'csv' | 'xlsx';
@@ -12,11 +13,23 @@ type ExportFormat = 'json' | 'csv' | 'xlsx';
 export function DataExportImportComponent() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [importProgress, setImportProgress] = useState(0);
   const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
 
   const handleExport = async (format: ExportFormat) => {
     setIsExporting(true);
+    setExportProgress(0);
+
     try {
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setExportProgress(prev => {
+          if (prev >= 90) return prev;
+          return prev + Math.random() * 15;
+        });
+      }, 500);
+
       const params = new URLSearchParams();
       if (selectedYear) {
         params.append('year', selectedYear.toString());
@@ -27,6 +40,8 @@ export function DataExportImportComponent() {
       if (!response.ok) {
         throw new Error('Failed to export data');
       }
+
+      setExportProgress(95);
 
       // Get filename from response headers or create default
       const contentDisposition = response.headers.get('content-disposition');
@@ -50,12 +65,24 @@ export function DataExportImportComponent() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success(`Data exported successfully as ${format.toUpperCase()}`);
+      setExportProgress(100);
+      clearInterval(progressInterval);
+
+      toast.success(`Data exported successfully as ${format.toUpperCase()}`, {
+        description: `File: ${filename}`,
+        duration: 5000,
+      });
     } catch (error) {
       console.error('Export error:', error);
-      toast.error('Failed to export data');
+      toast.error('Failed to export data', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        duration: 5000,
+      });
     } finally {
-      setIsExporting(false);
+      setTimeout(() => {
+        setIsExporting(false);
+        setExportProgress(0);
+      }, 1000);
     }
   };
 
@@ -64,11 +91,21 @@ export function DataExportImportComponent() {
     if (!file) return;
 
     setIsImporting(true);
+    setImportProgress(0);
+
     try {
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setImportProgress(prev => {
+          if (prev >= 90) return prev;
+          return prev + Math.random() * 10;
+        });
+      }, 600);
+
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/database/export', {
+      const response = await fetch('/api/database/import', {
         method: 'POST',
         body: formData,
       });
@@ -78,14 +115,26 @@ export function DataExportImportComponent() {
         throw new Error(errorData.error || 'Failed to import data');
       }
 
-      toast.success('Data imported successfully');
+      setImportProgress(100);
+      clearInterval(progressInterval);
+
+      toast.success('Data imported successfully', {
+        description: `File: ${file.name}`,
+        duration: 5000,
+      });
     } catch (error) {
       console.error('Import error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to import data');
+      toast.error('Failed to import data', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        duration: 5000,
+      });
     } finally {
-      setIsImporting(false);
-      // Reset file input
-      event.target.value = '';
+      setTimeout(() => {
+        setIsImporting(false);
+        setImportProgress(0);
+        // Reset file input
+        event.target.value = '';
+      }, 1000);
     }
   };
 
@@ -115,15 +164,28 @@ export function DataExportImportComponent() {
 
         <div className="space-y-2">
           <h4 className="font-medium">Export Data</h4>
+          {isExporting && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Exporting data... ({Math.round(exportProgress)}%)
+              </div>
+              <Progress value={exportProgress} className="h-2" />
+            </div>
+          )}
           <div className="flex gap-2 flex-wrap">
             <Button
               onClick={() => handleExport('json')}
               disabled={isExporting}
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 transition-all duration-200"
             >
-              <FileText className="h-4 w-4" />
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
               JSON
             </Button>
             <Button
@@ -131,9 +193,13 @@ export function DataExportImportComponent() {
               disabled={isExporting}
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 transition-all duration-200"
             >
-              <FileText className="h-4 w-4" />
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="h-4 w-4" />
+              )}
               CSV
             </Button>
             <Button
@@ -141,9 +207,13 @@ export function DataExportImportComponent() {
               disabled={isExporting}
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 transition-all duration-200"
             >
-              <FileSpreadsheet className="h-4 w-4" />
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
               Excel
             </Button>
           </div>
@@ -151,6 +221,15 @@ export function DataExportImportComponent() {
 
         <div className="space-y-2">
           <h4 className="font-medium">Import Data</h4>
+          {isImporting && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Importing data... ({Math.round(importProgress)}%)
+              </div>
+              <Progress value={importProgress} className="h-2" />
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <input
               type="file"
@@ -166,10 +245,14 @@ export function DataExportImportComponent() {
                 disabled={isImporting}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 cursor-pointer"
+                className="flex items-center gap-2 cursor-pointer transition-all duration-200"
               >
                 <span>
-                  <Upload className="h-4 w-4" />
+                  {isImporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
                   Choose File
                 </span>
               </Button>

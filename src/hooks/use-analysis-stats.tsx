@@ -56,10 +56,10 @@ export function useAnalysisStats() {
           dataPoints: apiStats.totalMatches,
           teamEPAData: apiStats.teamEPAData.map(team => ({
             team: team.teamNumber.toString(),
-            auto: 0, // API doesn't provide breakdown yet
-            teleop: 0, // API doesn't provide breakdown yet
-            endgame: 0, // API doesn't provide breakdown yet
-            penalties: 0, // API doesn't provide breakdown yet
+            auto: team.autoEPA || 0,
+            teleop: team.teleopEPA || 0,
+            endgame: team.endgameEPA || 0,
+            penalties: team.penaltiesEPA || 0,
             totalEPA: team.totalEPA
           }))
         };
@@ -74,7 +74,7 @@ export function useAnalysisStats() {
     }
 
     fetchAnalysisStats();
-  }, [selectedEvent?.code, currentYear, gameConfig]);
+  }, [selectedEvent, currentYear, gameConfig]);
 
   return { stats, loading, error };
 }

@@ -14,6 +14,7 @@ export interface EPABreakdown {
   autoEPA: number;
   teleopEPA: number;
   endgameEPA: number;
+  penaltiesEPA: number;
   totalEPA: number;
 }
 
@@ -23,30 +24,34 @@ export interface EPABreakdown {
  */
 export function calculateEPA(matches: MatchEntry[], year: number, config: YearConfig): EPABreakdown {
   if (matches.length === 0) {
-    return { autoEPA: 0, teleopEPA: 0, endgameEPA: 0, totalEPA: 0 };
+    return { autoEPA: 0, teleopEPA: 0, endgameEPA: 0, penaltiesEPA: 0, totalEPA: 0 };
   }
 
   let totalAutoPoints = 0;
   let totalTeleopPoints = 0;
   let totalEndgamePoints = 0;
+  let totalPenaltiesPoints = 0;
 
   for (const match of matches) {
     const autoPoints = calculatePeriodPoints((match.gameSpecificData?.autonomous as Record<string, number | string | boolean>) || {}, config.scoring.autonomous);
     const teleopPoints = calculatePeriodPoints((match.gameSpecificData?.teleop as Record<string, number | string | boolean>) || {}, config.scoring.teleop);
     const endgamePoints = calculatePeriodPoints((match.gameSpecificData?.endgame as Record<string, number | string | boolean>) || {}, config.scoring.endgame);
+    const penaltiesPoints = calculatePeriodPoints((match.gameSpecificData?.fouls as Record<string, number | string | boolean>) || {}, config.scoring.fouls || {});
 
     totalAutoPoints += autoPoints;
     totalTeleopPoints += teleopPoints;
     totalEndgamePoints += endgamePoints;
+    totalPenaltiesPoints += penaltiesPoints;
   }
 
   const matchCount = matches.length;
   const autoEPA = isNaN(totalAutoPoints / matchCount) ? 0 : totalAutoPoints / matchCount;
   const teleopEPA = isNaN(totalTeleopPoints / matchCount) ? 0 : totalTeleopPoints / matchCount;
   const endgameEPA = isNaN(totalEndgamePoints / matchCount) ? 0 : totalEndgamePoints / matchCount;
-  const totalEPA = isNaN(autoEPA + teleopEPA + endgameEPA) ? 0 : autoEPA + teleopEPA + endgameEPA;
+  const penaltiesEPA = isNaN(totalPenaltiesPoints / matchCount) ? 0 : totalPenaltiesPoints / matchCount;
+  const totalEPA = isNaN(autoEPA + teleopEPA + endgameEPA + penaltiesEPA) ? 0 : autoEPA + teleopEPA + endgameEPA + penaltiesEPA;
 
-  return { autoEPA, teleopEPA, endgameEPA, totalEPA };
+  return { autoEPA, teleopEPA, endgameEPA, penaltiesEPA, totalEPA };
 }
 
 

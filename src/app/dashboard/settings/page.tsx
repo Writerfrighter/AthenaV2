@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Database, Users, Bell } from "lucide-react";
 import { DatabaseSyncComponent } from "@/components/database-sync";
 import { DataExportImportComponent } from "@/components/data-export-import";
+import { DatabaseResetComponent } from "@/components/database-reset";
 
 export default function SettingsPage() {
   return (
@@ -45,6 +46,7 @@ export default function SettingsPage() {
         <TabsContent value="database" className="space-y-4">
           <DatabaseSyncComponent />
           <DataExportImportComponent />
+          <DatabaseResetComponent />
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">

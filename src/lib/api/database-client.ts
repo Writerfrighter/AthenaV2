@@ -37,6 +37,10 @@ export interface AnalysisData {
     matchesPlayed: number;
     avgEPA: number;
     totalEPA: number;
+    autoEPA: number;
+    teleopEPA: number;
+    endgameEPA: number;
+    penaltiesEPA: number;
   }>;
   totalMatches: number;
   totalTeams: number;

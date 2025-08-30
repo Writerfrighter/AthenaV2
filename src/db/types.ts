@@ -45,6 +45,7 @@ export interface DatabaseService {
   // Sync operations
   exportData(year?: number): Promise<{pitEntries: PitEntry[], matchEntries: MatchEntry[]}>;
   importData(data: {pitEntries: PitEntry[], matchEntries: MatchEntry[]}): Promise<void>;
+  resetDatabase(): Promise<void>;
   syncToCloud?(): Promise<void>;
   syncFromCloud?(): Promise<void>;
 }

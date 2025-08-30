@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCurrentGameConfig } from '@/hooks/use-game-config';
 import { useSelectedEvent } from '@/hooks/use-event-config';
 import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
@@ -32,16 +32,64 @@ export function DynamicPitScoutForm() {
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
-  const [formData, setFormData] = useState<DynamicPitData>({
-    team: 0,
-    drivetrain: '',
-    weight: '',
-    length: '',
-    width: '',
-    hasAuto: false,
-    notes: '',
-    gameSpecificData: {}
-  });
+
+  // Function to initialize form data with all pit scouting fields
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const initializePitFormData = (config: any): DynamicPitData => {
+    const data: DynamicPitData = {
+      team: 0,
+      drivetrain: '',
+      weight: '',
+      length: '',
+      width: '',
+      hasAuto: false,
+      notes: '',
+      gameSpecificData: {}
+    };
+
+    if (config?.pitScouting?.customFields) {
+      config.pitScouting.customFields.forEach((field: { name: string; type: string; options?: string[] }) => {
+        switch (field.type) {
+          case 'text':
+            data.gameSpecificData[field.name] = '';
+            break;
+          case 'number':
+            data.gameSpecificData[field.name] = 0;
+            break;
+          case 'boolean':
+            data.gameSpecificData[field.name] = false;
+            break;
+          case 'select':
+            data.gameSpecificData[field.name] = field.options && field.options.length > 0 ? field.options[0] : '';
+            break;
+          default:
+            data.gameSpecificData[field.name] = '';
+        }
+      });
+    }
+
+    return data;
+  };
+
+  const [formData, setFormData] = useState<DynamicPitData>(() => 
+    gameConfig ? initializePitFormData(gameConfig) : {
+      team: 0,
+      drivetrain: '',
+      weight: '',
+      length: '',
+      width: '',
+      hasAuto: false,
+      notes: '',
+      gameSpecificData: {}
+    }
+  );
+
+  // Reinitialize form data when game config changes
+  useEffect(() => {
+    if (gameConfig) {
+      setFormData(initializePitFormData(gameConfig));
+    }
+  }, [gameConfig]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -97,7 +145,7 @@ export function DynamicPitScoutForm() {
       });
       
       // Reset form
-      setFormData({
+      setFormData(gameConfig ? initializePitFormData(gameConfig) : {
         team: 0,
         drivetrain: '',
         weight: '',

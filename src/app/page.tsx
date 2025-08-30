@@ -186,7 +186,7 @@ export default function Page() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <p className="text-sm text-muted-foreground/80 dark:text-gray-400">
-              © 2025 TRC Athena Scouting. Built for FIRST Robotics teams.
+              {/* © 2025 TRC Athena Scouting. Built for FIRST Robotics teams. */}
             </p>
           </div>
         </div>
