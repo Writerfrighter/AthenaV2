@@ -53,12 +53,12 @@ function CustomChartTooltipContent(props: TooltipProps) {
       {payload.map((entry: TooltipPayload) => (
         <div key={entry.dataKey} className="flex justify-between gap-2">
           <span style={{ color: entry.color }}>{entry.name}:</span>
-          <span>{entry.value}</span>
+          <span>{typeof entry.value === 'number' ? entry.value.toFixed(3) : entry.value}</span>
         </div>
       ))}
       <div className="flex justify-between gap-2 mt-2 font-bold">
         <span>Total:</span>
-        <span>{total}</span>
+        <span>{total.toFixed(3)}</span>
       </div>
     </div>
   );
@@ -131,7 +131,7 @@ export function StackedEPAChart({ data }: { data?: typeof chartData }) {
               tickLine={false}
               tickMargin={10}
               axisLine={false}
-              tickFormatter={(value) => value.slice(0, 3)}
+              tickFormatter={(value) => value.length > 4 ? value.slice(0, 4) + "..." : value}
             />
             <ChartTooltip content={<CustomChartTooltipContent />} />
             <ChartLegend content={<ChartLegendContent />} />

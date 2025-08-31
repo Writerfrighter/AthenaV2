@@ -60,7 +60,7 @@ export default function SortablePicklist() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Top Team EPA</p>
-                <p className="text-2xl font-bold">{loading ? "..." : teams.length > 0 ? Math.max(...teams.map(t => t.totalEPA)) : 0}</p>
+                <p className="text-2xl font-bold">{loading ? "..." : teams.length > 0 ? Math.max(...teams.map(t => t.totalEPA)).toFixed(3) : "0"}</p>
               </div>
               <div className="p-2 bg-muted rounded-lg">
                 <Trophy className="h-5 w-5 text-muted-foreground" />
@@ -75,7 +75,7 @@ export default function SortablePicklist() {
               <div>
                 <p className="text-sm text-muted-foreground">Average EPA</p>
                 <p className="text-2xl font-bold">
-                  {loading ? "..." : teams.length > 0 ? (teams.reduce((sum, t) => sum + t.totalEPA, 0) / teams.length).toFixed(1) : 0}
+                  {loading ? "..." : teams.length > 0 ? (teams.reduce((sum, t) => sum + t.totalEPA, 0) / teams.length).toFixed(3) : "0"}
                 </p>
               </div>
               <div className="p-2 bg-muted rounded-lg">

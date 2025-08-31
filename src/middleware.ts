@@ -8,6 +8,9 @@ export default auth((req) => {
     const isApiRegister = req.nextUrl.pathname.startsWith('/api/register')
     const isHomePage = req.nextUrl.pathname === '/'
 
+    // Debug logging
+    console.log(`Middleware - Path: ${req.nextUrl.pathname}, IsAuth: ${isAuth}, IsAuthPage: ${isAuthPage}`)
+
     // Allow access to auth pages, API routes, and home page
     if (isAuthPage || isApiAuth || isApiRegister || isHomePage) {
         return NextResponse.next()
@@ -15,9 +18,11 @@ export default auth((req) => {
 
     // Redirect to login if not authenticated
     if (!isAuth) {
+        console.log(`Redirecting to login - no auth for path: ${req.nextUrl.pathname}`)
         return NextResponse.redirect(new URL('/login', req.url))
     }
 
+    console.log(`Allowing access to: ${req.nextUrl.pathname}`)
     return NextResponse.next()
 })
 

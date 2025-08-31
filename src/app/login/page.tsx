@@ -41,23 +41,36 @@ export default function Page() {
     setIsSubmitting(true)
 
     try {
+      console.log('Attempting login with username:', formData.username)
       const result = await signIn("credentials", {
         username: formData.username,
         password: formData.password,
         redirect: false,
       })
 
+      console.log('SignIn result:', result)
+
       if (result?.error) {
+        console.error('Login error:', result.error)
         toast.error("Login failed", {
           description: "Invalid email or password"
         })
-      } else {
+      } else if (result?.ok) {
         toast.success("Login successful!", {
           description: "Welcome back to TRC Athena Scouting!"
         })
-        router.push("/dashboard")
+        // Give the session a moment to be established
+        setTimeout(() => {
+          router.push("/dashboard")
+        }, 100)
+      } else {
+        console.error('Unexpected login result:', result)
+        toast.error("Login failed", {
+          description: "An unexpected error occurred"
+        })
       }
     } catch (error) {
+      console.error('Login exception:', error)
       toast.error("Login failed", {
         description: "An unexpected error occurred"
       })

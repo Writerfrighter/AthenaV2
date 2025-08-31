@@ -17,7 +17,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         try {
           // Call the API route for authentication
-          const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/authorize`, {
+          const baseUrl = process.env.NEXTAUTH_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+          const response = await fetch(`${baseUrl}/api/auth/authorize`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -29,10 +30,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           })
 
           if (!response.ok) {
+            console.error('Auth response not OK:', response.status, response.statusText)
             return null
           }
 
           const user = await response.json()
+
+          if (!user || !user.id) {
+            console.error('Invalid user response:', user)
+            return null
+          }
 
           return {
             id: user.id,
@@ -53,11 +60,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     sessionToken: {
       name: 'next-auth.session-token',
       options: {
-        domain: '.noahf.dev', // This allows the cookie to work on both www and non-www
+        // Only set domain for production, not for localhost
+        ...(process.env.NODE_ENV === 'production' && { domain: '.noahf.dev' }),
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: true // Since you now have HTTPS
+        // Only use secure cookies in production (HTTPS)
+        secure: process.env.NODE_ENV === 'production'
       }
     }
   },

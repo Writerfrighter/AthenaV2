@@ -42,10 +42,10 @@ export function usePicklistData() {
           id: team.teamNumber.toString(),
           name: team.name,
           rank: team.rank,
-          autoEPA: team.autoEPA,
-          teleopEPA: team.teleopEPA,
-          endgameEPA: team.endgameEPA,
-          totalEPA: team.totalEPA
+          autoEPA: parseFloat(team.autoEPA.toFixed(3)),
+          teleopEPA: parseFloat(team.teleopEPA.toFixed(3)),
+          endgameEPA: parseFloat(team.endgameEPA.toFixed(3)),
+          totalEPA: parseFloat(team.totalEPA.toFixed(3))
         }));
 
         setTeams(transformedTeams);

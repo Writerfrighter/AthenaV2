@@ -114,10 +114,10 @@ export const columns: ColumnDef<Team>[] = [
     ),
     cell: ({ row }) => (
       <div className="text-right">
-        {row.getValue<number>("auto") +
+        {(row.getValue<number>("auto") +
           row.getValue<number>("teleop") +
           row.getValue<number>("endgame") +
-          row.getValue<number>("penalties")}
+          row.getValue<number>("penalties")).toFixed(3)}
       </div>
     ),
   },

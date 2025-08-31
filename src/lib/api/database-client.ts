@@ -46,6 +46,30 @@ export interface AnalysisData {
   totalTeams: number;
 }
 
+export interface TeamData {
+  teamNumber: number;
+  year?: number;
+  eventCode?: string;
+  matchEntries: MatchEntry[];
+  pitEntry: PitEntry | null;
+  stats: {
+    totalMatches: number;
+    avgScore: number;
+    epa: number;
+    autoStats: Record<string, number>;
+    teleopStats: Record<string, number>;
+    endgameStats: Record<string, number>;
+  } | null;
+  epa: {
+    autoEPA: number;
+    teleopEPA: number;
+    endgameEPA: number;
+    penaltiesEPA: number;
+    totalEPA: number;
+  } | null;
+  matchCount: number;
+}
+
 export interface PicklistData {
   teams: Array<{
     teamNumber: number;
@@ -192,6 +216,20 @@ export const statsApi = {
 
     const response = await fetch(`${API_BASE}/picklist?${params}`);
     if (!response.ok) throw new Error('Failed to fetch picklist data');
+    return response.json();
+  }
+};
+
+// Team data operations
+export const teamApi = {
+  async getTeamData(teamNumber: number, year?: number, eventCode?: string): Promise<TeamData> {
+    const params = new URLSearchParams();
+    params.append('teamNumber', teamNumber.toString());
+    if (year) params.append('year', year.toString());
+    if (eventCode) params.append('eventCode', eventCode);
+
+    const response = await fetch(`${API_BASE}/team?${params}`);
+    if (!response.ok) throw new Error('Failed to fetch team data');
     return response.json();
   }
 };

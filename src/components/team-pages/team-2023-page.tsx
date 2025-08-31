@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ExternalLink, Search } from 'lucide-react';
 import Image from 'next/image';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/db';
+import { useTeamData } from '@/hooks/use-team-data';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Team2023PageProps {
@@ -17,27 +16,13 @@ interface Team2023PageProps {
 
 export function Team2023Page({ teamNumber }: Team2023PageProps) {
   const [searchNote, setSearchNote] = useState("");
-  
-  // Query 2023 specific data
-  const matchEntries = useLiveQuery(() => 
-    db.matchEntries
-      .where('teamNumber')
-      .equals(teamNumber)
-      .and(entry => entry.year === 2023)
-      .toArray()
-  );
-
-  const pitEntry = useLiveQuery(() => 
-    db.pitEntries
-      .where('teamNumber')
-      .equals(Number(teamNumber))
-      .and(entry => entry.year === 2023)
-      .first()
-  );
+  const { teamData, loading, error } = useTeamData(teamNumber); 
 
   // Calculate CHARGED UP specific statistics
   const calculateChargedUpStats = () => {
-    if (!matchEntries || matchEntries.length === 0) return null;
+    if (!teamData?.matchEntries || teamData.matchEntries.length === 0) return null;
+
+    const matchEntries = teamData.matchEntries;
 
     const totals = matchEntries.reduce((acc, match) => {
       const auto = match.gameSpecificData?.autonomous as Record<string, number> | undefined || {};
@@ -54,11 +39,12 @@ export function Team2023Page({ teamNumber }: Team2023PageProps) {
     const count = matchEntries.length;
     
     return {
-      avg_auto_cones: totals.auto_cones / count,
-      avg_auto_cubes: totals.auto_cubes / count,
-      avg_teleop_cones: totals.teleop_cones / count,
-      avg_teleop_cubes: totals.teleop_cubes / count,
-      avg_total: (totals.auto_cones + totals.auto_cubes + totals.teleop_cones + totals.teleop_cubes) / count
+      avg_auto_cones: parseFloat((totals.auto_cones / count).toFixed(3)),
+      avg_auto_cubes: parseFloat((totals.auto_cubes / count).toFixed(3)),
+      avg_teleop_cones: parseFloat((totals.teleop_cones / count).toFixed(3)),
+      avg_teleop_cubes: parseFloat((totals.teleop_cubes / count).toFixed(3)),
+      avg_total: parseFloat(((totals.auto_cones + totals.auto_cubes + totals.teleop_cones + totals.teleop_cubes) / count).toFixed(3)),
+      epa: teamData.epa?.totalEPA || 0,
     };
   };
 
@@ -83,7 +69,31 @@ export function Team2023Page({ teamNumber }: Team2023PageProps) {
     note.toLowerCase().includes(searchNote.toLowerCase())
   );
 
-  if (!pitEntry && (!matchEntries || matchEntries.length === 0)) {
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <h1 className="text-4xl font-bold mb-4">Team {teamNumber}</h1>
+        <Badge variant="outline" className="text-lg px-3 py-1 mb-6">
+          2023 - CHARGED UP
+        </Badge>
+        <p className="text-muted-foreground">Loading team data...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <h1 className="text-4xl font-bold mb-4">Team {teamNumber}</h1>
+        <Badge variant="outline" className="text-lg px-3 py-1 mb-6">
+          2023 - CHARGED UP
+        </Badge>
+        <p className="text-red-500">Error: {error}</p>
+      </div>
+    );
+  }
+
+  if (!teamData?.pitEntry && (!teamData?.matchEntries || teamData.matchEntries.length === 0)) {
     return (
       <div className="container mx-auto p-6">
         <h1 className="text-4xl font-bold mb-4">Team {teamNumber}</h1>
@@ -113,8 +123,8 @@ export function Team2023Page({ teamNumber }: Team2023PageProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div><strong>Team Number:</strong> {teamNumber}</div>
-            <div><strong>Drivetrain:</strong> {pitEntry?.driveTrain || "Unknown"}</div>
-            <div><strong>Weight:</strong> {pitEntry?.weight || "Unknown"} lbs</div>
+            <div><strong>Drivetrain:</strong> {teamData?.pitEntry?.driveTrain || "Unknown"}</div>
+            <div><strong>Weight:</strong> {teamData?.pitEntry?.weight || "Unknown"} lbs</div>
             <Button variant="outline" className="w-full mt-4">
               <ExternalLink className="mr-2 h-4 w-4" />
               Website
@@ -219,12 +229,12 @@ export function Team2023Page({ teamNumber }: Team2023PageProps) {
       {/* Match History */}
       <Card>
         <CardHeader>
-          <CardTitle>Match History ({matchEntries?.length || 0} matches)</CardTitle>
+          <CardTitle>Match History ({teamData?.matchEntries?.length || 0} matches)</CardTitle>
         </CardHeader>
         <CardContent>
-          {matchEntries && matchEntries.length > 0 ? (
+          {teamData?.matchEntries && teamData.matchEntries.length > 0 ? (
             <div className="space-y-2">
-              {matchEntries.slice(0, 10).map((match, index) => (
+              {teamData.matchEntries.slice(0, 10).map((match, index) => (
                 <div key={index} className="flex items-center justify-between p-3 border rounded">
                   <div className="flex items-center gap-4">
                     <Badge variant={match.alliance === 'red' ? 'destructive' : 'default'}>
