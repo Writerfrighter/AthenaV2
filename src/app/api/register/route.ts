@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
     // Create user
-    const result = await pool.request()
+    await pool.request()
       .input('id', userId)
       .input('name', name)
       .input('username', username)

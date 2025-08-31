@@ -5,6 +5,22 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      // Redirect www to non-www
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.noahf.dev'
+          }
+        ],
+        destination: 'https://noahf.dev/:path*',
+        permanent: true
+      }
+    ];
+  },
   images: {
     remotePatterns: [
       {

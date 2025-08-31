@@ -49,7 +49,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     })
   ],
   trustHost: true,
-  // trustedHosts: ['localhost:3000', 'www.noahf.dev', 'noahf.dev'],
+  cookies: {
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: {
+        domain: '.noahf.dev', // This allows the cookie to work on both www and non-www
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true // Since you now have HTTPS
+      }
+    }
+  },
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days

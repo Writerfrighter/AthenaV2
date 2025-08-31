@@ -2,14 +2,6 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { createContext, useContext, useState } from "react";
 import { AccountSettingsDialog } from "./account-settings";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
 import { Separator } from "@/components/ui/separator";
 import {

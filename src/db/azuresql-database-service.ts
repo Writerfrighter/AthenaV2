@@ -4,12 +4,19 @@ import { PitEntry, MatchEntry, AzureSqlConfig, PitEntryRow, MatchEntryRow } from
 export class AzureSqlDatabaseService implements DatabaseService {
   private pool: import('mssql').ConnectionPool | null = null;
   private config: AzureSqlConfig;
+  private tokenExpiresAt: Date | null = null;
 
   constructor(config: AzureSqlConfig) {
     this.config = config;
   }
 
   public async getPool(): Promise<import('mssql').ConnectionPool> {
+    // Check if we need to refresh the token for managed identity
+    if (this.pool && this.config.useManagedIdentity && this.isTokenExpired()) {
+      console.log('Azure SQL token expired, refreshing connection pool...');
+      await this.closePool();
+    }
+
     if (this.pool) {
       return this.pool;
     }
@@ -31,6 +38,10 @@ export class AzureSqlDatabaseService implements DatabaseService {
       if (!this.config.server || !this.config.database) {
         throw new Error('Server and database are required for managed identity authentication');
       }
+
+      // Store token expiration time (subtract 5 minutes for safety buffer)
+      this.tokenExpiresAt = new Date(token.expiresOnTimestamp - 300000);
+      console.log('Azure SQL: New token acquired, expires at:', this.tokenExpiresAt);
 
       config = {
         server: this.config.server,
@@ -63,9 +74,35 @@ export class AzureSqlDatabaseService implements DatabaseService {
       };
     }
 
-    this.pool = await mssql.connect(config);
-    await this.initializeTables();
-    return this.pool;
+    try {
+      this.pool = await mssql.connect(config);
+      console.log('Azure SQL: Connection pool created successfully');
+      await this.initializeTables();
+      return this.pool;
+    } catch (error) {
+      console.error('Azure SQL: Failed to create connection pool:', error);
+      this.pool = null;
+      this.tokenExpiresAt = null;
+      throw error;
+    }
+  }
+
+  private isTokenExpired(): boolean {
+    if (!this.tokenExpiresAt) return false;
+    return new Date() >= this.tokenExpiresAt;
+  }
+
+  private async closePool(): Promise<void> {
+    if (this.pool) {
+      try {
+        await this.pool.close();
+        console.log('Azure SQL: Connection pool closed');
+      } catch (error) {
+        console.error('Azure SQL: Error closing connection pool:', error);
+      }
+      this.pool = null;
+      this.tokenExpiresAt = null;
+    }
   }
 
   private async initializeTables(): Promise<void> {

@@ -14,15 +14,24 @@ function getDbService() {
 // GET /api/database/stats - Get dashboard statistics
 export async function GET(request: NextRequest) {
   try {
+    console.log('Stats API: Starting request processing');
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const eventCode = searchParams.get('eventCode');
 
+    console.log('Stats API: Parameters -', { year, eventCode });
+
     const service = getDbService();
+    console.log('Stats API: Database service retrieved');
 
     // Get all entries for the year
+    console.log('Stats API: Fetching pit entries...');
     const pitEntries = await service.getAllPitEntries(year);
+    console.log('Stats API: Pit entries count:', pitEntries.length);
+    
+    console.log('Stats API: Fetching match entries...');
     const matchEntries = await service.getAllMatchEntries(year);
+    console.log('Stats API: Match entries count:', matchEntries.length);
 
     // Filter by event if specified
     const filteredPitEntries = eventCode

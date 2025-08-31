@@ -15,22 +15,34 @@ function getDbService() {
 // GET /api/database/pit - Get all pit entries or filter by year/team
 export async function GET(request: NextRequest) {
   try {
+    console.log('Pit API: Starting request processing');
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const teamNumber = searchParams.get('teamNumber') ? parseInt(searchParams.get('teamNumber')!) : undefined;
 
+    console.log('Pit API: Parameters -', { year, teamNumber });
+
     const service = getDbService();
+    console.log('Pit API: Database service retrieved');
 
     if (teamNumber && year) {
+      console.log('Pit API: Fetching specific pit entry');
       const entry = await service.getPitEntry(teamNumber, year);
+      console.log('Pit API: Found entry:', entry ? 'Yes' : 'No');
       return NextResponse.json(entry || null);
     } else {
+      console.log('Pit API: Fetching all pit entries');
       const entries = await service.getAllPitEntries(year);
+      console.log('Pit API: Retrieved entries count:', entries.length);
       return NextResponse.json(entries);
     }
   } catch (error) {
-    console.error('Error fetching pit entries:', error);
-    return NextResponse.json({ error: 'Failed to fetch pit entries' }, { status: 500 });
+    console.error('Pit API: Error fetching pit entries:', error);
+    console.error('Pit API: Error stack:', error instanceof Error ? error.stack : 'No stack');
+    return NextResponse.json({ 
+      error: 'Failed to fetch pit entries',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 

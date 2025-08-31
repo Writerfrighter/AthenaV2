@@ -16,13 +16,26 @@ class DatabaseManager {
     const azureSqlPassword = process.env.AZURE_SQL_PASSWORD;
     const useManagedIdentity = process.env.AZURE_SQL_USE_MANAGED_IDENTITY === 'true' ||
                               (!azureSqlUser || !azureSqlPassword || azureSqlUser.includes('your-username'));
-
+    
+    console.log('DatabaseManager: Environment check');
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('DatabaseManager: Checking Azure SQL config');
+    console.log('AZURE_SQL_CONNECTION_STRING:', azureSqlConnectionString ? 'Set' : 'Not set');
+    console.log('AZURE_SQL_SERVER:', azureSqlServer);
+    console.log('AZURE_SQL_DATABASE:', azureSqlDatabase);
+    console.log('AZURE_SQL_USER:', azureSqlUser ? 'Set' : 'Not set');
+    console.log('AZURE_SQL_PASSWORD:', azureSqlPassword ? 'Set' : 'Not set');
+    console.log('Use Managed Identity:', useManagedIdentity);
+    
     const isAzureSqlConfigured = azureSqlConnectionString ||
                                  (azureSqlServer && azureSqlDatabase &&
                                   !azureSqlServer.includes('your-server') &&
                                   !azureSqlDatabase.includes('ScoutingDatabase'));
 
+    console.log('DatabaseManager: Is Azure SQL configured?', isAzureSqlConfigured);
+
     if (isAzureSqlConfigured) {
+      console.log('DatabaseManager: Using Azure SQL');
       this.config = {
         provider: 'azuresql',
         azuresql: (azureSqlServer && azureSqlDatabase) ? {
@@ -39,6 +52,7 @@ class DatabaseManager {
       this.currentService = new AzureSqlDatabaseService(this.config.azuresql!);
     } else {
       // Fall back to local database
+      console.log('DatabaseManager: Falling back to local database');
       this.config = {
         provider: 'local',
         local: {
