@@ -25,15 +25,15 @@ class DatabaseManager {
     if (isAzureSqlConfigured) {
       this.config = {
         provider: 'azuresql',
-        azuresql: azureSqlConnectionString ? {
-          connectionString: azureSqlConnectionString,
-          useManagedIdentity: false // Connection string handles auth
-        } : {
+        azuresql: (azureSqlServer && azureSqlDatabase) ? {
           server: azureSqlServer,
           database: azureSqlDatabase,
           user: useManagedIdentity ? undefined : azureSqlUser,
           password: useManagedIdentity ? undefined : azureSqlPassword,
           useManagedIdentity: useManagedIdentity
+        } : {
+          connectionString: azureSqlConnectionString,
+          useManagedIdentity: false // Connection string handles auth
         }
       };
       this.currentService = new AzureSqlDatabaseService(this.config.azuresql!);
