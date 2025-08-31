@@ -28,6 +28,9 @@ export interface MatchEntry {
 
 // Database service interface
 export interface DatabaseService {
+  // Connection management
+  getPool?(): Promise<import('mssql').ConnectionPool>;
+
   // Pit scouting
   addPitEntry(entry: Omit<PitEntry, 'id'>): Promise<number>;
   getPitEntry(teamNumber: number, year: number): Promise<PitEntry | undefined>;
@@ -59,8 +62,8 @@ export interface DatabaseConfig {
     name: string;
   };
   azuresql?: {
-    server: string;
-    database: string;
+    server?: string;
+    database?: string;
     user?: string;
     password?: string;
     connectionString?: string;
@@ -70,8 +73,8 @@ export interface DatabaseConfig {
 
 // Azure SQL specific types
 export interface AzureSqlConfig {
-  server: string;
-  database: string;
+  server?: string;
+  database?: string;
   user?: string;
   password?: string;
   connectionString?: string;

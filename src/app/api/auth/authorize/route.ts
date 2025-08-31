@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { AzureSqlDatabaseService } from '@/db/azuresql-database-service'
+import { databaseManager } from '@/db/database-manager'
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,14 +10,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Username and password required' }, { status: 400 })
     }
 
-    const db = new AzureSqlDatabaseService({
-      server: process.env.AZURE_SQL_SERVER || 'your-server.database.windows.net',
-      database: "users", //process.env.AZURE_SQL_DATABASE || 'ScoutingDatabase',
-      user: process.env.AZURE_SQL_USER || 'your-username',
-      password: process.env.AZURE_SQL_PASSWORD || 'your-password',
-      useManagedIdentity: false
-    })
+    const db = databaseManager.getService()
 
+    // For Azure SQL, we need to get the pool directly
+    if (!db.getPool) {
+      return NextResponse.json({ error: 'Database service does not support direct SQL queries' }, { status: 500 })
+    }
     const pool = await db.getPool()
 
     const result = await pool.request()

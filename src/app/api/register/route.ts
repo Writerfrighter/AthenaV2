@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { AzureSqlDatabaseService } from '@/db/azuresql-database-service'
+import { databaseManager } from '@/db/database-manager'
+import { DatabaseService } from '@/db/types'
 
-// Hardcoded Azure SQL configuration
-const AZURE_SQL_CONFIG = {
-  server: process.env.AZURE_SQL_SERVER || 'your-server.database.windows.net',
-  database: "users", // process.env.AZURE_SQL_DATABASE || 'ScoutingDatabase',
-  user: process.env.AZURE_SQL_USER || 'your-username',
-  password: process.env.AZURE_SQL_PASSWORD || 'your-password',
-  useManagedIdentity: false
-}
-
-// Initialize Azure SQL service
-let dbService: AzureSqlDatabaseService
+// Initialize database service
+let dbService: DatabaseService
 
 function getDbService() {
   if (!dbService) {
-    dbService = new AzureSqlDatabaseService(AZURE_SQL_CONFIG)
+    dbService = databaseManager.getService()
   }
   return dbService
 }
@@ -51,7 +43,10 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getDbService()
-    const pool = await db['getPool']()
+    if (!db.getPool) {
+      return NextResponse.json({ error: 'Database service does not support direct SQL queries' }, { status: 500 })
+    }
+    const pool = await db.getPool()
 
     // Check if user already exists
     const existingUserResult = await pool.request()

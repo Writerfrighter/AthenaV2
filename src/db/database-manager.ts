@@ -9,26 +9,31 @@ class DatabaseManager {
 
   private constructor() {
     // Check if Azure SQL is properly configured
+    const azureSqlConnectionString = process.env.AZURE_SQL_CONNECTION_STRING;
     const azureSqlServer = process.env.AZURE_SQL_SERVER;
     const azureSqlDatabase = process.env.AZURE_SQL_DATABASE;
     const azureSqlUser = process.env.AZURE_SQL_USER;
     const azureSqlPassword = process.env.AZURE_SQL_PASSWORD;
+    const useManagedIdentity = process.env.AZURE_SQL_USE_MANAGED_IDENTITY === 'true' ||
+                              (!azureSqlUser || !azureSqlPassword || azureSqlUser.includes('your-username'));
 
-    const isAzureSqlConfigured = azureSqlServer && azureSqlDatabase && azureSqlUser && azureSqlPassword &&
-                                 !azureSqlServer.includes('your-server') &&
-                                 !azureSqlDatabase.includes('ScoutingDatabase') &&
-                                 !azureSqlUser.includes('your-username') &&
-                                 !azureSqlPassword.includes('your-password');
+    const isAzureSqlConfigured = azureSqlConnectionString ||
+                                 (azureSqlServer && azureSqlDatabase &&
+                                  !azureSqlServer.includes('your-server') &&
+                                  !azureSqlDatabase.includes('ScoutingDatabase'));
 
     if (isAzureSqlConfigured) {
       this.config = {
         provider: 'azuresql',
-        azuresql: {
+        azuresql: azureSqlConnectionString ? {
+          connectionString: azureSqlConnectionString,
+          useManagedIdentity: false // Connection string handles auth
+        } : {
           server: azureSqlServer,
           database: azureSqlDatabase,
-          user: azureSqlUser,
-          password: azureSqlPassword,
-          useManagedIdentity: false
+          user: useManagedIdentity ? undefined : azureSqlUser,
+          password: useManagedIdentity ? undefined : azureSqlPassword,
+          useManagedIdentity: useManagedIdentity
         }
       };
       this.currentService = new AzureSqlDatabaseService(this.config.azuresql!);

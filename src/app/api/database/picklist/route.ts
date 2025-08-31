@@ -1,26 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AzureSqlDatabaseService } from '@/db/azuresql-database-service';
+import { databaseManager } from '@/db/database-manager';
+import { DatabaseService } from '@/db/types';
 import { calculateEPA } from '@/lib/statistics';
 import gameConfigRaw from '../../../../../config/game-config.json';
-
-// Hardcoded Azure SQL configuration
-const AZURE_SQL_CONFIG = {
-  server: process.env.AZURE_SQL_SERVER || 'your-server.database.windows.net',
-  database: process.env.AZURE_SQL_DATABASE || 'ScoutingDatabase',
-  user: process.env.AZURE_SQL_USER || 'your-username',
-  password: process.env.AZURE_SQL_PASSWORD || 'your-password',
-  useManagedIdentity: false
-};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const gameConfig = gameConfigRaw as any;
 
-// Initialize Azure SQL service
-let dbService: AzureSqlDatabaseService;
+// Initialize database service
+let dbService: DatabaseService;
 
 function getDbService() {
   if (!dbService) {
-    dbService = new AzureSqlDatabaseService(AZURE_SQL_CONFIG);
+    dbService = databaseManager.getService();
   }
   return dbService;
 }

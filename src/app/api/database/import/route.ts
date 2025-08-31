@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AzureSqlDatabaseService } from '@/db/azuresql-database-service';
+import { databaseManager } from '@/db/database-manager';
+import { DatabaseService } from '@/db/types';
 
-// Hardcoded Azure SQL configuration
-const AZURE_SQL_CONFIG = {
-  server: process.env.AZURE_SQL_SERVER || 'your-server.database.windows.net',
-  database: process.env.AZURE_SQL_DATABASE || 'ScoutingDatabase',
-  user: process.env.AZURE_SQL_USER || 'your-username',
-  password: process.env.AZURE_SQL_PASSWORD || 'your-password',
-  useManagedIdentity: false
-};
-
-// Initialize Azure SQL service
-let dbService: AzureSqlDatabaseService;
+// Initialize database service
+let dbService: DatabaseService;
 
 function getDbService() {
   if (!dbService) {
-    dbService = new AzureSqlDatabaseService(AZURE_SQL_CONFIG);
+    dbService = databaseManager.getService();
   }
   return dbService;
 }

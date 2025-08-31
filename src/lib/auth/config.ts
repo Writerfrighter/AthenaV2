@@ -48,8 +48,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     })
   ],
-  // @ts-ignore - trustedHosts may not be in types yet for v5 beta
-  trustedHosts: ['localhost:3000', 'www.noahf.dev', 'noahf.dev'],
+  trustHost: true,
+  // trustedHosts: ['localhost:3000', 'www.noahf.dev', 'noahf.dev'],
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days

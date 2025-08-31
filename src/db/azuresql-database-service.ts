@@ -22,7 +22,35 @@ export class AzureSqlDatabaseService implements DatabaseService {
       config = {
         connectionString: this.config.connectionString
       };
+    } else if (this.config.useManagedIdentity) {
+      // Use managed identity authentication
+      const { DefaultAzureCredential } = await import('@azure/identity');
+      const credential = new DefaultAzureCredential();
+      const token = await credential.getToken('https://database.windows.net/.default');
+
+      if (!this.config.server || !this.config.database) {
+        throw new Error('Server and database are required for managed identity authentication');
+      }
+
+      config = {
+        server: this.config.server,
+        database: this.config.database,
+        options: {
+          encrypt: true,
+          trustServerCertificate: false,
+        },
+        authentication: {
+          type: 'azure-active-directory-access-token',
+          options: {
+            token: token.token
+          }
+        }
+      };
     } else {
+      if (!this.config.server || !this.config.database) {
+        throw new Error('Server and database are required for username/password authentication');
+      }
+
       config = {
         server: this.config.server,
         database: this.config.database,
