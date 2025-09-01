@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSelectedEvent } from './use-event-config';
 import { useGameConfig } from './use-game-config';
 import { statsApi } from '@/lib/api/database-client';
+// We'll call a server-side proxy route instead of calling TBA directly from the client
+// to avoid CORS and exposing the TBA API key.
 
 export interface DashboardStats {
   teamsScouted: number;
@@ -54,6 +56,12 @@ export function useDashboardStats() {
         setLoading(true);
         setError(null);
 
+        // Fetch qualification matches count from our server-side proxy
+        const proxyResp = await fetch(`/api/tba/qualification-matches?eventCode=${encodeURIComponent(selectedEvent.code)}`);
+        if (!proxyResp.ok) throw new Error('Failed to fetch qualification matches from proxy');
+        const proxyData = await proxyResp.json();
+        const qualMatchesCount = proxyData?.qualMatchesCount ?? 0;
+        // const qualMatchesCount = 0;
         // Fetch stats from API
         const apiStats = await statsApi.getDashboardStats(currentYear, selectedEvent.code);
 
@@ -68,8 +76,8 @@ export function useDashboardStats() {
             total: apiStats.totalTeams
           },
           qualificationProgress: {
-            current: Math.floor(apiStats.totalMatches / 6), // Assuming 6 matches per team
-            total: apiStats.totalTeams
+            current: Math.floor(apiStats.totalMatches / 6), // Assuming 6 teams per match
+            total: qualMatchesCount
           },
           nextMatch: null, // Could be calculated from schedule
           recentActivity: apiStats.recentActivity.map(activity => ({
