@@ -7,18 +7,21 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   async redirects() {
     return [
-      // Redirect www to non-www
-      {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: 'www.noahf.dev'
-          }
-        ],
-        destination: 'https://noahf.dev/:path*',
-        permanent: true
-      }
+      // Only apply redirects if we're on the expected domain
+      ...(process.env.NEXTAUTH_URL?.includes('noahf.dev') ? [
+        {
+          source: '/:path*',
+          has: [
+            {
+              type: 'host',
+              key: 'host',
+              value: 'www.noahf.dev'
+            }
+          ],
+          destination: 'https://noahf.dev/:path*',
+          permanent: true
+        }
+      ] : [])
     ];
   },
   images: {

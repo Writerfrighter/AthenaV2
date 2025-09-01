@@ -1,4 +1,8 @@
 {
     "appService.defaultWebAppToDeploy": "undefined/subscriptions/b1a468a4-dd80-4bc2-9aa3-d68381646047/resourceGroups/appsvc_linux_westus_basic/providers/Microsoft.Web/sites/TRCAthenaV2",
-    "appService.deploySubpath": "."
+    "appService.deploySubpath": ".",
+    "appService.zipIgnorePattern": [
+        "node_modules{,/**}",
+        ".vscode{,/**}"
+    ]
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +25,7 @@ interface LoginFormData {
 
 export default function Page() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [formData, setFormData] = useState<LoginFormData>({
     username: '',
     password: '',
@@ -62,7 +63,7 @@ export default function Page() {
         // Give the session a moment to be established
         setTimeout(() => {
           router.push("/dashboard")
-        }, 100)
+        }, 500)
       } else {
         console.error('Unexpected login result:', result)
         toast.error("Login failed", {

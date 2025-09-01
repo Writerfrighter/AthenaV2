@@ -61,7 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: 'next-auth.session-token',
       options: {
         // Only set domain for production, not for localhost
-        ...(process.env.NODE_ENV === 'production' && { domain: '.noahf.dev' }),
+        ...(process.env.NODE_ENV === 'production' && { domain: 'noahf.dev' }),
         httpOnly: true,
         sameSite: 'lax',
         path: '/',

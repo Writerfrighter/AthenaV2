@@ -23,6 +23,26 @@ jobs:
         with:
           node-version: '22.x'
 
+      # Generate package-lock.json from pnpm-lock.yaml for Azure compatibility
+      - name: Generate package-lock.json
+        run: |
+          if [ ! -f package-lock.json ]; then
+            echo "Generating package-lock.json from pnpm-lock.yaml..."
+            npm install --package-lock-only
+          fi
+
+      - name: Install dependencies with npm
+        run: npm ci
+
+      - name: Build Next.js application
+        run: npm run build
+
+      # Clean up unnecessary files for deployment
+      - name: Clean up for deployment
+        run: |
+          rm -rf node_modules/.cache
+          rm -rf .next/cache
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -56,4 +76,3 @@ jobs:
           app-name: 'TRCAthenaV2'
           slot-name: 'Production'
           package: .
-          
