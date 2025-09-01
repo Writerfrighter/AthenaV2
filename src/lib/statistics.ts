@@ -1,30 +1,14 @@
 import { MatchEntry } from '../db/types';
-import { YearConfig, ScoringDefinition } from '../hooks/use-game-config';
-
-export interface TeamStats {
-  totalMatches: number;
-  avgScore: number;
-  epa: number;
-  autoStats: Record<string, number>;
-  teleopStats: Record<string, number>;
-  endgameStats: Record<string, number>;
-}
-
-export interface EPABreakdown {
-  autoEPA: number;
-  teleopEPA: number;
-  endgameEPA: number;
-  penaltiesEPA: number;
-  totalEPA: number;
-}
+import { YearConfig, ScoringDefinition } from './shared-types';
+import type { TeamStats, EPABreakdown } from '../lib/shared-types';
 
 /**
  * Calculate Expected Points Added (EPA) for a team based on their match performance
- * EPA represents how many points a team contributes above average
+ * EPA represents how many points a team contributes on average
  */
 export function calculateEPA(matches: MatchEntry[], year: number, config: YearConfig): EPABreakdown {
   if (matches.length === 0) {
-    return { autoEPA: 0, teleopEPA: 0, endgameEPA: 0, penaltiesEPA: 0, totalEPA: 0 };
+    return { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA: 0 };
   }
 
   let totalAutoPoints = 0;
@@ -45,13 +29,13 @@ export function calculateEPA(matches: MatchEntry[], year: number, config: YearCo
   }
 
   const matchCount = matches.length;
-  const autoEPA = isNaN(totalAutoPoints / matchCount) ? 0 : totalAutoPoints / matchCount;
-  const teleopEPA = isNaN(totalTeleopPoints / matchCount) ? 0 : totalTeleopPoints / matchCount;
-  const endgameEPA = isNaN(totalEndgamePoints / matchCount) ? 0 : totalEndgamePoints / matchCount;
-  const penaltiesEPA = isNaN(totalPenaltiesPoints / matchCount) ? 0 : totalPenaltiesPoints / matchCount;
-  const totalEPA = isNaN(autoEPA + teleopEPA + endgameEPA + penaltiesEPA) ? 0 : autoEPA + teleopEPA + endgameEPA + penaltiesEPA;
+  const auto = isNaN(totalAutoPoints / matchCount) ? 0 : totalAutoPoints / matchCount;
+  const teleop = isNaN(totalTeleopPoints / matchCount) ? 0 : totalTeleopPoints / matchCount;
+  const endgame = isNaN(totalEndgamePoints / matchCount) ? 0 : totalEndgamePoints / matchCount;
+  const penalties = isNaN(totalPenaltiesPoints / matchCount) ? 0 : totalPenaltiesPoints / matchCount;
+  const totalEPA = isNaN(auto + teleop + endgame + penalties) ? 0 : auto + teleop + endgame + penalties;
 
-  return { autoEPA, teleopEPA, endgameEPA, penaltiesEPA, totalEPA };
+  return { auto, teleop, endgame, penalties, totalEPA };
 }
 
 

@@ -7,10 +7,7 @@ import { TbaTeam } from "@/lib/api/types";
 import { getSelectedEvent } from "@/lib/server-event-utils";
 import { DynamicTeamList } from "./dynamic-team-list";
 import { TeamCardSkeleton } from '@/components/team-card-skeleton';
-
-export interface TeamWithImages extends TbaTeam {
-  images: string[];
-}
+import type { TeamWithImages } from '@/lib/shared-types';
 
 // Server component to fetch initial teams and their images
 async function InitialTeamList() {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSelectedEvent } from './use-event-config';
 import { useGameConfig } from './use-game-config';
-import { statsApi, DashboardStats as ApiDashboardStats } from '@/lib/api/database-client';
+import { statsApi } from '@/lib/api/database-client';
 
 export interface DashboardStats {
   teamsScouted: number;
@@ -62,7 +62,7 @@ export function useDashboardStats() {
           teamsScouted: apiStats.totalTeams,
           matchesRecorded: apiStats.totalMatches,
           dataQuality: Math.min(100, (apiStats.totalPitScouts / apiStats.totalTeams) * 100), // Simple data quality calculation
-          ranking: 0, // Could be calculated based on team performance
+          ranking: apiStats.teamStats.findIndex(team => team.teamNumber === 492) || 0,
           pitScoutingProgress: {
             current: apiStats.totalPitScouts,
             total: apiStats.totalTeams
@@ -77,10 +77,10 @@ export function useDashboardStats() {
             message: `Match ${activity.matchNumber} scouted for Team ${activity.teamNumber}`,
             timestamp: new Date(activity.timestamp)
           })),
-          topTeams: apiStats.topTeams.slice(0, 5).map(team => ({
+          topTeams: apiStats.teamStats.slice(0, 5).map(team => ({
             teamNumber: team.teamNumber,
             name: team.name,
-            epa: isNaN(team.avgEPA) ? 0 : team.avgEPA
+            epa: isNaN(team.totalEPA) ? 0 : team.totalEPA
           }))
         };
 

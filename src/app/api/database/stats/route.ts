@@ -61,15 +61,15 @@ export async function GET(request: NextRequest) {
       const teamMatches = filteredMatchEntries.filter(entry => entry.teamNumber === teamNumber);
       const teamPit = filteredPitEntries.find(entry => entry.teamNumber === teamNumber);
 
-      let avgEPA = 0;
+      // let avgEPA = 0;
       let totalEPA = 0;
 
       if (teamMatches.length > 0 && year && gameConfig[year.toString()]) {
         try {
           const yearConfig = gameConfig[year.toString() as keyof typeof gameConfig];
           const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
-          avgEPA = epaBreakdown.totalEPA;
-          totalEPA = epaBreakdown.totalEPA * teamMatches.length;
+          // avgEPA = epaBreakdown.totalEPA;
+          totalEPA = epaBreakdown.totalEPA;
         } catch (error) {
           console.error(`Error calculating EPA for team ${teamNumber}:`, error);
           // Fallback to simple calculation
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
               });
             }
           });
-          avgEPA = teamMatches.length > 0 ? totalEPA / teamMatches.length : 0;
+          totalEPA = teamMatches.length > 0 ? totalEPA : 0;
         }
       } else {
         // Fallback to simple calculation if no year config
@@ -95,27 +95,27 @@ export async function GET(request: NextRequest) {
             });
           }
         });
-        avgEPA = teamMatches.length > 0 ? totalEPA / teamMatches.length : 0;
+        totalEPA = teamMatches.length > 0 ? totalEPA : 0;
       }
 
       return {
         teamNumber,
         name: teamPit?.name || `Team ${teamNumber}`,
         matchesPlayed: teamMatches.length,
-        avgEPA: isNaN(avgEPA) ? 0 : avgEPA,
+        // avgEPA: isNaN(avgEPA) ? 0 : avgEPA,
         totalEPA: isNaN(totalEPA) ? 0 : totalEPA
       };
     });
 
     // Sort by EPA for ranking
-    teamStats.sort((a, b) => b.avgEPA - a.avgEPA);
+    teamStats.sort((a, b) => b.totalEPA - a.totalEPA);
 
     const stats = {
       totalTeams: uniqueTeamCount,
       totalMatches,
       totalPitScouts,
       matchCompletion: Math.round(matchCompletion),
-      topTeams: teamStats.slice(0, 10),
+      teamStats: teamStats,
       recentActivity: filteredMatchEntries
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 5)

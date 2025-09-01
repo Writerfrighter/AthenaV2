@@ -8,10 +8,8 @@ import {
 } from "./ui/carousel";
 import Image from "next/image";
 import Autoplay from "embla-carousel-autoplay"
-import { useState } from "react";
 
 export default function TeamCarousel({ images }: { images: string[] }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   return (
     <div className="relative group">

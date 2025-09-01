@@ -25,7 +25,6 @@ interface TeamPicklistData {
   width: number;
   matchesPlayed: number;
   totalEPA: number;
-  avgEPA: number;
   autoEPA: number;
   teleopEPA: number;
   endgameEPA: number;
@@ -66,7 +65,6 @@ export async function GET(request: NextRequest) {
           width: pit.width,
           matchesPlayed: 0,
           totalEPA: 0,
-          avgEPA: 0,
           autoEPA: 0,
           teleopEPA: 0,
           endgameEPA: 0
@@ -85,7 +83,6 @@ export async function GET(request: NextRequest) {
           width: 0,
           matchesPlayed: 0,
           totalEPA: 0,
-          avgEPA: 0,
           autoEPA: 0,
           teleopEPA: 0,
           endgameEPA: 0
@@ -105,11 +102,10 @@ export async function GET(request: NextRequest) {
           const yearConfig = gameConfig[year.toString() as keyof typeof gameConfig];
           const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
 
-          teamData[teamNumber].autoEPA = epaBreakdown.autoEPA;
-          teamData[teamNumber].teleopEPA = epaBreakdown.teleopEPA;
-          teamData[teamNumber].endgameEPA = epaBreakdown.endgameEPA;
+          teamData[teamNumber].autoEPA = epaBreakdown.auto;
+          teamData[teamNumber].teleopEPA = epaBreakdown.teleop;
+          teamData[teamNumber].endgameEPA = epaBreakdown.endgame;
           teamData[teamNumber].totalEPA = epaBreakdown.totalEPA;
-          teamData[teamNumber].avgEPA = epaBreakdown.totalEPA;
         } catch (error) {
           console.error(`Error calculating EPA for team ${teamNumber}:`, error);
           // Fallback to simple calculation
@@ -123,7 +119,6 @@ export async function GET(request: NextRequest) {
               });
             }
           });
-          teamData[teamNumber].avgEPA = teamMatches.length > 0 ? totalEPA / teamMatches.length : 0;
           teamData[teamNumber].totalEPA = totalEPA;
         }
       } else {
@@ -138,14 +133,13 @@ export async function GET(request: NextRequest) {
             });
           }
         });
-        teamData[teamNumber].avgEPA = teamMatches.length > 0 ? totalEPA / teamMatches.length : 0;
         teamData[teamNumber].totalEPA = totalEPA;
       }
     });
 
     // Convert to array and sort by EPA
     const picklistData = Object.values(teamData)
-      .sort((a: TeamPicklistData, b: TeamPicklistData) => b.avgEPA - a.avgEPA)
+      .sort((a: TeamPicklistData, b: TeamPicklistData) => b.totalEPA - a.totalEPA)
       .map((team: TeamPicklistData, index: number) => ({
         ...team,
         rank: index + 1

@@ -7,7 +7,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   SortingState,
   useReactTable,
@@ -31,18 +30,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EPABreakdown } from "@/lib/shared-types";
 
-import { chartData } from "./stacked-epa-chart";
-
-export type Team = {
-  team: string;
-  auto: number;
-  teleop: number;
-  endgame: number;
-  penalties: number;
-};
-
-export const columns: ColumnDef<Team>[] = [
+export const columns: ColumnDef<EPABreakdown>[] = [
   {
     accessorKey: "team",
     header: "Team",
@@ -103,7 +93,7 @@ export const columns: ColumnDef<Team>[] = [
     ),
   },
   {
-    accessorKey: "total EPA",
+    accessorKey: "totalEPA",
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -114,16 +104,13 @@ export const columns: ColumnDef<Team>[] = [
     ),
     cell: ({ row }) => (
       <div className="text-right">
-        {(row.getValue<number>("auto") +
-          row.getValue<number>("teleop") +
-          row.getValue<number>("endgame") +
-          row.getValue<number>("penalties")).toFixed(3)}
+        {row.getValue("totalEPA")}
       </div>
     ),
   },
 ];
 
-export function EPATable({ data }: { data?: Team[] }) {
+export function EPATable({ data }: { data?: EPABreakdown[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -132,7 +119,7 @@ export function EPATable({ data }: { data?: Team[] }) {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
-  const tableData = data || chartData;
+  const tableData = data || [];
 
   const table = useReactTable({
     data: tableData,

@@ -2,93 +2,9 @@
 // This replaces direct database access with API calls
 
 import { PitEntry, MatchEntry } from '@/db/types';
+import type { DashboardStats, AnalysisData, TeamData, PicklistData } from '@/lib/shared-types';
 
 const API_BASE = '/api/database';
-
-export interface DashboardStats {
-  totalTeams: number;
-  totalMatches: number;
-  totalPitScouts: number;
-  matchCompletion: number;
-  topTeams: Array<{
-    teamNumber: number;
-    name: string;
-    matchesPlayed: number;
-    avgEPA: number;
-    totalEPA: number;
-  }>;
-  recentActivity: Array<{
-    teamNumber: number;
-    matchNumber: number;
-    timestamp: Date;
-  }>;
-}
-
-export interface AnalysisData {
-  scoringAnalysis: Array<{
-    category: string;
-    average: number;
-    count: number;
-    data: number[];
-  }>;
-  teamEPAData: Array<{
-    teamNumber: number;
-    name: string;
-    matchesPlayed: number;
-    avgEPA: number;
-    totalEPA: number;
-    autoEPA: number;
-    teleopEPA: number;
-    endgameEPA: number;
-    penaltiesEPA: number;
-  }>;
-  totalMatches: number;
-  totalTeams: number;
-}
-
-export interface TeamData {
-  teamNumber: number;
-  year?: number;
-  eventCode?: string;
-  matchEntries: MatchEntry[];
-  pitEntry: PitEntry | null;
-  stats: {
-    totalMatches: number;
-    avgScore: number;
-    epa: number;
-    autoStats: Record<string, number>;
-    teleopStats: Record<string, number>;
-    endgameStats: Record<string, number>;
-  } | null;
-  epa: {
-    autoEPA: number;
-    teleopEPA: number;
-    endgameEPA: number;
-    penaltiesEPA: number;
-    totalEPA: number;
-  } | null;
-  matchCount: number;
-}
-
-export interface PicklistData {
-  teams: Array<{
-    teamNumber: number;
-    name: string;
-    driveTrain: string;
-    weight: number;
-    length: number;
-    width: number;
-    matchesPlayed: number;
-    totalEPA: number;
-    avgEPA: number;
-    autoEPA: number;
-    teleopEPA: number;
-    endgameEPA: number;
-    rank: number;
-  }>;
-  totalTeams: number;
-  lastUpdated: string;
-}
 
 // Pit scouting operations
 export const pitApi = {

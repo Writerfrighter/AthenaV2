@@ -52,7 +52,7 @@ export function useAnalysisStats() {
         const transformedStats: AnalysisStats = {
           teamsAnalyzed: apiStats.totalTeams,
           highestEPA: parseFloat(Math.max(...apiStats.teamEPAData.map(team => team.totalEPA)).toFixed(3)),
-          averageEPA: parseFloat((apiStats.teamEPAData.reduce((sum, team) => sum + team.avgEPA, 0) / apiStats.teamEPAData.length).toFixed(3)),
+          averageEPA: parseFloat((apiStats.teamEPAData.reduce((sum, team) => sum + team.totalEPA, 0) / apiStats.teamEPAData.length).toFixed(3)),
           dataPoints: apiStats.totalMatches,
           teamEPAData: apiStats.teamEPAData.map(team => ({
             team: team.teamNumber.toString(),

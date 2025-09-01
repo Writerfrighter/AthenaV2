@@ -2,39 +2,13 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import gameConfig from '../../config/game-config.json';
+import type { YearConfig, GameConfig } from '@/lib/shared-types';
 
-export interface ScoringDefinition {
-  label: string;
-  description: string;
-  // Simple scoring: use points for boolean values or as multiplier for numbers
-  points?: number;
-  // Enum scoring: use pointValues for string-based enum scoring
-  // Example: pointValues: { "shallow": 3, "deep": 6, "none": 0 }
-  pointValues?: Record<string, number>;
-  // Explicit type definition for form rendering
-  type?: 'boolean' | 'select' | 'number';
-}
-
-export interface YearConfig {
-  gameName: string;
-  scoring: {
-    autonomous: Record<string, ScoringDefinition>;
-    teleop: Record<string, ScoringDefinition>;
-    endgame: Record<string, ScoringDefinition>;
-    fouls?: Record<string, ScoringDefinition>;
-  };
-  pitScouting: {
-    customFields: Array<{
-      name: string;
-      label: string;
-      type: 'text' | 'number' | 'boolean' | 'select';
-      options?: string[];
-    }>;
-  };
-}
-
-export interface GameConfig {
-  [year: string]: YearConfig;
+interface GameConfigContextType {
+  config: GameConfig;
+  currentYear: number;
+  setCurrentYear: (year: number) => void;
+  getCurrentYearConfig: () => YearConfig | undefined;
 }
 
 interface GameConfigContextType {

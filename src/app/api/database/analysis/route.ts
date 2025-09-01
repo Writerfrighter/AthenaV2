@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
 import { DatabaseService } from '@/db/types';
 import { calculateEPA } from '@/lib/statistics';
+import { EPABreakdown } from '@/lib/shared-types';
 import gameConfigRaw from '../../../../../config/game-config.json';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
     // Calculate team-specific EPA data using proper statistics
     const teamEPAs: Record<number, { 
       teamNumber: number; 
-      epaBreakdown: { autoEPA: number; teleopEPA: number; endgameEPA: number; penaltiesEPA: number; totalEPA: number }; 
+      epaBreakdown: EPABreakdown; 
       matches: number 
     }> = {};
 
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
       if (!teamEPAs[entry.teamNumber]) {
         teamEPAs[entry.teamNumber] = { 
           teamNumber: entry.teamNumber, 
-          epaBreakdown: { autoEPA: 0, teleopEPA: 0, endgameEPA: 0, penaltiesEPA: 0, totalEPA: 0 }, 
+          epaBreakdown: { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA: 0 }, 
           matches: 0 
         };
       }
@@ -105,7 +106,7 @@ export async function GET(request: NextRequest) {
               });
             }
           });
-          teamEPAs[teamNumber].epaBreakdown = { autoEPA: 0, teleopEPA: 0, endgameEPA: 0, penaltiesEPA: 0, totalEPA };
+          teamEPAs[teamNumber].epaBreakdown = { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA };
         }
       } else {
         // Fallback to simple calculation if no year config
@@ -119,7 +120,7 @@ export async function GET(request: NextRequest) {
             });
           }
         });
-        teamEPAs[teamNumber].epaBreakdown = { autoEPA: 0, teleopEPA: 0, endgameEPA: 0, penaltiesEPA: 0, totalEPA };
+        teamEPAs[teamNumber].epaBreakdown = { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA };
       }
     });
 
@@ -129,18 +130,17 @@ export async function GET(request: NextRequest) {
         teamNumber: team.teamNumber,
         name: `Team ${team.teamNumber}`, // Could be enhanced to get actual team names
         matchesPlayed: team.matches,
-        avgEPA: team.epaBreakdown.totalEPA,
-        totalEPA: team.epaBreakdown.totalEPA * team.matches,
-        autoEPA: team.epaBreakdown.autoEPA,
-        teleopEPA: team.epaBreakdown.teleopEPA,
-        endgameEPA: team.epaBreakdown.endgameEPA,
-        penaltiesEPA: team.epaBreakdown.penaltiesEPA
+        totalEPA: team.epaBreakdown.totalEPA,
+        autoEPA: team.epaBreakdown.auto,
+        teleopEPA: team.epaBreakdown.teleop,
+        endgameEPA: team.epaBreakdown.endgame,
+        penaltiesEPA: team.epaBreakdown.penalties
       }))
-      .sort((a, b) => b.avgEPA - a.avgEPA);
+      .sort((a, b) => b.totalEPA - a.totalEPA);
 
     return NextResponse.json({
       scoringAnalysis: analysisData,
-      teamEPAData: teamEPAData.slice(0, 20), // Top 20 teams
+      teamEPAData: teamEPAData,
       totalMatches: filteredEntries.length,
       totalTeams: Object.keys(teamEPAs).length
     });

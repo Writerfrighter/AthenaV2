@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Target, Zap, Award, AlertTriangle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { matchApi } from '@/lib/api/database-client';
-import type { ScoringDefinition } from '@/hooks/use-game-config';
+import type { ScoringDefinition, DynamicMatchData } from '@/lib/shared-types';
 
 // CSS to hide number input spinners
 const hideSpinnersStyle = `
@@ -28,22 +28,6 @@ const hideSpinnersStyle = `
     -moz-appearance: textfield;
   }
 `;
-
-interface DynamicMatchData {
-  // Basic match info
-  matchNumber: number;
-  teamNumber: number;
-  alliance: 'red' | 'blue';
-  
-  // Game-specific data stored as flexible object
-  autonomous: Record<string, number | string | boolean>;
-  teleop: Record<string, number | string | boolean>;
-  endgame: Record<string, number | string | boolean>;
-  fouls: Record<string, number | string | boolean>;
-  
-  // Common fields
-  notes: string;
-}
 
 const defaultData: DynamicMatchData = {
   matchNumber: 0,
@@ -59,16 +43,7 @@ const defaultData: DynamicMatchData = {
 // Function to initialize form data with all game config fields
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const initializeFormData = (gameConfig: any): DynamicMatchData => {
-  const data: DynamicMatchData = {
-    matchNumber: 0,
-    teamNumber: 0,
-    alliance: 'red',
-    autonomous: {},
-    teleop: {},
-    endgame: {},
-    fouls: {},
-    notes: ''
-  };
+  const data: DynamicMatchData = defaultData;
 
   if (!gameConfig?.scoring) return data;
 

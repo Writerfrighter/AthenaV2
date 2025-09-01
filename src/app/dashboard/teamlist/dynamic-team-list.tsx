@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Trophy, MapPin, AlertCircle, Loader2 } from "lucide-react";
 import { useSelectedEvent } from "@/hooks/use-event-config";
-import { TeamWithImages } from "./page";
+import { TeamWithImages } from "@/lib/shared-types";
 import { TeamCardSkeleton } from '@/components/team-card-skeleton';
 
 interface DynamicTeamListProps {

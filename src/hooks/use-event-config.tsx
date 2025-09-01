@@ -1,13 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-
-export interface Event {
-  name: string;
-  region: string; // Region as used by FIRST API
-  code: string;   // Event Code as used by FIRST API
-  // logo?: string; // Uncomment when logos are implemented
-}
+import type { Event } from '@/lib/shared-types';
 
 interface EventContextType {
   events: Event[];

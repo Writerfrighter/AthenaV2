@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Users, Trophy, ClipboardList, UserPlus, LogIn, BarChart3, Target } from "lucide-react"
+import { Users, ClipboardList, UserPlus, LogIn, BarChart3, Target } from "lucide-react"
 import { ModeToggle } from "@/components/ui/light-dark-toggle"
 import Link from "next/link"
 import Image from "next/image"

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
-import { DatabaseService, MatchEntry, PitEntry } from '@/db/types';
+import { DatabaseService, MatchEntry } from '@/db/types';
 import { calculateEPA, calculateTeamStats } from '@/lib/statistics';
 import gameConfigRaw from '../../../../../config/game-config.json';
 
@@ -72,10 +72,10 @@ export async function GET(request: NextRequest) {
         epa: roundValue(teamStats.epa || 0),
       } : null,
       epa: epaBreakdown ? {
-        autoEPA: roundValue(epaBreakdown.autoEPA),
-        teleopEPA: roundValue(epaBreakdown.teleopEPA),
-        endgameEPA: roundValue(epaBreakdown.endgameEPA),
-        penaltiesEPA: roundValue(epaBreakdown.penaltiesEPA),
+        autoEPA: roundValue(epaBreakdown.auto),
+        teleopEPA: roundValue(epaBreakdown.teleop),
+        endgameEPA: roundValue(epaBreakdown.endgame),
+        penaltiesEPA: roundValue(epaBreakdown.penalties),
         totalEPA: roundValue(epaBreakdown.totalEPA),
       } : null,
       matchCount: filteredMatchEntries.length,

@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { CalendarDays, ChevronsUpDown, Plus } from "lucide-react"
-import Image from "next/image"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,14 +68,6 @@ export function EventSwitcher() {
                 onClick={() => setSelectedEvent(event)}
                 className="gap-2 p-2"
               >
-                {/* <div className="flex size-6 items-center justify-center rounded-md border">
-                  <Image
-                    src={ event.logo }
-                    width={125}
-                    height={125}
-                    alt="The Logo of a team"
-                  />
-                </div> */}
                 {event.name}
                 <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
               </DropdownMenuItem>

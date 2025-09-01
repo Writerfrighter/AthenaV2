@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from "react"
-import { signIn, useSession } from "next-auth/react"
+import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,7 +25,6 @@ interface LoginFormData {
 
 export default function Page() {
   const router = useRouter()
-  const { data: session, status } = useSession()
   const [formData, setFormData] = useState<LoginFormData>({
     username: '',
     password: '',

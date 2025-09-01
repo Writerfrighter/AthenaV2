@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useCurrentGameConfig } from '@/hooks/use-game-config';
 import { useSelectedEvent } from '@/hooks/use-event-config';
 import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,17 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { pitApi } from '@/lib/api/database-client';
-
-interface DynamicPitData {
-  team: number;
-  drivetrain: string;
-  weight: string;
-  length: string;
-  width: string;
-  hasAuto: boolean;
-  notes: string;
-  gameSpecificData: Record<string, number | string | boolean>;
-}
+import type { DynamicPitData } from '@/lib/shared-types';
 
 export function DynamicPitScoutForm() {
   const gameConfig = useCurrentGameConfig();

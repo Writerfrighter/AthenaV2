@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useSelectedEvent } from './use-event-config';
 import { useGameConfig } from './use-game-config';
-import { teamApi, TeamData } from '@/lib/api/database-client';
+import { teamApi } from '@/lib/api/database-client';
+import type { TeamData } from '@/lib/shared-types';
 
 export function useTeamData(teamNumber: string) {
   const selectedEvent = useSelectedEvent();
