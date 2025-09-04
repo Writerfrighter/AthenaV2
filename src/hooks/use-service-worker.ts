@@ -32,6 +32,13 @@ export function useServiceWorker() {
 
     const registerServiceWorker = async () => {
       try {
+        // Check the service worker file exists and returns 200 before attempting to register.
+        // This prevents registering a stale or missing sw.js that would precache missing files.
+        const swResp = await fetch('/sw.js', { method: 'GET', cache: 'no-store' });
+        if (!swResp.ok) {
+          throw new Error(`/sw.js not available (status=${swResp.status})`);
+        }
+
         const registration = await navigator.serviceWorker.register('/sw.js');
         
         setState(prev => ({

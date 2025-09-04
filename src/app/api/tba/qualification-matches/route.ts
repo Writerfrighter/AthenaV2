@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEventMatches } from '@/lib/api/tba';
+import { TbaMatch } from '@/lib/api/types';
 
 // Server-side proxy that queries The Blue Alliance and returns qualification match count.
 export async function GET(request: NextRequest) {
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
     // Call into the server-side TBA client which can read process.env.TBA_API_KEY
     const matches = await getEventMatches(eventCode);
     const qualMatchesCount = Array.isArray(matches)
-      ? matches.filter((m: any) => m.comp_level === 'qm').length
+      ? matches.filter((m: TbaMatch) => m.comp_level === 'qm').length
       : 0;
 
     return NextResponse.json({ qualMatchesCount, totalMatches: Array.isArray(matches) ? matches.length : 0 });
