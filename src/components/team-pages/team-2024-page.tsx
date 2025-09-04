@@ -60,15 +60,39 @@ export function Team2024Page({ teamNumber }: Team2024PageProps) {
     { name: 'Teleop Trap', value: crescendoData.avg_teleop_trap },
   ] : [];
 
-  const mockNotes = [
-    "Consistent speaker scoring from multiple positions",
-    "Reliable amp scoring throughout the match",
-    "Strong climbing performance in endgame",
-    "Good note collection and management",
-    "Effective alliance coordination",
-  ];
+  // Extract actual notes from team data
+  const extractTeamNotes = (): string[] => {
+    const notes: string[] = [];
+    
+    // Add notes from match entries
+    if (teamData?.matchEntries) {
+      teamData.matchEntries.forEach(match => {
+        if (match.notes && match.notes.trim()) {
+          notes.push(match.notes.trim());
+        }
+      });
+    }
+    
+    // Add notes from pit entry if available
+    if (teamData?.pitEntry) {
+      // Check if there are notes in gameSpecificData
+      const pitData = teamData.pitEntry.gameSpecificData;
+      if (pitData && typeof pitData === 'object') {
+        // Look for notes fields in game-specific data
+        Object.entries(pitData).forEach(([key, value]) => {
+          if (key.toLowerCase().includes('note') && typeof value === 'string' && value.trim()) {
+            notes.push(value.trim());
+          }
+        });
+      }
+    }
+    
+    // Remove duplicates and return
+    return [...new Set(notes)];
+  };
 
-  const filteredNotes = mockNotes.filter(note =>
+  const teamNotes = extractTeamNotes();
+  const filteredNotes = teamNotes.filter(note =>
     note.toLowerCase().includes(searchNote.toLowerCase())
   );
 
@@ -213,11 +237,21 @@ export function Team2024Page({ teamNumber }: Team2024PageProps) {
               />
             </div>
             <ul className="space-y-2">
-              {filteredNotes.map((note, index) => (
-                <li key={index} className="p-2 bg-muted/30 rounded border text-sm">
-                  {note}
+              {filteredNotes.length > 0 ? (
+                filteredNotes.map((note, index) => (
+                  <li key={index} className="p-2 bg-muted/30 rounded border text-sm">
+                    {note}
+                  </li>
+                ))
+              ) : (
+                <li className="p-6 text-center text-muted-foreground text-sm">
+                  {teamNotes.length === 0 ? (
+                    <span>No scouting notes available for this team yet.</span>
+                  ) : (
+                    <span>No notes match your search criteria.</span>
+                  )}
                 </li>
-              ))}
+              )}
             </ul>
           </CardContent>
         </Card>
