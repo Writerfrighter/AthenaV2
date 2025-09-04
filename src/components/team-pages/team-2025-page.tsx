@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ExternalLink, Search, Trophy, Target, Activity, BarChart, MapPin, ImageIcon } from 'lucide-react';
 import { useTeamData } from '@/hooks/use-team-data';
-import { useGameConfig } from '@/hooks/use-game-config';
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -58,7 +57,6 @@ interface ReefscapeData {
 
 export function Team2025Page({ teamNumber }: Team2025PageProps) {
   const [searchNote, setSearchNote] = useState("");
-  const { config } = useGameConfig();
   const { teamData, loading, error } = useTeamData(teamNumber);
 
   // Calculate REEFSCAPE specific statistics using the SQL data
@@ -147,17 +145,39 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
     { name: 'Teleop Algae', value: reefscapeData.avg_teleop_algae * 5, fill: '#7fdddd' },
   ] : [];
 
-  const mockNotes = [
-    "Excellent coral placement accuracy in autonomous",
-    "Consistent algae collection throughout match",
-    "Strong defensive capabilities when needed",
-    "Quick and reliable deep climbing in endgame",
-    "Good communication with alliance partners",
-    "Effective processor utilization strategy",
-    "Consistent performance across all matches"
-  ];
+  // Extract actual notes from team data
+  const extractTeamNotes = (): string[] => {
+    const notes: string[] = [];
+    
+    // Add notes from match entries
+    if (teamData?.matchEntries) {
+      teamData.matchEntries.forEach(match => {
+        if (match.notes && match.notes.trim()) {
+          notes.push(match.notes.trim());
+        }
+      });
+    }
+    
+    // Add notes from pit entry if available
+    if (teamData?.pitEntry) {
+      // Check if there are notes in gameSpecificData
+      const pitData = teamData.pitEntry.gameSpecificData;
+      if (pitData && typeof pitData === 'object') {
+        // Look for notes fields in game-specific data
+        Object.entries(pitData).forEach(([key, value]) => {
+          if (key.toLowerCase().includes('note') && typeof value === 'string' && value.trim()) {
+            notes.push(value.trim());
+          }
+        });
+      }
+    }
+    
+    // Remove duplicates and return
+    return [...new Set(notes)];
+  };
 
-  const filteredNotes = mockNotes.filter(note =>
+  const teamNotes = extractTeamNotes();
+  const filteredNotes = teamNotes.filter(note =>
     note.toLowerCase().includes(searchNote.toLowerCase())
   );
 
@@ -490,11 +510,21 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
             />
           </div>
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {filteredNotes.map((note, index) => (
-              <div key={index} className="p-3 bg-muted/50 rounded-md border">
-                <p className="text-sm">{note}</p>
+            {filteredNotes.length > 0 ? (
+              filteredNotes.map((note, index) => (
+                <div key={index} className="p-3 bg-muted/50 rounded-md border">
+                  <p className="text-sm">{note}</p>
+                </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-muted-foreground">
+                {teamNotes.length === 0 ? (
+                  <p>No scouting notes available for this team yet.</p>
+                ) : (
+                  <p>No notes match your search criteria.</p>
+                )}
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>

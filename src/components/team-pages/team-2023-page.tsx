@@ -57,15 +57,39 @@ export function Team2023Page({ teamNumber }: Team2023PageProps) {
     { name: 'Teleop Cubes', value: chargedUpData.avg_teleop_cubes },
   ] : [];
 
-  const mockNotes = [
-    "Strong cone pickup and scoring ability",
-    "Consistent grid placement on all levels",
-    "Reliable charging station engagement",
-    "Good autonomous mobility and scoring",
-    "Effective defensive play when needed",
-  ];
+  // Extract actual notes from team data
+  const extractTeamNotes = (): string[] => {
+    const notes: string[] = [];
+    
+    // Add notes from match entries
+    if (teamData?.matchEntries) {
+      teamData.matchEntries.forEach(match => {
+        if (match.notes && match.notes.trim()) {
+          notes.push(match.notes.trim());
+        }
+      });
+    }
+    
+    // Add notes from pit entry if available
+    if (teamData?.pitEntry) {
+      // Check if there are notes in gameSpecificData
+      const pitData = teamData.pitEntry.gameSpecificData;
+      if (pitData && typeof pitData === 'object') {
+        // Look for notes fields in game-specific data
+        Object.entries(pitData).forEach(([key, value]) => {
+          if (key.toLowerCase().includes('note') && typeof value === 'string' && value.trim()) {
+            notes.push(value.trim());
+          }
+        });
+      }
+    }
+    
+    // Remove duplicates and return
+    return [...new Set(notes)];
+  };
 
-  const filteredNotes = mockNotes.filter(note =>
+  const teamNotes = extractTeamNotes();
+  const filteredNotes = teamNotes.filter(note =>
     note.toLowerCase().includes(searchNote.toLowerCase())
   );
 
@@ -216,11 +240,21 @@ export function Team2023Page({ teamNumber }: Team2023PageProps) {
               />
             </div>
             <ul className="space-y-2">
-              {filteredNotes.map((note, index) => (
-                <li key={index} className="p-2 bg-muted/30 rounded border text-sm">
-                  {note}
+              {filteredNotes.length > 0 ? (
+                filteredNotes.map((note, index) => (
+                  <li key={index} className="p-2 bg-muted/30 rounded border text-sm">
+                    {note}
+                  </li>
+                ))
+              ) : (
+                <li className="p-6 text-center text-muted-foreground text-sm">
+                  {teamNotes.length === 0 ? (
+                    <span>No scouting notes available for this team yet.</span>
+                  ) : (
+                    <span>No notes match your search criteria.</span>
+                  )}
                 </li>
-              ))}
+              )}
             </ul>
           </CardContent>
         </Card>
