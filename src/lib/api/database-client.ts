@@ -146,7 +146,9 @@ export const teamApi = {
 
     const response = await fetch(`${API_BASE}/team?${params}`);
     if (!response.ok) throw new Error('Failed to fetch team data');
-    return response.json();
+    const data = await response.json();
+    // console.log("Data:", data);
+    return data;
   }
 };
 

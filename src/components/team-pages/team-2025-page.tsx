@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ExternalLink, Search, Trophy, Target, Activity, BarChart, MapPin, ImageIcon } from 'lucide-react';
+import { ExternalLink, Search, Trophy, Target, Activity, BarChart, MapPin } from 'lucide-react';
+import TeamInfo from '@/components/team-pages-common/TeamInfo';
+import TeamImage from '@/components/team-pages-common/TeamImage';
+import TeamNotes from '@/components/team-pages-common/TeamNotes';
 import { useTeamData } from '@/hooks/use-team-data';
 import {
   BarChart as RechartsBarChart,
@@ -14,11 +16,15 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   PieChart,
-  Pie,
-  Cell
+  Pie
 } from 'recharts';
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
 interface Team2025PageProps {
   teamNumber: string;
@@ -64,62 +70,56 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
     if (!teamData?.matchEntries || teamData.matchEntries.length === 0) return null;
 
     const matchEntries = teamData.matchEntries;
-
     const totals = matchEntries.reduce((acc, match) => {
       const auto = match.gameSpecificData?.autonomous as Record<string, number> | undefined || {};
       const teleop = match.gameSpecificData?.teleop as Record<string, number> | undefined || {};
 
       return {
-        auto_l2: acc.auto_l2 + (auto.l2 as number || 0),
-        auto_l3: acc.auto_l3 + (auto.l3 as number || 0),
-        auto_l4: acc.auto_l4 + (auto.l4 as number || 0),
-        auto_net: acc.auto_net + (auto.net as number || 0),
-        auto_processor: acc.auto_processor + (auto.processor as number || 0),
+        auto_l1: acc.auto_l1 + (auto.L1_coral || 0),
+        auto_l2: acc.auto_l2 + (auto.L2_coral || 0),
+        auto_l3: acc.auto_l3 + (auto.L3_coral || 0),
+        auto_l4: acc.auto_l4 + (auto.L4_coral || 0),
+        auto_net: acc.auto_net + (auto.net_algae || 0),
+        auto_processor: acc.auto_processor + (auto.processor_algae || 0),
 
-        teleop_l2: acc.teleop_l2 + (teleop.l2 as number || 0),
-        teleop_l3: acc.teleop_l3 + (teleop.l3 as number || 0),
-        teleop_l4: acc.teleop_l4 + (teleop.l4 as number || 0),
-        teleop_net: acc.teleop_net + (teleop.net as number || 0),
-        teleop_processor: acc.teleop_processor + (teleop.processor as number || 0),
-
-        // For backwards compatibility with generic coral/algae tracking
-        auto_coral: acc.auto_coral + (auto.coral || 0),
-        auto_algae: acc.auto_algae + (auto.algae || 0),
-        teleop_coral: acc.teleop_coral + (teleop.coral || 0),
-        teleop_algae: acc.teleop_algae + (teleop.algae || 0),
+        teleop_l1: acc.teleop_l1 + (teleop.L1_coral || 0),
+        teleop_l2: acc.teleop_l2 + (teleop.L2_coral || 0),
+        teleop_l3: acc.teleop_l3 + (teleop.L3_coral || 0),
+        teleop_l4: acc.teleop_l4 + (teleop.L4_coral || 0),
+        teleop_net: acc.teleop_net + (teleop.net_algae || 0),
+        teleop_processor: acc.teleop_processor + (teleop.processor_algae || 0),
       };
     }, {
-      auto_l2: 0, auto_l3: 0, auto_l4: 0, auto_net: 0, auto_processor: 0,
-      teleop_l2: 0, teleop_l3: 0, teleop_l4: 0, teleop_net: 0, teleop_processor: 0,
-      auto_coral: 0, auto_algae: 0, teleop_coral: 0, teleop_algae: 0
+      auto_l1: 0, auto_l2: 0, auto_l3: 0, auto_l4: 0, auto_net: 0, auto_processor: 0,
+      teleop_l1: 0, teleop_l2: 0, teleop_l3: 0, teleop_l4: 0, teleop_net: 0, teleop_processor: 0
     });
-
+    // console.log(totals);
     const count = matchEntries.length;
 
     return {
       avg_total: teamData.epa?.totalEPA || 0,
       epa: teamData.epa?.totalEPA || 0,
-      avg_auto_coral: parseFloat((totals.auto_coral / count).toFixed(3)),
-      avg_auto_algae: parseFloat((totals.auto_algae / count).toFixed(3)),
-      avg_teleop_coral: parseFloat((totals.teleop_coral / count).toFixed(3)),
-      avg_teleop_algae: parseFloat((totals.teleop_algae / count).toFixed(3)),
+      avg_auto_coral: parseFloat(((totals.auto_l1 + totals.auto_l2 + totals.auto_l3 + totals.auto_l4) / count).toFixed(1)),
+      avg_auto_algae: parseFloat(((totals.auto_processor + totals.auto_net) / count).toFixed(1)),
+      avg_teleop_coral: parseFloat(((totals.teleop_l1 + totals.teleop_l2 + totals.teleop_l3 + totals.teleop_l4) / count).toFixed(1)),
+      avg_teleop_algae: parseFloat(((totals.teleop_processor + totals.teleop_net) / count).toFixed(1)),
       endgame_state: "Deep Climbing", // This would come from endgame data
 
-      auto_trough: 0, // Not tracked in current schema
-      auto_l2: parseFloat((totals.auto_l2 / count).toFixed(3)),
-      auto_l3: parseFloat((totals.auto_l3 / count).toFixed(3)),
-      auto_l4: parseFloat((totals.auto_l4 / count).toFixed(3)),
-      auto_net: parseFloat((totals.auto_net / count).toFixed(3)),
-      auto_processor: parseFloat((totals.auto_processor / count).toFixed(3)),
+      auto_trough: parseFloat((totals.auto_l1 / count).toFixed(1)),
+      auto_l2: parseFloat((totals.auto_l2 / count).toFixed(1)),
+      auto_l3: parseFloat((totals.auto_l3 / count).toFixed(1)),
+      auto_l4: parseFloat((totals.auto_l4 / count).toFixed(1)),
+      auto_net: parseFloat((totals.auto_net / count).toFixed(1)),
+      auto_processor: parseFloat((totals.auto_processor / count).toFixed(1)),
       auto_missed_coral: 0, // Not tracked in current schema
       auto_missed_algae: 0, // Not tracked in current schema
 
-      teleop_trough: 0, // Not tracked in current schema
-      teleop_l2: parseFloat((totals.teleop_l2 / count).toFixed(3)),
-      teleop_l3: parseFloat((totals.teleop_l3 / count).toFixed(3)),
-      teleop_l4: parseFloat((totals.teleop_l4 / count).toFixed(3)),
-      teleop_net: parseFloat((totals.teleop_net / count).toFixed(3)),
-      teleop_processor: parseFloat((totals.teleop_processor / count).toFixed(3)),
+      teleop_trough: parseFloat((totals.teleop_l1 / count).toFixed(1)),
+      teleop_l2: parseFloat((totals.teleop_l2 / count).toFixed(1)),
+      teleop_l3: parseFloat((totals.teleop_l3 / count).toFixed(1)),
+      teleop_l4: parseFloat((totals.teleop_l4 / count).toFixed(1)),
+      teleop_net: parseFloat((totals.teleop_net / count).toFixed(1)),
+      teleop_processor: parseFloat((totals.teleop_processor / count).toFixed(1)),
       teleop_missed_coral: 0, // Not tracked in current schema
       teleop_missed_algae: 0, // Not tracked in current schema
     };
@@ -141,9 +141,38 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
   const pointBreakdownData = reefscapeData ? [
     { name: 'Auto Coral', value: reefscapeData.avg_auto_coral * 3, fill: '#ff6b6b' },
     { name: 'Auto Algae', value: reefscapeData.avg_auto_algae * 5, fill: '#4ecdc4' },
-    { name: 'Teleop Coral', value: reefscapeData.avg_teleop_coral * 3, fill: '#ff9999' },
-    { name: 'Teleop Algae', value: reefscapeData.avg_teleop_algae * 5, fill: '#7fdddd' },
+    { name: 'Tele Coral', value: reefscapeData.avg_teleop_coral * 3, fill: '#ff9999' },
+    { name: 'Tele Algae', value: reefscapeData.avg_teleop_algae * 5, fill: '#7fdddd' },
   ] : [];
+
+  // Transform for shadcn chart
+  const chartData = pointBreakdownData.map((item) => ({
+    browser: item.name,
+    visitors: item.value,
+    fill: item.fill
+  }));
+
+  const chartConfig = {
+    visitors: {
+      label: "Points: ",
+    },
+    "Auto Coral": {
+      label: "Auto Coral: ",
+      color: "#ff6b6b",
+    },
+    "Auto Algae": {
+      label: "Auto Algae: ",
+      color: "#4ecdc4",
+    },
+    "Teleop Coral": {
+      label: "Teleop Coral: ",
+      color: "#ff9999",
+    },
+    "Teleop Algae": {
+      label: "Teleop Algae: ",
+      color: "#7fdddd",
+    },
+  } satisfies ChartConfig;
 
   // Extract actual notes from team data
   const extractTeamNotes = (): string[] => {
@@ -181,6 +210,14 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
     note.toLowerCase().includes(searchNote.toLowerCase())
   );
 
+  // Chart configuration for teleop breakdown
+  const teleopChartConfig = {
+    value: {
+      label: "Avg Coral",
+      color: "var(--chart-1)",
+    },
+  } satisfies ChartConfig;
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -204,8 +241,8 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
       </div>
     );
   }
-
-  if (!teamData?.pitEntry && (!teamData?.matchEntries || teamData.matchEntries.length === 0)) {
+  // console.log("Team Data:", teamData);
+  if (!teamData?.matchEntries || teamData.matchEntries.length === 0) {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Team {teamNumber}</h1>
@@ -222,10 +259,7 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          {/* <h1 className="text-3xl font-bold tracking-tight">Team {teamNumber}</h1> */}
-          <p className="text-muted-foreground">
-            2025 REEFSCAPE performance analysis and scouting data
-          </p>
+          <p className="text-muted-foreground">2025 REEFSCAPE performance analysis and scouting data</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="flex items-center gap-1">
@@ -238,43 +272,11 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
       {/* Robot Image and Basic Info */}
       <div className="grid lg:grid-cols-2 gap-6">
         <div>
-          <Card>
-            <CardContent className="p-0">
-              <div className="relative aspect-video rounded-lg overflow-hidden bg-muted/30">
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <ImageIcon className="h-16 w-16 mb-4 opacity-50" />
-                  <p className="text-sm font-medium">No robot image available</p>
-                  <p className="text-xs">Team {teamNumber}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <TeamImage teamNumber={teamNumber} yearLabel="2025 REEFSCAPE" />
         </div>
 
         <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Team Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Team Number</span>
-                <span className="font-medium">{teamNumber}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Location</span>
-                <span className="font-medium">San Francisco, CA</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Rookie Year</span>
-                <span className="font-medium">2008</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Matches</span>
-                <span className="font-medium">{teamData?.matchEntries?.length || 0}</span>
-              </div>
-            </CardContent>
-          </Card>
+          <TeamInfo teamNumber={teamNumber} driveTrain={teamData?.pitEntry?.driveTrain} weight={teamData?.pitEntry?.weight} matches={teamData?.matchCount} />
 
           <Button className="w-full" variant="outline">
             <ExternalLink className="mr-2 h-4 w-4" />
@@ -430,104 +432,54 @@ export function Team2025Page({ teamNumber }: Team2025PageProps) {
             <CardDescription>Average points by scoring location</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartContainer config={teleopChartConfig}>
               <RechartsBarChart data={teleopBreakdownData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="name"
-                  stroke="#888888"
-                  fontSize={12}
                   tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
                 />
                 <YAxis
-                  stroke="#888888"
-                  fontSize={12}
                   tickLine={false}
+                  axisLine={false}
                 />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
-                  }}
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent />}
                 />
-                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" fill="var(--color-value)" radius={8} />
               </RechartsBarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
         {/* Point Distribution Chart */}
-        <Card>
-          <CardHeader>
+        <Card className="flex flex-col">
+          <CardHeader className="items-center pb-0">
             <CardTitle>Point Distribution</CardTitle>
             <CardDescription>Breakdown of scoring methods</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+          <CardContent className="flex-1 pb-0">
+            <ChartContainer
+              config={chartConfig}
+              className="mx-auto aspect-square max-h-[250px]"
+            >
               <PieChart>
-                <Pie
-                  data={pointBreakdownData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={false}
-                >
-                  {pointBreakdownData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
-                  }}
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent />}
                 />
+                <Pie data={chartData} dataKey="visitors" nameKey="browser" />
               </PieChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Scouting Notes */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Scouting Notes</CardTitle>
-          <CardDescription>Observations and insights from matches</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search notes..."
-              value={searchNote}
-              onChange={(e) => setSearchNote(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {filteredNotes.length > 0 ? (
-              filteredNotes.map((note, index) => (
-                <div key={index} className="p-3 bg-muted/50 rounded-md border">
-                  <p className="text-sm">{note}</p>
-                </div>
-              ))
-            ) : (
-              <div className="p-6 text-center text-muted-foreground">
-                {teamNotes.length === 0 ? (
-                  <p>No scouting notes available for this team yet.</p>
-                ) : (
-                  <p>No notes match your search criteria.</p>
-                )}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+  {/* Scouting Notes */}
+  <TeamNotes notes={teamNotes} searchNote={searchNote} setSearchNote={setSearchNote} />
     </div>
   );
 }

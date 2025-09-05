@@ -25,6 +25,7 @@ export function useTeamData(teamNumber: string) {
           currentYear, 
           selectedEvent?.code
         );
+        // console.log("Fetched team data:", data);
 
         setTeamData(data);
       } catch (err) {

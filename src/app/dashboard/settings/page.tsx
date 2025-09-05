@@ -93,7 +93,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h4 className="font-medium">Supported Years</h4>
-                <p className="text-sm text-muted-foreground">2023 (CHARGED UP), 2024 (CRESCENDO), 2025 (REEFSCAPE)</p>
+                <p className="text-sm text-muted-foreground">2025 (REEFSCAPE)</p>
               </div>
             </CardContent>
           </Card>

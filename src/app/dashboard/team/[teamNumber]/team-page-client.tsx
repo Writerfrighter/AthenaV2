@@ -3,8 +3,6 @@
 import { YearSelector } from '@/components/year-selector';
 import { useGameConfig } from '@/hooks/use-game-config';
 import { Team2025Page } from '@/components/team-pages/team-2025-page';
-import { Team2024Page } from '@/components/team-pages/team-2024-page';
-import { Team2023Page } from '@/components/team-pages/team-2023-page';
 
 interface TeamPageClientProps {
   teamNumber: string;
@@ -17,10 +15,6 @@ export default function TeamPageClient({ teamNumber }: TeamPageClientProps) {
     switch (currentYear) {
       case 2025:
         return <Team2025Page teamNumber={teamNumber} />;
-      case 2024:
-        return <Team2024Page teamNumber={teamNumber} />;
-      case 2023:
-        return <Team2023Page teamNumber={teamNumber} />;
       default:
         return (
           <div className="container mx-auto p-6">
