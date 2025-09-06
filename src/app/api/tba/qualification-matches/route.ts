@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEventMatches } from '@/lib/api/tba';
-import { TbaMatch } from '@/lib/api/types';
+import { TbaMatch } from '@/lib/api/tba-types';
 
 // Server-side proxy that queries The Blue Alliance and returns qualification match count.
 export async function GET(request: NextRequest) {

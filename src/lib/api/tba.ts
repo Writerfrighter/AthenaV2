@@ -11,7 +11,7 @@ import {
   TbaEventRanking,
   TbaTeam,
   TbaMedia,
-} from "./types";
+} from "./tba-types";
 
 export type Team = { id: string; name: string };
 export type TeamImage = { url: string };
