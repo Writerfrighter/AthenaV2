@@ -21,7 +21,49 @@ import { useEventConfig } from "@/hooks/use-event-config"
 
 export function EventSwitcher() {
   const { isMobile } = useSidebar()
-  const { events, selectedEvent, setSelectedEvent } = useEventConfig()
+  const { events, selectedEvent, setSelectedEvent, isLoading, error } = useEventConfig()
+
+  if (isLoading) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            size="lg"
+            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            disabled
+          >
+            <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+              <CalendarDays color="black" size={20} />
+            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">Loading events...</span>
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
+
+  if (error) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            size="lg"
+            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            disabled
+          >
+            <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+              <CalendarDays color="black" size={20} />
+            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium text-red-500">Error loading events</span>
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
 
   if (!selectedEvent) {
     return null
@@ -37,12 +79,6 @@ export function EventSwitcher() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                {/* <Image 
-                  src={activeEvent.logo}
-                  width= {150}
-                  height={150}
-                  alt="The Logo of {activeTeam.name}"
-                /> */}
                 <CalendarDays color="black" size={20} />
 
               </div>

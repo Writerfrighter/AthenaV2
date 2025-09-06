@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { getTeamEvents } from './api/tba';
 
 export interface ServerEvent {
   name: string;
@@ -12,9 +13,9 @@ export async function getSelectedEvent(): Promise<ServerEvent> {
   const selectedEventCookie = cookieStore.get('selectedEvent');
   
   const defaultEvent: ServerEvent = {
-    name: "District Championships",
-    number: "PNW: 2025", 
-    code: "2025pncmp",
+    name: "Loading Events...",
+    number: "Please wait", 
+    code: "",
   };
 
   if (!selectedEventCookie) {
@@ -35,22 +36,18 @@ export async function getSelectedEvent(): Promise<ServerEvent> {
 }
 
 // All available events
-export function getAllEvents(): ServerEvent[] {
-  return [
-    {
-      name: "District Championships",
-      number: "PNW: 2025",
-      code: "2025pncmp",
-    },
-    {
-      name: "District Sammamish Event", 
-      number: "PNW: 2025",
-      code: "2025wasam",
-    },
-    {
-      name: "District Sundome Event",
-      number: "PNW: 2025", 
-      code: "2025wayak",
-    },
-  ];
+export async function getAllEvents(): Promise<ServerEvent[]> {
+  try {
+    const tbaEvents = await getTeamEvents(492, 2025); // Default to current year
+    
+    return tbaEvents.map(event => ({
+      name: event.name,
+      number: `${event.event_code.toUpperCase()}: ${event.year}`,
+      code: event.key,
+    }));
+  } catch (error) {
+    console.error('Error fetching events from TBA:', error);
+    // Fallback to empty array
+    return [];
+  }
 }

@@ -2,40 +2,67 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { Event } from '@/lib/shared-types';
+import { useGameConfig } from '@/hooks/use-game-config';
 
 interface EventContextType {
   events: Event[];
   selectedEvent: Event | null;
   setSelectedEvent: (event: Event) => void;
   setEvents: (events: Event[]) => void;
+  isLoading: boolean;
+  error: string | null;
 }
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
 
 export function EventProvider({ children }: { children: ReactNode }) {
-  // Default events - these could come from an API or config file in the future
-  const [events, setEvents] = useState<Event[]>([
-    {
-      name: "District Championships",
-      region: "PNW: 2025",
-      code: "2025pncmp",
-    },
-    {
-      name: "District Sammamish Event", 
-      region: "PNW: 2025",
-      code: "2025wasam",
-    },
-    {
-      name: "District Sundome Event",
-      region: "PNW: 2025", 
-      code: "2025wayak",
-    },
-  ]);
+  const { currentYear } = useGameConfig();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [selectedEvent, setSelectedEventState] = useState<Event | null>(null);
 
+  // Fetch events from TBA API
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const response = await fetch(`/api/tba/team/${492}/events/${currentYear}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch: ${response.statusText}`);
+        }
+        
+        const tbaEvents = await response.json();
+        
+        // Transform TBA events to our Event format
+        const transformedEvents: Event[] = tbaEvents.map((tbaEvent: any) => ({
+          name: tbaEvent.name,
+          region: `${tbaEvent.event_code.toUpperCase()}: ${tbaEvent.year}`,
+          code: tbaEvent.key,
+        }));
+        
+        setEvents(transformedEvents);
+      } catch (err) {
+        console.error('Error fetching events from TBA:', err);
+        setError('Failed to load events from The Blue Alliance');
+        // Fallback to empty array
+        setEvents([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, [currentYear]);
+
   // Load selected event from localStorage on mount
   useEffect(() => {
+    // Only set selected event after events have been loaded
+    if (isLoading || events.length === 0) return;
+    
     const savedEvent = localStorage.getItem('selectedEvent');
     if (savedEvent) {
       try {
@@ -58,7 +85,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
       // No saved event, default to first event
       setSelectedEventState(events[0] || null);
     }
-  }, [events]);
+  }, [events, isLoading]);
 
   // Save selected event to localStorage and cookies whenever it changes
   useEffect(() => {
@@ -78,6 +105,8 @@ export function EventProvider({ children }: { children: ReactNode }) {
     selectedEvent,
     setSelectedEvent,
     setEvents,
+    isLoading,
+    error,
   };
 
   return (
