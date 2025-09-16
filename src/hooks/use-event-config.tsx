@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { Event } from '@/lib/shared-types';
 import { useGameConfig } from '@/hooks/use-game-config';
+import { TbaEvent } from '@/lib/api/tba-types';
 
 interface EventContextType {
   events: Event[];
@@ -38,7 +39,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
         const tbaEvents = await response.json();
         
         // Transform TBA events to our Event format
-        const transformedEvents: Event[] = tbaEvents.map((tbaEvent: any) => ({
+        const transformedEvents: Event[] = tbaEvents.map((tbaEvent: TbaEvent) => ({
           name: tbaEvent.name,
           region: `${tbaEvent.event_code.toUpperCase()}: ${tbaEvent.year}`,
           code: tbaEvent.key,

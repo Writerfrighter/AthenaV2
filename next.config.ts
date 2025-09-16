@@ -80,6 +80,14 @@ const pwaConfig = {
   runtimeCaching: isProd ? require('./runtimeCaching') : [],
   // Prevent build manifest issues: always exclude app-build-manifest.json from next-pwa precache
   buildExcludes: [/.*\.js\.map$/, /app-build-manifest\.json$/],
+  // Add critical routes to precache for offline functionality
+  additionalManifestEntries: [
+    { url: '/dashboard', revision: null },
+    { url: '/scout/matchscout', revision: null },
+    { url: '/scout/pitscout', revision: null },
+    { url: '/login', revision: null },
+    { url: '/signup', revision: null },
+  ],
 };
 
 export default withPWA(pwaConfig)(nextConfig);
