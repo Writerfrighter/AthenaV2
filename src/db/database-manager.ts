@@ -32,10 +32,10 @@ class DatabaseManager {
                                   !azureSqlServer.includes('your-server') &&
                                   !azureSqlDatabase.includes('ScoutingDatabase'));
 
-    console.log('DatabaseManager: Is Azure SQL configured?', isAzureSqlConfigured);
+    // console.log('DatabaseManager: Is Azure SQL configured?', isAzureSqlConfigured);
 
     if (isAzureSqlConfigured) {
-      console.log('DatabaseManager: Using Azure SQL');
+      // console.log('DatabaseManager: Using Azure SQL');
       this.config = {
         provider: 'azuresql',
         azuresql: (azureSqlServer && azureSqlDatabase) ? {

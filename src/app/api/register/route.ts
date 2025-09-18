@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12)
 
     // Generate unique ID for user
-    const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
 
     // Create user
     await pool.request()

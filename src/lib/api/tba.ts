@@ -7,7 +7,6 @@ import {
   TbaEvent,
   TbaOprs,
   TbaMatch,
-  TbaRankingItem,
   TbaEventRanking,
   TbaTeam,
   TbaMedia,

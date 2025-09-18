@@ -62,7 +62,7 @@ export default function Page() {
         // Give the session a moment to be established
         setTimeout(() => {
           router.push("/dashboard")
-        }, 500)
+        }, 750)
       } else {
         console.error('Unexpected login result:', result)
         toast.error("Login failed", {

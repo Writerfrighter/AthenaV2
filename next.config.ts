@@ -8,17 +8,17 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       // Only apply redirects if we're on the expected domain
-      ...(process.env.NEXTAUTH_URL?.includes('noahf.dev') ? [
+      ...(process.env.NEXTAUTH_URL?.includes('trcscouting.com') ? [
         {
           source: '/:path*',
           has: [
             {
               type: 'host',
               key: 'host',
-              value: 'www.noahf.dev'
+              value: 'www.trcscouting.com'
             }
           ],
-          destination: 'https://noahf.dev/:path*',
+          destination: 'https://trcscouting.com/:path*',
           permanent: true
         }
       ] : [])

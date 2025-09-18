@@ -6,6 +6,7 @@ import { Settings, Database, Users, Bell } from "lucide-react";
 import { DatabaseSyncComponent } from "@/components/database-sync";
 import { DataExportImportComponent } from "@/components/data-export-import";
 import { DatabaseResetComponent } from "@/components/database-reset";
+import { PermissionExamples } from "@/components/auth/PermissionExamples";
 
 export default function SettingsPage() {
   return (
@@ -24,7 +25,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="database" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="database" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
             Database
@@ -40,6 +41,10 @@ export default function SettingsPage() {
           <TabsTrigger value="about" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             About
+          </TabsTrigger>
+          <TabsTrigger value="testing" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Testing
           </TabsTrigger>
         </TabsList>
 
@@ -97,6 +102,9 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="testing" className="space-y-4">
+          <PermissionExamples />
         </TabsContent>
       </Tabs>
     </div>

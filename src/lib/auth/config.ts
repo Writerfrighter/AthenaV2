@@ -45,8 +45,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             id: user.id,
             name: user.name,
             username: user.username,
-            role: user.role,
-            emailVerified: new Date() // Since we don't use email, we'll just set this
+            role: user.role
           }
         } catch (error) {
           console.error('Auth error:', error)
@@ -61,7 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: 'next-auth.session-token',
       options: {
         // Only set domain for production, not for localhost
-        ...(process.env.NODE_ENV === 'production' && { domain: 'noahf.dev' }),
+        ...(process.env.NODE_ENV === 'production' && { domain: 'trcscouting.com' }),
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
