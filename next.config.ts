@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
-import { withSerwist } from '@serwist/next';
+// @ts-ignore
+import withSerwistInit from '@serwist/next';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -72,6 +73,8 @@ const nextConfig: NextConfig = {
 };
 
 const pwaConfig = {
+  swSrc: "src/sw.ts",
+  swDest: "public/sw.js",
   additionalPrecacheEntries: [
     { url: '/dashboard', revision: null },
     { url: '/scout/matchscout', revision: null },
@@ -79,10 +82,9 @@ const pwaConfig = {
     { url: '/login', revision: null },
     { url: '/signup', revision: null },
   ],
-  runtimeCaching: require('./runtimeCaching'),
-  disable: false, // !isProd, // Disable PWA in development
+  disable: false,
 };
 
-export default withSerwist(pwaConfig)(nextConfig);
+export default withSerwistInit(pwaConfig)(nextConfig);
 
 // Prevent build manifest issues: always exclude app-build-manifest.json from serwist precache
