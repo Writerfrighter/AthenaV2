@@ -44,6 +44,13 @@
 }
 
 :root {
+  /* Some colors 
+    oklch(0.9002 0.0796 136.74) 
+    oklch(0.8381 0.125 136.91)
+    oklch(0.7571 0.1468 144.19)
+    oklch(0.4751 0.1227 143.34)
+    oklch(0.376 0.1194 142.86)
+  */
   --radius: 0.65rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
