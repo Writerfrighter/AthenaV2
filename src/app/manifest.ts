@@ -1,6 +1,5 @@
 import { MetadataRoute } from "next";
 
-
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'TRC Scouting',
@@ -13,11 +12,12 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: '#ffffff',
     theme_color: '#0f172a',
     icons: [
-        {
+      {
         src: '/TRCLogo.webp',
         sizes: '512x512',
         type: 'image/webp',
-        }
+        purpose: 'maskable'
+      }
     ],
   }
 }
