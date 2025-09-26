@@ -1,5 +1,5 @@
 import type { NextConfig } from 'next';
-import withPWA from 'next-pwa';
+import { withSerwist } from '@serwist/next';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -72,22 +72,17 @@ const nextConfig: NextConfig = {
 };
 
 const pwaConfig = {
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: !isProd,
-  // Only include runtime caching in production
-  runtimeCaching: isProd ? require('./runtimeCaching') : [],
-  // Prevent build manifest issues: always exclude app-build-manifest.json from next-pwa precache
-  buildExcludes: [/.*\.js\.map$/, /app-build-manifest\.json$/],
-  // Add critical routes to precache for offline functionality
-  additionalManifestEntries: [
+  additionalPrecacheEntries: [
     { url: '/dashboard', revision: null },
     { url: '/scout/matchscout', revision: null },
     { url: '/scout/pitscout', revision: null },
     { url: '/login', revision: null },
     { url: '/signup', revision: null },
   ],
+  runtimeCaching: require('./runtimeCaching'),
+  disable: false, // !isProd, // Disable PWA in development
 };
 
-export default withPWA(pwaConfig)(nextConfig);
+export default withSerwist(pwaConfig)(nextConfig);
+
+// Prevent build manifest issues: always exclude app-build-manifest.json from serwist precache

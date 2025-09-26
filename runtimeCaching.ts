@@ -1,5 +1,5 @@
-// runtimeCaching configuration for next-pwa
-// Use serializable handler strings ('NetworkFirst' / 'CacheFirst') so next-pwa can embed
+// runtimeCaching configuration for serwist
+// Use serializable handler strings ('NetworkFirst' / 'CacheFirst') so serwist can embed
 // these rules into the generated service worker.
 module.exports = [
   // Cache JS/CSS/Next.js static assets
