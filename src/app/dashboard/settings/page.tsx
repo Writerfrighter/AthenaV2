@@ -6,6 +6,8 @@ import { Settings, Database, Users, Bell } from "lucide-react";
 import { DatabaseSyncComponent } from "@/components/database-sync";
 import { DataExportImportComponent } from "@/components/data-export-import";
 import { DatabaseResetComponent } from "@/components/database-reset";
+import { NotificationSettings } from "@/components/notification-settings";
+import { NotificationSender } from "@/components/notification-sender";
 import { PermissionExamples } from "@/components/auth/PermissionExamples";
 import { TeamManagement } from "@/components/team-management";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
@@ -62,14 +64,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Notification settings coming soon...</p>
-            </CardContent>
-          </Card>
+          <NotificationSettings />
         </TabsContent>
 
         <TabsContent value="about" className="space-y-4">

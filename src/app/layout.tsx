@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+// import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GameConfigProvider } from "@/hooks/use-game-config";
@@ -8,10 +8,10 @@ import { ServiceWorkerManager } from "@/components/service-worker-manager";
 import { Toaster } from "sonner";
 import { SessionProvider } from "@/components/session-provider";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-})
+// const inter = Inter({
+//   variable: "--font-inter",
+//   subsets: ["latin"],
+// })
 
 export const metadata: Metadata = {
   title: "TRC Scouting",
@@ -29,7 +29,7 @@ export default function RootLayout({
         <head>
           {/* <link rel="manifest" href="/manifest" /> */}
         </head>
-        <body className={inter.className}>
+        <body className="font-sans">{/* className={inter.className} */}
           <SessionProvider>
             <ThemeProvider
               attribute="class"
