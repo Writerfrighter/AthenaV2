@@ -9,6 +9,9 @@ import { DatabaseResetComponent } from "@/components/database-reset";
 import { NotificationSettings } from "@/components/notification-settings";
 import { NotificationSender } from "@/components/notification-sender";
 import { PermissionExamples } from "@/components/auth/PermissionExamples";
+import { TeamManagement } from "@/components/team-management";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
+import { PERMISSIONS } from "@/lib/auth/roles";
 
 export default function SettingsPage() {
   return (
@@ -27,7 +30,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="database" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="database" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
             Database
@@ -44,27 +47,20 @@ export default function SettingsPage() {
             <Settings className="h-4 w-4" />
             About
           </TabsTrigger>
-          <TabsTrigger value="testing" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Testing
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="database" className="space-y-4">
           <DatabaseSyncComponent />
-          <DataExportImportComponent />
-          <DatabaseResetComponent />
+          <PermissionGuard permissions={[PERMISSIONS.IMPORT_DATA, PERMISSIONS.EXPORT_DATA]}>
+            <DataExportImportComponent />
+          </PermissionGuard>
+          <PermissionGuard permission={PERMISSIONS.RESET_DATABASE}>
+            <DatabaseResetComponent />
+          </PermissionGuard>
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Team Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Team management features coming soon...</p>
-            </CardContent>
-          </Card>
+          <TeamManagement />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4">
@@ -97,10 +93,6 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-        <TabsContent value="testing" className="space-y-4">
-          <NotificationSender />
-          <PermissionExamples />
         </TabsContent>
       </Tabs>
     </div>
