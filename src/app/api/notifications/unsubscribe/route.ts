@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth/config';
+import { databaseManager } from '@/db/database-manager';
 
 interface StoredSubscription {
   endpoint: string;
@@ -8,12 +10,16 @@ interface StoredSubscription {
   };
 }
 
-// In a real application, you would store subscriptions in a database
-// For now, we'll use a simple in-memory store (this will reset on server restart)
-const subscriptions = new Map<string, StoredSubscription>();
-
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { endpoint } = await request.json();
     
     if (!endpoint) {
@@ -23,10 +29,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Remove the subscription (in production, remove from database)
-    subscriptions.delete(endpoint);
+    const db = databaseManager.getService();
+    if (!db.getPool) {
+      return NextResponse.json({ error: 'Database service does not support direct SQL queries' }, { status: 500 });
+    }
+    const pool = await db.getPool();
+
+    // Get current subscriptions for the user
+    const userResult = await pool.request()
+      .input('userId', session.user.id)
+      .query('SELECT push_subscriptions FROM users WHERE id = @userId');
+
+    let subscriptions: StoredSubscription[] = [];
+    if (userResult.recordset.length > 0 && userResult.recordset[0].push_subscriptions) {
+      try {
+        subscriptions = JSON.parse(userResult.recordset[0].push_subscriptions);
+      } catch (error) {
+        console.error('Error parsing existing subscriptions:', error);
+        subscriptions = [];
+      }
+    }
+
+    // Remove the subscription
+    subscriptions = subscriptions.filter(sub => sub.endpoint !== endpoint);
+
+    // Save back to database
+    await pool.request()
+      .input('userId', session.user.id)
+      .input('subscriptions', JSON.stringify(subscriptions))
+      .query('UPDATE users SET push_subscriptions = @subscriptions WHERE id = @userId');
     
-    console.log('Removed push subscription:', endpoint);
+    console.log('Push subscription removed for user:', session.user.id, endpoint);
     
     return NextResponse.json(
       { message: 'Subscription removed successfully' },

@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Send, Users, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface SendResult {
   successful: number;
@@ -26,16 +26,9 @@ export function NotificationSender() {
   const [url, setUrl] = useState('/dashboard');
   const [isLoading, setIsLoading] = useState(false);
   const [lastResult, setLastResult] = useState<SendResult | null>(null);
-  
-  const { toast } = useToast();
-
   const handleSendNotification = async () => {
     if (!title.trim()) {
-      toast({
-        title: "Title required",
-        description: "Please enter a notification title.",
-        variant: "destructive",
-      });
+      toast.error("Title required: Please enter a notification title.");
       return;
     }
 
@@ -70,28 +63,16 @@ export function NotificationSender() {
       setLastResult(result);
 
       if (result.successful > 0) {
-        toast({
-          title: "Notifications sent",
-          description: `Successfully sent to ${result.successful} device${result.successful !== 1 ? 's' : ''}`,
-        });
-        
+        toast.success(`Notifications sent: Successfully sent to ${result.successful} device${result.successful !== 1 ? 's' : ''}`);
         // Clear form on success
         setTitle('');
         setBody('');
       } else {
-        toast({
-          title: "No notifications sent",
-          description: "No active subscriptions found or all sends failed.",
-          variant: "destructive",
-        });
+        toast.error("No notifications sent: No active subscriptions found or all sends failed.");
       }
     } catch (error) {
       console.error('Error sending notification:', error);
-      toast({
-        title: "Send failed",
-        description: "Failed to send notifications. Check console for details.",
-        variant: "destructive",
-      });
+      toast.error("Send failed: Failed to send notifications. Check console for details."); 
     } finally {
       setIsLoading(false);
     }

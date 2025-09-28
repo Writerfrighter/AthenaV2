@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Bell, BellOff, Check, X, AlertTriangle, Smartphone } from 'lucide-react';
 import { useNotifications } from '@/hooks/use-notifications';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export function NotificationSettings() {
   const {
@@ -23,7 +23,6 @@ export function NotificationSettings() {
     showNotification,
   } = useNotifications();
 
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePermissionRequest = async () => {
@@ -32,16 +31,9 @@ export function NotificationSettings() {
     setIsLoading(false);
     
     if (granted) {
-      toast({
-        title: "Permissions granted",
-        description: "You can now receive notifications from TRC Scouting.",
-      });
+      toast.success("Notification permissions granted");
     } else {
-      toast({
-        title: "Permission denied",
-        description: "Notifications have been blocked. You can enable them in your browser settings.",
-        variant: "destructive",
-      });
+      toast.error("Permission denied: Notifications have been blocked. You can enable them in your browser settings.");
     }
   };
 
@@ -51,10 +43,7 @@ export function NotificationSettings() {
     setIsLoading(false);
     
     if (subscription) {
-      toast({
-        title: "Notifications enabled",
-        description: "You're now subscribed to push notifications.",
-      });
+      toast.success("Notifications enabled: You're now subscribed to push notifications.");
     }
   };
 
@@ -64,10 +53,7 @@ export function NotificationSettings() {
     setIsLoading(false);
     
     if (success) {
-      toast({
-        title: "Notifications disabled",
-        description: "You've unsubscribed from push notifications.",
-      });
+      toast.success("Notifications disabled: You've unsubscribed from push notifications.");
     }
   };
 
@@ -79,10 +65,7 @@ export function NotificationSettings() {
     });
 
     if (success) {
-      toast({
-        title: "Test notification sent",
-        description: "Check your notification area to see it.",
-      });
+      toast.success("Test notification sent: Check your notification area to see it.");
     }
   };
 
@@ -215,10 +198,8 @@ export function NotificationSettings() {
                     <div>
                       <p>You&apos;re subscribed to push notifications. You&apos;ll receive notifications about:</p>
                       <ul className="list-disc list-inside mt-2 text-sm space-y-1">
-                        <li>Match schedule updates</li>
-                        <li>Important event announcements</li>
-                        <li>Data sync reminders</li>
-                        <li>System status updates</li>
+                        <li>Scouting Schedule Reminders</li>
+                        <li>Important Announcements</li>
                       </ul>
                     </div>
                   </AlertDescription>
@@ -226,58 +207,6 @@ export function NotificationSettings() {
               </div>
             )}
           </div>
-        )}
-
-        {/* Notification Types */}
-        {permission === 'granted' && isSubscribed && (
-          <>
-            <Separator />
-            <div className="space-y-4">
-              <Label className="font-medium">Notification Types</Label>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm font-medium">Match Updates</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Schedule changes and match results
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm font-medium">Data Sync</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Database synchronization status
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm font-medium">Event Updates</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Important event announcements
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm font-medium">System Status</Label>
-                    <p className="text-xs text-muted-foreground">
-                      App updates and maintenance notices
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-              </div>
-            </div>
-          </>
         )}
       </CardContent>
     </Card>

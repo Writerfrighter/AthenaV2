@@ -82,7 +82,7 @@ const pwaConfig = {
     { url: '/login', revision: null },
     { url: '/signup', revision: null },
   ],
-  disable: false,
+  disable: !isProd,
 };
 
 export default withSerwistInit(pwaConfig)(nextConfig);

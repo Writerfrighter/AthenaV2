@@ -16,6 +16,9 @@ import { SessionProvider } from "@/components/session-provider";
 export const metadata: Metadata = {
   title: "TRC Scouting",
   description: "Scouting app for TRC",
+  icons: {
+    apple: '/TRCLogo.webp',
+  },
 };
 
 export default function RootLayout({
@@ -27,7 +30,6 @@ export default function RootLayout({
     <>
       <html lang="en" suppressHydrationWarning>
         <head>
-          {/* <link rel="manifest" href="/manifest" /> */}
         </head>
         <body className="font-sans">{/* className={inter.className} */}
           <SessionProvider>

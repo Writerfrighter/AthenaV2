@@ -8,7 +8,6 @@ import { DataExportImportComponent } from "@/components/data-export-import";
 import { DatabaseResetComponent } from "@/components/database-reset";
 import { NotificationSettings } from "@/components/notification-settings";
 import { NotificationSender } from "@/components/notification-sender";
-import { PermissionExamples } from "@/components/auth/PermissionExamples";
 import { TeamManagement } from "@/components/team-management";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/auth/roles";
@@ -30,7 +29,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="database" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="database" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
             Database
@@ -46,6 +45,10 @@ export default function SettingsPage() {
           <TabsTrigger value="about" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             About
+          </TabsTrigger>
+          <TabsTrigger value="notification-examples" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Notification Examples
           </TabsTrigger>
         </TabsList>
 
@@ -93,6 +96,9 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="notification-examples" className="space-y-4">
+          <NotificationSender/>
         </TabsContent>
       </Tabs>
     </div>

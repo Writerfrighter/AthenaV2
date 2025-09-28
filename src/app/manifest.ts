@@ -14,6 +14,18 @@ export default function manifest(): MetadataRoute.Manifest {
     icons: [
       {
         src: '/TRCLogo.webp',
+        sizes: '192x192',
+        type: 'image/webp',
+        purpose: 'any'
+      },
+      {
+        src: '/TRCLogo.webp',
+        sizes: '512x512',
+        type: 'image/webp',
+        purpose: 'any'
+      },
+      {
+        src: '/TRCLogo.webp',
         sizes: '512x512',
         type: 'image/webp',
         purpose: 'maskable'

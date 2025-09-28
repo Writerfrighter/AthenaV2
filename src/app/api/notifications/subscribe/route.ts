@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth/config';
+import { databaseManager } from '@/db/database-manager';
 
 interface StoredSubscription {
   endpoint: string;
@@ -8,12 +10,16 @@ interface StoredSubscription {
   };
 }
 
-// In a real application, you would store subscriptions in a database
-// For now, we'll use a simple in-memory store (this will reset on server restart)
-const subscriptions = new Map<string, StoredSubscription>();
-
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const subscription: StoredSubscription = await request.json();
     
     if (!subscription || !subscription.endpoint) {
@@ -23,10 +29,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Store the subscription (in production, save to database)
-    subscriptions.set(subscription.endpoint, subscription);
+    const db = databaseManager.getService();
+    if (!db.getPool) {
+      return NextResponse.json({ error: 'Database service does not support direct SQL queries' }, { status: 500 });
+    }
+    const pool = await db.getPool();
+
+    // Get current subscriptions for the user
+    const userResult = await pool.request()
+      .input('userId', session.user.id)
+      .query('SELECT push_subscriptions FROM users WHERE id = @userId');
+
+    let subscriptions: StoredSubscription[] = [];
+    if (userResult.recordset.length > 0 && userResult.recordset[0].push_subscriptions) {
+      try {
+        subscriptions = JSON.parse(userResult.recordset[0].push_subscriptions);
+      } catch (error) {
+        console.error('Error parsing existing subscriptions:', error);
+        subscriptions = [];
+      }
+    }
+
+    // Check if subscription already exists
+    const existingIndex = subscriptions.findIndex(sub => sub.endpoint === subscription.endpoint);
+    if (existingIndex >= 0) {
+      // Update existing subscription
+      subscriptions[existingIndex] = subscription;
+    } else {
+      // Add new subscription
+      subscriptions.push(subscription);
+    }
+
+    // Save back to database
+    await pool.request()
+      .input('userId', session.user.id)
+      .input('subscriptions', JSON.stringify(subscriptions))
+      .query('UPDATE users SET push_subscriptions = @subscriptions WHERE id = @userId');
     
-    console.log('New push subscription:', subscription.endpoint);
+    console.log('Push subscription saved for user:', session.user.id, subscription.endpoint);
     
     return NextResponse.json(
       { message: 'Subscription saved successfully' },

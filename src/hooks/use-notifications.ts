@@ -102,8 +102,12 @@ export function useNotifications() {
     try {
       const registration = await navigator.serviceWorker.ready;
       
-      // You would replace this with your actual VAPID public key
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BNI8ZmkRyqrHYa-jPrPk-wqnC8QHGlOKn7qUMzLGG9ZKKzj_oNYvWwOPMcAD5lQP-r8OuZdJXeKC8KsTfJB8HpQ';
+      // Get VAPID public key from environment
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      
+      if (!vapidPublicKey) {
+        throw new Error('VAPID public key not configured');
+      }
       
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -216,7 +220,6 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-// Backend API functions (you'll need to implement these endpoints)
 async function sendSubscriptionToBackend(subscription: PushSubscription): Promise<void> {
   try {
     await fetch('/api/notifications/subscribe', {
