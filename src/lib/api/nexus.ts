@@ -1,7 +1,11 @@
 import { fetchJSON } from "../fetcher";
-
-export type Team = { id: string; name: string };
-export type TeamImage = { url: string };
+import type {
+  EventStatus,
+  PitAddresses,
+  PitMap,
+  Events,
+  EventKey,
+} from "./nexus-types";
 
 const BASE = "https://frc.nexus/api/v1/";
 const AUTH_KEY = process.env.NEXUS_API_KEY!;
@@ -13,6 +17,18 @@ async function getFromNexus<T>(path: string): Promise<T> {
   });
 }
 
-export async function getEventMap(eventKey: string): Promise<JSON> {
-  return getFromNexus(`event/${eventKey}/map`);
+export async function getEventStatus(eventKey: EventKey): Promise<EventStatus> {
+  return getFromNexus<EventStatus>(`event/${eventKey}`);
+}
+
+export async function getPitAddresses(eventKey: EventKey): Promise<PitAddresses> {
+  return getFromNexus<PitAddresses>(`event/${eventKey}/pits`);
+}
+
+export async function getPitMap(eventKey: EventKey): Promise<PitMap> {
+  return getFromNexus<PitMap>(`event/${eventKey}/map`);
+}
+
+export async function getEvents(): Promise<Events> {
+  return getFromNexus<Events>("events");
 }

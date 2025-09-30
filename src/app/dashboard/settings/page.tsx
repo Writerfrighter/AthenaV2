@@ -29,26 +29,31 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="database" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="database" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            Database
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 h-auto p-1">
+          <TabsTrigger value="database" className="flex items-center gap-2 text-xs sm:text-sm">
+            <Database className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Database</span>
+            <span className="sm:hidden">DB</span>
           </TabsTrigger>
-          <TabsTrigger value="team" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Team
+          <TabsTrigger value="team" className="flex items-center gap-2 text-xs sm:text-sm">
+            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Team</span>
+            <span className="sm:hidden">Team</span>
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
+          <TabsTrigger value="notifications" className="flex items-center gap-2 text-xs sm:text-sm">
+            <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Notifications</span>
+            <span className="sm:hidden">Notif</span>
           </TabsTrigger>
-          <TabsTrigger value="about" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            About
+          <TabsTrigger value="about" className="flex items-center gap-2 text-xs sm:text-sm">
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">About</span>
+            <span className="sm:hidden">About</span>
           </TabsTrigger>
-          <TabsTrigger value="notification-examples" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Notification Examples
+          <TabsTrigger value="notification-examples" className="flex items-center gap-2 text-xs sm:text-sm">
+            <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Notification Examples</span>
+            <span className="sm:hidden">Examples</span>
           </TabsTrigger>
         </TabsList>
 

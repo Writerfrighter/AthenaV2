@@ -2,18 +2,14 @@
 
 import * as React from "react";
 import {
-  BookOpen,
-  Frame,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
+  LayoutDashboard,
   Database,
   ListOrdered,
   ChartColumnIncreasing,
   Table,
   Home,
   Settings,
+  CalendarClock,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -38,7 +34,8 @@ const data = {
     avatar: "/TRCLogo.webp",
   },
   navMain: [
-    { title: "Home", url: "/dashboard", icon: Home },
+    { title: "Home", url: "/", icon: Home },
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     {
       title: "Analysis",
       url: "/dashboard/analysis",
@@ -67,6 +64,11 @@ const data = {
       title: "Picklist",
       url: "/dashboard/picklist",
       icon: ListOrdered,
+    },
+    {
+      title: "Schedule",
+      url: "/dashboard/schedule-maker",
+      icon: CalendarClock
     },
     {
       title: "Settings",
