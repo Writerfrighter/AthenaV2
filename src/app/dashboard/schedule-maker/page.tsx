@@ -256,58 +256,58 @@ export default function ScheduleMakerPage() {
       })
     })
 
+    // Helper function to assign scouts to a specific alliance in a block
+    const assignAllianceScouts = (block: typeof scoutingBlocks[0], alliance: 'red' | 'blue', currentScouts: (number | null)[]) => {
+      // Helper function to check if scout was assigned to previous block
+      const wasAssignedToPreviousBlock = (scoutId: number) => {
+        const previousBlock = blocks.find(b => b.id === block.id - 1)
+        if (!previousBlock) return false
+        return [...previousBlock.redScouts, ...previousBlock.blueScouts].includes(scoutId)
+      }
+
+      return currentScouts.map((currentScout) => {
+        if (currentScout) return currentScout // Keep existing assignments
+
+        // Find available scouts sorted by current workload (lowest first), then by preferred partner tiebreaker
+        // Penalize scouts assigned to previous block to reduce back-to-back scouting
+        const availableScouts = dummyUsers
+          .filter(scout => !block.redScouts.includes(scout.id) && !block.blueScouts.includes(scout.id))
+          .sort((a, b) => {
+            // First priority: avoid back-to-back assignments
+            const aBackToBack = wasAssignedToPreviousBlock(a.id)
+            const bBackToBack = wasAssignedToPreviousBlock(b.id)
+            if (aBackToBack && !bBackToBack) return 1
+            if (!aBackToBack && bBackToBack) return -1
+
+            // Second priority: workload distribution
+            const workloadDiff = scoutWorkload[a.id] - scoutWorkload[b.id]
+            if (workloadDiff !== 0) return workloadDiff
+
+            // Third priority: prefer scouts with preferred partners in this block
+            const aHasPartner = hasPreferredPartnerInBlock(a.id, block)
+            const bHasPartner = hasPreferredPartnerInBlock(b.id, block)
+            return bHasPartner ? 1 : aHasPartner ? -1 : 0
+          })
+
+        if (availableScouts.length > 0) {
+          const selectedScout = availableScouts[0]
+          scoutWorkload[selectedScout.id]++
+          return selectedScout.id
+        }
+        return null
+      })
+    }
+
     // Create a copy of blocks to modify
     const newBlocks = blocks.map(block => ({ ...block }))
 
     // Assign scouts to each block position, prioritizing scouts with fewer assignments
     newBlocks.forEach(block => {
       // Assign red scouts
-      block.redScouts = block.redScouts.map((currentScout, index) => {
-        if (currentScout) return currentScout // Keep existing assignments
-
-        // Find available scouts sorted by current workload (lowest first), then by preferred partner tiebreaker
-        const availableScouts = dummyUsers
-          .filter(scout => !block.redScouts.includes(scout.id) && !block.blueScouts.includes(scout.id))
-          .sort((a, b) => {
-            const workloadDiff = scoutWorkload[a.id] - scoutWorkload[b.id]
-            if (workloadDiff !== 0) return workloadDiff
-            // Tiebreaker: prefer scouts with preferred partners in this block
-            const aHasPartner = hasPreferredPartnerInBlock(a.id, block)
-            const bHasPartner = hasPreferredPartnerInBlock(b.id, block)
-            return bHasPartner ? 1 : aHasPartner ? -1 : 0
-          })
-
-        if (availableScouts.length > 0) {
-          const selectedScout = availableScouts[0]
-          scoutWorkload[selectedScout.id]++
-          return selectedScout.id
-        }
-        return null
-      })
+      block.redScouts = assignAllianceScouts(block, 'red', block.redScouts)
 
       // Assign blue scouts
-      block.blueScouts = block.blueScouts.map((currentScout, index) => {
-        if (currentScout) return currentScout // Keep existing assignments
-
-        // Find available scouts sorted by current workload (lowest first), then by preferred partner tiebreaker
-        const availableScouts = dummyUsers
-          .filter(scout => !block.blueScouts.includes(scout.id) && !block.redScouts.includes(scout.id))
-          .sort((a, b) => {
-            const workloadDiff = scoutWorkload[a.id] - scoutWorkload[b.id]
-            if (workloadDiff !== 0) return workloadDiff
-            // Tiebreaker: prefer scouts with preferred partners in this block
-            const aHasPartner = hasPreferredPartnerInBlock(a.id, block)
-            const bHasPartner = hasPreferredPartnerInBlock(b.id, block)
-            return bHasPartner ? 1 : aHasPartner ? -1 : 0
-          })
-
-        if (availableScouts.length > 0) {
-          const selectedScout = availableScouts[0]
-          scoutWorkload[selectedScout.id]++
-          return selectedScout.id
-        }
-        return null
-      })
+      block.blueScouts = assignAllianceScouts(block, 'blue', block.blueScouts)
     })
 
     setBlocks(newBlocks)

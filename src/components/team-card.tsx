@@ -12,7 +12,7 @@ import { Badge } from "./ui/badge";
 import type { TeamWithImages } from "@/lib/shared-types";
 import Image from "next/image";
 import TeamCarousel from "./image-carousel";
-import { ExternalLink, MapPin, Calendar, Users } from "lucide-react";
+import { ExternalLink, MapPin, Calendar, Users, ImageIcon } from "lucide-react";
 
 interface TeamCardProps {
   team: TeamWithImages;
@@ -52,20 +52,14 @@ export function TeamCard({ team }: TeamCardProps) {
             <TeamCarousel images={team.images} />
           ) : (
             <div className="relative h-48 w-full group/image">
-              <Image
-                src={
-                  team.images.length ? team.images[0] : "/no-image-available.webp"
-                }
-                alt={`Team ${team.team_number}'s robot image.`}
-                fill
-                className="object-cover transition-transform duration-300 group-hover/image:scale-105"
-                loading="lazy"
-                sizes="(max-width: 640px) 100vw,
-                      (max-width: 1024px) 50vw,
-                      (max-width: 1280px) 33vw,
-                      25vw"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300" />
+              <div className="relative h-full w-full">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-background/75">
+                  <ImageIcon className="h-16 w-16 mb-4 opacity-50" />
+                  <p className="text-sm font-medium">No robot image available</p>
+                  <p className="text-xs">Team {team.team_number}</p>
+                  {/* {team.yearLabel && <p className="text-xs mt-1">{team.yearLabel}</p>} */}
+                </div>
+              </div>
             </div>
           )}
         </div>
