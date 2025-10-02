@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Bell, BellOff, Check, X, AlertTriangle, Smartphone } from 'lucide-react';
+import { Bell, Check, X, AlertTriangle, Smartphone } from 'lucide-react';
 import { useNotifications } from '@/hooks/use-notifications';
 import { toast } from 'sonner';
 
@@ -83,15 +83,6 @@ export function NotificationSettings() {
   if (!isSupported) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BellOff className="h-5 w-5" />
-            Notification Settings
-          </CardTitle>
-          <CardDescription>
-            Configure how and when you receive notifications
-          </CardDescription>
-        </CardHeader>
         <CardContent>
           <Alert>
             <AlertTriangle className="h-4 w-4" />
@@ -108,15 +99,6 @@ export function NotificationSettings() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bell className="h-5 w-5" />
-          Notification Settings
-        </CardTitle>
-        <CardDescription>
-          Configure how and when you receive notifications from TRC Scouting
-        </CardDescription>
-      </CardHeader>
       <CardContent className="space-y-6">
         {error && (
           <Alert variant="destructive">

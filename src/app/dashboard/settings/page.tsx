@@ -2,11 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Database, Users, Bell } from "lucide-react";
+import { Settings, Database, Users } from "lucide-react";
 import { DatabaseSyncComponent } from "@/components/database-sync";
 import { DataExportImportComponent } from "@/components/data-export-import";
 import { DatabaseResetComponent } from "@/components/database-reset";
-import { NotificationSettings } from "@/components/notification-settings";
 import { NotificationSender } from "@/components/notification-sender";
 import { TeamManagement } from "@/components/team-management";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
@@ -29,7 +28,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="database" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 h-auto p-1">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 h-auto p-1">
           <TabsTrigger value="database" className="flex items-center gap-2 text-xs sm:text-sm">
             <Database className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Database</span>
@@ -40,11 +39,6 @@ export default function SettingsPage() {
             <span className="hidden sm:inline">Team</span>
             <span className="sm:hidden">Team</span>
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2 text-xs sm:text-sm">
-            <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Notifications</span>
-            <span className="sm:hidden">Notif</span>
-          </TabsTrigger>
           <TabsTrigger value="about" className="flex items-center gap-2 text-xs sm:text-sm">
             <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">About</span>
@@ -52,8 +46,8 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="notification-examples" className="flex items-center gap-2 text-xs sm:text-sm">
             <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Notification Examples</span>
-            <span className="sm:hidden">Examples</span>
+            <span className="hidden sm:inline">Notification</span>
+            <span className="sm:hidden">Notif</span>
           </TabsTrigger>
         </TabsList>
 
@@ -69,10 +63,6 @@ export default function SettingsPage() {
 
         <TabsContent value="team" className="space-y-4">
           <TeamManagement />
-        </TabsContent>
-
-        <TabsContent value="notifications" className="space-y-4">
-          <NotificationSettings />
         </TabsContent>
 
         <TabsContent value="about" className="space-y-4">

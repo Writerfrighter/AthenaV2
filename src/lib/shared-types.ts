@@ -66,14 +66,14 @@ export interface DatabaseService {
   // Pit scouting
   addPitEntry(entry: Omit<PitEntry, 'id'>): Promise<number>;
   getPitEntry(teamNumber: number, year: number): Promise<PitEntry | undefined>;
-  getAllPitEntries(year?: number): Promise<PitEntry[]>;
+  getAllPitEntries(year?: number, eventCode?: string): Promise<PitEntry[]>;
   updatePitEntry(id: number, updates: Partial<PitEntry>): Promise<void>;
   deletePitEntry(id: number): Promise<void>;
 
   // Match scouting
   addMatchEntry(entry: Omit<MatchEntry, 'id'>): Promise<number>;
   getMatchEntries(teamNumber: number, year?: number): Promise<MatchEntry[]>;
-  getAllMatchEntries(year?: number): Promise<MatchEntry[]>;
+  getAllMatchEntries(year?: number, eventCode?: string): Promise<MatchEntry[]>;
   updateMatchEntry(id: number, updates: Partial<MatchEntry>): Promise<void>;
   deleteMatchEntry(id: number): Promise<void>;
 

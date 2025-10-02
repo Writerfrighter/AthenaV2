@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Calendar, Clock, Users, Plus, Handshake } from "lucide-react"
 
 // Dummy data for matches
@@ -155,6 +156,7 @@ interface ScheduleEntry {
 
 export default function ScheduleMakerPage() {
   const [blocks, setBlocks] = useState(scoutingBlocks)
+  const [exemptScouts, setExemptScouts] = useState<number[]>([])
 
   // Helper function to check if a user has a preferred partner in a block
   const hasPreferredPartnerInBlock = (userId: number, block: typeof scoutingBlocks[0]) => {
@@ -236,7 +238,7 @@ export default function ScheduleMakerPage() {
         })
       }
     })
-    return dummyUsers.filter(u => !assignedUserIds.includes(u.id))
+    return dummyUsers.filter(u => !assignedUserIds.includes(u.id) && !exemptScouts.includes(u.id))
   }
 
   const autoAssignBlockScouts = () => {
@@ -271,7 +273,7 @@ export default function ScheduleMakerPage() {
         // Find available scouts sorted by current workload (lowest first), then by preferred partner tiebreaker
         // Penalize scouts assigned to previous block to reduce back-to-back scouting
         const availableScouts = dummyUsers
-          .filter(scout => !block.redScouts.includes(scout.id) && !block.blueScouts.includes(scout.id))
+          .filter(scout => !block.redScouts.includes(scout.id) && !block.blueScouts.includes(scout.id) && !exemptScouts.includes(scout.id))
           .sort((a, b) => {
             // First priority: avoid back-to-back assignments
             const aBackToBack = wasAssignedToPreviousBlock(a.id)
@@ -378,6 +380,43 @@ export default function ScheduleMakerPage() {
         </div>
       </div>
 
+      {/* Scout Exemption Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Scout Exemption Selection
+          </CardTitle>
+          <CardDescription>
+            Select scouts who are exempt from scouting duties. They will not be assigned to any blocks.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+            {dummyUsers
+              .sort((a, b) => a.id - b.id)
+              .map(scout => (
+              <div key={scout.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`exempt-${scout.id}`}
+                  checked={exemptScouts.includes(scout.id)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setExemptScouts(prev => [...prev, scout.id])
+                    } else {
+                      setExemptScouts(prev => prev.filter(id => id !== scout.id))
+                    }
+                  }}
+                />
+                <label htmlFor={`exempt-${scout.id}`} className="text-sm font-medium">
+                  {scout.name}
+                </label>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Schedule Table */}
       <Card>
         <CardHeader>
@@ -406,8 +445,8 @@ export default function ScheduleMakerPage() {
                 <div className="grid md:grid-cols-2 gap-8">
                   {/* Red Alliance Scouts */}
                   <div>
-                    <h4 className="font-medium text-red-600 mb-4 flex items-center gap-2">
-                      <div className="w-4 h-4 bg-red-500 rounded"></div>
+                    <h4 className="font-medium text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
+                      <div className="w-4 h-4 bg-red-500 dark:bg-red-600 rounded"></div>
                       Red Alliance Scouts
                     </h4>
                     <div className="space-y-3">
@@ -418,7 +457,7 @@ export default function ScheduleMakerPage() {
                         const pairedPartners = assignedScout ? getPairedPartnersInBlock(assignedScout.id, block) : []
 
                         return (
-                          <div key={scoutIndex} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                          <div key={scoutIndex} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950 rounded-lg">
                             <div className="flex items-center gap-3">
                               <span className="font-medium">Scout {scoutIndex + 1}</span>
                               {assignedScout && (
@@ -430,7 +469,7 @@ export default function ScheduleMakerPage() {
                                   {isPaired && (
                                     <Badge 
                                       variant="outline" 
-                                      className="flex items-center gap-1 text-green-700 border-green-600"
+                                      className="flex items-center gap-1 text-green-700 dark:text-green-400 border-green-600 dark:border-green-500"
                                       title={`Paired with: ${pairedPartners.map(id => dummyUsers.find(u => u.id === id)?.name).join(', ')}`}
                                     >
                                       <Handshake className="h-3 w-3" />
@@ -476,8 +515,8 @@ export default function ScheduleMakerPage() {
 
                   {/* Blue Alliance Scouts */}
                   <div>
-                    <h4 className="font-medium text-blue-600 mb-4 flex items-center gap-2">
-                      <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                    <h4 className="font-medium text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
+                      <div className="w-4 h-4 bg-blue-500 dark:bg-blue-600 rounded"></div>
                       Blue Alliance Scouts
                     </h4>
                     <div className="space-y-3">
@@ -488,7 +527,7 @@ export default function ScheduleMakerPage() {
                         const pairedPartners = assignedScout ? getPairedPartnersInBlock(assignedScout.id, block) : []
 
                         return (
-                          <div key={scoutIndex} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                          <div key={scoutIndex} className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                             <div className="flex items-center gap-3">
                               <span className="font-medium">Scout {scoutIndex + 1}</span>
                               {assignedScout && (
@@ -500,7 +539,7 @@ export default function ScheduleMakerPage() {
                                   {isPaired && (
                                     <Badge 
                                       variant="outline" 
-                                      className="flex items-center gap-1 text-green-700 border-green-600"
+                                      className="flex items-center gap-1 text-green-700 dark:text-green-400 border-green-600 dark:border-green-500"
                                       title={`Paired with: ${pairedPartners.map(id => dummyUsers.find(u => u.id === id)?.name).join(', ')}`}
                                     >
                                       <Handshake className="h-3 w-3" />
@@ -582,7 +621,14 @@ export default function ScheduleMakerPage() {
                 .sort((a, b) => scoutWorkload[b.id] - scoutWorkload[a.id]) // Sort by workload descending
                 .map(scout => (
                   <div key={scout.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                    <span className="font-medium">{scout.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{scout.name}</span>
+                      {exemptScouts.includes(scout.id) && (
+                        <Badge variant="destructive" className="text-xs">
+                          Exempt
+                        </Badge>
+                      )}
+                    </div>
                     <Badge variant={scoutWorkload[scout.id] > 0 ? "default" : "secondary"}>
                       {scoutWorkload[scout.id]} block{scoutWorkload[scout.id] !== 1 ? 's' : ''}
                     </Badge>
@@ -660,10 +706,10 @@ export default function ScheduleMakerPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Preferred Pairings</CardTitle>
-            <Handshake className="h-4 w-4 text-green-700" />
+            <Handshake className="h-4 w-4 text-green-700 dark:text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-700">
+            <div className="text-2xl font-bold text-green-700 dark:text-green-400">
               {(() => {
                 let totalPairings = 0
                 blocks.forEach(block => {

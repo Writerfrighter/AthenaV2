@@ -12,12 +12,13 @@ function getDbService() {
   return dbService;
 }
 
-// GET /api/database/match - Get all match entries or filter by team/year
+// GET /api/database/match - Get all match entries or filter by team/year/event
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const teamNumber = searchParams.get('teamNumber') ? parseInt(searchParams.get('teamNumber')!) : undefined;
+    const eventCode = searchParams.get('eventCode') || undefined;
 
     const service = getDbService();
 
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
       const entries = await service.getMatchEntries(teamNumber, year);
       return NextResponse.json(entries);
     } else {
-      const entries = await service.getAllMatchEntries(year);
+      const entries = await service.getAllMatchEntries(year, eventCode);
       return NextResponse.json(entries);
     }
   } catch (error) {

@@ -47,11 +47,11 @@ const data = {
       items: [
         {
           title: "Pit Scouting",
-          url: "/scout/pitscout",
+          url: "/dashboard/pitscouting",
         },
         {
           title: "Match Scouting",
-          url: "/scout/matchscout",
+          url: "/dashboard/matchscouting",
         },
       ],
     },

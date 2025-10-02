@@ -10,7 +10,6 @@ import Link from "next/link";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import type { TeamWithImages } from "@/lib/shared-types";
-import Image from "next/image";
 import TeamCarousel from "./image-carousel";
 import { ExternalLink, MapPin, Calendar, Users, ImageIcon } from "lucide-react";
 

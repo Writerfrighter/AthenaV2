@@ -17,11 +17,18 @@ export class LocalDatabaseService implements DatabaseService {
       .first();
   }
 
-  async getAllPitEntries(year?: number): Promise<PitEntry[]> {
+  async getAllPitEntries(year?: number, eventCode?: string): Promise<PitEntry[]> {
+    let results = await db.pitEntries.toArray();
+    
     if (year) {
-      return await db.pitEntries.where('year').equals(year).toArray();
+      results = results.filter(entry => entry.year === year);
     }
-    return await db.pitEntries.toArray();
+    
+    if (eventCode) {
+      results = results.filter(entry => entry.eventCode === eventCode);
+    }
+    
+    return results;
   }
 
   async updatePitEntry(id: number, updates: Partial<PitEntry>): Promise<void> {
@@ -46,11 +53,18 @@ export class LocalDatabaseService implements DatabaseService {
     return await query.toArray();
   }
 
-  async getAllMatchEntries(year?: number): Promise<MatchEntry[]> {
+  async getAllMatchEntries(year?: number, eventCode?: string): Promise<MatchEntry[]> {
+    let results = await db.matchEntries.toArray();
+    
     if (year) {
-      return await db.matchEntries.where('year').equals(year).toArray();
+      results = results.filter(entry => entry.year === year);
     }
-    return await db.matchEntries.toArray();
+    
+    if (eventCode) {
+      results = results.filter(entry => entry.eventCode === eventCode);
+    }
+    
+    return results;
   }
 
   async updateMatchEntry(id: number, updates: Partial<MatchEntry>): Promise<void> {

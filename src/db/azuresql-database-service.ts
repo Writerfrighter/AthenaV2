@@ -207,15 +207,25 @@ export class AzureSqlDatabaseService implements DatabaseService {
     };
   }
 
-  async getAllPitEntries(year?: number): Promise<PitEntry[]> {
+  async getAllPitEntries(year?: number, eventCode?: string): Promise<PitEntry[]> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
     let query = 'SELECT * FROM pitEntries';
     let request = pool.request();
+    const conditions: string[] = [];
 
     if (year !== undefined) {
-      query += ' WHERE year = @year';
+      conditions.push('year = @year');
       request = request.input('year', mssql.Int, year);
+    }
+
+    if (eventCode !== undefined) {
+      conditions.push('eventCode = @eventCode');
+      request = request.input('eventCode', mssql.NVarChar, eventCode);
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
     }
 
     const result = await request.query(query);
@@ -347,15 +357,25 @@ export class AzureSqlDatabaseService implements DatabaseService {
     });
   }
 
-  async getAllMatchEntries(year?: number): Promise<MatchEntry[]> {
+  async getAllMatchEntries(year?: number, eventCode?: string): Promise<MatchEntry[]> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
     let query = 'SELECT * FROM matchEntries';
     let request = pool.request();
+    const conditions: string[] = [];
 
     if (year !== undefined) {
-      query += ' WHERE year = @year';
+      conditions.push('year = @year');
       request = request.input('year', mssql.Int, year);
+    }
+
+    if (eventCode !== undefined) {
+      conditions.push('eventCode = @eventCode');
+      request = request.input('eventCode', mssql.NVarChar, eventCode);
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
     }
 
     const result = await request.query(query);

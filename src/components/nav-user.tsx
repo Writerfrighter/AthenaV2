@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  ArrowLeftRight,
   BadgeCheck,
   Bell,
   ChevronsUpDown,
@@ -9,6 +8,7 @@ import {
 } from "lucide-react"
 
 import { useAccountSettingsDialog } from "@/app/dashboard/layout"
+import { useNotificationSettingsDialog } from "@/app/dashboard/layout"
 import { signOut } from "next-auth/react"
 
 import {
@@ -46,6 +46,8 @@ export function NavUser({
   // Call the hook unconditionally at the top level
   const accountSettingsDialog = useAccountSettingsDialog();
   const openAccountSettings = accountSettingsDialog?.openAccountSettings;
+  const notificationSettingsDialog = useNotificationSettingsDialog();
+  const openNotificationSettings = notificationSettingsDialog?.openNotificationSettings;
 
   const handleLogout = () => {
     signOut({ callbackUrl: "/" });
@@ -102,11 +104,7 @@ export function NavUser({
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <ArrowLeftRight />
-                Switch Programs
-              </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openNotificationSettings && openNotificationSettings()}>
                 <Bell />
                 Notifications
               </DropdownMenuItem>

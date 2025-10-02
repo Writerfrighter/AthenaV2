@@ -39,7 +39,7 @@ export default function Page() {
         <div className="flex items-center gap-2">
           {selectedEvent && (
             <>
-              <Badge variant="outline" className="flex items-center gap-1 border-green-200 text-green-700">
+              <Badge variant="outline" className="flex items-center gap-1 border-green-200 text-green-700 dark:border-green-600 dark:text-green-600">
                 <MapPin className="h-3 w-3" />
                 {selectedEvent.name}
               </Badge>

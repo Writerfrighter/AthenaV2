@@ -14,18 +14,15 @@ export default function Page() {
       {/* Decorative Animated Blobs (subtle) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none select-none absolute -top-40 -left-40 w-[520px] h-[520px] rounded-full bg-gradient-to-tr from-green-300 via-green-400 to-emerald-200 dark:from-green-900 dark:via-emerald-800 dark:to-green-700 opacity-15 blur-3xl animate-blob z-0"
-        style={{ filter: 'blur(90px)' }}
+        className="pointer-events-none select-none absolute -top-40 -left-40 w-[520px] h-[520px] rounded-full bg-gradient-to-tr from-green-300 via-green-400 to-emerald-200 dark:from-green-900 dark:via-emerald-800 dark:to-green-700 opacity-15 blur-3xl animate-blob z-0 blob1"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none select-none absolute bottom-0 right-0 w-[340px] h-[340px] rounded-full bg-gradient-to-br from-yellow-200 via-pink-100 to-blue-200 dark:from-yellow-900 dark:via-pink-900 dark:to-blue-900 opacity-10 blur-2xl animate-blob2 z-0"
-        style={{ filter: 'blur(60px)' }}
+        className="pointer-events-none select-none absolute bottom-0 right-0 w-[340px] h-[340px] rounded-full bg-gradient-to-br from-yellow-200 via-pink-100 to-blue-200 dark:from-yellow-900 dark:via-pink-900 dark:to-blue-900 opacity-10 blur-2xl animate-blob2 z-0 blob2"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none select-none absolute top-1/2 left-1/2 w-[180px] h-[180px] rounded-full bg-gradient-to-br from-pink-200 via-blue-100 to-purple-200 dark:from-pink-900 dark:via-blue-900 dark:to-purple-900 opacity-08 blur-xl animate-blob3 z-0"
-        style={{ filter: 'blur(40px)', transform: 'translate(-50%, -50%)' }}
+        className="pointer-events-none select-none absolute top-1/2 left-1/2 w-[180px] h-[180px] rounded-full bg-gradient-to-br from-green-200 via-emerald-100 to-teal-200 dark:from-green-900 dark:via-emerald-900 dark:to-teal-900 opacity-08 blur-xl animate-blob3 z-0 blob3"
       />
       {/* Header with Dark Mode Toggle */}
       <div className="absolute top-4 right-4">

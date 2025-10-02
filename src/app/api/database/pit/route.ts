@@ -12,15 +12,16 @@ function getDbService() {
   return dbService;
 }
 
-// GET /api/database/pit - Get all pit entries or filter by year/team
+// GET /api/database/pit - Get all pit entries or filter by year/team/event
 export async function GET(request: NextRequest) {
   try {
     console.log('Pit API: Starting request processing');
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const teamNumber = searchParams.get('teamNumber') ? parseInt(searchParams.get('teamNumber')!) : undefined;
+    const eventCode = searchParams.get('eventCode') || undefined;
 
-    console.log('Pit API: Parameters -', { year, teamNumber });
+    console.log('Pit API: Parameters -', { year, teamNumber, eventCode });
 
     const service = getDbService();
     console.log('Pit API: Database service retrieved');
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(entry || null);
     } else {
       console.log('Pit API: Fetching all pit entries');
-      const entries = await service.getAllPitEntries(year);
+      const entries = await service.getAllPitEntries(year, eventCode);
       console.log('Pit API: Retrieved entries count:', entries.length);
       return NextResponse.json(entries);
     }
