@@ -67,7 +67,7 @@ const data = {
     },
     {
       title: "Schedule",
-      url: "/dashboard/schedule-maker",
+      url: "/dashboard/schedule",
       icon: CalendarClock
     },
     {

@@ -79,7 +79,7 @@ export default function SettingsPage() {
                 <h4 className="font-medium">Features</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Year-configurable scouting forms</li>
-                  <li>• Local and cloud database support</li>
+                  <li>• Cloud database support</li>
                   <li>• Mobile-responsive design</li>
                   <li>• Advanced statistics and EPA calculations</li>
                   <li>• Data export/import functionality</li>

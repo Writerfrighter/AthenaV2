@@ -1,5 +1,4 @@
 import { DatabaseService, DatabaseConfig, DatabaseProvider } from './database-service';
-import { LocalDatabaseService } from './local-database-service';
 import { AzureSqlDatabaseService } from './azuresql-database-service';
 
 class DatabaseManager {
@@ -51,15 +50,7 @@ class DatabaseManager {
       };
       this.currentService = new AzureSqlDatabaseService(this.config.azuresql!);
     } else {
-      // Fall back to local database
-      console.log('DatabaseManager: Falling back to local database');
-      this.config = {
-        provider: 'local',
-        local: {
-          name: 'AthenaScouting'
-        }
-      };
-      this.currentService = new LocalDatabaseService();
+      throw new Error('Azure SQL database is not configured. Please set the required environment variables.');
     }
   }
 
@@ -78,8 +69,6 @@ class DatabaseManager {
   private createService(config: DatabaseConfig): DatabaseService {
     if (config.provider === 'azuresql' && config.azuresql) {
       return new AzureSqlDatabaseService(config.azuresql);
-    } else if (config.provider === 'local') {
-      return new LocalDatabaseService();
     }
     throw new Error('Invalid database configuration');
   }

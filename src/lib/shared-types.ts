@@ -30,6 +30,18 @@ export interface MatchEntry {
   timestamp: Date;
 }
 
+export interface CustomEvent {
+  id?: number;
+  eventCode: string;
+  name: string;
+  date: Date;
+  endDate?: Date;
+  matchCount: number;
+  location?: string;
+  region?: string;
+  year: number;
+}
+
 // Database row types for SQL operations
 export interface PitEntryRow {
   id: number;
@@ -57,6 +69,18 @@ export interface MatchEntryRow {
   timestamp: Date;
 }
 
+export interface CustomEventRow {
+  id: number;
+  eventCode: string;
+  name: string;
+  date: Date;
+  endDate: Date | null;
+  matchCount: number;
+  location: string | null;
+  region: string | null;
+  year: number;
+}
+
 // ========== DATABASE SERVICE TYPES ==========
 
 export interface DatabaseService {
@@ -77,6 +101,13 @@ export interface DatabaseService {
   updateMatchEntry(id: number, updates: Partial<MatchEntry>): Promise<void>;
   deleteMatchEntry(id: number): Promise<void>;
 
+  // Custom events
+  addCustomEvent(event: Omit<CustomEvent, 'id'>): Promise<number>;
+  getCustomEvent(eventCode: string): Promise<CustomEvent | undefined>;
+  getAllCustomEvents(year?: number): Promise<CustomEvent[]>;
+  updateCustomEvent(eventCode: string, updates: Partial<CustomEvent>): Promise<void>;
+  deleteCustomEvent(eventCode: string): Promise<void>;
+
   // Sync operations
   exportData(year?: number): Promise<{pitEntries: PitEntry[], matchEntries: MatchEntry[]}>;
   importData(data: {pitEntries: PitEntry[], matchEntries: MatchEntry[]}): Promise<void>;
@@ -85,7 +116,7 @@ export interface DatabaseService {
   syncFromCloud?(): Promise<void>;
 }
 
-export type DatabaseProvider = 'local' | 'azuresql';
+export type DatabaseProvider = 'azuresql';
 
 export interface AzureSqlConfig {
   server?: string;

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -8,12 +8,11 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Calendar, Clock, Users, Plus, Handshake } from "lucide-react"
 
-// Dummy data for matches
+// Dummy data for matches this would be loaded from the TBA
 const dummyMatches = [
   {
     id: 1,
     name: "Qualification Match 1",
-    time: "9:00 AM",
     date: "2025-09-28",
     redAlliance: [
       { team: "Team 123", scoutId: null as number | null },
@@ -29,7 +28,6 @@ const dummyMatches = [
   {
     id: 2,
     name: "Qualification Match 2",
-    time: "9:15 AM",
     date: "2025-09-28",
     redAlliance: [
       { team: "Team 345", scoutId: null as number | null },
@@ -45,7 +43,6 @@ const dummyMatches = [
   {
     id: 3,
     name: "Qualification Match 3",
-    time: "9:30 AM",
     date: "2025-09-28",
     redAlliance: [
       { team: "Team 567", scoutId: null as number | null },
@@ -61,7 +58,6 @@ const dummyMatches = [
   {
     id: 4,
     name: "Qualification Match 4",
-    time: "9:45 AM",
     date: "2025-09-28",
     redAlliance: [
       { team: "Team 789", scoutId: null as number | null },
@@ -77,7 +73,6 @@ const dummyMatches = [
   {
     id: 5,
     name: "Qualification Match 5",
-    time: "10:00 AM",
     date: "2025-09-28",
     redAlliance: [
       { team: "Team 901", scoutId: null as number | null },
@@ -92,49 +87,23 @@ const dummyMatches = [
   }
 ]
 
-// Define scouting blocks
-const scoutingBlocks = [
-  {
-    id: 1,
-    name: "Block 1",
-    timeRange: "9:00 AM - 10:00 AM",
-    matches: [1, 2, 3, 4, 5],
-    redScouts: [null, null, null] as (number | null)[],
-    blueScouts: [null, null, null] as (number | null)[]
-  },
-  {
-    id: 2,
-    name: "Block 2",
-    timeRange: "10:00 AM - 11:00 AM",
-    matches: [6, 7, 8, 9, 10],
-    redScouts: [null, null, null] as (number | null)[],
-    blueScouts: [null, null, null] as (number | null)[]
-  },
-  {
-    id: 3,
-    name: "Block 3",
-    timeRange: "11:00 AM - 12:00 PM",
-    matches: [11, 12, 13, 14, 15],
-    redScouts: [null, null, null] as (number | null)[],
-    blueScouts: [null, null, null] as (number | null)[]
-  },
-  {
-    id: 4,
-    name: "Block 4",
-    timeRange: "1:00 PM - 2:00 PM",
-    matches: [16, 17, 18, 19, 20],
-    redScouts: [null, null, null] as (number | null)[],
-    blueScouts: [null, null, null] as (number | null)[]
-  },
-  {
-    id: 5,
-    name: "Block 5",
-    timeRange: "2:00 PM - 3:00 PM",
-    matches: [21, 22, 23, 24, 25],
-    redScouts: [null, null, null] as (number | null)[],
-    blueScouts: [null, null, null] as (number | null)[]
-  }
-]
+// Define scouting blocks - will be generated dynamically based on block size
+const generateScoutingBlocks = (blockSize: number, totalMatches: number) => {
+  const numBlocks = Math.ceil(totalMatches / blockSize)
+  return Array.from({ length: numBlocks }, (_, index) => {
+    const startMatch = index * blockSize + 1
+    const endMatch = Math.min((index + 1) * blockSize, totalMatches)
+    const matches = Array.from({ length: endMatch - startMatch + 1 }, (_, i) => startMatch + i)
+
+    return {
+      id: index + 1,
+      name: `Block ${index + 1}`,
+      matches,
+      redScouts: [null, null, null] as (number | null)[],
+      blueScouts: [null, null, null] as (number | null)[]
+    }
+  })
+}
 
 // Dummy data for users
 const dummyUsers = [
@@ -149,17 +118,32 @@ const dummyUsers = [
   { id: 9, name: "Ivy Chen", preferredPartners: [] },
 ]
 
+// Define block type
+interface ScoutingBlock {
+  id: number
+  name: string
+  matches: number[]
+  redScouts: (number | null)[]
+  blueScouts: (number | null)[]
+}
+
 interface ScheduleEntry {
   matchId: number
   userId: number | null
 }
 
-export default function ScheduleMakerPage() {
-  const [blocks, setBlocks] = useState(scoutingBlocks)
-  const [exemptScouts, setExemptScouts] = useState<number[]>([])
+export default function SchedulePage() {
+  const [blockSize, setBlockSize] = useState(5) // Default block size of 5 matches
+  const [blocks, setBlocks] = useState<ScoutingBlock[]>(() => generateScoutingBlocks(blockSize, dummyMatches.length))
+  const [activeScouts, setActiveScouts] = useState<number[]>([])
+
+  // Regenerate blocks when block size changes
+  useEffect(() => {
+    setBlocks(generateScoutingBlocks(blockSize, dummyMatches.length))
+  }, [blockSize])
 
   // Helper function to check if a user has a preferred partner in a block
-  const hasPreferredPartnerInBlock = (userId: number, block: typeof scoutingBlocks[0]) => {
+  const hasPreferredPartnerInBlock = (userId: number, block: ScoutingBlock) => {
     const user = dummyUsers.find(u => u.id === userId)
     if (!user) return false
 
@@ -168,7 +152,7 @@ export default function ScheduleMakerPage() {
   }
 
   // Helper function to get paired partners for a user in a block
-  const getPairedPartnersInBlock = (userId: number, block: typeof scoutingBlocks[0]) => {
+  const getPairedPartnersInBlock = (userId: number, block: ScoutingBlock) => {
     const user = dummyUsers.find(u => u.id === userId)
     if (!user) return []
 
@@ -238,7 +222,7 @@ export default function ScheduleMakerPage() {
         })
       }
     })
-    return dummyUsers.filter(u => !assignedUserIds.includes(u.id) && !exemptScouts.includes(u.id))
+    return dummyUsers.filter(u => !assignedUserIds.includes(u.id) && activeScouts.includes(u.id))
   }
 
   const autoAssignBlockScouts = () => {
@@ -259,7 +243,7 @@ export default function ScheduleMakerPage() {
     })
 
     // Helper function to assign scouts to a specific alliance in a block
-    const assignAllianceScouts = (block: typeof scoutingBlocks[0], alliance: 'red' | 'blue', currentScouts: (number | null)[]) => {
+    const assignAllianceScouts = (block: ScoutingBlock, alliance: 'red' | 'blue', currentScouts: (number | null)[]) => {
       // Helper function to check if scout was assigned to previous block
       const wasAssignedToPreviousBlock = (scoutId: number) => {
         const previousBlock = blocks.find(b => b.id === block.id - 1)
@@ -273,7 +257,7 @@ export default function ScheduleMakerPage() {
         // Find available scouts sorted by current workload (lowest first), then by preferred partner tiebreaker
         // Penalize scouts assigned to previous block to reduce back-to-back scouting
         const availableScouts = dummyUsers
-          .filter(scout => !block.redScouts.includes(scout.id) && !block.blueScouts.includes(scout.id) && !exemptScouts.includes(scout.id))
+          .filter(scout => !block.redScouts.includes(scout.id) && !block.blueScouts.includes(scout.id) && activeScouts.includes(scout.id))
           .sort((a, b) => {
             // First priority: avoid back-to-back assignments
             const aBackToBack = wasAssignedToPreviousBlock(a.id)
@@ -361,34 +345,46 @@ export default function ScheduleMakerPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Scouting Blocks</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Schedule</h1>
           <p className="text-muted-foreground">
-            Assign scouts to time blocks so they can stay in position for multiple matches. The system ensures fair workload distribution when scouts need to cover multiple blocks.
+            Assign scouts to blocks based on the specified block size. Each block contains a set number of qualification matches for efficient scouting coverage.
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <label htmlFor="block-size" className="text-sm font-medium">Block Size:</label>
+            <Select value={blockSize.toString()} onValueChange={(value) => setBlockSize(parseInt(value))}>
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3">3</SelectItem>
+                <SelectItem value="4">4</SelectItem>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="6">6</SelectItem>
+                <SelectItem value="7">7</SelectItem>
+                <SelectItem value="8">8</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Button variant="outline" onClick={autoAssignBlockScouts}>
             Auto-Assign Scouts
           </Button>
           <Button variant="outline" onClick={clearAllBlockAssignments}>
             Clear All
           </Button>
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add Block
-          </Button>
         </div>
       </div>
 
-      {/* Scout Exemption Selection */}
+      {/* Active Scouts Selection */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Scout Exemption Selection
+            Active Scouts Selection
           </CardTitle>
           <CardDescription>
-            Select scouts who are exempt from scouting duties. They will not be assigned to any blocks.
+            Select scouts who will be available for scouting duties. Only selected scouts will be assigned to blocks.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -398,17 +394,17 @@ export default function ScheduleMakerPage() {
               .map(scout => (
               <div key={scout.id} className="flex items-center space-x-2">
                 <Checkbox
-                  id={`exempt-${scout.id}`}
-                  checked={exemptScouts.includes(scout.id)}
+                  id={`active-${scout.id}`}
+                  checked={activeScouts.includes(scout.id)}
                   onCheckedChange={(checked) => {
                     if (checked) {
-                      setExemptScouts(prev => [...prev, scout.id])
+                      setActiveScouts(prev => [...prev, scout.id])
                     } else {
-                      setExemptScouts(prev => prev.filter(id => id !== scout.id))
+                      setActiveScouts(prev => prev.filter(id => id !== scout.id))
                     }
                   }}
                 />
-                <label htmlFor={`exempt-${scout.id}`} className="text-sm font-medium">
+                <label htmlFor={`active-${scout.id}`} className="text-sm font-medium">
                   {scout.name}
                 </label>
               </div>
@@ -422,10 +418,10 @@ export default function ScheduleMakerPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Scouting Blocks
+            Scouting Schedule
           </CardTitle>
           <CardDescription>
-            Assign scouts to time blocks covering multiple matches. Scouts stay in position for their entire block and can be assigned to multiple blocks with fair workload distribution.
+            Assign scouts to blocks containing the specified number of matches. Scouts stay in position for their entire block.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -435,7 +431,6 @@ export default function ScheduleMakerPage() {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-xl font-semibold">{block.name}</h3>
-                    <p className="text-muted-foreground">{block.timeRange}</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       Matches: {block.matches.join(', ')}
                     </p>
@@ -623,9 +618,9 @@ export default function ScheduleMakerPage() {
                   <div key={scout.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{scout.name}</span>
-                      {exemptScouts.includes(scout.id) && (
-                        <Badge variant="destructive" className="text-xs">
-                          Exempt
+                      {activeScouts.includes(scout.id) && (
+                        <Badge variant="default" className="text-xs">
+                          Active
                         </Badge>
                       )}
                     </div>

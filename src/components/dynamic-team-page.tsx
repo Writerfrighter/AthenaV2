@@ -3,9 +3,15 @@
 import { useCurrentGameConfig, useGameConfig } from '@/hooks/use-game-config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/db/db';
+import { BarChart, Bar, XAxis, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
+import { useState, useEffect } from 'react';
+import { MatchEntry, PitEntry } from '@/lib/shared-types';
 
 interface DynamicTeamPageProps {
   teamNumber: string;
@@ -14,26 +20,57 @@ interface DynamicTeamPageProps {
 export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
   const gameConfig = useCurrentGameConfig();
   const { currentYear } = useGameConfig();
+  const [matchEntries, setMatchEntries] = useState<MatchEntry[]>([]);
+  const [pitEntry, setPitEntry] = useState<PitEntry | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Query data for current year and team
-  const matchEntries = useLiveQuery(() => 
-    db.matchEntries
-      .where('teamNumber')
-      .equals(teamNumber)
-      .and(entry => entry.year === currentYear)
-      .toArray()
-  );
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const pitEntry = useLiveQuery(() => 
-    db.pitEntries
-      .where('teamNumber')
-      .equals(Number(teamNumber))
-      .and(entry => entry.year === currentYear)
-      .first()
-  );
+        // Fetch match entries
+        const matchResponse = await fetch(`/api/database/match?teamNumber=${teamNumber}&year=${currentYear}`);
+        if (!matchResponse.ok) {
+          throw new Error('Failed to fetch match entries');
+        }
+        const matchData = await matchResponse.json();
+        setMatchEntries(matchData);
 
-  if (!matchEntries || !gameConfig) {
+        // Fetch pit entry
+        const pitResponse = await fetch(`/api/database/pit?teamNumber=${teamNumber}&year=${currentYear}`);
+        if (!pitResponse.ok) {
+          throw new Error('Failed to fetch pit entry');
+        }
+        const pitData = await pitResponse.json();
+        setPitEntry(pitData);
+
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch data');
+        console.error('Error fetching team data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (currentYear && teamNumber) {
+      fetchData();
+    }
+  }, [teamNumber, currentYear]);
+
+  if (loading) {
     return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">Error: {error}</div>;
+  }
+
+  if (!gameConfig) {
+    return <div>Loading game configuration...</div>;
   }
 
   // Calculate statistics based on game-specific data
@@ -73,17 +110,35 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
   })) : [];
 
   const pieData = stats ? [
-    { 
-      name: 'Auto', 
-      value: Object.values(stats.autoStats).reduce((a, b) => a + b, 0),
-      color: '#3b82f6' 
+    {
+      scoring: 'auto',
+      points: Object.values(stats.autoStats).reduce((a, b) => a + b, 0),
     },
-    { 
-      name: 'Teleop', 
-      value: Object.values(stats.teleopStats).reduce((a, b) => a + b, 0),
-      color: '#10b981' 
+    {
+      scoring: 'teleop',
+      points: Object.values(stats.teleopStats).reduce((a, b) => a + b, 0),
     },
   ] : [];
+
+  const pieChartConfig = {
+    auto: {
+      label: "Auto",
+      color: "var(--chart-1)",
+    },
+    teleop: {
+      label: "Teleop",
+      color: "var(--chart-2)",
+    },
+  } satisfies ChartConfig;  const barChartConfig = {
+    autonomous: {
+      label: "Autonomous",
+      color: "var(--chart-1)",
+    },
+    teleop: {
+      label: "Teleop",
+      color: "var(--chart-2)",
+    },
+  } satisfies ChartConfig;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -147,16 +202,20 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
               <CardTitle>Performance Comparison</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="autonomous" fill="#3b82f6" name="Autonomous" />
-                  <Bar dataKey="teleop" fill="#10b981" name="Teleop" />
+              <ChartContainer config={barChartConfig}>
+                <BarChart accessibilityLayer data={chartData}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                  />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dashed" />} />
+                  <Bar dataKey="autonomous" fill="var(--chart-1)" radius={4} />
+                  <Bar dataKey="teleop" fill="var(--chart-2)" radius={4} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </CardContent>
           </Card>
 
@@ -165,22 +224,24 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
               <CardTitle>Scoring Distribution</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ChartContainer
+                config={pieChartConfig}
+                className="mx-auto aspect-square max-h-[300px]"
+              >
                 <PieChart>
                   <Pie
                     data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    dataKey="value"
+                    dataKey="points"
+                    nameKey="scoring"
                   >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
+                    <Cell fill="var(--chart-1)" />
+                    <Cell fill="var(--chart-2)" />
                   </Pie>
-                  <Tooltip />
+                  <Legend 
+                    formatter={(value) => value === 'auto' ? 'Auto' : 'Teleop'}
+                  />
                 </PieChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </CardContent>
           </Card>
         </div>

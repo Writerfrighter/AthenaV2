@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import type { Event } from '@/lib/shared-types';
 import { useGameConfig } from '@/hooks/use-game-config';
 import { TbaEvent } from '@/lib/api/tba-types';
+import type { CustomEvent } from '@/lib/shared-types';
 
 interface EventContextType {
   events: Event[];
@@ -24,32 +25,59 @@ export function EventProvider({ children }: { children: ReactNode }) {
 
   const [selectedEvent, setSelectedEventState] = useState<Event | null>(null);
 
-  // Fetch events from TBA API
+  // Fetch events from TBA API and custom events
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        
-        const response = await fetch(`/api/tba/team/${492}/events/${currentYear}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch: ${response.statusText}`);
+
+        // Fetch TBA events
+        let tbaEvents: Event[] = [];
+        try {
+          const tbaResponse = await fetch(`/api/tba/team/${492}/events/${currentYear}`);
+          if (tbaResponse.ok) {
+            const tbaEventData = await tbaResponse.json();
+
+            // Transform TBA events to our Event format
+            tbaEvents = tbaEventData.map((tbaEvent: TbaEvent) => ({
+              name: tbaEvent.name,
+              region: `${tbaEvent.event_code.toUpperCase()}: ${tbaEvent.year}`,
+              code: tbaEvent.key,
+            }));
+          }
+        } catch (tbaError) {
+          console.warn('Failed to fetch TBA events, continuing with custom events only:', tbaError);
         }
-        
-        const tbaEvents = await response.json();
-        
-        // Transform TBA events to our Event format
-        const transformedEvents: Event[] = tbaEvents.map((tbaEvent: TbaEvent) => ({
-          name: tbaEvent.name,
-          region: `${tbaEvent.event_code.toUpperCase()}: ${tbaEvent.year}`,
-          code: tbaEvent.key,
-        }));
-        
-        setEvents(transformedEvents);
+
+        // Fetch custom events
+        let customEvents: Event[] = [];
+        try {
+          const customResponse = await fetch(`/api/database/custom-events?year=${currentYear}`);
+          if (customResponse.ok) {
+            const customEventData = await customResponse.json();
+
+            // Transform custom events to our Event format
+            customEvents = customEventData.map((customEvent: CustomEvent) => ({
+              name: customEvent.name,
+              region: customEvent.location ? `${customEvent.location}${customEvent.region ? ', ' + customEvent.region : ''}` : `Custom Event: ${customEvent.year}`,
+              code: customEvent.eventCode,
+            }));
+          }
+        } catch (customError) {
+          console.warn('Failed to fetch custom events:', customError);
+        }
+
+        // Combine TBA and custom events
+        const allEvents = [...tbaEvents, ...customEvents];
+        setEvents(allEvents);
+
+        if (allEvents.length === 0) {
+          setError('No events found for this year');
+        }
       } catch (err) {
-        console.error('Error fetching events from TBA:', err);
-        setError('Failed to load events from The Blue Alliance');
-        // Fallback to empty array
+        console.error('Error fetching events:', err);
+        setError('Failed to load events');
         setEvents([]);
       } finally {
         setIsLoading(false);

@@ -2,8 +2,10 @@
 export type {
   PitEntry,
   MatchEntry,
+  CustomEvent,
   PitEntryRow,
   MatchEntryRow,
+  CustomEventRow,
   DatabaseService,
   DatabaseProvider,
   AzureSqlConfig,

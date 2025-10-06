@@ -1,5 +1,5 @@
 import { DatabaseService } from './database-service';
-import { PitEntry, MatchEntry, AzureSqlConfig, PitEntryRow, MatchEntryRow } from './types';
+import { PitEntry, MatchEntry, CustomEvent, AzureSqlConfig, PitEntryRow, MatchEntryRow, CustomEventRow } from './types';
 
 export class AzureSqlDatabaseService implements DatabaseService {
   private pool: import('mssql').ConnectionPool | null = null;
@@ -153,6 +153,24 @@ export class AzureSqlDatabaseService implements DatabaseService {
         gameSpecificData NVARCHAR(MAX),
         notes NVARCHAR(MAX),
         timestamp DATETIME2 NOT NULL
+      )
+    `);
+
+    // Create customEvents table
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='customEvents' AND xtype='U')
+      CREATE TABLE customEvents (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        eventCode NVARCHAR(50) UNIQUE NOT NULL,
+        name NVARCHAR(255) NOT NULL,
+        date DATE NOT NULL,
+        endDate DATE,
+        matchCount INT NOT NULL DEFAULT 0,
+        location NVARCHAR(255),
+        region NVARCHAR(100),
+        year INT NOT NULL,
+        created_at DATETIME DEFAULT GETDATE(),
+        updated_at DATETIME DEFAULT GETDATE()
       )
     `);
   }
@@ -452,6 +470,115 @@ export class AzureSqlDatabaseService implements DatabaseService {
     await pool.request()
       .input('id', mssql.Int, id)
       .query('DELETE FROM matchEntries WHERE id = @id');
+  }
+
+  // Custom events
+  async addCustomEvent(event: Omit<CustomEvent, 'id'>): Promise<number> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const result = await pool.request()
+      .input('eventCode', mssql.NVarChar, event.eventCode)
+      .input('name', mssql.NVarChar, event.name)
+      .input('date', mssql.Date, event.date)
+      .input('endDate', mssql.Date, event.endDate || null)
+      .input('matchCount', mssql.Int, event.matchCount)
+      .input('location', mssql.NVarChar, event.location || null)
+      .input('region', mssql.NVarChar, event.region || null)
+      .input('year', mssql.Int, event.year)
+      .query(`
+        INSERT INTO customEvents (eventCode, name, date, endDate, matchCount, location, region, year)
+        OUTPUT INSERTED.id
+        VALUES (@eventCode, @name, @date, @endDate, @matchCount, @location, @region, @year)
+      `);
+
+    return result.recordset[0].id;
+  }
+
+  async getCustomEvent(eventCode: string): Promise<CustomEvent | undefined> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const result = await pool.request()
+      .input('eventCode', mssql.NVarChar, eventCode)
+      .query('SELECT * FROM customEvents WHERE eventCode = @eventCode');
+
+    if (result.recordset.length === 0) {
+      return undefined;
+    }
+
+    const row: CustomEventRow = result.recordset[0];
+    return {
+      id: row.id,
+      eventCode: row.eventCode,
+      name: row.name,
+      date: row.date,
+      endDate: row.endDate || undefined,
+      matchCount: row.matchCount,
+      location: row.location || undefined,
+      region: row.region || undefined,
+      year: row.year
+    };
+  }
+
+  async getAllCustomEvents(year?: number): Promise<CustomEvent[]> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    let query = 'SELECT * FROM customEvents';
+    const request = pool.request();
+
+    if (year !== undefined) {
+      query += ' WHERE year = @year';
+      request.input('year', mssql.Int, year);
+    }
+
+    query += ' ORDER BY date DESC';
+
+    const result = await request.query(query);
+
+    return result.recordset.map((row: CustomEventRow) => ({
+      id: row.id,
+      eventCode: row.eventCode,
+      name: row.name,
+      date: row.date,
+      endDate: row.endDate || undefined,
+      matchCount: row.matchCount,
+      location: row.location || undefined,
+      region: row.region || undefined,
+      year: row.year
+    }));
+  }
+
+  async updateCustomEvent(eventCode: string, updates: Partial<CustomEvent>): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const request = pool.request()
+      .input('eventCode', mssql.NVarChar, eventCode);
+
+    const setParts: string[] = [];
+    const validFields = ['name', 'date', 'endDate', 'matchCount', 'location', 'region', 'year'];
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (validFields.includes(key)) {
+        const paramName = `@${key}`;
+        setParts.push(`${key} = ${paramName}`);
+        request.input(key, key === 'date' || key === 'endDate' ? mssql.Date : 
+                     key === 'matchCount' || key === 'year' ? mssql.Int : mssql.NVarChar, value);
+      }
+    }
+
+    if (setParts.length === 0) {
+      return; // Nothing to update
+    }
+
+    const query = `UPDATE customEvents SET ${setParts.join(', ')} WHERE eventCode = @eventCode`;
+    await request.query(query);
+  }
+
+  async deleteCustomEvent(eventCode: string): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    await pool.request()
+      .input('eventCode', mssql.NVarChar, eventCode)
+      .query('DELETE FROM customEvents WHERE eventCode = @eventCode');
   }
 
   // Export/Import methods

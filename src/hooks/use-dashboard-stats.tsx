@@ -57,10 +57,40 @@ export function useDashboardStats() {
         setError(null);
 
         // Fetch qualification matches count from our server-side proxy
-        const proxyResp = await fetch(`/api/tba/qualification-matches?eventCode=${encodeURIComponent(selectedEvent.code)}`);
-        if (!proxyResp.ok) throw new Error('Failed to fetch qualification matches from proxy');
-        const proxyData = await proxyResp.json();
-        const qualMatchesCount = proxyData?.qualMatchesCount ?? 0;
+        let qualMatchesCount = 0;
+        try {
+          const proxyResp = await fetch(`/api/tba/qualification-matches?eventCode=${encodeURIComponent(selectedEvent.code)}`);
+          if (proxyResp.ok) {
+            const proxyData = await proxyResp.json();
+            qualMatchesCount = proxyData?.qualMatchesCount ?? 0;
+          } else {
+            // If TBA API fails, try to get match count from custom events
+            console.warn('TBA API failed, falling back to custom event data');
+            const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.code)}`);
+            if (customEventResp.ok) {
+              const customEvent = await customEventResp.json();
+              qualMatchesCount = customEvent?.matchCount ?? 0;
+              console.log(`Using custom event match count: ${qualMatchesCount}`);
+            } else {
+              console.warn('Custom event fallback also failed, using 0');
+            }
+          }
+        } catch (tbaError) {
+          console.warn('TBA API error, attempting custom event fallback:', tbaError);
+          try {
+            // If TBA API fails, try to get match count from custom events
+            const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.code)}`);
+            if (customEventResp.ok) {
+              const customEvent = await customEventResp.json();
+              qualMatchesCount = customEvent?.matchCount ?? 0;
+              console.log(`Using custom event match count: ${qualMatchesCount}`);
+            } else {
+              console.warn('Custom event fallback also failed, using 0');
+            }
+          } catch (customEventError) {
+            console.warn('Both TBA and custom event fallback failed:', customEventError);
+          }
+        }
         // const qualMatchesCount = 0;
         // Fetch stats from API
         const apiStats = await statsApi.getDashboardStats(currentYear, selectedEvent.code);
