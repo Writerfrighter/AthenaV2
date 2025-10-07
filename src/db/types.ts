@@ -9,5 +9,8 @@ export type {
   DatabaseService,
   DatabaseProvider,
   AzureSqlConfig,
-  DatabaseConfig
+  DatabaseConfig,
+  ScoutingBlock,
+  BlockAssignment,
+  ScoutingBlockWithAssignments
 } from '@/lib/shared-types';
