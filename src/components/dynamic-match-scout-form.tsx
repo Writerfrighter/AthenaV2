@@ -240,7 +240,7 @@ export function DynamicMatchScoutForm() {
                 variant={Boolean(currentValue) ? "default" : "outline"}
                 size="lg"
                 onClick={() => handleInputChange(section, fieldKey, !Boolean(currentValue))}
-                className={`h-12 w-full font-semibold transition-all duration-200 ${
+                className={`h-16 w-full font-semibold transition-all duration-200 ${
                   Boolean(currentValue) 
                     ? 'bg-green-600 hover:bg-green-700 text-white' 
                     : 'hover:bg-green-50 border-2'
@@ -275,7 +275,7 @@ export function DynamicMatchScoutForm() {
                 value={selectValue}
                 onValueChange={(value) => handleInputChange(section, fieldKey, value)}
               >
-                <SelectTrigger className="h-12 w-full text-base font-semibold focus:border-green-500 focus:ring-2 focus:ring-green-400 bg-muted border-2">
+                <SelectTrigger className="h-16 w-full text-base font-semibold focus:border-green-500 focus:ring-2 focus:ring-green-400 bg-muted border-2">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -307,7 +307,7 @@ export function DynamicMatchScoutForm() {
                 variant="outline"
                 size="lg"
                 onClick={() => handleNumberChange(section, fieldKey, false)}
-                className="h-12 w-12 hover:bg-green-50 p-0 flex-shrink-0"
+                className="h-16 w-16 hover:bg-green-50 p-0 flex-shrink-0"
               >
                 <Minus className="h-5 w-5" />
               </Button>
@@ -318,14 +318,14 @@ export function DynamicMatchScoutForm() {
                   value={numValue}
                   onChange={e => handleInputChange(section, fieldKey, Math.max(0, Number(e.target.value)))}
                   className="hide-spinners min-w-[4rem] w-full text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-green-400"
-                  style={{height: '3rem'}}
+                  style={{height: '4rem'}}
                 />
               </div>
               <Button
                 variant="outline"
                 size="lg"
                 onClick={() => handleNumberChange(section, fieldKey, true)}
-                className="h-12 w-12 hover:bg-green-50 p-0 flex-shrink-0"
+                className="h-16 w-16 hover:bg-green-50 p-0 flex-shrink-0"
               >
                 <Plus className="h-5 w-5" />
               </Button>
@@ -363,9 +363,13 @@ export function DynamicMatchScoutForm() {
             <Input
               id="matchNumber"
               placeholder="Q45"
+              type="number"
               value={formData.matchNumber}
               onChange={(e) => handleBasicInputChange('matchNumber', e.target.value)}
               className="focus:border-green-500"
+              min={1}
+              max={200}
+              required
             />
           </div>
           
@@ -451,7 +455,7 @@ export function DynamicMatchScoutForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-6">
             {gameConfig && gameConfig.scoring && Object.entries(gameConfig.scoring.autonomous).map(([key, config]) => 
               renderScoringField('autonomous', key, config)
             )}
@@ -475,7 +479,7 @@ export function DynamicMatchScoutForm() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-6">
             {gameConfig && gameConfig.scoring && Object.entries(gameConfig.scoring.teleop).map(([key, config]) => 
               renderScoringField('teleop', key, config)
             )}
@@ -492,7 +496,7 @@ export function DynamicMatchScoutForm() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-6">
             {gameConfig && gameConfig.scoring && Object.entries(gameConfig.scoring.endgame).map(([key, config]) => 
               renderScoringField('endgame', key, config)
             )}
@@ -513,7 +517,7 @@ export function DynamicMatchScoutForm() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 lg:gap-6">
               {Object.entries(gameConfig.scoring.fouls).map(([key, config]) => 
                 renderScoringField('fouls', key, config)
               )}
@@ -548,7 +552,7 @@ export function DynamicMatchScoutForm() {
               <Button 
                 variant="outline" 
                 onClick={() => setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData)}
-                className="hover:bg-green-50 h-12"
+                className="hover:bg-green-50 h-14"
                 size="lg"
               >
                 Clear Form
@@ -556,7 +560,7 @@ export function DynamicMatchScoutForm() {
               <Button 
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="min-w-[140px] h-12 bg-green-600 hover:bg-green-700 text-base"
+                className="min-w-[140px] h-14 bg-green-600 hover:bg-green-700 text-base"
                 size="lg"
               >
                 {isSubmitting ? (

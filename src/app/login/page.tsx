@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { getSession, signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -60,9 +60,14 @@ export default function Page() {
           description: "Welcome back to TRC Athena Scouting!"
         })
         // Give the session a moment to be established
-        setTimeout(() => {
+        const session = await getSession()
+        if (session) {
           router.push("/dashboard")
-        }, 750)
+        } else {
+          toast.error("Session failed to establish", {
+            description: "Please try logging in again"
+          })
+        }
       } else {
         console.error('Unexpected login result:', result)
         toast.error("Login failed", {
