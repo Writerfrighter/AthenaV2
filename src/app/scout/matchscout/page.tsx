@@ -54,7 +54,7 @@ export default function Page() {
             <div className="flex items-center gap-3">
               <YearSelector />
               {selectedEvent && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs hidden sm:block">
                   {selectedEvent.name}
                 </Badge>
               )}
