@@ -37,6 +37,7 @@ CREATE TABLE matchEntries (
     teamNumber INT NOT NULL,
     year INT NOT NULL,
     alliance NVARCHAR(10) NOT NULL, -- 'red' or 'blue'
+    alliancePosition INT, -- 1, 2, or 3 for alliance position (Red 1, Red 2, Red 3, etc.)
     eventName NVARCHAR(255),
     eventCode NVARCHAR(50),
     gameSpecificData NVARCHAR(MAX), -- JSON object with game-specific match data

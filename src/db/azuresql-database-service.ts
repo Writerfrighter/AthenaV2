@@ -148,12 +148,23 @@ export class AzureSqlDatabaseService implements DatabaseService {
         teamNumber INT NOT NULL,
         year INT NOT NULL,
         alliance NVARCHAR(10) NOT NULL,
+        alliancePosition INT,
         eventName NVARCHAR(255),
         eventCode NVARCHAR(50),
         gameSpecificData NVARCHAR(MAX),
         notes NVARCHAR(MAX),
         timestamp DATETIME2 NOT NULL
       )
+    `);
+
+    // Add alliancePosition column if it doesn't exist (migration for existing tables)
+    await pool.request().query(`
+      IF NOT EXISTS (
+        SELECT * FROM sys.columns 
+        WHERE object_id = OBJECT_ID('matchEntries') 
+        AND name = 'alliancePosition'
+      )
+      ALTER TABLE matchEntries ADD alliancePosition INT
     `);
 
     // Create customEvents table
@@ -370,15 +381,16 @@ export class AzureSqlDatabaseService implements DatabaseService {
       .input('teamNumber', mssql.Int, entry.teamNumber)
       .input('year', mssql.Int, entry.year)
       .input('alliance', mssql.NVarChar, entry.alliance)
+      .input('alliancePosition', mssql.Int, entry.alliancePosition || null)
       .input('eventName', mssql.NVarChar, entry.eventName)
       .input('eventCode', mssql.NVarChar, entry.eventCode)
       .input('gameSpecificData', mssql.NVarChar, JSON.stringify(entry.gameSpecificData))
       .input('notes', mssql.NVarChar, entry.notes)
       .input('timestamp', mssql.DateTime2, entry.timestamp)
       .query(`
-        INSERT INTO matchEntries (matchNumber, teamNumber, year, alliance, eventName, eventCode, gameSpecificData, notes, timestamp)
+        INSERT INTO matchEntries (matchNumber, teamNumber, year, alliance, alliancePosition, eventName, eventCode, gameSpecificData, notes, timestamp)
         OUTPUT INSERTED.id
-        VALUES (@matchNumber, @teamNumber, @year, @alliance, @eventName, @eventCode, @gameSpecificData, @notes, @timestamp)
+        VALUES (@matchNumber, @teamNumber, @year, @alliance, @alliancePosition, @eventName, @eventCode, @gameSpecificData, @notes, @timestamp)
       `);
 
     return result.recordset[0].id;
@@ -405,6 +417,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
         teamNumber: matchRow.teamNumber,
         year: matchRow.year,
         alliance: matchRow.alliance as 'red' | 'blue',
+        alliancePosition: matchRow.alliancePosition || undefined,
         eventName: matchRow.eventName || undefined,
         eventCode: matchRow.eventCode || undefined,
         gameSpecificData: JSON.parse(matchRow.gameSpecificData),
@@ -445,6 +458,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
         teamNumber: matchRow.teamNumber,
         year: matchRow.year,
         alliance: matchRow.alliance as 'red' | 'blue',
+        alliancePosition: matchRow.alliancePosition || undefined,
         eventName: matchRow.eventName || undefined,
         eventCode: matchRow.eventCode || undefined,
         gameSpecificData: JSON.parse(matchRow.gameSpecificData),
@@ -475,6 +489,10 @@ export class AzureSqlDatabaseService implements DatabaseService {
     if (updates.alliance !== undefined) {
       setParts.push('alliance = @alliance');
       request.input('alliance', mssql.NVarChar, updates.alliance);
+    }
+    if (updates.alliancePosition !== undefined) {
+      setParts.push('alliancePosition = @alliancePosition');
+      request.input('alliancePosition', mssql.Int, updates.alliancePosition);
     }
     if (updates.eventName !== undefined) {
       setParts.push('eventName = @eventName');

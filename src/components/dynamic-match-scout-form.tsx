@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Minus, Target, Zap, Award, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, Minus, Target, Zap, Award, AlertTriangle, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { matchApi } from '@/lib/api/database-client';
 import type { ScoringDefinition, DynamicMatchData } from '@/lib/shared-types';
@@ -33,11 +33,26 @@ const defaultData: DynamicMatchData = {
   matchNumber: 0,
   teamNumber: 0,
   alliance: 'red',
+  alliancePosition: 1,
   autonomous: {},
   teleop: {},
   endgame: {},
   fouls: {},
   notes: ''
+};
+
+// Helper function to create combined alliance position value
+const getCombinedAlliancePosition = (alliance: 'red' | 'blue', position: number): string => {
+  return `${alliance}-${position}`;
+};
+
+// Helper function to parse combined alliance position value
+const parseCombinedAlliancePosition = (combined: string): { alliance: 'red' | 'blue', position: number } => {
+  const [alliance, position] = combined.split('-');
+  return {
+    alliance: alliance as 'red' | 'blue',
+    position: parseInt(position, 10)
+  };
 };
 
 // Function to initialize form data with all game config fields
@@ -174,6 +189,7 @@ export function DynamicMatchScoutForm() {
         teamNumber: formData.teamNumber,
         year: new Date().getFullYear(),
         alliance: formData.alliance,
+        alliancePosition: formData.alliancePosition,
         eventName: selectedEvent?.name || 'Unknown Event',
         eventCode: selectedEvent?.code || 'Unknown Code',
         gameSpecificData: {
@@ -186,16 +202,25 @@ export function DynamicMatchScoutForm() {
         timestamp: new Date()
       };
 
-      await matchApi.create(entryToSave);
+      const result = await matchApi.create(entryToSave);
 
-      toast.success("Match data saved!", {
-        description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} saved successfully`
-      });
+      if (result.isQueued) {
+        toast.success("Data queued for sync", {
+          description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} saved offline. Will sync when online.`,
+          icon: <Clock className="h-4 w-4" />
+        });
+      } else {
+        toast.success("Match data saved!", {
+          description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} saved successfully`,
+          icon: <CheckCircle className="h-4 w-4" />
+        });
+      }
       
       setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData);
     } catch (error) {
       toast.error("Failed to save data", {
-        description: error instanceof Error ? error.message : "Unknown error"
+        description: error instanceof Error ? error.message : "Unknown error",
+        icon: <AlertCircle className="h-4 w-4" />
       });
     } finally {
       setIsSubmitting(false);
@@ -342,12 +367,12 @@ export function DynamicMatchScoutForm() {
     <>
       <style>{hideSpinnersStyle}</style>
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      {/* Game Title */}
-      <div className="text-center">
-        <Badge variant="outline" className="text-lg px-4 py-2">
-          {gameConfig?.gameName || 'Unknown Game'} - Match Scouting
-        </Badge>
-      </div>
+        {/* Game Title */}
+        <div className="text-center">
+          <Badge variant="outline" className="text-lg px-4 py-2">
+            {gameConfig?.gameName || 'Unknown Game'} - Match Scouting
+          </Badge>
+        </div>
 
       {/* Match Info */}
       <Card className="border rounded-xl shadow-sm">
@@ -410,14 +435,28 @@ export function DynamicMatchScoutForm() {
           </div>
           
           <div className="space-y-2">
-            <Label>Alliance</Label>
-            <Select value={formData.alliance} onValueChange={(value) => handleBasicInputChange('alliance', value)}>
+            <Label>Alliance Position</Label>
+            <Select 
+              value={getCombinedAlliancePosition(formData.alliance, formData.alliancePosition || 1)} 
+              onValueChange={(value) => {
+                const { alliance, position } = parseCombinedAlliancePosition(value);
+                setFormData(prev => ({
+                  ...prev,
+                  alliance,
+                  alliancePosition: position
+                }));
+              }}
+            >
               <SelectTrigger className="focus:border-green-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="red">Red Alliance</SelectItem>
-                <SelectItem value="blue">Blue Alliance</SelectItem>
+                <SelectItem value="red-1">Red 1</SelectItem>
+                <SelectItem value="red-2">Red 2</SelectItem>
+                <SelectItem value="red-3">Red 3</SelectItem>
+                <SelectItem value="blue-1">Blue 1</SelectItem>
+                <SelectItem value="blue-2">Blue 2</SelectItem>
+                <SelectItem value="blue-3">Blue 3</SelectItem>
               </SelectContent>
             </Select>
           </div>

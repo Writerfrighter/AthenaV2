@@ -23,6 +23,7 @@ export interface MatchEntry {
   teamNumber: number;
   year: number;
   alliance: 'red' | 'blue';
+  alliancePosition?: number; // 1, 2, or 3 for alliance position
   eventName?: string;
   eventCode?: string;
   gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>;
@@ -62,6 +63,7 @@ export interface MatchEntryRow {
   teamNumber: number;
   year: number;
   alliance: string;
+  alliancePosition: number | null;
   eventName: string | null;
   eventCode: string | null;
   gameSpecificData: string;
@@ -331,6 +333,7 @@ export interface DynamicMatchData {
   matchNumber: number;
   teamNumber: number;
   alliance: 'red' | 'blue';
+  alliancePosition?: number; // 1, 2, or 3 for alliance position
 
   // Game-specific data stored as flexible object
   autonomous: Record<string, number | string | boolean>;

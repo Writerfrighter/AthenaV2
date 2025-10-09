@@ -100,7 +100,7 @@ export function useDashboardStats() {
           teamsScouted: apiStats.totalTeams,
           matchesRecorded: apiStats.totalMatches,
           dataQuality: Math.min(100, (apiStats.totalPitScouts / apiStats.totalTeams) * 100), // Simple data quality calculation
-          ranking: apiStats.teamStats.findIndex(team => team.teamNumber === 492) || 0,
+          ranking: apiStats.teamStats.findIndex(team => team.teamNumber === 492) + 1|| 0,
           pitScoutingProgress: {
             current: apiStats.totalPitScouts,
             total: apiStats.totalTeams

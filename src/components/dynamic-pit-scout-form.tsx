@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { pitApi } from '@/lib/api/database-client';
 import type { DynamicPitData } from '@/lib/shared-types';
@@ -128,11 +128,19 @@ export function DynamicPitScoutForm() {
         }
       };
 
-      await pitApi.create(entryToSave);
+      const result = await pitApi.create(entryToSave);
       
-      toast("Scouting data saved!", {
-        description: `Team ${formData.team} entry stored successfully.`
-      });
+      if (result.isQueued) {
+        toast("Data queued for sync", {
+          description: `Team ${formData.team} entry saved offline. Will sync when online.`,
+          icon: <Clock className="h-4 w-4" />
+        });
+      } else {
+        toast("Scouting data saved!", {
+          description: `Team ${formData.team} entry stored successfully.`,
+          icon: <CheckCircle className="h-4 w-4" />
+        });
+      }
       
       // Reset form
       setFormData(gameConfig ? initializePitFormData(gameConfig) : {
@@ -147,7 +155,8 @@ export function DynamicPitScoutForm() {
       });
     } catch (error) {
       toast("Failed to save data", {
-        description: error instanceof Error ? error.message : "Unknown error"
+        description: error instanceof Error ? error.message : "Unknown error",
+        icon: <AlertCircle className="h-4 w-4" />
       });
     }
   };

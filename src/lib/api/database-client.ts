@@ -1,8 +1,21 @@
-// API client for Azure SQL database operations
-// This replaces direct database access with API calls
+// API client for Azure SQL database operations with offline support
+// Handles online/offline scenarios by queuing data when offline
 
 import { PitEntry, MatchEntry } from '@/db/types';
 import type { DashboardStats, AnalysisData, TeamData, PicklistData } from '@/lib/shared-types';
+import { offlineQueueManager } from '@/lib/offline-queue-manager';
+
+// Check if we're online
+const isOnline = (): boolean => {
+  return typeof window !== 'undefined' ? navigator.onLine : true;
+};
+
+// Result type for create operations that may be queued
+export interface CreateResult {
+  id?: number; // Server ID if synced immediately
+  queueId?: string; // Queue ID if stored offline
+  isQueued: boolean;
+}
 
 const API_BASE = '/api/database';
 
@@ -28,14 +41,40 @@ export const pitApi = {
     return response.json();
   },
 
-  async create(entry: Omit<PitEntry, 'id'>): Promise<{ id: number }> {
-    const response = await fetch(`${API_BASE}/pit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entry)
-    });
-    if (!response.ok) throw new Error('Failed to create pit entry');
-    return response.json();
+  async create(entry: Omit<PitEntry, 'id'>): Promise<CreateResult> {
+    // If offline, queue the entry
+    if (!isOnline()) {
+      const queueId = await offlineQueueManager.queuePitEntry(entry);
+      return { queueId, isQueued: true };
+    }
+
+    // If online, try to submit immediately
+    try {
+      const response = await fetch(`${API_BASE}/pit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      });
+      
+      if (!response.ok) {
+        // If network error, queue the entry
+        if (!response.status || response.status >= 500) {
+          const queueId = await offlineQueueManager.queuePitEntry(entry);
+          return { queueId, isQueued: true };
+        }
+        throw new Error('Failed to create pit entry');
+      }
+      
+      const result = await response.json();
+      return { id: result.id, isQueued: false };
+    } catch (error) {
+      // On network error, queue the entry
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        const queueId = await offlineQueueManager.queuePitEntry(entry);
+        return { queueId, isQueued: true };
+      }
+      throw error;
+    }
   },
 
   async update(id: number, updates: Partial<PitEntry>): Promise<void> {
@@ -76,14 +115,40 @@ export const matchApi = {
     return response.json();
   },
 
-  async create(entry: Omit<MatchEntry, 'id'>): Promise<{ id: number }> {
-    const response = await fetch(`${API_BASE}/match`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entry)
-    });
-    if (!response.ok) throw new Error('Failed to create match entry');
-    return response.json();
+  async create(entry: Omit<MatchEntry, 'id'>): Promise<CreateResult> {
+    // If offline, queue the entry
+    if (!isOnline()) {
+      const queueId = await offlineQueueManager.queueMatchEntry(entry);
+      return { queueId, isQueued: true };
+    }
+
+    // If online, try to submit immediately
+    try {
+      const response = await fetch(`${API_BASE}/match`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      });
+      
+      if (!response.ok) {
+        // If network error, queue the entry
+        if (!response.status || response.status >= 500) {
+          const queueId = await offlineQueueManager.queueMatchEntry(entry);
+          return { queueId, isQueued: true };
+        }
+        throw new Error('Failed to create match entry');
+      }
+      
+      const result = await response.json();
+      return { id: result.id, isQueued: false };
+    } catch (error) {
+      // On network error, queue the entry
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        const queueId = await offlineQueueManager.queueMatchEntry(entry);
+        return { queueId, isQueued: true };
+      }
+      throw error;
+    }
   },
 
   async update(id: number, updates: Partial<MatchEntry>): Promise<void> {
@@ -170,5 +235,52 @@ export const dataApi = {
       body: JSON.stringify(data)
     });
     if (!response.ok) throw new Error('Failed to import data');
+  }
+};
+
+// Offline queue management operations
+export const offlineApi = {
+  // Get count of pending offline entries
+  async getPendingCount(): Promise<number> {
+    return offlineQueueManager.getPendingCount();
+  },
+
+  // Get count of all queued entries
+  async getTotalQueuedCount(): Promise<number> {
+    return offlineQueueManager.getTotalQueuedCount();
+  },
+
+  // Sync all pending entries
+  async syncPending(): Promise<import('@/lib/offline-types').SyncResult> {
+    return offlineQueueManager.syncPendingEntries();
+  },
+
+  // Retry failed entries
+  async retryFailed(): Promise<import('@/lib/offline-types').SyncResult> {
+    return offlineQueueManager.retryFailedEntries();
+  },
+
+  // Clear synced entries
+  async clearSynced(): Promise<number> {
+    return offlineQueueManager.clearSyncedEntries();
+  },
+
+  // Get all queued entries (for UI display)
+  async getAllQueued(): Promise<import('@/lib/offline-types').QueuedEntry[]> {
+    return offlineQueueManager.getAllQueuedEntries();
+  },
+
+  // Get recent sync logs
+  async getSyncLogs(limit = 10): Promise<import('@/lib/offline-types').SyncResult[]> {
+    return offlineQueueManager.getRecentSyncLogs(limit);
+  },
+
+  // Get/set sync configuration
+  async getSyncConfig(): Promise<import('@/lib/offline-types').SyncConfig> {
+    return offlineQueueManager.getSyncConfig();
+  },
+
+  async setSyncConfig(config: Partial<import('@/lib/offline-types').SyncConfig>): Promise<void> {
+    return offlineQueueManager.setSyncConfig(config);
   }
 };

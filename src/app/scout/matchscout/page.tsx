@@ -1,33 +1,17 @@
 'use client';
 
-import { ArrowLeft, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
 import { YearSelector } from "@/components/year-selector";
 import { DynamicMatchScoutForm } from "@/components/dynamic-match-scout-form";
+import { OfflineStatusWidget } from "@/components/offline-status-widget";
 import { useSelectedEvent } from "@/hooks/use-event-config";
 import Link from "next/link";
-import { useState, useEffect } from "react";
 
 export default function Page() {
-  const [isOnline, setIsOnline] = useState(true);
   const selectedEvent = useSelectedEvent();
-
-  useEffect(() => {
-    const updateOnlineStatus = () => setIsOnline(navigator.onLine);
-    
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
-    
-    // Set initial status
-    updateOnlineStatus();
-    
-    return () => {
-      window.removeEventListener('online', updateOnlineStatus);
-      window.removeEventListener('offline', updateOnlineStatus);
-    };
-  }, []);
 
   return (
     <div className="min-h-screen bg-background dark:bg-background">
@@ -59,16 +43,7 @@ export default function Page() {
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              {isOnline ? (
-                <Wifi className="h-4 w-4 text-foreground" />
-              ) : (
-                <WifiOff className="h-4 w-4 text-orange-500" />
-              )}
-              <span className="text-sm text-muted-foreground">
-                {isOnline ? "Online" : "Offline"}
-              </span>
-            </div>
+            <OfflineStatusWidget />
           </div>
         </div>
       </div>
