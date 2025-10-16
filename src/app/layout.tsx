@@ -5,8 +5,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { GameConfigProvider } from "@/hooks/use-game-config";
 import { EventProvider } from "@/hooks/use-event-config";
 import { ServiceWorkerManager } from "@/components/service-worker-manager";
-import { Toaster } from "sonner";
 import { SessionProvider } from "@/components/session-provider";
+import { SonnerToaster } from "@/components/sonner-toaster";
 
 // const inter = Inter({
 //   variable: "--font-inter",
@@ -44,7 +44,7 @@ export default function RootLayout({
                   {children}
                 </EventProvider>
               </GameConfigProvider>
-              <Toaster />
+              <SonnerToaster />
               <ServiceWorkerManager />
             </ThemeProvider>
           </SessionProvider>
