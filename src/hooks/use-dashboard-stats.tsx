@@ -99,14 +99,14 @@ export function useDashboardStats() {
         const transformedStats: DashboardStats = {
           teamsScouted: apiStats.totalTeams,
           matchesRecorded: apiStats.totalMatches,
-          dataQuality: Math.min(100, (apiStats.totalPitScouts / apiStats.totalTeams) * 100), // Simple data quality calculation
+          dataQuality: (apiStats.totalMatches / (apiStats.unqiueMatches * 6) * 100), // Simple data quality calculation
           ranking: apiStats.teamStats.findIndex(team => team.teamNumber === 492) + 1|| 0,
           pitScoutingProgress: {
             current: apiStats.totalPitScouts,
             total: apiStats.totalTeams
           },
           qualificationProgress: {
-            current: Math.floor(apiStats.totalMatches / 6), // Assuming 6 teams per match
+            current: apiStats.unqiueMatches,
             total: qualMatchesCount
           },
           nextMatch: null, // Could be calculated from schedule

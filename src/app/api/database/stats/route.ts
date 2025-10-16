@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       ...filteredPitEntries.map(entry => entry.teamNumber),
       ...filteredMatchEntries.map(entry => entry.teamNumber)
     ]);
-
+    const uniqueMatches = new Set(filteredMatchEntries.map(entry => entry.matchNumber)).size;
     const totalMatches = filteredMatchEntries.length;
     const totalPitScouts = filteredPitEntries.length;
     const uniqueTeamCount = uniqueTeams.size;
@@ -112,6 +112,7 @@ export async function GET(request: NextRequest) {
 
     const stats = {
       totalTeams: uniqueTeamCount,
+      uniqueMatches,
       totalMatches,
       totalPitScouts,
       matchCompletion: Math.round(matchCompletion),
