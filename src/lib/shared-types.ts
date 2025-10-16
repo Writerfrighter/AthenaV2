@@ -259,7 +259,7 @@ export interface EPABreakdown {
 
 export interface DashboardStats {
   totalTeams: number;
-  unqiueMatches: number;
+  uniqueMatches: number;
   totalMatches: number;
   totalPitScouts: number;
   matchCompletion: number;

@@ -106,7 +106,7 @@ export function useDashboardStats() {
             total: apiStats.totalTeams
           },
           qualificationProgress: {
-            current: apiStats.unqiueMatches,
+            current: apiStats.uniqueMatches,
             total: qualMatchesCount
           },
           nextMatch: null, // Could be calculated from schedule
