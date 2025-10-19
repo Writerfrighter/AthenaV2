@@ -1,7 +1,9 @@
 {
-  "2025": {
-    "gameName": "REEFSCAPE",
-    "scoring": {
+  "FRC": {
+    "2025": {
+      "competitionType": "FRC",
+      "gameName": "REEFSCAPE",
+      "scoring": {
       "autonomous": {
         "leave": {
           "label": "Leave Starting Zone",
@@ -141,6 +143,150 @@
           "options": ["Very Reliable", "Mostly Reliable", "Somewhat Reliable", "Unreliable"]
         }
       ]
+    }
+    }
+  },
+  "FTC": {
+    "2025": {
+      "competitionType": "FTC",
+      "gameName": "INTO THE DEEP",
+      "scoring": {
+        "autonomous": {
+          "park_observation": {
+            "label": "Parked in Observation Zone",
+            "points": 3,
+            "description": "Robot parked in observation zone during autonomous",
+            "type": "boolean"
+          },
+          "specimen_scored_low": {
+            "label": "Specimen Scored (Low Chamber)",
+            "points": 6,
+            "description": "Specimen scored on low chamber during autonomous"
+          },
+          "specimen_scored_high": {
+            "label": "Specimen Scored (High Chamber)",
+            "points": 10,
+            "description": "Specimen scored on high chamber during autonomous"
+          },
+          "sample_scored_net": {
+            "label": "Samples in Net Zone",
+            "points": 2,
+            "description": "Samples scored in net zone during autonomous"
+          },
+          "sample_scored_low_basket": {
+            "label": "Samples in Low Basket",
+            "points": 4,
+            "description": "Samples scored in low basket during autonomous"
+          },
+          "sample_scored_high_basket": {
+            "label": "Samples in High Basket",
+            "points": 8,
+            "description": "Samples scored in high basket during autonomous"
+          }
+        },
+        "teleop": {
+          "specimen_scored_low": {
+            "label": "Specimen Scored (Low Chamber)",
+            "points": 4,
+            "description": "Specimen scored on low chamber during teleop"
+          },
+          "specimen_scored_high": {
+            "label": "Specimen Scored (High Chamber)",
+            "points": 6,
+            "description": "Specimen scored on high chamber during teleop"
+          },
+          "sample_scored_net": {
+            "label": "Samples in Net Zone",
+            "points": 2,
+            "description": "Samples scored in net zone during teleop"
+          },
+          "sample_scored_low_basket": {
+            "label": "Samples in Low Basket",
+            "points": 4,
+            "description": "Samples scored in low basket during teleop"
+          },
+          "sample_scored_high_basket": {
+            "label": "Samples in High Basket",
+            "points": 8,
+            "description": "Samples scored in high basket during teleop"
+          }
+        },
+        "endgame": {
+          "ascent_level": {
+            "label": "Ascent Level",
+            "description": "Level of ascent achieved during endgame",
+            "pointValues": {
+              "none": 0,
+              "level1": 3,
+              "level2": 15,
+              "level3": 30
+            }
+          }
+        },
+        "fouls": {
+          "minor_penalties": {
+            "label": "Minor Penalties",
+            "points": -10,
+            "description": "Minor penalties committed"
+          },
+          "major_penalties": {
+            "label": "Major Penalties",
+            "points": -30,
+            "description": "Major penalties committed"
+          }
+        }
+      },
+      "pitScouting": {
+        "customFields": [
+          {
+            "name": "driveType",
+            "label": "Drive Type",
+            "type": "select",
+            "options": ["Mecanum", "Omni-directional", "Tank", "Other"]
+          },
+          {
+            "name": "specimenCapability",
+            "label": "Specimen Scoring Capability",
+            "type": "select",
+            "options": ["Low chamber only", "High chamber only", "Both chambers", "None"]
+          },
+          {
+            "name": "sampleCapability",
+            "label": "Sample Scoring Capability",
+            "type": "select",
+            "options": ["Net only", "Low basket only", "High basket only", "All", "None"]
+          },
+          {
+            "name": "intakeType",
+            "label": "Intake Method",
+            "type": "select",
+            "options": ["Ground pickup", "Wall pickup", "Both", "None"]
+          },
+          {
+            "name": "ascentCapability",
+            "label": "Ascent Capability",
+            "type": "select",
+            "options": ["No ascent", "Level 1 only", "Level 2 only", "Level 3 only", "Multiple levels"]
+          },
+          {
+            "name": "autoCapability",
+            "label": "Autonomous Capability",
+            "type": "select",
+            "options": ["Park only", "Park + Score", "Complex auto", "None"]
+          },
+          {
+            "name": "cycleTime",
+            "label": "Estimated Cycle Time (seconds)",
+            "type": "number"
+          },
+          {
+            "name": "reliability",
+            "label": "Robot Reliability",
+            "type": "select",
+            "options": ["Very Reliable", "Mostly Reliable", "Somewhat Reliable", "Unreliable"]
+          }
+        ]
+      }
     }
   }
 }

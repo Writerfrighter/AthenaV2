@@ -2,19 +2,14 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import gameConfig from '../../config/game-config.json';
-import type { YearConfig, GameConfig } from '@/lib/shared-types';
+import type { YearConfig, GameConfig, CompetitionType } from '@/lib/shared-types';
 
 interface GameConfigContextType {
   config: GameConfig;
   currentYear: number;
+  competitionType: CompetitionType;
   setCurrentYear: (year: number) => void;
-  getCurrentYearConfig: () => YearConfig | undefined;
-}
-
-interface GameConfigContextType {
-  config: GameConfig;
-  currentYear: number;
-  setCurrentYear: (year: number) => void;
+  setCompetitionType: (type: CompetitionType) => void;
   getCurrentYearConfig: () => YearConfig | undefined;
 }
 
@@ -22,7 +17,20 @@ const GameConfigContext = createContext<GameConfigContextType | undefined>(undef
 
 export function GameConfigProvider({ children }: { children: ReactNode }) {
   const config = gameConfig as GameConfig;
+  const [competitionType, setCompetitionTypeState] = useState<CompetitionType>('FRC');
   const [currentYear, setCurrentYear] = useState<number>(2025); // Default to current season
+
+  // Persist competition type to localStorage
+  useEffect(() => {
+    const savedType = localStorage.getItem('selectedCompetitionType');
+    if (savedType && (savedType === 'FRC' || savedType === 'FTC')) {
+      setCompetitionTypeState(savedType as CompetitionType);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('selectedCompetitionType', competitionType);
+  }, [competitionType]);
 
   // Persist year selection to localStorage
   useEffect(() => {
@@ -36,15 +44,27 @@ export function GameConfigProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('selectedGameYear', currentYear.toString());
   }, [currentYear]);
 
+  const setCompetitionType = (type: CompetitionType) => {
+    setCompetitionTypeState(type);
+    // Reset to latest available year when switching competition types
+    const availableYears = Object.keys(config[type] || {});
+    if (availableYears.length > 0) {
+      const latestYear = Math.max(...availableYears.map(y => parseInt(y)));
+      setCurrentYear(latestYear);
+    }
+  };
+
   const getCurrentYearConfig = () => {
-    return config[currentYear.toString()];
+    return config[competitionType]?.[currentYear.toString()];
   };
 
   return (
     <GameConfigContext.Provider value={{
       config,
       currentYear,
+      competitionType,
       setCurrentYear,
+      setCompetitionType,
       getCurrentYearConfig
     }}>
       {children}

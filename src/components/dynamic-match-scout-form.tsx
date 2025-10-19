@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useCurrentGameConfig } from '@/hooks/use-game-config';
+import { useGameConfig, useCurrentGameConfig } from '@/hooks/use-game-config';
 import { useSelectedEvent } from '@/hooks/use-event-config';
 import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -139,6 +139,7 @@ const initializeFormData = (gameConfig: any): DynamicMatchData => {
 
 export function DynamicMatchScoutForm() {
   const gameConfig = useCurrentGameConfig();
+  const { competitionType } = useGameConfig();
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
@@ -188,6 +189,7 @@ export function DynamicMatchScoutForm() {
         matchNumber: formData.matchNumber,
         teamNumber: formData.teamNumber,
         year: new Date().getFullYear(),
+        competitionType: competitionType,
         alliance: formData.alliance,
         alliancePosition: formData.alliancePosition,
         eventName: selectedEvent?.name || 'Unknown Event',

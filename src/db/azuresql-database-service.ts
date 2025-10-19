@@ -1,5 +1,5 @@
 import { DatabaseService } from './database-service';
-import { PitEntry, MatchEntry, CustomEvent, AzureSqlConfig, PitEntryRow, MatchEntryRow, CustomEventRow } from './types';
+import { PitEntry, MatchEntry, CustomEvent, AzureSqlConfig, PitEntryRow, MatchEntryRow, CustomEventRow, CompetitionType } from './types';
 
 export class AzureSqlDatabaseService implements DatabaseService {
   private pool: import('mssql').ConnectionPool | null = null;
@@ -232,6 +232,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
     const result = await pool.request()
       .input('teamNumber', mssql.Int, entry.teamNumber)
       .input('year', mssql.Int, entry.year)
+      .input('competitionType', mssql.NVarChar, entry.competitionType)
       .input('driveTrain', mssql.NVarChar, entry.driveTrain)
       .input('weight', mssql.Decimal(10, 2), entry.weight)
       .input('length', mssql.Decimal(10, 2), entry.length)
@@ -240,21 +241,28 @@ export class AzureSqlDatabaseService implements DatabaseService {
       .input('eventCode', mssql.NVarChar, entry.eventCode)
       .input('gameSpecificData', mssql.NVarChar, JSON.stringify(entry.gameSpecificData))
       .query(`
-        INSERT INTO pitEntries (teamNumber, year, driveTrain, weight, length, width, eventName, eventCode, gameSpecificData)
+        INSERT INTO pitEntries (teamNumber, year, competitionType, driveTrain, weight, length, width, eventName, eventCode, gameSpecificData)
         OUTPUT INSERTED.id
-        VALUES (@teamNumber, @year, @driveTrain, @weight, @length, @width, @eventName, @eventCode, @gameSpecificData)
+        VALUES (@teamNumber, @year, @competitionType, @driveTrain, @weight, @length, @width, @eventName, @eventCode, @gameSpecificData)
       `);
 
     return result.recordset[0].id;
   }
 
-  async getPitEntry(teamNumber: number, year: number): Promise<PitEntry | undefined> {
+  async getPitEntry(teamNumber: number, year: number, competitionType?: CompetitionType): Promise<PitEntry | undefined> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
-    const result = await pool.request()
+    let query = 'SELECT * FROM pitEntries WHERE teamNumber = @teamNumber AND year = @year';
+    let request = pool.request()
       .input('teamNumber', mssql.Int, teamNumber)
-      .input('year', mssql.Int, year)
-      .query('SELECT * FROM pitEntries WHERE teamNumber = @teamNumber AND year = @year');
+      .input('year', mssql.Int, year);
+    
+    if (competitionType) {
+      query += ' AND competitionType = @competitionType';
+      request = request.input('competitionType', mssql.NVarChar, competitionType);
+    }
+    
+    const result = await request.query(query);
 
     if (result.recordset.length === 0) {
       return undefined;
@@ -265,6 +273,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
       id: row.id,
       teamNumber: row.teamNumber,
       year: row.year,
+      competitionType: (row.competitionType || 'FRC') as CompetitionType,
       driveTrain: row.driveTrain as "Swerve" | "Mecanum" | "Tank" | "Other",
       weight: row.weight,
       length: row.length,
@@ -275,7 +284,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
     };
   }
 
-  async getAllPitEntries(year?: number, eventCode?: string): Promise<PitEntry[]> {
+  async getAllPitEntries(year?: number, eventCode?: string, competitionType?: CompetitionType): Promise<PitEntry[]> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
     let query = 'SELECT * FROM pitEntries';
@@ -292,6 +301,11 @@ export class AzureSqlDatabaseService implements DatabaseService {
       request = request.input('eventCode', mssql.NVarChar, eventCode);
     }
 
+    if (competitionType !== undefined) {
+      conditions.push('competitionType = @competitionType');
+      request = request.input('competitionType', mssql.NVarChar, competitionType);
+    }
+
     if (conditions.length > 0) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
@@ -304,6 +318,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
         id: pitRow.id,
         teamNumber: pitRow.teamNumber,
         year: pitRow.year,
+        competitionType: (pitRow.competitionType || 'FRC') as CompetitionType,
         driveTrain: pitRow.driveTrain as "Swerve" | "Mecanum" | "Tank" | "Other",
         weight: pitRow.weight,
         length: pitRow.length,
@@ -380,6 +395,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
       .input('matchNumber', mssql.Int, entry.matchNumber)
       .input('teamNumber', mssql.Int, entry.teamNumber)
       .input('year', mssql.Int, entry.year)
+      .input('competitionType', mssql.NVarChar, entry.competitionType)
       .input('alliance', mssql.NVarChar, entry.alliance)
       .input('alliancePosition', mssql.Int, entry.alliancePosition || null)
       .input('eventName', mssql.NVarChar, entry.eventName)
@@ -388,15 +404,15 @@ export class AzureSqlDatabaseService implements DatabaseService {
       .input('notes', mssql.NVarChar, entry.notes)
       .input('timestamp', mssql.DateTime2, entry.timestamp)
       .query(`
-        INSERT INTO matchEntries (matchNumber, teamNumber, year, alliance, alliancePosition, eventName, eventCode, gameSpecificData, notes, timestamp)
+        INSERT INTO matchEntries (matchNumber, teamNumber, year, competitionType, alliance, alliancePosition, eventName, eventCode, gameSpecificData, notes, timestamp)
         OUTPUT INSERTED.id
-        VALUES (@matchNumber, @teamNumber, @year, @alliance, @alliancePosition, @eventName, @eventCode, @gameSpecificData, @notes, @timestamp)
+        VALUES (@matchNumber, @teamNumber, @year, @competitionType, @alliance, @alliancePosition, @eventName, @eventCode, @gameSpecificData, @notes, @timestamp)
       `);
 
     return result.recordset[0].id;
   }
 
-  async getMatchEntries(teamNumber: number, year?: number): Promise<MatchEntry[]> {
+  async getMatchEntries(teamNumber: number, year?: number, competitionType?: CompetitionType): Promise<MatchEntry[]> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
     let query = 'SELECT * FROM matchEntries WHERE teamNumber = @teamNumber';
@@ -405,6 +421,11 @@ export class AzureSqlDatabaseService implements DatabaseService {
     if (year !== undefined) {
       query += ' AND year = @year';
       request = request.input('year', mssql.Int, year);
+    }
+
+    if (competitionType !== undefined) {
+      query += ' AND competitionType = @competitionType';
+      request = request.input('competitionType', mssql.NVarChar, competitionType);
     }
 
     const result = await request.query(query);
@@ -416,6 +437,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
         matchNumber: matchRow.matchNumber,
         teamNumber: matchRow.teamNumber,
         year: matchRow.year,
+        competitionType: (matchRow.competitionType || 'FRC') as CompetitionType,
         alliance: matchRow.alliance as 'red' | 'blue',
         alliancePosition: matchRow.alliancePosition || undefined,
         eventName: matchRow.eventName || undefined,
@@ -427,7 +449,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
     });
   }
 
-  async getAllMatchEntries(year?: number, eventCode?: string): Promise<MatchEntry[]> {
+  async getAllMatchEntries(year?: number, eventCode?: string, competitionType?: CompetitionType): Promise<MatchEntry[]> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
     let query = 'SELECT * FROM matchEntries';
@@ -444,6 +466,11 @@ export class AzureSqlDatabaseService implements DatabaseService {
       request = request.input('eventCode', mssql.NVarChar, eventCode);
     }
 
+    if (competitionType !== undefined) {
+      conditions.push('competitionType = @competitionType');
+      request = request.input('competitionType', mssql.NVarChar, competitionType);
+    }
+
     if (conditions.length > 0) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
@@ -457,6 +484,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
         matchNumber: matchRow.matchNumber,
         teamNumber: matchRow.teamNumber,
         year: matchRow.year,
+        competitionType: (matchRow.competitionType || 'FRC') as CompetitionType,
         alliance: matchRow.alliance as 'red' | 'blue',
         alliancePosition: matchRow.alliancePosition || undefined,
         eventName: matchRow.eventName || undefined,
@@ -542,21 +570,29 @@ export class AzureSqlDatabaseService implements DatabaseService {
       .input('location', mssql.NVarChar, event.location || null)
       .input('region', mssql.NVarChar, event.region || null)
       .input('year', mssql.Int, event.year)
+      .input('competitionType', mssql.NVarChar, event.competitionType)
       .query(`
-        INSERT INTO customEvents (eventCode, name, date, endDate, matchCount, location, region, year)
+        INSERT INTO customEvents (eventCode, name, date, endDate, matchCount, location, region, year, competitionType)
         OUTPUT INSERTED.id
-        VALUES (@eventCode, @name, @date, @endDate, @matchCount, @location, @region, @year)
+        VALUES (@eventCode, @name, @date, @endDate, @matchCount, @location, @region, @year, @competitionType)
       `);
 
     return result.recordset[0].id;
   }
 
-  async getCustomEvent(eventCode: string): Promise<CustomEvent | undefined> {
+  async getCustomEvent(eventCode: string, competitionType?: CompetitionType): Promise<CustomEvent | undefined> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
-    const result = await pool.request()
-      .input('eventCode', mssql.NVarChar, eventCode)
-      .query('SELECT * FROM customEvents WHERE eventCode = @eventCode');
+    let query = 'SELECT * FROM customEvents WHERE eventCode = @eventCode';
+    let request = pool.request()
+      .input('eventCode', mssql.NVarChar, eventCode);
+    
+    if (competitionType) {
+      query += ' AND competitionType = @competitionType';
+      request = request.input('competitionType', mssql.NVarChar, competitionType);
+    }
+    
+    const result = await request.query(query);
 
     if (result.recordset.length === 0) {
       return undefined;
@@ -572,19 +608,30 @@ export class AzureSqlDatabaseService implements DatabaseService {
       matchCount: row.matchCount,
       location: row.location || undefined,
       region: row.region || undefined,
-      year: row.year
+      year: row.year,
+      competitionType: (row.competitionType || 'FRC') as CompetitionType
     };
   }
 
-  async getAllCustomEvents(year?: number): Promise<CustomEvent[]> {
+  async getAllCustomEvents(year?: number, competitionType?: CompetitionType): Promise<CustomEvent[]> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
     let query = 'SELECT * FROM customEvents';
     const request = pool.request();
+    const conditions: string[] = [];
 
     if (year !== undefined) {
-      query += ' WHERE year = @year';
+      conditions.push('year = @year');
       request.input('year', mssql.Int, year);
+    }
+
+    if (competitionType !== undefined) {
+      conditions.push('competitionType = @competitionType');
+      request.input('competitionType', mssql.NVarChar, competitionType);
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
     }
 
     query += ' ORDER BY date DESC';
@@ -600,7 +647,8 @@ export class AzureSqlDatabaseService implements DatabaseService {
       matchCount: row.matchCount,
       location: row.location || undefined,
       region: row.region || undefined,
-      year: row.year
+      year: row.year,
+      competitionType: (row.competitionType || 'FRC') as CompetitionType
     }));
   }
 

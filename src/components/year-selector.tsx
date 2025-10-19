@@ -12,8 +12,12 @@ import { Badge } from '@/components/ui/badge';
 import { CalendarDays } from 'lucide-react';
 
 export function YearSelector() {
-  const { config, currentYear, setCurrentYear, getCurrentYearConfig } = useGameConfig();
+  const { config, currentYear, competitionType, setCurrentYear, getCurrentYearConfig } = useGameConfig();
   const currentConfig = getCurrentYearConfig();
+
+  // Get years for the currently selected competition type
+  const availableYears = Object.keys(config[competitionType] || {})
+    .sort((a, b) => parseInt(b) - parseInt(a));
 
   return (
     <div className="flex items-center gap-2 lg:gap-3">
@@ -29,12 +33,12 @@ export function YearSelector() {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {Object.keys(config).sort((a, b) => parseInt(b) - parseInt(a)).map((year) => (
+          {availableYears.map((year) => (
             <SelectItem key={year} value={year}>
               <div className="flex items-center gap-2">
                 <span>{year}</span>
                 <Badge variant="outline" className="text-xs hidden sm:inline-block">
-                  {(config as Record<string, { gameName: string }>)[year].gameName}
+                  {config[competitionType][year].gameName}
                 </Badge>
               </div>
             </SelectItem>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useCurrentGameConfig } from '@/hooks/use-game-config';
+import { useGameConfig, useCurrentGameConfig } from '@/hooks/use-game-config';
 import { useSelectedEvent } from '@/hooks/use-event-config';
 import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import type { DynamicPitData } from '@/lib/shared-types';
 
 export function DynamicPitScoutForm() {
   const gameConfig = useCurrentGameConfig();
+  const { competitionType } = useGameConfig();
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
@@ -116,6 +117,7 @@ export function DynamicPitScoutForm() {
       const entryToSave = {
         teamNumber: Number(formData.team),
         year: new Date().getFullYear(),
+        competitionType: competitionType,
         driveTrain: formData.drivetrain as "Swerve" | "Mecanum" | "Tank" | "Other",
         weight: Number(formData.weight),
         length: Number(formData.length),

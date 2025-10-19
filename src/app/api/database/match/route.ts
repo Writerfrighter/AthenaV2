@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
-import { MatchEntry, DatabaseService } from '@/db/types';
+import { MatchEntry, DatabaseService, CompetitionType } from '@/db/types';
 
 // Initialize database service
 let dbService: DatabaseService;
@@ -12,21 +12,22 @@ function getDbService() {
   return dbService;
 }
 
-// GET /api/database/match - Get all match entries or filter by team/year/event
+// GET /api/database/match - Get all match entries or filter by team/year/event/competitionType
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const teamNumber = searchParams.get('teamNumber') ? parseInt(searchParams.get('teamNumber')!) : undefined;
     const eventCode = searchParams.get('eventCode') || undefined;
+    const competitionType = (searchParams.get('competitionType') as CompetitionType) || undefined;
 
     const service = getDbService();
 
     if (teamNumber) {
-      const entries = await service.getMatchEntries(teamNumber, year);
+      const entries = await service.getMatchEntries(teamNumber, year, competitionType);
       return NextResponse.json(entries);
     } else {
-      const entries = await service.getAllMatchEntries(year, eventCode);
+      const entries = await service.getAllMatchEntries(year, eventCode, competitionType);
       return NextResponse.json(entries);
     }
   } catch (error) {
