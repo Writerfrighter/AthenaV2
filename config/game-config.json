@@ -147,91 +147,75 @@
     }
   },
   "FTC": {
-    "2025": {
+    "2026": {
       "competitionType": "FTC",
-      "gameName": "INTO THE DEEP",
+      "gameName": "DECODE",
       "scoring": {
         "autonomous": {
-          "park_observation": {
-            "label": "Parked in Observation Zone",
+          "leave": {
+            "label": "Leave Starting Zone",
             "points": 3,
-            "description": "Robot parked in observation zone during autonomous",
+            "description": "Robot leaves starting zone during autonomous",
             "type": "boolean"
           },
-          "specimen_scored_low": {
-            "label": "Specimen Scored (Low Chamber)",
+          "artifacts_classified": {
+            "label": "Artifacts Classified",
+            "points": 3,
+            "description": "Artifacts classified during autonomous"
+          },
+          "artifacts_overflow": {
+            "label": "Artifacts in Overflowed",
+            "points": 1,
+            "description": "Artifacts placed overflowed during autonomous"
+          },
+          "patterns": {
+            "label": "Patterns Completed",
             "points": 6,
-            "description": "Specimen scored on low chamber during autonomous"
-          },
-          "specimen_scored_high": {
-            "label": "Specimen Scored (High Chamber)",
-            "points": 10,
-            "description": "Specimen scored on high chamber during autonomous"
-          },
-          "sample_scored_net": {
-            "label": "Samples in Net Zone",
-            "points": 2,
-            "description": "Samples scored in net zone during autonomous"
-          },
-          "sample_scored_low_basket": {
-            "label": "Samples in Low Basket",
-            "points": 4,
-            "description": "Samples scored in low basket during autonomous"
-          },
-          "sample_scored_high_basket": {
-            "label": "Samples in High Basket",
-            "points": 8,
-            "description": "Samples scored in high basket during autonomous"
+            "description": "Patterns completed at the end of autonomous"
           }
         },
         "teleop": {
-          "specimen_scored_low": {
-            "label": "Specimen Scored (Low Chamber)",
-            "points": 4,
-            "description": "Specimen scored on low chamber during teleop"
+          "artifacts_classified": {
+            "label": "Artifacts Classified",
+            "points": 3,
+            "description": "Artifacts classified during teleop"
           },
-          "specimen_scored_high": {
-            "label": "Specimen Scored (High Chamber)",
+          "artifacts_overflow": {
+            "label": "Artifacts Overflowed",
+            "points": 1,
+            "description": "Artifacts placed overflowed during teleop"
+          },
+          "artifacts_depot": {
+            "label": "Artifacts in Depot",
+            "points": 1,
+            "description": "Artifacts placed in depot during teleop"
+          },
+          "patterns": {
+            "label": "Patterns Completed",
             "points": 6,
-            "description": "Specimen scored on high chamber during teleop"
-          },
-          "sample_scored_net": {
-            "label": "Samples in Net Zone",
-            "points": 2,
-            "description": "Samples scored in net zone during teleop"
-          },
-          "sample_scored_low_basket": {
-            "label": "Samples in Low Basket",
-            "points": 4,
-            "description": "Samples scored in low basket during teleop"
-          },
-          "sample_scored_high_basket": {
-            "label": "Samples in High Basket",
-            "points": 8,
-            "description": "Samples scored in high basket during teleop"
+            "description": "Patterns completed at the end of teleop"
           }
         },
         "endgame": {
-          "ascent_level": {
-            "label": "Ascent Level",
-            "description": "Level of ascent achieved during endgame",
+          "ending_based_state": {
+            "label": "",
+            "description": "Robot's final base state during endgame",
             "pointValues": {
               "none": 0,
-              "level1": 3,
-              "level2": 15,
-              "level3": 30
+              "partial": 5,
+              "full": 10
             }
           }
         },
         "fouls": {
           "minor_penalties": {
             "label": "Minor Penalties",
-            "points": -10,
+            "points": -5,
             "description": "Minor penalties committed"
           },
           "major_penalties": {
             "label": "Major Penalties",
-            "points": -30,
+            "points": -15,
             "description": "Major penalties committed"
           }
         }
