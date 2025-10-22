@@ -216,7 +216,12 @@ export function DynamicMatchScoutForm() {
         });
       }
       
-      setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData);
+      // Keep alliance position and increment match number when resetting form
+      const newFormData = gameConfig ? initializeFormData(gameConfig) : defaultData;
+      newFormData.alliance = formData.alliance;
+      newFormData.alliancePosition = formData.alliancePosition;
+      newFormData.matchNumber = formData.matchNumber + 1;
+      setFormData(newFormData);
     } catch (error) {
       toast.error("Failed to save data", {
         description: error instanceof Error ? error.message : "Unknown error",

@@ -41,11 +41,11 @@ export function YearSelector() {
           ))}
         </SelectContent>
       </Select>
-      {currentConfig && (
+      {/* {currentConfig && (
         <Badge variant="secondary" className="text-xs hidden md:inline-block">
           {currentConfig.gameName}
         </Badge>
-      )}
+      )} */}
     </div>
   );
 }

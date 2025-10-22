@@ -26,7 +26,7 @@ import {
 import { SearchForm } from "./search-form";
 import { useSession } from "next-auth/react";
 
-// This is sample data.
+
 const data = {
   user: {
     name: "Noah Fang",
