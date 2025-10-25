@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
-import { PitEntry, DatabaseService } from '@/db/types';
+import { PitEntry, DatabaseService, CompetitionType } from '@/db/types';
 
 // Initialize database service
 let dbService: DatabaseService;
@@ -12,7 +12,7 @@ function getDbService() {
   return dbService;
 }
 
-// GET /api/database/pit - Get all pit entries or filter by year/team/event
+// GET /api/database/pit - Get all pit entries or filter by year/team/event/competitionType
 export async function GET(request: NextRequest) {
   try {
     console.log('Pit API: Starting request processing');
@@ -20,20 +20,21 @@ export async function GET(request: NextRequest) {
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const teamNumber = searchParams.get('teamNumber') ? parseInt(searchParams.get('teamNumber')!) : undefined;
     const eventCode = searchParams.get('eventCode') || undefined;
+    const competitionType = (searchParams.get('competitionType') as CompetitionType) || undefined;
 
-    console.log('Pit API: Parameters -', { year, teamNumber, eventCode });
+    console.log('Pit API: Parameters -', { year, teamNumber, eventCode, competitionType });
 
     const service = getDbService();
     console.log('Pit API: Database service retrieved');
 
     if (teamNumber && year) {
       console.log('Pit API: Fetching specific pit entry');
-      const entry = await service.getPitEntry(teamNumber, year);
+      const entry = await service.getPitEntry(teamNumber, year, competitionType);
       console.log('Pit API: Found entry:', entry ? 'Yes' : 'No');
       return NextResponse.json(entry || null);
     } else {
       console.log('Pit API: Fetching all pit entries');
-      const entries = await service.getAllPitEntries(year, eventCode);
+      const entries = await service.getAllPitEntries(year, eventCode, competitionType);
       console.log('Pit API: Retrieved entries count:', entries.length);
       return NextResponse.json(entries);
     }

@@ -12,5 +12,6 @@ export type {
   DatabaseConfig,
   ScoutingBlock,
   BlockAssignment,
-  ScoutingBlockWithAssignments
+  ScoutingBlockWithAssignments,
+  CompetitionType
 } from '@/lib/shared-types';

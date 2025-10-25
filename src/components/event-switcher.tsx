@@ -25,6 +25,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -35,6 +42,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useEventConfig } from "@/hooks/use-event-config"
 import { useGameConfig } from "@/hooks/use-game-config"
@@ -58,7 +66,12 @@ function formatDate(date: Date | undefined) {
 export function EventSwitcher() {
   const { isMobile } = useSidebar()
   const { events, selectedEvent, setSelectedEvent, isLoading, error, setEvents } = useEventConfig()
-  const { currentYear } = useGameConfig()
+  const { currentYear, competitionType, config, setCurrentYear, getCurrentYearConfig } = useGameConfig()
+  const currentConfig = getCurrentYearConfig()
+
+  // Get years for the currently selected competition type
+  const availableYears = Object.keys(config[competitionType] || {})
+    .sort((a, b) => parseInt(b) - parseInt(a))
 
   const [addEventDialogOpen, setAddEventDialogOpen] = React.useState(false)
   const [editEventDialogOpen, setEditEventDialogOpen] = React.useState(false)
@@ -345,6 +358,32 @@ export function EventSwitcher() {
               side={isMobile ? "bottom" : "right"}
               sideOffset={4}
             >
+              <DropdownMenuLabel className="text-muted-foreground text-xs">
+                Season
+              </DropdownMenuLabel>
+              <div className="px-2 py-2">
+                <Select
+                  value={currentYear.toString()}
+                  onValueChange={(value) => setCurrentYear(parseInt(value))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableYears.map((year) => (
+                      <SelectItem key={year} value={year}>
+                        <div className="flex items-center gap-2">
+                          <span>{year}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {config[competitionType][year].gameName}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-muted-foreground text-xs">
                 Events
               </DropdownMenuLabel>

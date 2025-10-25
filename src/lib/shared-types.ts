@@ -1,12 +1,17 @@
 // Consolidated types for the Athena scouting application
 // This file centralizes all shared type definitions to reduce redundancy
 
+// ========== COMPETITION TYPES ==========
+
+export type CompetitionType = 'FRC' | 'FTC';
+
 // ========== DATABASE TYPES ==========
 
 export interface PitEntry {
   id?: number;
   teamNumber: number;
   year: number;
+  competitionType: CompetitionType;
   driveTrain: "Swerve" | "Mecanum" | "Tank" | "Other";
   weight: number;
   length: number;
@@ -22,6 +27,7 @@ export interface MatchEntry {
   matchNumber: number;
   teamNumber: number;
   year: number;
+  competitionType: CompetitionType;
   alliance: 'red' | 'blue';
   alliancePosition?: number; // 1, 2, or 3 for alliance position
   eventName?: string;
@@ -41,6 +47,7 @@ export interface CustomEvent {
   location?: string;
   region?: string;
   year: number;
+  competitionType: CompetitionType;
 }
 
 // Database row types for SQL operations
@@ -48,6 +55,7 @@ export interface PitEntryRow {
   id: number;
   teamNumber: number;
   year: number;
+  competitionType: string;
   driveTrain: string;
   weight: number;
   length: number;
@@ -62,6 +70,7 @@ export interface MatchEntryRow {
   matchNumber: number;
   teamNumber: number;
   year: number;
+  competitionType: string;
   alliance: string;
   alliancePosition: number | null;
   eventName: string | null;
@@ -81,6 +90,7 @@ export interface CustomEventRow {
   location: string | null;
   region: string | null;
   year: number;
+  competitionType: string;
 }
 
 // ========== SCHEDULING TYPES ==========
@@ -120,22 +130,22 @@ export interface DatabaseService {
 
   // Pit scouting
   addPitEntry(entry: Omit<PitEntry, 'id'>): Promise<number>;
-  getPitEntry(teamNumber: number, year: number): Promise<PitEntry | undefined>;
-  getAllPitEntries(year?: number, eventCode?: string): Promise<PitEntry[]>;
+  getPitEntry(teamNumber: number, year: number, competitionType?: CompetitionType): Promise<PitEntry | undefined>;
+  getAllPitEntries(year?: number, eventCode?: string, competitionType?: CompetitionType): Promise<PitEntry[]>;
   updatePitEntry(id: number, updates: Partial<PitEntry>): Promise<void>;
   deletePitEntry(id: number): Promise<void>;
 
   // Match scouting
   addMatchEntry(entry: Omit<MatchEntry, 'id'>): Promise<number>;
-  getMatchEntries(teamNumber: number, year?: number): Promise<MatchEntry[]>;
-  getAllMatchEntries(year?: number, eventCode?: string): Promise<MatchEntry[]>;
+  getMatchEntries(teamNumber: number, year?: number, competitionType?: CompetitionType): Promise<MatchEntry[]>;
+  getAllMatchEntries(year?: number, eventCode?: string, competitionType?: CompetitionType): Promise<MatchEntry[]>;
   updateMatchEntry(id: number, updates: Partial<MatchEntry>): Promise<void>;
   deleteMatchEntry(id: number): Promise<void>;
 
   // Custom events
   addCustomEvent(event: Omit<CustomEvent, 'id'>): Promise<number>;
-  getCustomEvent(eventCode: string): Promise<CustomEvent | undefined>;
-  getAllCustomEvents(year?: number): Promise<CustomEvent[]>;
+  getCustomEvent(eventCode: string, competitionType?: CompetitionType): Promise<CustomEvent | undefined>;
+  getAllCustomEvents(year?: number, competitionType?: CompetitionType): Promise<CustomEvent[]>;
   updateCustomEvent(eventCode: string, updates: Partial<CustomEvent>): Promise<void>;
   deleteCustomEvent(eventCode: string): Promise<void>;
 
@@ -165,7 +175,7 @@ export interface DatabaseService {
   getUserPreferredPartners(userId: string): Promise<string[]>;
 
   // Sync operations
-  exportData(year?: number): Promise<{pitEntries: PitEntry[], matchEntries: MatchEntry[]}>;
+  exportData(year?: number, competitionType?: CompetitionType): Promise<{pitEntries: PitEntry[], matchEntries: MatchEntry[]}>;
   importData(data: {pitEntries: PitEntry[], matchEntries: MatchEntry[]}): Promise<void>;
   resetDatabase(): Promise<void>;
   syncToCloud?(): Promise<void>;
@@ -206,6 +216,7 @@ export interface ScoringDefinition {
 }
 
 export interface YearConfig {
+  competitionType: CompetitionType;
   gameName: string;
   scoring: {
     autonomous: Record<string, ScoringDefinition>;
@@ -224,7 +235,12 @@ export interface YearConfig {
 }
 
 export interface GameConfig {
-  [year: string]: YearConfig;
+  FRC: {
+    [year: string]: YearConfig;
+  };
+  FTC: {
+    [year: string]: YearConfig;
+  };
 }
 
 // ========== EVENT TYPES ==========

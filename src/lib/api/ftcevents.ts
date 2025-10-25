@@ -23,17 +23,13 @@ import {
 export type Team = { id: string; name: string };
 
 const BASE = "https://ftc-api.firstinspires.org/v2.0/";
-const USERNAME = process.env.FTC_API_USERNAME!;
-const TOKEN = process.env.FTC_API_TOKEN!;
+const KEY = process.env.FTC_API_KEY!;
 
 async function getFromFtc<T>(path: string): Promise<T> {
   const url = `${BASE}${path}`;
-  const authString = `${USERNAME}:${TOKEN}`;
-  const encodedAuth = Buffer.from(authString).toString('base64');
-
   return fetchJSON<T>(url, {
     headers: {
-      "Authorization": `Basic ${encodedAuth}`,
+      "Authorization": `Basic ${KEY}`,
       "Content-Type": "application/json"
     },
   });
@@ -46,11 +42,11 @@ export function getApiStatus(): Promise<FtcApiStatus> {
 
 /** 2. Season Data **/
 export function getSeasonSummary(season: number): Promise<FtcSeasonSummary> {
-  return getFromFtc<FtcSeasonSummary>(`${season}`);
+  return getFromFtc<FtcSeasonSummary>(`${season-1}`);
 }
 
 export function getSeasonEvents(season: number, eventCode?: string, teamNumber?: number): Promise<FtcEventList> {
-  let path = `${season}/events`;
+  let path = `${season-1}/events`;
   const params = new URLSearchParams();
 
   if (eventCode) params.append('eventCode', eventCode);
@@ -63,7 +59,7 @@ export function getSeasonEvents(season: number, eventCode?: string, teamNumber?:
 }
 
 export function getSeasonTeams(season: number, teamNumber?: number, eventCode?: string, state?: string, page?: number): Promise<FtcTeamList> {
-  let path = `${season}/teams`;
+  let path = `${season-1}/teams`;
   const params = new URLSearchParams();
 
   if (teamNumber) params.append('teamNumber', teamNumber.toString());
@@ -78,7 +74,7 @@ export function getSeasonTeams(season: number, teamNumber?: number, eventCode?: 
 }
 
 export function getSeasonLeagues(season: number, regionCode?: string, leagueCode?: string): Promise<FtcLeagueList> {
-  let path = `${season}/leagues`;
+  let path = `${season-1}/leagues`;
   const params = new URLSearchParams();
 
   if (regionCode) params.append('regionCode', regionCode);
@@ -91,20 +87,20 @@ export function getSeasonLeagues(season: number, regionCode?: string, leagueCode
 }
 
 export function getLeagueMembers(season: number, regionCode: string, leagueCode: string): Promise<FtcLeagueMembers> {
-  return getFromFtc<FtcLeagueMembers>(`${season}/leagues/members/${regionCode}/${leagueCode}`);
+  return getFromFtc<FtcLeagueMembers>(`${season-1}/leagues/members/${regionCode}/${leagueCode}`);
 }
 
 export function getLeagueRankings(season: number, regionCode: string, leagueCode: string): Promise<FtcEventRankings> {
-  return getFromFtc<FtcEventRankings>(`${season}/leagues/rankings/${regionCode}/${leagueCode}`);
+  return getFromFtc<FtcEventRankings>(`${season-1}/leagues/rankings/${regionCode}/${leagueCode}`);
 }
 
 /** 3. Event Data **/
 export function getEventDetails(season: number, eventCode: string): Promise<FtcEvent> {
-  return getFromFtc<FtcEvent>(`${season}/events?eventCode=${eventCode}`);
+  return getFromFtc<FtcEvent>(`${season-1}/events?eventCode=${eventCode}`);
 }
 
 export function getEventRankings(season: number, eventCode: string, teamNumber?: number, top?: number): Promise<FtcEventRankings> {
-  let path = `${season}/rankings/${eventCode}`;
+  let path = `${season-1}/rankings/${eventCode}`;
   const params = new URLSearchParams();
 
   if (teamNumber) params.append('teamNumber', teamNumber.toString());
@@ -117,28 +113,28 @@ export function getEventRankings(season: number, eventCode: string, teamNumber?:
 }
 
 export function getEventAlliances(season: number, eventCode: string): Promise<FtcAllianceSelection> {
-  return getFromFtc<FtcAllianceSelection>(`${season}/alliances/${eventCode}`);
+  return getFromFtc<FtcAllianceSelection>(`${season-1}/alliances/${eventCode}`);
 }
 
 export function getEventAllianceDetails(season: number, eventCode: string): Promise<FtcAllianceSelectionDetail> {
-  return getFromFtc<FtcAllianceSelectionDetail>(`${season}/alliances/${eventCode}/selection`);
+  return getFromFtc<FtcAllianceSelectionDetail>(`${season-1}/alliances/${eventCode}/selection`);
 }
 
 export function getEventAdvancement(season: number, eventCode: string, excludeSkipped?: boolean): Promise<FtcAdvancement> {
-  let path = `${season}/advancement/${eventCode}`;
+  let path = `${season-1}/advancement/${eventCode}`;
   if (excludeSkipped) path += '?excludeSkipped=true';
   return getFromFtc<FtcAdvancement>(path);
 }
 
 export function getEventAdvancementSource(season: number, eventCode: string, includeDeclines?: boolean): Promise<FtcAdvancementSource[]> {
-  let path = `${season}/advancement/${eventCode}/source`;
+  let path = `${season-1}/advancement/${eventCode}/source`;
   if (includeDeclines) path += '?includeDeclines=true';
   return getFromFtc<FtcAdvancementSource[]>(path);
 }
 
 /** 4. Match Data **/
 export function getEventMatches(season: number, eventCode: string, tournamentLevel?: string, teamNumber?: number, matchNumber?: number, start?: number, end?: number): Promise<FtcMatchResults> {
-  let path = `${season}/matches/${eventCode}`;
+  let path = `${season-1}/matches/${eventCode}`;
   const params = new URLSearchParams();
 
   if (tournamentLevel) params.append('tournamentLevel', tournamentLevel);
@@ -154,7 +150,7 @@ export function getEventMatches(season: number, eventCode: string, tournamentLev
 }
 
 export function getEventSchedule(season: number, eventCode: string, tournamentLevel?: string, teamNumber?: number, start?: number, end?: number): Promise<FtcMatchSchedule> {
-  let path = `${season}/schedule/${eventCode}`;
+  let path = `${season-1}/schedule/${eventCode}`;
   const params = new URLSearchParams();
 
   if (tournamentLevel) params.append('tournamentLevel', tournamentLevel);
@@ -169,7 +165,7 @@ export function getEventSchedule(season: number, eventCode: string, tournamentLe
 }
 
 export function getEventScores(season: number, eventCode: string, tournamentLevel: string, teamNumber?: number, matchNumber?: number, start?: number, end?: number): Promise<FtcScoreDetailsList> {
-  let path = `${season}/scores/${eventCode}/${tournamentLevel}`;
+  let path = `${season-1}/scores/${eventCode}/${tournamentLevel}`;
   const params = new URLSearchParams();
 
   if (teamNumber) params.append('teamNumber', teamNumber.toString());
@@ -185,20 +181,20 @@ export function getEventScores(season: number, eventCode: string, tournamentLeve
 
 /** 5. Awards **/
 export function getSeasonAwardListings(season: number): Promise<FtcAwardListings> {
-  return getFromFtc<FtcAwardListings>(`${season}/awards/list`);
+  return getFromFtc<FtcAwardListings>(`${season-1}/awards/list`);
 }
 
 export function getEventAwards(season: number, eventCode?: string, teamNumber?: number): Promise<FtcAwardsList> {
-  let path = `${season}/awards/${eventCode || teamNumber}`;
+  let path = `${season-1}/awards/${eventCode || teamNumber}`;
   if (eventCode && teamNumber) {
-    path = `${season}/awards/${eventCode}/${teamNumber}`;
+    path = `${season-1}/awards/${eventCode}/${teamNumber}`;
   }
   return getFromFtc<FtcAwardsList>(path);
 }
 
 /** 6. Team Data **/
 export function getTeamInfo(season: number, teamNumber: number): Promise<FtcTeam> {
-  return getFromFtc<FtcTeam>(`${season}/teams?teamNumber=${teamNumber}`);
+  return getFromFtc<FtcTeam>(`${season-1}/teams?teamNumber=${teamNumber}`);
 }
 
 /** Helper Functions **/

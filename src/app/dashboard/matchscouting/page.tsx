@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { YearSelector } from "@/components/year-selector";
 import { Plus, AlertCircle, Database, Trophy, Download } from "lucide-react";
 import { toast } from "sonner";
 import { MatchScoutingTable } from "@/components/match-scouting-table";
@@ -213,7 +212,6 @@ export default function MatchScoutingPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <YearSelector />
           <Button variant="outline" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Export

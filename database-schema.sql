@@ -19,6 +19,7 @@ CREATE TABLE pitEntries (
     id INT IDENTITY(1,1) PRIMARY KEY,
     teamNumber INT NOT NULL,
     year INT NOT NULL,
+    competitionType NVARCHAR(10) DEFAULT 'FRC' NOT NULL,
     driveTrain NVARCHAR(50) NOT NULL, -- 'Swerve', 'Mecanum', 'Tank', 'Other'
     weight DECIMAL(10,2) NOT NULL,
     length DECIMAL(10,2) NOT NULL,
@@ -36,6 +37,7 @@ CREATE TABLE matchEntries (
     matchNumber INT NOT NULL,
     teamNumber INT NOT NULL,
     year INT NOT NULL,
+    competitionType NVARCHAR(10) DEFAULT 'FRC' NOT NULL,
     alliance NVARCHAR(10) NOT NULL, -- 'red' or 'blue'
     alliancePosition INT, -- 1, 2, or 3 for alliance position (Red 1, Red 2, Red 3, etc.)
     eventName NVARCHAR(255),
@@ -58,6 +60,7 @@ CREATE TABLE customEvents (
     location NVARCHAR(255), -- Optional location/city
     region NVARCHAR(100), -- Optional region/state
     year INT NOT NULL, -- FRC year
+    competitionType NVARCHAR(10) DEFAULT 'FRC' NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
     updated_at DATETIME DEFAULT GETDATE()
 );
@@ -95,5 +98,8 @@ CREATE TABLE blockAssignments (
 CREATE INDEX idx_scouting_blocks_event ON scoutingBlocks(eventCode, year);
 CREATE INDEX idx_block_assignments_user ON blockAssignments(userId);
 CREATE INDEX idx_block_assignments_block ON blockAssignments(blockId);
+CREATE INDEX idx_pit_entries_competition ON pitEntries(competitionType, year);
+CREATE INDEX idx_match_entries_competition ON matchEntries(competitionType, year);
+CREATE INDEX idx_custom_events_competition ON customEvents(competitionType, year);
 
 
