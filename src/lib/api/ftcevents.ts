@@ -23,7 +23,7 @@ import {
 export type Team = { id: string; name: string };
 
 const BASE = "https://ftc-api.firstinspires.org/v2.0/";
-const USERNAME = process.env.FTC_API_USERNAME!;
+const USERNAME = process.env.FTC_API_USER!;
 const TOKEN = process.env.FTC_API_TOKEN!;
 
 async function getFromFtc<T>(path: string): Promise<T> {

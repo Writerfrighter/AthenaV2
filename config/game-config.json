@@ -247,7 +247,7 @@
             "options": ["Ground pickup", "Wall pickup", "Both", "None"]
           },
           {
-            "name": "ascentCapability",
+            "name": "ascentCapability",                                                                                                                                                                                                                                                                                                                                                                                                                                       
             "label": "Ascent Capability",
             "type": "select",
             "options": ["No ascent", "Level 1 only", "Level 2 only", "Level 3 only", "Multiple levels"]

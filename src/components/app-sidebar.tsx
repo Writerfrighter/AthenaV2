@@ -16,8 +16,6 @@ import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
 import { EventSwitcher } from "@/components/event-switcher";
-import { CompetitionSelector } from "@/components/competition-selector";
-import { YearSelector } from "@/components/year-selector";
 import {
   Sidebar,
   SidebarContent,
@@ -116,10 +114,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar collapsible="icon" {...props} variant="floating">
       <SidebarHeader>
         <EventSwitcher />
-        <div className="flex items-center gap-2 px-2 py-2">
-          <CompetitionSelector />
-          <YearSelector />
-        </div>
         <SearchForm />
       </SidebarHeader>
       <SidebarContent>

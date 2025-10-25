@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import type { Event } from '@/lib/shared-types';
 import { useGameConfig } from '@/hooks/use-game-config';
 import { TbaEvent } from '@/lib/api/tba-types';
+import { FtcEvent } from '@/lib/api/ftcevents-types';
 import type { CustomEvent } from '@/lib/shared-types';
 
 interface EventContextType {
@@ -18,7 +19,7 @@ interface EventContextType {
 const EventContext = createContext<EventContextType | undefined>(undefined);
 
 export function EventProvider({ children }: { children: ReactNode }) {
-  const { currentYear } = useGameConfig();
+  const { currentYear, competitionType } = useGameConfig();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,22 +33,43 @@ export function EventProvider({ children }: { children: ReactNode }) {
         setIsLoading(true);
         setError(null);
 
-        // Fetch TBA events
+        // Fetch TBA events (only for FRC, as TBA doesn't support FTC)
         let tbaEvents: Event[] = [];
-        try {
-          const tbaResponse = await fetch(`/api/tba/team/${492}/events/${currentYear}`);
-          if (tbaResponse.ok) {
-            const tbaEventData = await tbaResponse.json();
+        if (competitionType === 'FRC') {
+          try {
+            const teamNumber = 492; // FRC team number
+            const tbaResponse = await fetch(`/api/tba/team/${teamNumber}/events/${currentYear}`);
+            if (tbaResponse.ok) {
+              const tbaEventData = await tbaResponse.json();
 
-            // Transform TBA events to our Event format
-            tbaEvents = tbaEventData.map((tbaEvent: TbaEvent) => ({
-              name: tbaEvent.name,
-              region: `${tbaEvent.event_code.toUpperCase()}: ${tbaEvent.year}`,
-              code: tbaEvent.key,
-            }));
+              // Transform TBA events to our Event format
+              tbaEvents = tbaEventData.map((tbaEvent: TbaEvent) => ({
+                name: tbaEvent.name,
+                region: `${tbaEvent.event_code.toUpperCase()}: ${tbaEvent.year}`,
+                code: tbaEvent.key,
+              }));
+            }
+          } catch (tbaError) {
+            console.warn('Failed to fetch TBA events, continuing with custom events only:', tbaError);
           }
-        } catch (tbaError) {
-          console.warn('Failed to fetch TBA events, continuing with custom events only:', tbaError);
+        } else if (competitionType === 'FTC') {
+          // Fetch FTC events
+          try {
+            const teamNumber = 3543; // FTC team number
+            const ftcResponse = await fetch(`/api/ftc/team/${teamNumber}/events/${currentYear}`);
+            if (ftcResponse.ok) {
+              const ftcEventData = await ftcResponse.json();
+
+              // Transform FTC events to our Event format
+              tbaEvents = ftcEventData.map((ftcEvent: FtcEvent) => ({
+                name: ftcEvent.name || 'Unknown Event',
+                region: `${ftcEvent.city || ''}${ftcEvent.city && ftcEvent.stateprov ? ', ' : ''}${ftcEvent.stateprov || ''}` || ftcEvent.typeName || 'FTC Event',
+                code: ftcEvent.code || ftcEvent.eventId,
+              }));
+            }
+          } catch (ftcError) {
+            console.warn('Failed to fetch FTC events, continuing with custom events only:', ftcError);
+          }
         }
 
         // Fetch custom events
@@ -85,7 +107,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
     };
 
     fetchEvents();
-  }, [currentYear]);
+  }, [currentYear, competitionType]);
 
   // Load selected event from localStorage on mount
   useEffect(() => {

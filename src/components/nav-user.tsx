@@ -5,11 +5,13 @@ import {
   Bell,
   ChevronsUpDown,
   LogOut,
+  Trophy,
 } from "lucide-react"
 
 import { useAccountSettingsDialog } from "@/app/dashboard/layout"
 import { useNotificationSettingsDialog } from "@/app/dashboard/layout"
 import { signOut } from "next-auth/react"
+import { useGameConfig } from "@/hooks/use-game-config"
 
 import {
   Avatar,
@@ -42,6 +44,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const { competitionType, setCompetitionType } = useGameConfig()
   
   // Call the hook unconditionally at the top level
   const accountSettingsDialog = useAccountSettingsDialog();
@@ -51,6 +54,11 @@ export function NavUser({
 
   const handleLogout = () => {
     signOut({ callbackUrl: "/" });
+  };
+
+  const handleSwitchProgram = () => {
+    const newType = competitionType === 'FRC' ? 'FTC' : 'FRC';
+    setCompetitionType(newType);
   };
 
   return (
@@ -107,6 +115,10 @@ export function NavUser({
               <DropdownMenuItem onClick={() => openNotificationSettings && openNotificationSettings()}>
                 <Bell />
                 Notifications
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSwitchProgram}>
+                <Trophy />
+                Switch to {competitionType === 'FRC' ? 'FTC' : 'FRC'}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
