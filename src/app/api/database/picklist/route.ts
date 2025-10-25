@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
-import { DatabaseService } from '@/db/types';
+import { DatabaseService, CompetitionType } from '@/db/types';
 import { calculateEPA } from '@/lib/statistics';
 import gameConfigRaw from '../../../../../config/game-config.json';
 
@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const eventCode = searchParams.get('eventCode');
+    const competitionType = (searchParams.get('competitionType') as CompetitionType) || 'FRC';
 
     const service = getDbService();
 
@@ -97,9 +98,9 @@ export async function GET(request: NextRequest) {
       const teamNumber = parseInt(teamNumberStr);
       const teamMatches = filteredMatchEntries.filter(entry => entry.teamNumber === teamNumber);
 
-      if (teamMatches.length > 0 && year && gameConfig[year.toString()]) {
+      if (teamMatches.length > 0 && year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()]) {
         try {
-          const yearConfig = gameConfig[year.toString() as keyof typeof gameConfig];
+          const yearConfig = gameConfig[competitionType][year.toString()];
           const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
 
           teamData[teamNumber].autoEPA = epaBreakdown.auto;

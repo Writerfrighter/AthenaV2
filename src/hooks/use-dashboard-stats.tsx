@@ -29,7 +29,7 @@ export interface DashboardStats {
 
 export function useDashboardStats() {
   const selectedEvent = useSelectedEvent();
-  const { currentYear, getCurrentYearConfig } = useGameConfig();
+  const { currentYear, getCurrentYearConfig, competitionType } = useGameConfig();
   const gameConfig = getCurrentYearConfig();
   const [stats, setStats] = useState<DashboardStats>({
     teamsScouted: 0,
@@ -93,7 +93,7 @@ export function useDashboardStats() {
         }
         // const qualMatchesCount = 0;
         // Fetch stats from API
-        const apiStats = await statsApi.getDashboardStats(currentYear, selectedEvent.code);
+        const apiStats = await statsApi.getDashboardStats(currentYear, selectedEvent.code, competitionType);
 
         // Transform API response to hook format
         const transformedStats: DashboardStats = {
@@ -132,7 +132,7 @@ export function useDashboardStats() {
     }
 
     fetchStats();
-  }, [selectedEvent, currentYear, gameConfig]);
+  }, [selectedEvent, currentYear, gameConfig, competitionType]);
 
   return { stats, loading, error };
 }

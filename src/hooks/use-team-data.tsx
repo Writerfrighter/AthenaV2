@@ -8,7 +8,7 @@ import type { TeamData } from '@/lib/shared-types';
 
 export function useTeamData(teamNumber: string) {
   const selectedEvent = useSelectedEvent();
-  const { currentYear } = useGameConfig();
+  const { currentYear, competitionType } = useGameConfig();
   const [teamData, setTeamData] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +23,8 @@ export function useTeamData(teamNumber: string) {
         const data = await teamApi.getTeamData(
           parseInt(teamNumber), 
           currentYear, 
-          selectedEvent?.code
+          selectedEvent?.code,
+          competitionType
         );
         // console.log("Fetched team data:", data);
 
@@ -41,7 +42,7 @@ export function useTeamData(teamNumber: string) {
     } else {
       setLoading(false);
     }
-  }, [teamNumber, currentYear, selectedEvent?.code]);
+  }, [teamNumber, currentYear, selectedEvent?.code, competitionType]);
 
   return { teamData, loading, error };
 }

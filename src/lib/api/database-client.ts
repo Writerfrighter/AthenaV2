@@ -170,30 +170,33 @@ export const matchApi = {
 
 // Statistics and analysis operations
 export const statsApi = {
-  async getDashboardStats(year?: number, eventCode?: string): Promise<DashboardStats> {
+  async getDashboardStats(year?: number, eventCode?: string, competitionType?: string): Promise<DashboardStats> {
     const params = new URLSearchParams();
     if (year) params.append('year', year.toString());
     if (eventCode) params.append('eventCode', eventCode);
+    if (competitionType) params.append('competitionType', competitionType);
 
     const response = await fetch(`${API_BASE}/stats?${params}`);
     if (!response.ok) throw new Error('Failed to fetch dashboard stats');
     return response.json();
   },
 
-  async getAnalysisData(year?: number, eventCode?: string): Promise<AnalysisData> {
+  async getAnalysisData(year?: number, eventCode?: string, competitionType?: string): Promise<AnalysisData> {
     const params = new URLSearchParams();
     if (year) params.append('year', year.toString());
     if (eventCode) params.append('eventCode', eventCode);
+    if (competitionType) params.append('competitionType', competitionType);
 
     const response = await fetch(`${API_BASE}/analysis?${params}`);
     if (!response.ok) throw new Error('Failed to fetch analysis data');
     return response.json();
   },
 
-  async getPicklistData(year?: number, eventCode?: string): Promise<PicklistData> {
+  async getPicklistData(year?: number, eventCode?: string, competitionType?: string): Promise<PicklistData> {
     const params = new URLSearchParams();
     if (year) params.append('year', year.toString());
     if (eventCode) params.append('eventCode', eventCode);
+    if (competitionType) params.append('competitionType', competitionType);
 
     const response = await fetch(`${API_BASE}/picklist?${params}`);
     if (!response.ok) throw new Error('Failed to fetch picklist data');
@@ -203,11 +206,12 @@ export const statsApi = {
 
 // Team data operations
 export const teamApi = {
-  async getTeamData(teamNumber: number, year?: number, eventCode?: string): Promise<TeamData> {
+  async getTeamData(teamNumber: number, year?: number, eventCode?: string, competitionType?: string): Promise<TeamData> {
     const params = new URLSearchParams();
     params.append('teamNumber', teamNumber.toString());
     if (year) params.append('year', year.toString());
     if (eventCode) params.append('eventCode', eventCode);
+    if (competitionType) params.append('competitionType', competitionType);
 
     const response = await fetch(`${API_BASE}/team?${params}`);
     if (!response.ok) throw new Error('Failed to fetch team data');

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
-import { DatabaseService, MatchEntry } from '@/db/types';
+import { DatabaseService, MatchEntry, CompetitionType } from '@/db/types';
 import { calculateEPA, calculateTeamStats } from '@/lib/statistics';
 import gameConfigRaw from '../../../../../config/game-config.json';
 
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const teamNumber = searchParams.get('teamNumber');
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const eventCode = searchParams.get('eventCode');
+    const competitionType = (searchParams.get('competitionType') as CompetitionType) || 'FRC';
 
     if (!teamNumber) {
       return NextResponse.json({ error: 'Team number is required' }, { status: 400 });
@@ -46,9 +47,9 @@ export async function GET(request: NextRequest) {
     let teamStats = null;
     let epaBreakdown = null;
 
-    if (filteredMatchEntries.length > 0 && year && gameConfig[year.toString()]) {
+    if (filteredMatchEntries.length > 0 && year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()]) {
       try {
-        const yearConfig = gameConfig[year.toString() as keyof typeof gameConfig];
+        const yearConfig = gameConfig[competitionType][year.toString()];
         teamStats = calculateTeamStats(filteredMatchEntries, year, yearConfig);
         epaBreakdown = calculateEPA(filteredMatchEntries, year, yearConfig);
       } catch (error) {

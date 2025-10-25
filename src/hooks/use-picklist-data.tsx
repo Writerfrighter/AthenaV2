@@ -17,7 +17,7 @@ export interface PicklistTeam {
 
 export function usePicklistData() {
   const selectedEvent = useSelectedEvent();
-  const { currentYear, getCurrentYearConfig } = useGameConfig();
+  const { currentYear, getCurrentYearConfig, competitionType } = useGameConfig();
   const gameConfig = getCurrentYearConfig();
   const [teams, setTeams] = useState<PicklistTeam[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +35,7 @@ export function usePicklistData() {
         setError(null);
 
         // Fetch picklist data from API
-        const apiData = await statsApi.getPicklistData(currentYear, selectedEvent.code);
+        const apiData = await statsApi.getPicklistData(currentYear, selectedEvent.code, competitionType);
 
         // Transform API response to hook format
         const transformedTeams: PicklistTeam[] = apiData.teams.map(team => ({
@@ -58,7 +58,7 @@ export function usePicklistData() {
     }
 
     fetchPicklistData();
-  }, [selectedEvent?.code, currentYear, gameConfig]);
+  }, [selectedEvent?.code, currentYear, gameConfig, competitionType]);
 
   return { teams, loading, error };
 }

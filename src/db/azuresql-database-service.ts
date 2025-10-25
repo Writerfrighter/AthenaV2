@@ -129,14 +129,29 @@ export class AzureSqlDatabaseService implements DatabaseService {
         id INT IDENTITY(1,1) PRIMARY KEY,
         teamNumber INT NOT NULL,
         year INT NOT NULL,
+        competitionType NVARCHAR(10) DEFAULT 'FRC' NOT NULL,
         driveTrain NVARCHAR(50) NOT NULL,
         weight DECIMAL(10,2) NOT NULL,
         length DECIMAL(10,2) NOT NULL,
         width DECIMAL(10,2) NOT NULL,
         eventName NVARCHAR(255),
         eventCode NVARCHAR(50),
-        gameSpecificData NVARCHAR(MAX)
+        gameSpecificData NVARCHAR(MAX),
+        created_at DATETIME DEFAULT GETDATE(),
+        updated_at DATETIME DEFAULT GETDATE()
       )
+    `);
+
+    // Add competitionType column to pitEntries if it doesn't exist (migration for existing tables)
+    await pool.request().query(`
+      IF NOT EXISTS (
+        SELECT * FROM sys.columns 
+        WHERE object_id = OBJECT_ID('pitEntries') 
+        AND name = 'competitionType'
+      )
+      BEGIN
+        ALTER TABLE pitEntries ADD competitionType NVARCHAR(10) NOT NULL DEFAULT 'FRC'
+      END
     `);
 
     // Create matchEntries table
@@ -147,14 +162,29 @@ export class AzureSqlDatabaseService implements DatabaseService {
         matchNumber INT NOT NULL,
         teamNumber INT NOT NULL,
         year INT NOT NULL,
+        competitionType NVARCHAR(10) DEFAULT 'FRC' NOT NULL,
         alliance NVARCHAR(10) NOT NULL,
         alliancePosition INT,
         eventName NVARCHAR(255),
         eventCode NVARCHAR(50),
         gameSpecificData NVARCHAR(MAX),
         notes NVARCHAR(MAX),
-        timestamp DATETIME2 NOT NULL
+        timestamp DATETIME2 NOT NULL,
+        created_at DATETIME DEFAULT GETDATE(),
+        updated_at DATETIME DEFAULT GETDATE()
       )
+    `);
+
+    // Add competitionType column to matchEntries if it doesn't exist (migration for existing tables)
+    await pool.request().query(`
+      IF NOT EXISTS (
+        SELECT * FROM sys.columns 
+        WHERE object_id = OBJECT_ID('matchEntries') 
+        AND name = 'competitionType'
+      )
+      BEGIN
+        ALTER TABLE matchEntries ADD competitionType NVARCHAR(10) NOT NULL DEFAULT 'FRC'
+      END
     `);
 
     // Add alliancePosition column if it doesn't exist (migration for existing tables)
@@ -180,9 +210,22 @@ export class AzureSqlDatabaseService implements DatabaseService {
         location NVARCHAR(255),
         region NVARCHAR(100),
         year INT NOT NULL,
+        competitionType NVARCHAR(10) DEFAULT 'FRC' NOT NULL,
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE()
       )
+    `);
+
+    // Add competitionType column to customEvents if it doesn't exist (migration for existing tables)
+    await pool.request().query(`
+      IF NOT EXISTS (
+        SELECT * FROM sys.columns 
+        WHERE object_id = OBJECT_ID('customEvents') 
+        AND name = 'competitionType'
+      )
+      BEGIN
+        ALTER TABLE customEvents ADD competitionType NVARCHAR(10) NOT NULL DEFAULT 'FRC'
+      END
     `);
 
     // Create scoutingBlocks table

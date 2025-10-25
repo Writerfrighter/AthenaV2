@@ -25,13 +25,17 @@ export default function PitScoutingPage() {
   const [entryToDelete, setEntryToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const { getCurrentYearConfig, currentYear } = useGameConfig();
+  const { getCurrentYearConfig, currentYear, competitionType } = useGameConfig();
   const gameConfig = getCurrentYearConfig();
   const { selectedEvent } = useEventConfig();
   const handleExport = async () => {
     try {
       const eventCode = selectedEvent?.code;
-      const url = eventCode ? `/api/database/pit?eventCode=${encodeURIComponent(eventCode)}` : '/api/database/pit';
+      const params = new URLSearchParams();
+      if (eventCode) params.append('eventCode', eventCode);
+      params.append('competitionType', competitionType);
+      
+      const url = `/api/database/pit?${params.toString()}`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch data for export');
@@ -105,7 +109,11 @@ export default function PitScoutingPage() {
       setError(null);
 
       const eventCode = selectedEvent?.code;
-      const url = eventCode ? `/api/database/pit?eventCode=${encodeURIComponent(eventCode)}` : '/api/database/pit';
+      const params = new URLSearchParams();
+      if (eventCode) params.append('eventCode', eventCode);
+      params.append('competitionType', competitionType);
+      
+      const url = `/api/database/pit?${params.toString()}`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to fetch pit entries: ${response.statusText}`);
@@ -123,7 +131,7 @@ export default function PitScoutingPage() {
 
   useEffect(() => {
     fetchPitEntries();
-  }, [selectedEvent]);
+  }, [selectedEvent, competitionType]);
 
   // Handle edit
   const handleEdit = (entry: PitEntry) => {

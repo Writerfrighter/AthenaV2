@@ -22,7 +22,7 @@ export interface AnalysisStats {
 
 export function useAnalysisStats() {
   const selectedEvent = useSelectedEvent();
-  const { currentYear, getCurrentYearConfig } = useGameConfig();
+  const { currentYear, getCurrentYearConfig, competitionType } = useGameConfig();
   const gameConfig = getCurrentYearConfig();
   const [stats, setStats] = useState<AnalysisStats>({
     teamsAnalyzed: 0,
@@ -46,7 +46,7 @@ export function useAnalysisStats() {
         setError(null);
 
         // Fetch analysis data from API
-        const apiStats = await statsApi.getAnalysisData(currentYear, selectedEvent.code);
+        const apiStats = await statsApi.getAnalysisData(currentYear, selectedEvent.code, competitionType);
 
         // Transform API response to hook format
         const transformedStats: AnalysisStats = {
@@ -74,7 +74,7 @@ export function useAnalysisStats() {
     }
 
     fetchAnalysisStats();
-  }, [selectedEvent, currentYear, gameConfig]);
+  }, [selectedEvent, currentYear, gameConfig, competitionType]);
 
   return { stats, loading, error };
 }

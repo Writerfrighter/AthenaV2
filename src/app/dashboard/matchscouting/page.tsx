@@ -25,7 +25,7 @@ export default function MatchScoutingPage() {
   const [entryToDelete, setEntryToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const { getCurrentYearConfig, currentYear } = useGameConfig();
+  const { getCurrentYearConfig, currentYear, competitionType } = useGameConfig();
   const gameConfig = getCurrentYearConfig();
   const { selectedEvent } = useEventConfig();
 
@@ -33,7 +33,11 @@ export default function MatchScoutingPage() {
   const handleExport = async () => {
     try {
       const eventCode = selectedEvent?.code;
-      const url = eventCode ? `/api/database/match?eventCode=${encodeURIComponent(eventCode)}` : '/api/database/match';
+      const params = new URLSearchParams();
+      if (eventCode) params.append('eventCode', eventCode);
+      params.append('competitionType', competitionType);
+      
+      const url = `/api/database/match?${params.toString()}`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch data for export');
@@ -103,7 +107,11 @@ export default function MatchScoutingPage() {
       setError(null);
 
       const eventCode = selectedEvent?.code;
-      const url = eventCode ? `/api/database/match?eventCode=${encodeURIComponent(eventCode)}` : '/api/database/match';
+      const params = new URLSearchParams();
+      if (eventCode) params.append('eventCode', eventCode);
+      params.append('competitionType', competitionType);
+      
+      const url = `/api/database/match?${params.toString()}`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to fetch match entries: ${response.statusText}`);
@@ -121,7 +129,7 @@ export default function MatchScoutingPage() {
 
   useEffect(() => {
     fetchMatchEntries();
-  }, [selectedEvent]);
+  }, [selectedEvent, competitionType]);
 
   // Handle edit
   const handleEdit = (entry: MatchEntry) => {

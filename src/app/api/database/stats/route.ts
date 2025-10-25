@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseManager } from '@/db/database-manager';
+import { CompetitionType } from '@/db/types';
 import { calculateEPA } from '@/lib/statistics';
 import gameConfigRaw from '../../../../../config/game-config.json';
 
@@ -18,8 +19,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const eventCode = searchParams.get('eventCode');
+    const competitionType = (searchParams.get('competitionType') as CompetitionType) || 'FRC';
 
-    console.log('Stats API: Parameters -', { year, eventCode });
+    console.log('Stats API: Parameters -', { year, eventCode, competitionType });
 
     const service = getDbService();
     console.log('Stats API: Database service retrieved');
@@ -64,9 +66,9 @@ export async function GET(request: NextRequest) {
       // let avgEPA = 0;
       let totalEPA = 0;
 
-      if (teamMatches.length > 0 && year && gameConfig[year.toString()]) {
+      if (teamMatches.length > 0 && year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()]) {
         try {
-          const yearConfig = gameConfig[year.toString() as keyof typeof gameConfig];
+          const yearConfig = gameConfig[competitionType][year.toString()];
           const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
           // avgEPA = epaBreakdown.totalEPA;
           totalEPA = epaBreakdown.totalEPA;
