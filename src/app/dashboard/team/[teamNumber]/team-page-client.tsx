@@ -1,6 +1,5 @@
 'use client';
 
-import { YearSelector } from '@/components/year-selector';
 import { useGameConfig } from '@/hooks/use-game-config';
 import { Team2025Page } from '@/components/team-pages/team-2025-page';
 
@@ -33,7 +32,6 @@ export default function TeamPageClient({ teamNumber }: TeamPageClientProps) {
       <div className="bg-white/80 dark:bg-background/80 border-b sticky top-0 z-50 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-3 py-3 flex items-center justify-between">
           <h1 className="text-xl font-semibold">{teamNumber} Team Analysis</h1>
-          <YearSelector />
         </div>
       </div>
 

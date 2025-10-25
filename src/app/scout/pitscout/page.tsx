@@ -4,7 +4,6 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
-import { YearSelector } from "@/components/year-selector";
 import { DynamicPitScoutForm } from "@/components/dynamic-pit-scout-form";
 import { OfflineStatusWidget } from "@/components/offline-status-widget";
 import { useSelectedEvent } from "@/hooks/use-event-config";
@@ -34,7 +33,6 @@ export default function Page() {
           {/* Year selector on second row */}
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
             <div className="flex items-center gap-3">
-              <YearSelector />
               {selectedEvent && (
                 <Badge variant="outline" className="text-xs">
                   {selectedEvent.name}
