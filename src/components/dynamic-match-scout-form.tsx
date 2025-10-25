@@ -460,10 +460,18 @@ export function DynamicMatchScoutForm() {
               <SelectContent>
                 <SelectItem value="red-1">Red 1</SelectItem>
                 <SelectItem value="red-2">Red 2</SelectItem>
-                <SelectItem value="red-3">Red 3</SelectItem>
+                {competitionType === 'FRC' && (
+                  <>
+                    <SelectItem value="red-3">Red 3</SelectItem>
+                  </>
+                )}
                 <SelectItem value="blue-1">Blue 1</SelectItem>
                 <SelectItem value="blue-2">Blue 2</SelectItem>
-                <SelectItem value="blue-3">Blue 3</SelectItem>
+                {competitionType === 'FRC' && (
+                  <>
+                    <SelectItem value="blue-3">Blue 3</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>

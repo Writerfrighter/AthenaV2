@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSelectedEvent } from './use-event-config';
+import { useGameConfig } from './use-game-config';
 
 export interface TeamInfo {
   teamNumber: number;
@@ -17,6 +18,7 @@ interface TeamState {
 
 export function useEventTeams() {
   const selectedEvent = useSelectedEvent();
+  const { competitionType } = useGameConfig();
   const [teamState, setTeamState] = useState<TeamState>({
     teams: [],
     loading: false,
@@ -41,8 +43,8 @@ export function useEventTeams() {
       }));
 
       try {
-        // Fetch data from our server-side API route
-        const response = await fetch(`/api/events/${selectedEvent.code}/teams`);
+        // Fetch data from our server-side API route with competition type
+        const response = await fetch(`/api/events/${selectedEvent.code}/teams?competitionType=${competitionType}`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -58,7 +60,7 @@ export function useEventTeams() {
         const teams: TeamInfo[] = (data || []).map((team: { team_number: number; nickname?: string; key?: string }) => ({
           teamNumber: team.team_number,
           nickname: team.nickname || `Team ${team.team_number}`,
-          key: team.key || `frc${team.team_number}`,
+          key: team.key || `${competitionType.toLowerCase()}${team.team_number}`,
         }));
 
         setTeamState({
@@ -78,7 +80,7 @@ export function useEventTeams() {
     }
 
     fetchTeams();
-  }, [selectedEvent?.code]);
+  }, [selectedEvent?.code, competitionType]);
 
   return teamState;
 }

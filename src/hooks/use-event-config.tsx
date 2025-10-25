@@ -19,7 +19,7 @@ interface EventContextType {
 const EventContext = createContext<EventContextType | undefined>(undefined);
 
 export function EventProvider({ children }: { children: ReactNode }) {
-  const { currentYear, competitionType } = useGameConfig();
+  const { currentYear, competitionType, isInitialized } = useGameConfig();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +28,9 @@ export function EventProvider({ children }: { children: ReactNode }) {
 
   // Fetch events from TBA API and custom events
   useEffect(() => {
+    // Don't fetch until game config is initialized
+    if (!isInitialized) return;
+
     const fetchEvents = async () => {
       try {
         setIsLoading(true);
@@ -107,7 +110,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
     };
 
     fetchEvents();
-  }, [currentYear, competitionType]);
+  }, [currentYear, competitionType, isInitialized]);
 
   // Load selected event from localStorage on mount
   useEffect(() => {

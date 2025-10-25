@@ -11,12 +11,14 @@ interface GameConfigContextType {
   setCurrentYear: (year: number) => void;
   setCompetitionType: (type: CompetitionType) => void;
   getCurrentYearConfig: () => YearConfig | undefined;
+  isInitialized: boolean;
 }
 
 const GameConfigContext = createContext<GameConfigContextType | undefined>(undefined);
 
 export function GameConfigProvider({ children }: { children: ReactNode }) {
   const config = gameConfig as GameConfig;
+  const [isInitialized, setIsInitialized] = useState(false);
   const [competitionType, setCompetitionTypeState] = useState<CompetitionType>('FRC');
   const [currentYear, setCurrentYear] = useState<number>(2025); // Default to current season
 
@@ -26,6 +28,7 @@ export function GameConfigProvider({ children }: { children: ReactNode }) {
     if (savedType && (savedType === 'FRC' || savedType === 'FTC')) {
       setCompetitionTypeState(savedType as CompetitionType);
     }
+    setIsInitialized(true);
   }, []);
 
   useEffect(() => {
@@ -65,7 +68,8 @@ export function GameConfigProvider({ children }: { children: ReactNode }) {
       competitionType,
       setCurrentYear,
       setCompetitionType,
-      getCurrentYearConfig
+      getCurrentYearConfig,
+      isInitialized
     }}>
       {children}
     </GameConfigContext.Provider>
