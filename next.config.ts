@@ -14,8 +14,7 @@ const nextConfig: NextConfig = {
           source: '/:path*',
           has: [
             {
-              type: 'host',
-              key: 'host',
+              type: 'host' as const,
               value: 'www.trcscouting.com'
             }
           ],
@@ -33,6 +32,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Empty Turbopack config to silence Next.js 16 warning
+  // The webpack config below will still be used when needed
+  turbopack: {},
   webpack: (config, { isServer }) => {
     // Exclude database service from client-side bundles
     if (!isServer) {
