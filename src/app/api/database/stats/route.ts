@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     const teamsPerMatch = competitionType === 'FRC' ? 6 : 4;
     const expectedMatches = uniqueTeamCount * teamsPerMatch;
     const matchCompletion = expectedMatches > 0 ? (totalMatches / expectedMatches) * 100 : 0;
-    console.log(matchEntries);
+    // console.log(matchEntries);
     // Calculate EPA-like metrics using proper EPA calculation
     const teamStats = Array.from(uniqueTeams).map(teamNumber => {
       const teamMatches = matchEntries.filter(entry => entry.teamNumber === teamNumber);

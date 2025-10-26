@@ -448,7 +448,7 @@ export function EventSwitcher() {
           <DialogHeader>
             <DialogTitle>Add Custom Event</DialogTitle>
             <DialogDescription>
-              Create a new custom event not available on The Blue Alliance.
+              Create a new custom event not available on the web.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

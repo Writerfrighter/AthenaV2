@@ -61,7 +61,7 @@ interface ReefscapeData {
   teleop_missed_algae: number;
 }
 
-export function Team2025Page({ teamNumber }: Team2025PageProps) {
+export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
   const [searchNote, setSearchNote] = useState("");
   const { teamData, loading, error } = useTeamData(teamNumber);
 

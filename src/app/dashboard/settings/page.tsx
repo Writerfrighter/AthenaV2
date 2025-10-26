@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Database, Users } from "lucide-react";
+import { Settings, Database, Users, Info } from "lucide-react";
 import { DatabaseSyncComponent } from "@/components/database-sync";
 import { DataExportImportComponent } from "@/components/data-export-import";
 import { DatabaseResetComponent } from "@/components/database-reset";
@@ -40,7 +40,7 @@ export default function SettingsPage() {
             <span className="sm:hidden">Team</span>
           </TabsTrigger>
           <TabsTrigger value="about" className="flex items-center gap-2 text-xs sm:text-sm">
-            <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+            <Info className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">About</span>
             <span className="sm:hidden">About</span>
           </TabsTrigger>
