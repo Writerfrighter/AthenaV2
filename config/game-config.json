@@ -172,7 +172,7 @@
           },
           "patterns": {
             "label": "Patterns Completed",
-            "points": 6,
+            "points": 2,
             "description": "Patterns completed at the end of autonomous"
           }
         },
@@ -194,7 +194,7 @@
           },
           "patterns": {
             "label": "Patterns Completed",
-            "points": 6,
+            "points": 2,
             "description": "Patterns completed at the end of teleop"
           }
         },
