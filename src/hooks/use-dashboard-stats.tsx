@@ -58,37 +58,55 @@ export function useDashboardStats() {
 
         // Fetch qualification matches count from our server-side proxy
         let qualMatchesCount = 0;
-        try {
-          const proxyResp = await fetch(`/api/tba/qualification-matches?eventCode=${encodeURIComponent(selectedEvent.code)}`);
-          if (proxyResp.ok) {
-            const proxyData = await proxyResp.json();
-            qualMatchesCount = proxyData?.qualMatchesCount ?? 0;
-          } else {
-            // If TBA API fails, try to get match count from custom events
-            console.warn('TBA API failed, falling back to custom event data');
-            const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.code)}`);
-            if (customEventResp.ok) {
-              const customEvent = await customEventResp.json();
-              qualMatchesCount = customEvent?.matchCount ?? 0;
-              console.log(`Using custom event match count: ${qualMatchesCount}`);
-            } else {
-              console.warn('Custom event fallback also failed, using 0');
-            }
-          }
-        } catch (tbaError) {
-          console.warn('TBA API error, attempting custom event fallback:', tbaError);
+        
+        // For FTC, skip TBA API and go directly to custom events or FTC API
+        if (competitionType === 'FTC') {
           try {
-            // If TBA API fails, try to get match count from custom events
-            const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.code)}`);
+            const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.code)}&competitionType=${competitionType}`);
             if (customEventResp.ok) {
               const customEvent = await customEventResp.json();
               qualMatchesCount = customEvent?.matchCount ?? 0;
-              console.log(`Using custom event match count: ${qualMatchesCount}`);
+              console.log(`Using FTC custom event match count: ${qualMatchesCount}`);
             } else {
-              console.warn('Custom event fallback also failed, using 0');
+              console.warn('FTC custom event lookup failed, using 0');
             }
           } catch (customEventError) {
-            console.warn('Both TBA and custom event fallback failed:', customEventError);
+            console.warn('FTC custom event error:', customEventError);
+          }
+        } else {
+          // For FRC, use TBA API
+          try {
+            const proxyResp = await fetch(`/api/tba/qualification-matches?eventCode=${encodeURIComponent(selectedEvent.code)}`);
+            if (proxyResp.ok) {
+              const proxyData = await proxyResp.json();
+              qualMatchesCount = proxyData?.qualMatchesCount ?? 0;
+            } else {
+              // If TBA API fails, try to get match count from custom events
+              console.warn('TBA API failed, falling back to custom event data');
+              const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.code)}`);
+              if (customEventResp.ok) {
+                const customEvent = await customEventResp.json();
+                qualMatchesCount = customEvent?.matchCount ?? 0;
+                console.log(`Using custom event match count: ${qualMatchesCount}`);
+              } else {
+                console.warn('Custom event fallback also failed, using 0');
+              }
+            }
+          } catch (tbaError) {
+            console.warn('TBA API error, attempting custom event fallback:', tbaError);
+            try {
+              // If TBA API fails, try to get match count from custom events
+              const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.code)}`);
+              if (customEventResp.ok) {
+                const customEvent = await customEventResp.json();
+                qualMatchesCount = customEvent?.matchCount ?? 0;
+                console.log(`Using custom event match count: ${qualMatchesCount}`);
+              } else {
+                console.warn('Custom event fallback also failed, using 0');
+              }
+            } catch (customEventError) {
+              console.warn('Both TBA and custom event fallback failed:', customEventError);
+            }
           }
         }
         // const qualMatchesCount = 0;
@@ -100,7 +118,7 @@ export function useDashboardStats() {
           teamsScouted: apiStats.totalTeams,
           matchesRecorded: apiStats.totalMatches,
           dataQuality: (apiStats.totalMatches / (apiStats.uniqueMatches * 6) * 100), // Simple data quality calculation
-          ranking: apiStats.teamStats.findIndex(team => team.teamNumber === 492) + 1|| 0,
+          ranking: apiStats.teamStats.findIndex(team => team.teamNumber === (competitionType === 'FRC' ? 492 : 3543)) + 1 || 0,
           pitScoutingProgress: {
             current: apiStats.totalPitScouts,
             total: apiStats.totalTeams

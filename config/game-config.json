@@ -3,6 +3,7 @@
     "2025": {
       "competitionType": "FRC",
       "gameName": "REEFSCAPE",
+      "startPositions": ["Left", "Center Left", "Center Right", "Right"],
       "scoring": {
       "autonomous": {
         "leave": {
@@ -150,6 +151,7 @@
     "2026": {
       "competitionType": "FTC",
       "gameName": "DECODE",
+      "startPositions": ["Far Zone", "Goal"],
       "scoring": {
         "autonomous": {
           "leave": {

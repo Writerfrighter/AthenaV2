@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
 
     const service = getDbService();
 
-    // Get all entries
-    const pitEntries = await service.getAllPitEntries(year);
-    const matchEntries = await service.getAllMatchEntries(year);
+    // Get all entries, filtered by competition type
+    const pitEntries = await service.getAllPitEntries(year, undefined, competitionType);
+    const matchEntries = await service.getAllMatchEntries(year, undefined, competitionType);
 
     // Filter by event if specified
     const filteredPitEntries = eventCode

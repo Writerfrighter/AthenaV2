@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     console.log('Stats API: Starting request processing');
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
-    const eventCode = searchParams.get('eventCode');
+    const eventCode = searchParams.get('eventCode') || undefined;
     const competitionType = (searchParams.get('competitionType') as CompetitionType) || 'FRC';
 
     console.log('Stats API: Parameters -', { year, eventCode, competitionType });
@@ -26,42 +26,33 @@ export async function GET(request: NextRequest) {
     const service = getDbService();
     console.log('Stats API: Database service retrieved');
 
-    // Get all entries for the year
+    // Get all entries for the year and competition type
     console.log('Stats API: Fetching pit entries...');
-    const pitEntries = await service.getAllPitEntries(year);
+    const pitEntries = await service.getAllPitEntries(year, eventCode, competitionType);
     console.log('Stats API: Pit entries count:', pitEntries.length);
     
     console.log('Stats API: Fetching match entries...');
-    const matchEntries = await service.getAllMatchEntries(year);
-    console.log('Stats API: Match entries count:', matchEntries.length);
-
-    // Filter by event if specified
-    const filteredPitEntries = eventCode
-      ? pitEntries.filter(entry => entry.eventCode === eventCode)
-      : pitEntries;
-    const filteredMatchEntries = eventCode
-      ? matchEntries.filter(entry => entry.eventCode === eventCode)
-      : matchEntries;
-
+    const matchEntries = await service.getAllMatchEntries(year, eventCode, competitionType);
+    console.log('Stats API: Match entries count:', matchEntries.length);  
     // Calculate statistics
     const uniqueTeams = new Set([
-      ...filteredPitEntries.map(entry => entry.teamNumber),
-      ...filteredMatchEntries.map(entry => entry.teamNumber)
+      ...pitEntries.map(entry => entry.teamNumber),
+      ...matchEntries.map(entry => entry.teamNumber)
     ]);
-    const uniqueMatches = new Set(filteredMatchEntries.map(entry => entry.matchNumber)).size;
-    const totalMatches = filteredMatchEntries.length;
-    const totalPitScouts = filteredPitEntries.length;
+    const uniqueMatches = new Set(matchEntries.map(entry => entry.matchNumber)).size;
+    const totalMatches = matchEntries.length;
+    const totalPitScouts = pitEntries.length;
     const uniqueTeamCount = uniqueTeams.size;
 
-    // Calculate match completion (assuming 6 matches per team per event)
-    const matchesPerTeam = 6;
-    const expectedMatches = uniqueTeamCount * matchesPerTeam;
+    // Calculate match completion (6 or 4 teams per match)
+    const teamsPerMatch = competitionType === 'FRC' ? 6 : 4;
+    const expectedMatches = uniqueTeamCount * teamsPerMatch;
     const matchCompletion = expectedMatches > 0 ? (totalMatches / expectedMatches) * 100 : 0;
-
+    console.log(matchEntries);
     // Calculate EPA-like metrics using proper EPA calculation
     const teamStats = Array.from(uniqueTeams).map(teamNumber => {
-      const teamMatches = filteredMatchEntries.filter(entry => entry.teamNumber === teamNumber);
-      const teamPit = filteredPitEntries.find(entry => entry.teamNumber === teamNumber);
+      const teamMatches = matchEntries.filter(entry => entry.teamNumber === teamNumber);
+      const teamPit = pitEntries.find(entry => entry.teamNumber === teamNumber);
 
       // let avgEPA = 0;
       let totalEPA = 0;
@@ -119,7 +110,7 @@ export async function GET(request: NextRequest) {
       totalPitScouts,
       matchCompletion: Math.round(matchCompletion),
       teamStats: teamStats,
-      recentActivity: filteredMatchEntries
+      recentActivity: matchEntries
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 5)
         .map(entry => ({

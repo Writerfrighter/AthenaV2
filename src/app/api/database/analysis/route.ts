@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
 
     const service = getDbService();
 
-    // Get all match entries for analysis
-    const matchEntries = await service.getAllMatchEntries(year);
+    // Get all match entries for analysis, filtered by competition type
+    const matchEntries = await service.getAllMatchEntries(year, undefined, competitionType);
 
     // Filter by event if specified
     const filteredEntries = eventCode

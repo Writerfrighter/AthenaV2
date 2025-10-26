@@ -80,8 +80,11 @@ const initializeFormData = (gameConfig: any): DynamicMatchData => {
     });
   }
 
-  // Add hardcoded startPosition field for autonomous
-  data.autonomous.startPosition = 'center';
+  // Add startPosition field for autonomous with first configured position as default
+  const defaultPosition = gameConfig.startPositions && gameConfig.startPositions.length > 0 
+    ? gameConfig.startPositions[0].toLowerCase().replace(/\s+/g, '-')
+    : 'center';
+  data.autonomous.startPosition = defaultPosition;
 
   // Initialize teleop fields
   if (gameConfig.scoring.teleop) {
@@ -139,7 +142,7 @@ const initializeFormData = (gameConfig: any): DynamicMatchData => {
 
 export function DynamicMatchScoutForm() {
   const gameConfig = useCurrentGameConfig();
-  const { competitionType } = useGameConfig();
+  const { competitionType, currentYear } = useGameConfig();
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
@@ -188,7 +191,7 @@ export function DynamicMatchScoutForm() {
       const entryToSave = {
         matchNumber: formData.matchNumber,
         teamNumber: formData.teamNumber,
-        year: new Date().getFullYear(),
+        year: currentYear,
         competitionType: competitionType,
         alliance: formData.alliance,
         alliancePosition: formData.alliancePosition,
@@ -501,9 +504,20 @@ export function DynamicMatchScoutForm() {
                   <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="left">Left</SelectItem>
-                  <SelectItem value="center">Center</SelectItem>
-                  <SelectItem value="right">Right</SelectItem>
+                  {gameConfig?.startPositions && gameConfig.startPositions.length > 0 ? (
+                    gameConfig.startPositions.map((position: string) => (
+                      <SelectItem key={position.toLowerCase().replace(/\s+/g, '-')} value={position.toLowerCase().replace(/\s+/g, '-')}>
+                        {position}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    // Fallback to default positions if not configured
+                    <>
+                      <SelectItem value="left">Left</SelectItem>
+                      <SelectItem value="center">Center</SelectItem>
+                      <SelectItem value="right">Right</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>

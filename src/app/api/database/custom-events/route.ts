@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
-import { CustomEvent, DatabaseService } from '@/db/types';
+import { CustomEvent, DatabaseService, CompetitionType } from '@/db/types';
 
 // Initialize database service
 let dbService: DatabaseService;
@@ -18,17 +18,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const eventCode = searchParams.get('eventCode') || undefined;
+    const competitionType = (searchParams.get('competitionType') as CompetitionType) || undefined;
 
     const service = getDbService();
 
     if (eventCode) {
-      const event = await service.getCustomEvent(eventCode);
+      const event = await service.getCustomEvent(eventCode, competitionType);
       if (!event) {
         return NextResponse.json({ error: 'Custom event not found' }, { status: 404 });
       }
       return NextResponse.json(event);
     } else {
-      const events = await service.getAllCustomEvents(year);
+      const events = await service.getAllCustomEvents(year, competitionType);
       return NextResponse.json(events);
     }
   } catch (error) {

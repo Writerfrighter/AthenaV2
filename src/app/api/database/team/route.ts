@@ -32,16 +32,16 @@ export async function GET(request: NextRequest) {
 
     const service = getDbService();
 
-    // Get match entries for the team
-    const matchEntries = await service.getMatchEntries(parseInt(teamNumber), year);
+    // Get match entries for the team, filtered by competition type
+    const matchEntries = await service.getMatchEntries(parseInt(teamNumber), year, competitionType);
     
     // Filter by event if specified
     const filteredMatchEntries = eventCode
       ? matchEntries.filter((entry: MatchEntry) => entry.eventCode === eventCode)
       : matchEntries;
 
-    // Get pit entry for the team
-    const pitEntry = await service.getPitEntry(parseInt(teamNumber), year || new Date().getFullYear());
+    // Get pit entry for the team, filtered by competition type
+    const pitEntry = await service.getPitEntry(parseInt(teamNumber), year || new Date().getFullYear(), competitionType);
 
     // Calculate statistics if we have match data
     let teamStats = null;

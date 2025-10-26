@@ -117,8 +117,10 @@ export function NavUser({
                 Notifications
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSwitchProgram}>
-                <Trophy />
-                Switch to {competitionType === 'FRC' ? 'FTC' : 'FRC'}
+                <Trophy className={competitionType === 'FTC' ? 'text-blue-500' : 'text-orange-500'} />
+                <span className={competitionType === 'FTC' ? 'text-blue-500' : 'text-orange-500'}>
+                  Switch to {competitionType === 'FRC' ? 'FTC' : 'FRC'}
+                </span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

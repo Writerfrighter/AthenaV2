@@ -218,6 +218,7 @@ export interface ScoringDefinition {
 export interface YearConfig {
   competitionType: CompetitionType;
   gameName: string;
+  startPositions?: string[]; // Configurable autonomous start positions (e.g., ["left", "center", "right"])
   scoring: {
     autonomous: Record<string, ScoringDefinition>;
     teleop: Record<string, ScoringDefinition>;
