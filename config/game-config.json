@@ -101,49 +101,73 @@
       }
     },
     "pitScouting": {
-      "customFields": [
-        {
-          "name": "coralCapability",
-          "label": "Coral Scoring Capability",
+      "autonomous": {
+        "startingPosition": {
+          "label": "Starting Position",
           "type": "select",
-          "options": ["L1 only", "L1-L2", "L1-L3", "L1-L4", "L2-L4", "None"]
+          "options": ["Left Barge", "Center Barge", "Right Barge"]
         },
-        {
-          "name": "algaeCapability",
-          "label": "Algae Scoring Capability",
+        "autoLeave": {
+          "label": "Leave Starting Zone",
+          "type": "boolean"
+        },
+        "autoCoralLevels": {
+          "label": "Auto Coral Scoring Levels",
+          "type": "select",
+          "options": ["L1 only", "L1-L2", "L1-L3", "L1-L4", "None"]
+        },
+        "autoAlgaeScoring": {
+          "label": "Auto Algae Scoring",
           "type": "select",
           "options": ["Net only", "Processor only", "Both", "Neither"]
         },
-        {
-          "name": "intakeType",
+        "autoRoutineCount": {
+          "label": "Number of Auto Routines",
+          "type": "number"
+        }
+      },
+      "teleoperated": {
+        "intakeType": {
           "label": "Intake Method",
           "type": "select",
           "options": ["Ground pickup", "Human player", "Both", "Neither"]
         },
-        {
-          "name": "climbCapability",
-          "label": "Climbing Capability",
+        "coralCapability": {
+          "label": "Coral Scoring Capability",
           "type": "select",
-          "options": ["No climb", "Shallow cage only", "Deep cage only", "Both cages"]
+          "options": ["L1 only", "L1-L2", "L1-L3", "L1-L4", "L2-L4", "None"]
         },
-        {
-          "name": "autoCapability",
-          "label": "Autonomous Capability",
+        "algaeCapability": {
+          "label": "Algae Scoring Capability",
           "type": "select",
-          "options": ["Leave only", "Leave + Score", "Complex auto", "None"]
+          "options": ["Net only", "Processor only", "Both", "Neither"]
         },
-        {
-          "name": "cycleTime",
+        "cycleTime": {
           "label": "Estimated Cycle Time (seconds)",
           "type": "number"
         },
-        {
-          "name": "reliability",
+        "reliability": {
           "label": "Robot Reliability",
           "type": "select",
           "options": ["Very Reliable", "Mostly Reliable", "Somewhat Reliable", "Unreliable"]
         }
-      ]
+      },
+      "endgame": {
+        "climbCapability": {
+          "label": "Climbing Capability",
+          "type": "select",
+          "options": ["No climb", "Shallow cage only", "Deep cage only", "Both cages"]
+        },
+        "climbTime": {
+          "label": "Average Climb Time (seconds)",
+          "type": "number"
+        },
+        "climbReliability": {
+          "label": "Climb Success Rate",
+          "type": "select",
+          "options": ["Very Reliable (90%+)", "Mostly Reliable (70-90%)", "Somewhat Reliable (40-70%)", "Unreliable (<40%)"]
+        }
+      }
     }
     }
   },

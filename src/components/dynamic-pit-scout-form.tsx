@@ -38,26 +38,29 @@ export function DynamicPitScoutForm() {
       gameSpecificData: {}
     };
 
-    if (config?.pitScouting?.customFields) {
-      config.pitScouting.customFields.forEach((field: { name: string; type: string; options?: string[] }) => {
-        switch (field.type) {
-          case 'text':
-            data.gameSpecificData[field.name] = '';
-            break;
-          case 'number':
-            data.gameSpecificData[field.name] = 0;
-            break;
-          case 'boolean':
-            data.gameSpecificData[field.name] = false;
-            break;
-          case 'select':
-            data.gameSpecificData[field.name] = field.options && field.options.length > 0 ? field.options[0] : '';
-            break;
-          default:
-            data.gameSpecificData[field.name] = '';
-        }
-      });
-    }
+    // Initialize fields for each category
+    ['autonomous', 'teleoperated', 'endgame'].forEach(category => {
+      if (config?.pitScouting?.[category]) {
+        Object.entries(config.pitScouting[category]).forEach(([fieldName, fieldConfig]: [string, any]) => {
+          switch (fieldConfig.type) {
+            case 'text':
+              data.gameSpecificData[`${category}_${fieldName}`] = '';
+              break;
+            case 'number':
+              data.gameSpecificData[`${category}_${fieldName}`] = 0;
+              break;
+            case 'boolean':
+              data.gameSpecificData[`${category}_${fieldName}`] = false;
+              break;
+            case 'select':
+              data.gameSpecificData[`${category}_${fieldName}`] = fieldConfig.options && fieldConfig.options.length > 0 ? fieldConfig.options[0] : '';
+              break;
+            default:
+              data.gameSpecificData[`${category}_${fieldName}`] = '';
+          }
+        });
+      }
+    });
 
     return data;
   };
@@ -335,6 +338,7 @@ export function DynamicPitScoutForm() {
                       placeholder="30"
                       required
                       className="h-12 text-base"
+                      min={0}
                     />
                   </div>
                   <div className="space-y-2">
@@ -349,6 +353,7 @@ export function DynamicPitScoutForm() {
                       placeholder="30"
                       required
                       className="h-12 text-base"
+                      min={0}
                     />
                   </div>
                   <div className="space-y-2">
@@ -363,13 +368,14 @@ export function DynamicPitScoutForm() {
                       placeholder="125"
                       required
                       className="h-12 text-base"
+                      min={0}
                     />
                   </div>
                 </div>
               </div>
 
               {/* Autonomous Capabilities */}
-              <div className="space-y-6">
+              <div className={`space-y-6 ${!formData.hasAuto ? 'border-b pb-4' : ''}`}>
                 <div className="flex items-center space-x-4">
                   <Switch
                     id="hasAuto"
@@ -383,16 +389,60 @@ export function DynamicPitScoutForm() {
                 </div>
               </div>
 
-              {/* Game-Specific Fields */}
-              {gameConfig && gameConfig.pitScouting && gameConfig.pitScouting.customFields && gameConfig.pitScouting.customFields.length > 0 && (
-                <div className="border-b pb-4">
-                  <h3 className="text-lg font-semibold mb-4">
-                    {gameConfig.gameName} Specific Capabilities
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {gameConfig.pitScouting.customFields.map(renderCustomField)}
-                  </div>
-                </div>
+              {/* Game-Specific Fields by Category */}
+              {gameConfig?.pitScouting && (
+                <>
+                  {/* Autonomous */}
+                  {gameConfig.pitScouting.autonomous && Object.keys(gameConfig.pitScouting.autonomous).length > 0 && formData.hasAuto && (
+                    <div className="border-b pb-4">
+                      <h3 className="text-lg font-semibold mb-4">Autonomous Capabilities</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {Object.entries(gameConfig.pitScouting.autonomous).map(([name, field]: [string, any]) => 
+                          renderCustomField({
+                            name: `autonomous_${name}`,
+                            label: field.label,
+                            type: field.type,
+                            options: field.options
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Teleoperated */}
+                  {gameConfig.pitScouting.teleoperated && Object.keys(gameConfig.pitScouting.teleoperated).length > 0 && (
+                    <div className="border-b pb-4">
+                      <h3 className="text-lg font-semibold mb-4">Teleoperated Capabilities</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {Object.entries(gameConfig.pitScouting.teleoperated).map(([name, field]: [string, any]) => 
+                          renderCustomField({
+                            name: `teleoperated_${name}`,
+                            label: field.label,
+                            type: field.type,
+                            options: field.options
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Endgame */}
+                  {gameConfig.pitScouting.endgame && Object.keys(gameConfig.pitScouting.endgame).length > 0 && (
+                    <div className="border-b pb-4">
+                      <h3 className="text-lg font-semibold mb-4">Endgame Capabilities</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {Object.entries(gameConfig.pitScouting.endgame).map(([name, field]: [string, any]) => 
+                          renderCustomField({
+                            name: `endgame_${name}`,
+                            label: field.label,
+                            type: field.type,
+                            options: field.options
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Notes */}
