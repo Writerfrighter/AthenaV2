@@ -117,7 +117,7 @@ export function useDashboardStats() {
         const transformedStats: DashboardStats = {
           teamsScouted: apiStats.totalTeams,
           matchesRecorded: apiStats.totalMatches,
-          dataQuality: (apiStats.totalMatches / (apiStats.uniqueMatches * 6) * 100), // Simple data quality calculation
+          dataQuality: apiStats.matchCompletion,
           ranking: apiStats.teamStats.findIndex(team => team.teamNumber === (competitionType === 'FRC' ? 492 : 3543)) + 1 || 0,
           pitScoutingProgress: {
             current: apiStats.totalPitScouts,
