@@ -412,7 +412,7 @@ export function DynamicPitScoutForm() {
                   {/* Teleoperated */}
                   {gameConfig.pitScouting.teleoperated && Object.keys(gameConfig.pitScouting.teleoperated).length > 0 && (
                     <div className="border-b pb-4">
-                      <h3 className="text-lg font-semibold mb-4">Teleoperated Capabilities</h3>
+                      <h3 className="text-lg font-semibold mb-4">Teleop Capabilities</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {Object.entries(gameConfig.pitScouting.teleoperated).map(([name, field]: [string, any]) => 
                           renderCustomField({

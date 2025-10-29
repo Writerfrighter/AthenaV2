@@ -226,8 +226,17 @@ export interface YearConfig {
     fouls?: Record<string, ScoringDefinition>;
   };
   pitScouting: {
-    customFields: Array<{
-      name: string;
+    autonomous: Record<string, {
+      label: string;
+      type: 'text' | 'number' | 'boolean' | 'select';
+      options?: string[];
+    }>;
+    teleoperated: Record<string, {
+      label: string;
+      type: 'text' | 'number' | 'boolean' | 'select';
+      options?: string[];
+    }>;
+    endgame: Record<string, {
       label: string;
       type: 'text' | 'number' | 'boolean' | 'select';
       options?: string[];
