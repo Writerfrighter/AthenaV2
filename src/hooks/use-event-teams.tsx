@@ -18,7 +18,7 @@ interface TeamState {
 
 export function useEventTeams() {
   const selectedEvent = useSelectedEvent();
-  const { competitionType } = useGameConfig();
+  const { competitionType, currentYear } = useGameConfig();
   const [teamState, setTeamState] = useState<TeamState>({
     teams: [],
     loading: false,
@@ -44,8 +44,8 @@ export function useEventTeams() {
 
       try {
         // Fetch data from our server-side API route with competition type
-        const response = await fetch(`/api/events/${selectedEvent.code}/teams?competitionType=${competitionType}`);
-        
+        const response = await fetch(`/api/events/${selectedEvent.code}/teams?competitionType=${competitionType}&year=${currentYear}`);
+      
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

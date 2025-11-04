@@ -4,10 +4,10 @@ import { getSeasonTeams } from '@/lib/api/ftcevents';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ eventCode: string }> }
+  { params }: { params: Promise<{ eventCode: string; year?: number }> }
 ) {
   try {
-    const { eventCode } = await params;
+    const { eventCode, year } = await params;
     const { searchParams } = new URL(request.url);
     const competitionType = searchParams.get('competitionType') || 'FRC';
     
@@ -17,8 +17,7 @@ export async function GET(
 
     if (competitionType === 'FTC') {
       // Handle FTC events
-      const currentYear = new Date().getFullYear();
-      const ftcTeamsResponse = await getSeasonTeams(currentYear, undefined, eventCode);
+      const ftcTeamsResponse = await getSeasonTeams(year ? year : new Date().getFullYear() + 1, undefined, eventCode);
       
       const teams = ftcTeamsResponse.teams || [];
       
