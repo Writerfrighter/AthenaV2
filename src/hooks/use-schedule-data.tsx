@@ -35,19 +35,17 @@ export function useScheduleData() {
         setIsLoading(true);
         setError(null);
 
-        // Fetch users
+        // Fetch users with preferred partners
         const usersResponse = await fetch('/api/users');
         if (!usersResponse.ok) {
           throw new Error('Failed to fetch users');
         }
         const usersData = await usersResponse.json();
         
-        // Map users with empty preferred partners for now
-        // The preferredPartners field is stored as JSON in the users table
-        // but we'll need to parse it or fetch from individual endpoints
-        const usersWithPartners: UserWithPartners[] = usersData.users.map((user: User) => ({
+        // Users now include preferredPartners from the API
+        const usersWithPartners: UserWithPartners[] = usersData.users.map((user: User & { preferredPartners?: string[] }) => ({
           ...user,
-          preferredPartners: [] as string[] // TODO: Parse from user record if available
+          preferredPartners: user.preferredPartners || []
         }));
         setUsers(usersWithPartners);
 
@@ -179,10 +177,10 @@ export function useScheduleData() {
     try {
       if (userId === null) {
         // Find and delete the assignment
-        const assignments = blocks?.find((b: ScoutingBlockWithAssignments) => b.id === blockId);
-        if (!assignments) return;
+        const blockToUpdate = blocks?.find((b: ScoutingBlockWithAssignments) => b.id === blockId);
+        if (!blockToUpdate) return;
 
-        const scoutsArray = alliance === 'red' ? assignments.redScouts : assignments.blueScouts;
+        const scoutsArray = alliance === 'red' ? blockToUpdate.redScouts : blockToUpdate.blueScouts;
         const currentUserId = scoutsArray[position];
         
         if (currentUserId) {
@@ -203,7 +201,7 @@ export function useScheduleData() {
         }
       } else {
         // Create new assignment
-        await fetch('/api/schedule/assignments', {
+        const response = await fetch('/api/schedule/assignments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -213,10 +211,11 @@ export function useScheduleData() {
             position
           })
         });
+        
+        if (!response.ok) {
+          throw new Error('Failed to create assignment');
+        }
       }
-
-      // Refresh data
-      setRefreshTrigger(prev => prev + 1);
     } catch (error) {
       console.error('Error assigning scout:', error);
       throw error;
