@@ -94,7 +94,7 @@
   },
   "overrides": {
     "next-auth": {
-      "next": "16.0.0"
+      "next": "16.0.1"
     }
   }
 }
