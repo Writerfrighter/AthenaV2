@@ -20,19 +20,31 @@ export async function GET() {
 
     const result = await pool.request()
       .query(`
-        SELECT id, name, username, role, created_at, updated_at
+        SELECT id, name, username, role, preferredPartners, created_at, updated_at
         FROM users
         ORDER BY name ASC
       `)
 
-    const users = result.recordset.map(user => ({
-      id: user.id.toString(),
-      name: user.name,
-      username: user.username,
-      role: user.role,
-      createdAt: user.created_at,
-      updatedAt: user.updated_at
-    }))
+    const users = result.recordset.map(user => {
+      let preferredPartners: string[] = []
+      if (user.preferredPartners) {
+        try {
+          preferredPartners = JSON.parse(user.preferredPartners)
+        } catch {
+          preferredPartners = []
+        }
+      }
+      
+      return {
+        id: user.id.toString(),
+        name: user.name,
+        username: user.username,
+        role: user.role,
+        preferredPartners,
+        createdAt: user.created_at,
+        updatedAt: user.updated_at
+      }
+    })
 
     return NextResponse.json({ users })
   } catch (error) {
