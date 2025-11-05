@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -28,6 +28,30 @@ interface DisplayBlock {
   redScouts: (string | null)[]
   blueScouts: (string | null)[]
 }
+
+// Memoized component for active scout checkbox to prevent unnecessary re-renders
+const ActiveScoutCheckbox = React.memo(({
+  scout,
+  isActive,
+  onToggle
+}: {
+  scout: UserWithPartners
+  isActive: boolean
+  onToggle: (scoutId: string, checked: boolean) => void
+}) => (
+  <div className="flex items-center space-x-2">
+    <Checkbox
+      id={`active-${scout.id}`}
+      checked={isActive}
+      onCheckedChange={(checked) => onToggle(scout.id, checked === true)}
+    />
+    <label htmlFor={`active-${scout.id}`} className="text-sm font-medium cursor-pointer">
+      {scout.name}
+    </label>
+  </div>
+))
+
+ActiveScoutCheckbox.displayName = 'ActiveScoutCheckbox'
 
 
 export default function SchedulePage() {
@@ -80,7 +104,26 @@ export default function SchedulePage() {
   useEffect(() => {
     setLocalBlocks(mapBlocksToDisplay(dbBlocks))
     setHasUnsavedChanges(false)
+    
+    // Auto-populate active scouts based on assigned scouts
+    const assignedScoutIds = new Set<string>()
+    dbBlocks.forEach(block => {
+      block.redScouts.forEach(scoutId => {
+        if (scoutId) assignedScoutIds.add(scoutId)
+      })
+      block.blueScouts.forEach(scoutId => {
+        if (scoutId) assignedScoutIds.add(scoutId)
+      })
+    })
+    setActiveScouts(Array.from(assignedScoutIds))
   }, [dbBlocks, mapBlocksToDisplay])
+
+  // Clear active scouts when no event is selected
+  useEffect(() => {
+    if (!hasEvent) {
+      setActiveScouts([])
+    }
+  }, [hasEvent])
 
   // Use local blocks for display
   const blocks = localBlocks
@@ -291,6 +334,29 @@ export default function SchedulePage() {
     return sortedActiveUsers.filter(user => !assignedIds.has(user.id))
   }, [sortedActiveUsers])
 
+  // Memoize available users per block to avoid recomputing for each slot
+  const blockAvailableUsers = useMemo(() => {
+    const result = new Map<number, { red: UserWithPartners[][], blue: UserWithPartners[][] }>()
+    
+    blocks.forEach(block => {
+      const redAvailable: UserWithPartners[][] = []
+      const blueAvailable: UserWithPartners[][] = []
+      
+      // Pre-compute available users for all slots in this block
+      block.redScouts.forEach((_, scoutIndex) => {
+        redAvailable.push(getAvailableUsersForSlot(block, 'red', scoutIndex))
+      })
+      
+      block.blueScouts.forEach((_, scoutIndex) => {
+        blueAvailable.push(getAvailableUsersForSlot(block, 'blue', scoutIndex))
+      })
+      
+      result.set(block.id, { red: redAvailable, blue: blueAvailable })
+    })
+    
+    return result
+  }, [blocks, getAvailableUsersForSlot])
+
   const autoAssignBlockScouts = useCallback(() => {
     setIsAutoAssigning(true)
     let didModify = false
@@ -387,6 +453,7 @@ export default function SchedulePage() {
         blueScouts: block.blueScouts.map(() => null),
       }))
     )
+    setActiveScouts([]) // Clear active scouts when assignments are cleared
     setHasUnsavedChanges(true)
   }, [])
 
@@ -394,7 +461,7 @@ export default function SchedulePage() {
     const block = blocks.find(b => b.id === blockId)
     if (!block) return
 
-    const availableUsers = getAvailableUsersForSlot(block, alliance, scoutIndex)
+    const availableUsers = blockAvailableUsers.get(blockId)?.[alliance]?.[scoutIndex] || []
     if (availableUsers.length === 0) return
 
     const workload = computeUserWorkload(blocks)
@@ -416,7 +483,7 @@ export default function SchedulePage() {
     if (bestCandidate) {
       await assignBlockScout(blockId, alliance, scoutIndex, bestCandidate.id)
     }
-  }, [assignBlockScout, blocks, computeUserWorkload, getAvailableUsersForSlot, hasPreferredPartnerInBlock])
+  }, [assignBlockScout, blocks, computeUserWorkload, blockAvailableUsers, hasPreferredPartnerInBlock])
 
   const handleCreateBlocks = async () => {
     if (!matchCount) return
@@ -631,16 +698,12 @@ export default function SchedulePage() {
           <CardContent>
             <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
               {sortedUsers.map(scout => (
-                <div key={scout.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`active-${scout.id}`}
-                    checked={activeScoutSet.has(scout.id)}
-                    onCheckedChange={(checked) => toggleActiveScout(scout.id, checked === true)}
-                  />
-                  <label htmlFor={`active-${scout.id}`} className="text-sm font-medium cursor-pointer">
-                    {scout.name}
-                  </label>
-                </div>
+                <ActiveScoutCheckbox
+                  key={scout.id}
+                  scout={scout}
+                  isActive={activeScoutSet.has(scout.id)}
+                  onToggle={toggleActiveScout}
+                />
               ))}
             </div>
           </CardContent>
@@ -682,7 +745,7 @@ export default function SchedulePage() {
                       <div className="space-y-3">
                         {block.redScouts.map((_, scoutIndex) => {
                           const assignedScout = getAssignedScoutForSlot(block, 'red', scoutIndex)
-                          const availableUsers = getAvailableUsersForSlot(block, 'red', scoutIndex)
+                          const availableUsers = blockAvailableUsers.get(block.id)?.red[scoutIndex] || []
                           const isPaired = assignedScout && hasPreferredPartnerInBlock(assignedScout.id, block)
                           const pairedPartners = assignedScout ? getPairedPartnersInBlock(assignedScout.id, block) : []
 
@@ -752,7 +815,7 @@ export default function SchedulePage() {
                       <div className="space-y-3">
                         {block.blueScouts.map((_, scoutIndex) => {
                           const assignedScout = getAssignedScoutForSlot(block, 'blue', scoutIndex)
-                          const availableUsers = getAvailableUsersForSlot(block, 'blue', scoutIndex)
+                          const availableUsers = blockAvailableUsers.get(block.id)?.blue[scoutIndex] || []
                           const isPaired = assignedScout && hasPreferredPartnerInBlock(assignedScout.id, block)
                           const pairedPartners = assignedScout ? getPairedPartnersInBlock(assignedScout.id, block) : []
 
