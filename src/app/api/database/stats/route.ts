@@ -3,6 +3,8 @@ import { DatabaseManager } from '@/db/database-manager';
 import { CompetitionType } from '@/db/types';
 import { calculateEPA } from '@/lib/statistics';
 import gameConfigRaw from '../../../../../config/game-config.json';
+import { auth } from '@/lib/auth/config';
+import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const gameConfig = gameConfigRaw as any;
@@ -15,6 +17,10 @@ function getDbService() {
 // GET /api/database/stats - Get dashboard statistics
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_DASHBOARD)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     console.log('Stats API: Starting request processing');
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;

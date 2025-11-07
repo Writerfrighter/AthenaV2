@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { DatabaseManager } from '@/db/database-manager';
+import { auth } from '@/lib/auth/config';
+import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 
 export async function GET() {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_DATA_DIAGNOSTICS)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     console.log('Diagnostics: Starting database diagnostics');
     
     // Check environment variables

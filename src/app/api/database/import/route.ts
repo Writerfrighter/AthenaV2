@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
 import { PitEntry, MatchEntry, DatabaseService } from '@/db/types';
+import { auth } from '@/lib/auth/config';
+import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 
 // Initialize database service
 let dbService: DatabaseService;
@@ -15,6 +17,10 @@ function getDbService() {
 // POST /api/database/import - Import data
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.IMPORT_DATA)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     const contentType = request.headers.get('content-type') || '';
 
     let data: { pitEntries: PitEntry[], matchEntries: MatchEntry[] };

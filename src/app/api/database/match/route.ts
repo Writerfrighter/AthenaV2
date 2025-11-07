@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
 import { MatchEntry, DatabaseService, CompetitionType } from '@/db/types';
+import { auth } from '@/lib/auth/config';
+import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 
 // Initialize database service
 let dbService: DatabaseService;
@@ -15,6 +17,10 @@ function getDbService() {
 // GET /api/database/match - Get all match entries or filter by team/year/event/competitionType
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_MATCH_SCOUTING)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const teamNumber = searchParams.get('teamNumber') ? parseInt(searchParams.get('teamNumber')!) : undefined;
@@ -39,6 +45,11 @@ export async function GET(request: NextRequest) {
 // POST /api/database/match - Add new match entry
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.CREATE_MATCH_SCOUTING)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     const entry: Omit<MatchEntry, 'id'> = await request.json();
     const service = getDbService();
     const id = await service.addMatchEntry(entry);
@@ -52,6 +63,11 @@ export async function POST(request: NextRequest) {
 // PUT /api/database/match - Update match entry
 export async function PUT(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.EDIT_MATCH_SCOUTING)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     const { id, ...updates } = await request.json();
     const service = getDbService();
     await service.updateMatchEntry(id, updates);
@@ -65,6 +81,11 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/database/match - Delete match entry
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.DELETE_MATCH_SCOUTING)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = parseInt(searchParams.get('id')!);
     const service = getDbService();

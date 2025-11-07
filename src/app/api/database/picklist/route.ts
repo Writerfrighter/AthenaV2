@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
 import { DatabaseService, CompetitionType } from '@/db/types';
+import { auth } from '@/lib/auth/config';
+import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 import { calculateEPA } from '@/lib/statistics';
 import gameConfigRaw from '../../../../../config/game-config.json';
 
@@ -33,6 +35,10 @@ interface TeamPicklistData {
 // GET /api/database/picklist - Get ranked team list for picklist
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_PICKLIST)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const eventCode = searchParams.get('eventCode');

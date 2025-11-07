@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
 import { DatabaseService, CompetitionType } from '@/db/types';
+import { auth } from '@/lib/auth/config';
+import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 import { calculateEPA } from '@/lib/statistics';
 import { EPABreakdown } from '@/lib/shared-types';
 import gameConfigRaw from '../../../../../config/game-config.json';
@@ -21,6 +23,10 @@ function getDbService() {
 // GET /api/database/analysis - Get analysis data for charts
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_MATCH_SCOUTING)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const eventCode = searchParams.get('eventCode');

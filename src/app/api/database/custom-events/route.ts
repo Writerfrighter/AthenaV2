@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
 import { CustomEvent, DatabaseService, CompetitionType } from '@/db/types';
+import { auth } from '@/lib/auth/config';
+import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 
 // Initialize database service
 let dbService: DatabaseService;
@@ -15,6 +17,10 @@ function getDbService() {
 // GET /api/database/custom-events - Get all custom events or filter by year
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_DASHBOARD)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const eventCode = searchParams.get('eventCode') || undefined;
@@ -41,6 +47,11 @@ export async function GET(request: NextRequest) {
 // POST /api/database/custom-events - Add new custom event
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     const event: Omit<CustomEvent, 'id'> = await request.json();
     const service = getDbService();
     const id = await service.addCustomEvent(event);
@@ -54,6 +65,11 @@ export async function POST(request: NextRequest) {
 // PUT /api/database/custom-events - Update custom event
 export async function PUT(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     const { eventCode, ...updates } = await request.json();
 
     if (!eventCode) {
@@ -72,6 +88,11 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/database/custom-events - Delete custom event
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const eventCode = searchParams.get('eventCode');
 

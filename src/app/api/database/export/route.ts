@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
 import { PitEntry, MatchEntry, DatabaseService } from '@/db/types';
+import { auth } from '@/lib/auth/config';
+import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 
 // Initialize database service
 let dbService: DatabaseService;
@@ -15,6 +17,10 @@ function getDbService() {
 // GET /api/database/export - Export all data
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.EXPORT_DATA)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const format = searchParams.get('format') || 'json';

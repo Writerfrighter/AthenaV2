@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
 import { DatabaseService, MatchEntry, CompetitionType } from '@/db/types';
+import { auth } from '@/lib/auth/config';
+import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 import { calculateEPA, calculateTeamStats } from '@/lib/statistics';
 import gameConfigRaw from '../../../../../config/game-config.json';
 
@@ -20,6 +22,13 @@ function getDbService() {
 // GET /api/database/team - Get team data for a specific team
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_PIT_SCOUTING)) {
+      // allow match-only view if they have match scouting permission
+      if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_MATCH_SCOUTING)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      }
+    }
     const { searchParams } = new URL(request.url);
     const teamNumber = searchParams.get('teamNumber');
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
