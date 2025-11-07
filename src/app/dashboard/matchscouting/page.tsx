@@ -25,8 +25,7 @@ export default function MatchScoutingPage() {
   const [entryToDelete, setEntryToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const { getCurrentYearConfig, currentYear, competitionType } = useGameConfig();
-  const gameConfig = getCurrentYearConfig();
+  const { currentYear, competitionType } = useGameConfig();
   const { selectedEvent } = useEventConfig();
 
   // Handle export
