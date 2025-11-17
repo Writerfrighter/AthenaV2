@@ -2,6 +2,36 @@ import { MatchEntry } from '../db/types';
 import { YearConfig, ScoringDefinition } from './shared-types';
 import type { TeamStats, EPABreakdown } from '../lib/shared-types';
 
+// Cache for EPA calculations to avoid recalculating for the same teams
+const epaCache = new Map<string, { result: EPABreakdown; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(teamNumber: number, year: number, matchIds: string): string {
+  return `${teamNumber}-${year}-${matchIds}`;
+}
+
+function getFromCache(key: string): EPABreakdown | null {
+  const cached = epaCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.result;
+  }
+  if (cached) {
+    epaCache.delete(key); // Remove expired entry
+  }
+  return null;
+}
+
+function setInCache(key: string, result: EPABreakdown): void {
+  epaCache.set(key, { result, timestamp: Date.now() });
+  // Limit cache size to prevent memory issues
+  if (epaCache.size > 1000) {
+    const firstKey = epaCache.keys().next().value as string | undefined;
+    if (firstKey) {
+      epaCache.delete(firstKey);
+    }
+  }
+}
+
 /**
  * Calculate Expected Points Added (EPA) for a team based on their match performance
  * EPA represents how many points a team contributes on average
@@ -11,6 +41,28 @@ export function calculateEPA(matches: MatchEntry[], year: number, config: YearCo
     return { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA: 0 };
   }
 
+  // Check cache if all matches are from the same team
+  const teamNumbers = new Set(matches.map(m => m.teamNumber));
+  if (teamNumbers.size === 1) {
+    const teamNumber = matches[0].teamNumber;
+    const matchIds = matches.map(m => m.id).sort().join(',');
+    const cacheKey = getCacheKey(teamNumber, year, matchIds);
+    
+    const cached = getFromCache(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const result = calculateEPAInternal(matches, year, config);
+    setInCache(cacheKey, result);
+    return result;
+  }
+
+  // For multiple teams, calculate without caching
+  return calculateEPAInternal(matches, year, config);
+}
+
+function calculateEPAInternal(matches: MatchEntry[], year: number, config: YearConfig): EPABreakdown {
   let totalAutoPoints = 0;
   let totalTeleopPoints = 0;
   let totalEndgamePoints = 0;
@@ -148,30 +200,34 @@ function calculatePeriodAverages(matches: MatchEntry[], period: string): Record<
 
 /**
  * Calculate team rankings based on EPA
+ * Optimized to use a single pass for grouping and sorting
  */
 export function calculateTeamRankings(allMatches: MatchEntry[], year: number, config: YearConfig): Array<{teamNumber: number, epa: number, rank: number}> {
-  // Group matches by team
+  // Group matches by team in a single pass
   const teamMatches = new Map<number, MatchEntry[]>();
   for (const match of allMatches) {
-    if (!teamMatches.has(match.teamNumber)) {
-      teamMatches.set(match.teamNumber, []);
+    const matches = teamMatches.get(match.teamNumber);
+    if (matches) {
+      matches.push(match);
+    } else {
+      teamMatches.set(match.teamNumber, [match]);
     }
-    teamMatches.get(match.teamNumber)!.push(match);
   }
 
-  // Calculate EPA for each team
-  const teamEPAs = Array.from(teamMatches.entries()).map(([teamNumber, matches]) => {
-  const epa = calculateEPA(matches, year, config);
-    return { teamNumber, epa: epa.totalEPA, matches: matches.length };
-  });
+  // Calculate EPA for each team and create result array in one step
+  const teamEPAs: Array<{teamNumber: number, epa: number, rank: number}> = [];
+  for (const [teamNumber, matches] of teamMatches.entries()) {
+    const epa = calculateEPA(matches, year, config);
+    teamEPAs.push({ teamNumber, epa: epa.totalEPA, rank: 0 });
+  }
 
-  // Sort by EPA (descending) and assign ranks
+  // Sort by EPA (descending) and assign ranks in place
   teamEPAs.sort((a, b) => b.epa - a.epa);
-  return teamEPAs.map((team, index) => ({
-    teamNumber: team.teamNumber,
-    epa: team.epa,
-    rank: index + 1
-  }));
+  for (let i = 0; i < teamEPAs.length; i++) {
+    teamEPAs[i].rank = i + 1;
+  }
+  
+  return teamEPAs;
 }
 
 /**

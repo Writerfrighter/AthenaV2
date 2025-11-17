@@ -72,84 +72,96 @@ export async function GET(request: NextRequest) {
       data: categoryData[category]
     }));
 
-    // Calculate team-specific EPA data using proper statistics
-    const teamEPAs: Record<number, { 
+    // Optimize: Group matches by team in a single pass
+    const teamEPAsMap = new Map<number, { 
       teamNumber: number; 
-      epaBreakdown: EPABreakdown; 
-      matches: number 
-    }> = {};
+      matches: typeof filteredEntries;
+    }>();
 
-    filteredEntries.forEach(entry => {
-      if (!teamEPAs[entry.teamNumber]) {
-        teamEPAs[entry.teamNumber] = { 
-          teamNumber: entry.teamNumber, 
-          epaBreakdown: { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA: 0 }, 
-          matches: 0 
-        };
+    for (const entry of filteredEntries) {
+      const teamData = teamEPAsMap.get(entry.teamNumber);
+      if (teamData) {
+        teamData.matches.push(entry);
+      } else {
+        teamEPAsMap.set(entry.teamNumber, {
+          teamNumber: entry.teamNumber,
+          matches: [entry]
+        });
       }
-      teamEPAs[entry.teamNumber].matches += 1;
-    });
+    }
 
     // Calculate EPA for each team using proper function
-    Object.keys(teamEPAs).forEach(teamNumberStr => {
-      const teamNumber = parseInt(teamNumberStr);
-      const teamMatches = filteredEntries.filter(entry => entry.teamNumber === teamNumber);
+    const yearConfig = year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()] 
+      ? gameConfig[competitionType][year.toString()] 
+      : null;
 
-      if (teamMatches.length > 0 && year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()]) {
+    const teamEPAData: Array<{
+      teamNumber: number;
+      name: string;
+      matchesPlayed: number;
+      totalEPA: number;
+      autoEPA: number;
+      teleopEPA: number;
+      endgameEPA: number;
+      penaltiesEPA: number;
+    }> = [];
+
+    for (const [teamNumber, teamData] of teamEPAsMap.entries()) {
+      let epaBreakdown: EPABreakdown = { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA: 0 };
+
+      if (teamData.matches.length > 0 && yearConfig) {
         try {
-          const yearConfig = gameConfig[competitionType][year.toString()];
-          const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
-          teamEPAs[teamNumber].epaBreakdown = epaBreakdown;
+          epaBreakdown = calculateEPA(teamData.matches, year!, yearConfig);
         } catch (error) {
           console.error(`Error calculating EPA for team ${teamNumber}:`, error);
           // Fallback to simple calculation
           let totalEPA = 0;
-          teamMatches.forEach(match => {
+          for (const match of teamData.matches) {
             if (match.gameSpecificData) {
-              Object.values(match.gameSpecificData).forEach(value => {
+              for (const value of Object.values(match.gameSpecificData)) {
                 if (typeof value === 'number') {
                   totalEPA += value;
                 }
-              });
+              }
             }
-          });
-          teamEPAs[teamNumber].epaBreakdown = { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA };
+          }
+          epaBreakdown = { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA };
         }
-      } else {
+      } else if (teamData.matches.length > 0) {
         // Fallback to simple calculation if no year config
         let totalEPA = 0;
-        teamMatches.forEach(match => {
+        for (const match of teamData.matches) {
           if (match.gameSpecificData) {
-            Object.values(match.gameSpecificData).forEach(value => {
+            for (const value of Object.values(match.gameSpecificData)) {
               if (typeof value === 'number') {
                 totalEPA += value;
               }
-            });
+            }
           }
-        });
-        teamEPAs[teamNumber].epaBreakdown = { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA };
+        }
+        epaBreakdown = { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA };
       }
-    });
 
-    // Convert to array and calculate averages
-    const teamEPAData = Object.values(teamEPAs)
-      .map(team => ({
-        teamNumber: team.teamNumber,
-        name: `Team ${team.teamNumber}`, // Could be enhanced to get actual team names
-        matchesPlayed: team.matches,
-        totalEPA: team.epaBreakdown.totalEPA,
-        autoEPA: team.epaBreakdown.auto,
-        teleopEPA: team.epaBreakdown.teleop,
-        endgameEPA: team.epaBreakdown.endgame,
-        penaltiesEPA: team.epaBreakdown.penalties
-      }))
-      .sort((a, b) => b.totalEPA - a.totalEPA);
+      teamEPAData.push({
+        teamNumber,
+        name: `Team ${teamNumber}`,
+        matchesPlayed: teamData.matches.length,
+        totalEPA: epaBreakdown.totalEPA,
+        autoEPA: epaBreakdown.auto,
+        teleopEPA: epaBreakdown.teleop,
+        endgameEPA: epaBreakdown.endgame,
+        penaltiesEPA: epaBreakdown.penalties
+      });
+    }
+
+    // Sort by EPA
+    teamEPAData.sort((a, b) => b.totalEPA - a.totalEPA);
 
     return NextResponse.json({
       scoringAnalysis: analysisData,
       teamEPAData: teamEPAData,
       totalMatches: filteredEntries.length,
-      totalTeams: Object.keys(teamEPAs).length
+      totalTeams: teamEPAsMap.size
     });
   } catch (error) {
     console.error('Error fetching analysis data:', error);

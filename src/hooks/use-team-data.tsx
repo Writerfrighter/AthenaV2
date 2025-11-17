@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSelectedEvent } from './use-event-config';
 import { useGameConfig } from './use-game-config';
 import { teamApi } from '@/lib/api/database-client';
@@ -13,6 +13,11 @@ export function useTeamData(teamNumber: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Memoize dependencies to prevent unnecessary refetches
+  const eventCode = useMemo(() => selectedEvent?.code, [selectedEvent?.code]);
+  const configYear = useMemo(() => currentYear, [currentYear]);
+  const teamNum = useMemo(() => teamNumber ? parseInt(teamNumber) : null, [teamNumber]);
+
   useEffect(() => {
     async function fetchTeamData() {
       try {
@@ -21,9 +26,9 @@ export function useTeamData(teamNumber: string) {
 
         // Fetch team data from API
         const data = await teamApi.getTeamData(
-          parseInt(teamNumber), 
-          currentYear, 
-          selectedEvent?.code,
+          teamNum!, 
+          configYear, 
+          eventCode,
           competitionType
         );
         // console.log("Fetched team data:", data);
@@ -37,12 +42,12 @@ export function useTeamData(teamNumber: string) {
       }
     }
 
-    if (teamNumber && currentYear) {
+    if (teamNum && configYear) {
       fetchTeamData();
     } else {
       setLoading(false);
     }
-  }, [teamNumber, currentYear, selectedEvent?.code, competitionType]);
+  }, [teamNum, configYear, eventCode, competitionType]);
 
   return { teamData, loading, error };
 }

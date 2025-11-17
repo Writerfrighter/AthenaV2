@@ -40,70 +40,95 @@ export async function GET(request: NextRequest) {
     console.log('Stats API: Fetching match entries...');
     const matchEntries = await service.getAllMatchEntries(year, eventCode, competitionType);
     console.log('Stats API: Match entries count:', matchEntries.length);  
-    // Calculate statistics
-    const uniqueTeams = new Set([
-      ...pitEntries.map(entry => entry.teamNumber),
-      ...matchEntries.map(entry => entry.teamNumber)
-    ]);
-    const uniqueMatches = new Set(matchEntries.map(entry => entry.matchNumber)).size;
+    
+    // Calculate statistics in a single pass to improve performance
+    const teamDataMap = new Map<number, { 
+      name: string; 
+      matchesPlayed: number; 
+      matches: typeof matchEntries; 
+    }>();
+    
+    const uniqueMatches = new Set<number>();
+    
+    // Single pass through match entries
+    for (const entry of matchEntries) {
+      uniqueMatches.add(entry.matchNumber);
+      const teamData = teamDataMap.get(entry.teamNumber);
+      if (teamData) {
+        teamData.matchesPlayed++;
+        teamData.matches.push(entry);
+      } else {
+        teamDataMap.set(entry.teamNumber, {
+          name: `Team ${entry.teamNumber}`,
+          matchesPlayed: 1,
+          matches: [entry]
+        });
+      }
+    }
+    
+    // Add teams from pit entries that don't have match data
+    for (const pit of pitEntries) {
+      if (!teamDataMap.has(pit.teamNumber)) {
+        teamDataMap.set(pit.teamNumber, {
+          name: `Team ${pit.teamNumber}`,
+          matchesPlayed: 0,
+          matches: []
+        });
+      }
+    }
+
+    const uniqueTeamCount = teamDataMap.size;
     const totalMatches = matchEntries.length;
     const totalPitScouts = pitEntries.length;
-    const uniqueTeamCount = uniqueTeams.size;
 
     // Calculate match completion (6 or 4 teams per match)
     const teamsPerMatch = competitionType === 'FRC' ? 6 : 4;
-    const matchCompletion = uniqueMatches > 0 ? (totalMatches / (uniqueMatches * teamsPerMatch)) * 100 : 0;
-    // console.log(matchEntries);
-    // Calculate EPA-like metrics using proper EPA calculation
-    const teamStats = Array.from(uniqueTeams).map(teamNumber => {
-      const teamMatches = matchEntries.filter(entry => entry.teamNumber === teamNumber);
-      const teamPit = pitEntries.find(entry => entry.teamNumber === teamNumber);
-
-      // let avgEPA = 0;
+    const matchCompletion = uniqueMatches.size > 0 ? (totalMatches / (uniqueMatches.size * teamsPerMatch)) * 100 : 0;
+    
+    // Calculate EPA for teams with matches - more efficient batching
+    const teamStats: Array<{ teamNumber: number; name: string; matchesPlayed: number; totalEPA: number }> = [];
+    
+    for (const [teamNumber, teamData] of teamDataMap.entries()) {
       let totalEPA = 0;
 
-      if (teamMatches.length > 0 && year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()]) {
+      if (teamData.matchesPlayed > 0 && year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()]) {
         try {
           const yearConfig = gameConfig[competitionType][year.toString()];
-          const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
-          // avgEPA = epaBreakdown.totalEPA;
+          const epaBreakdown = calculateEPA(teamData.matches, year, yearConfig);
           totalEPA = epaBreakdown.totalEPA;
         } catch (error) {
           console.error(`Error calculating EPA for team ${teamNumber}:`, error);
           // Fallback to simple calculation
-          teamMatches.forEach(match => {
+          for (const match of teamData.matches) {
             if (match.gameSpecificData) {
-              Object.values(match.gameSpecificData).forEach(value => {
+              for (const value of Object.values(match.gameSpecificData)) {
                 if (typeof value === 'number') {
                   totalEPA += value;
                 }
-              });
+              }
             }
-          });
-          totalEPA = teamMatches.length > 0 ? totalEPA : 0;
+          }
         }
-      } else {
+      } else if (teamData.matchesPlayed > 0) {
         // Fallback to simple calculation if no year config
-        teamMatches.forEach(match => {
+        for (const match of teamData.matches) {
           if (match.gameSpecificData) {
-            Object.values(match.gameSpecificData).forEach(value => {
+            for (const value of Object.values(match.gameSpecificData)) {
               if (typeof value === 'number') {
                 totalEPA += value;
               }
-            });
+            }
           }
-        });
-        totalEPA = teamMatches.length > 0 ? totalEPA : 0;
+        }
       }
 
-      return {
+      teamStats.push({
         teamNumber,
-        name: teamPit?.name || `Team ${teamNumber}`,
-        matchesPlayed: teamMatches.length,
-        // avgEPA: isNaN(avgEPA) ? 0 : avgEPA,
+        name: teamData.name,
+        matchesPlayed: teamData.matchesPlayed,
         totalEPA: isNaN(totalEPA) ? 0 : totalEPA
-      };
-    });
+      });
+    }
 
     // Sort by EPA for ranking
     teamStats.sort((a, b) => b.totalEPA - a.totalEPA);

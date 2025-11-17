@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSelectedEvent } from './use-event-config';
 import { useGameConfig } from './use-game-config';
 import { statsApi } from '@/lib/api/database-client';
@@ -45,9 +45,13 @@ export function useDashboardStats() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Memoize dependencies to prevent unnecessary refetches
+  const eventCode = useMemo(() => selectedEvent?.code, [selectedEvent?.code]);
+  const configYear = useMemo(() => currentYear, [currentYear]);
+
   useEffect(() => {
     async function fetchStats() {
-      if (!selectedEvent || !gameConfig) {
+      if (!eventCode || !gameConfig) {
         setLoading(false);
         return;
       }
@@ -62,7 +66,7 @@ export function useDashboardStats() {
         // For FTC, skip TBA API and go directly to custom events or FTC API
         if (competitionType === 'FTC') {
           try {
-            const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.code)}&competitionType=${competitionType}`);
+            const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(eventCode)}&competitionType=${competitionType}`);
             if (customEventResp.ok) {
               const customEvent = await customEventResp.json();
               qualMatchesCount = customEvent?.matchCount ?? 0;
@@ -76,14 +80,14 @@ export function useDashboardStats() {
         } else {
           // For FRC, use TBA API
           try {
-            const proxyResp = await fetch(`/api/tba/qualification-matches?eventCode=${encodeURIComponent(selectedEvent.code)}`);
+            const proxyResp = await fetch(`/api/tba/qualification-matches?eventCode=${encodeURIComponent(eventCode)}`);
             if (proxyResp.ok) {
               const proxyData = await proxyResp.json();
               qualMatchesCount = proxyData?.qualMatchesCount ?? 0;
             } else {
               // If TBA API fails, try to get match count from custom events
               console.warn('TBA API failed, falling back to custom event data');
-              const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.code)}`);
+              const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(eventCode)}`);
               if (customEventResp.ok) {
                 const customEvent = await customEventResp.json();
                 qualMatchesCount = customEvent?.matchCount ?? 0;
@@ -96,7 +100,7 @@ export function useDashboardStats() {
             console.warn('TBA API error, attempting custom event fallback:', tbaError);
             try {
               // If TBA API fails, try to get match count from custom events
-              const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.code)}`);
+              const customEventResp = await fetch(`/api/database/custom-events?eventCode=${encodeURIComponent(eventCode)}`);
               if (customEventResp.ok) {
                 const customEvent = await customEventResp.json();
                 qualMatchesCount = customEvent?.matchCount ?? 0;
@@ -111,7 +115,7 @@ export function useDashboardStats() {
         }
         // const qualMatchesCount = 0;
         // Fetch stats from API
-        const apiStats = await statsApi.getDashboardStats(currentYear, selectedEvent.code, competitionType);
+        const apiStats = await statsApi.getDashboardStats(configYear, eventCode, competitionType);
 
         // Transform API response to hook format
         const transformedStats: DashboardStats = {
@@ -150,7 +154,7 @@ export function useDashboardStats() {
     }
 
     fetchStats();
-  }, [selectedEvent, currentYear, gameConfig, competitionType]);
+  }, [eventCode, configYear, gameConfig, competitionType]);
 
   return { stats, loading, error };
 }
