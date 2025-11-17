@@ -5,6 +5,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
   private pool: import('mssql').ConnectionPool | null = null;
   private config: AzureSqlConfig;
   private tokenExpiresAt: Date | null = null;
+  private poolCreationPromise: Promise<import('mssql').ConnectionPool> | null = null;
 
   constructor(config: AzureSqlConfig) {
     this.config = config;
@@ -17,8 +18,14 @@ export class AzureSqlDatabaseService implements DatabaseService {
       await this.closePool();
     }
 
+    // Return existing pool if available
     if (this.pool) {
       return this.pool;
+    }
+
+    // If pool creation is already in progress, wait for it
+    if (this.poolCreationPromise) {
+      return this.poolCreationPromise;
     }
 
     const mssql = await import('mssql');
@@ -74,17 +81,24 @@ export class AzureSqlDatabaseService implements DatabaseService {
       };
     }
 
-    try {
-      this.pool = await mssql.connect(config);
-      console.log('Azure SQL: Connection pool created successfully');
-      await this.initializeTables();
-      return this.pool;
-    } catch (error) {
-      console.error('Azure SQL: Failed to create connection pool:', error);
-      this.pool = null;
-      this.tokenExpiresAt = null;
-      throw error;
-    }
+    // Create pool creation promise to prevent concurrent creation attempts
+    this.poolCreationPromise = (async () => {
+      try {
+        this.pool = await mssql.connect(config);
+        console.log('Azure SQL: Connection pool created successfully');
+        await this.initializeTables();
+        return this.pool;
+      } catch (error) {
+        console.error('Azure SQL: Failed to create connection pool:', error);
+        this.pool = null;
+        this.tokenExpiresAt = null;
+        throw error;
+      } finally {
+        this.poolCreationPromise = null;
+      }
+    })();
+
+    return this.poolCreationPromise;
   }
 
   private isTokenExpired(): boolean {
@@ -265,6 +279,51 @@ export class AzureSqlDatabaseService implements DatabaseService {
       IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
                      WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'preferredPartners')
       ALTER TABLE users ADD preferredPartners NVARCHAR(MAX)
+    `);
+
+    // Create performance indexes for frequently queried columns
+    await this.createPerformanceIndexes();
+  }
+
+  private async createPerformanceIndexes(): Promise<void> {
+    const pool = await this.getPool();
+
+    // Index for pitEntries table
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_pitEntries_teamNumber_year_competitionType' AND object_id = OBJECT_ID('pitEntries'))
+      CREATE NONCLUSTERED INDEX IX_pitEntries_teamNumber_year_competitionType 
+      ON pitEntries(teamNumber, year, competitionType)
+    `);
+
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_pitEntries_eventCode_year' AND object_id = OBJECT_ID('pitEntries'))
+      CREATE NONCLUSTERED INDEX IX_pitEntries_eventCode_year 
+      ON pitEntries(eventCode, year)
+    `);
+
+    // Index for matchEntries table
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_matchEntries_teamNumber_year_competitionType' AND object_id = OBJECT_ID('matchEntries'))
+      CREATE NONCLUSTERED INDEX IX_matchEntries_teamNumber_year_competitionType 
+      ON matchEntries(teamNumber, year, competitionType)
+    `);
+
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_matchEntries_eventCode_year' AND object_id = OBJECT_ID('matchEntries'))
+      CREATE NONCLUSTERED INDEX IX_matchEntries_eventCode_year 
+      ON matchEntries(eventCode, year)
+    `);
+
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_matchEntries_matchNumber' AND object_id = OBJECT_ID('matchEntries'))
+      CREATE NONCLUSTERED INDEX IX_matchEntries_matchNumber 
+      ON matchEntries(matchNumber)
+    `);
+
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_matchEntries_timestamp' AND object_id = OBJECT_ID('matchEntries'))
+      CREATE NONCLUSTERED INDEX IX_matchEntries_timestamp 
+      ON matchEntries(timestamp DESC)
     `);
   }
 

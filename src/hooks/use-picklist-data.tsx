@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSelectedEvent } from './use-event-config';
 import { useGameConfig } from './use-game-config';
 import { statsApi } from '@/lib/api/database-client';
@@ -23,9 +23,13 @@ export function usePicklistData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Memoize dependencies to prevent unnecessary refetches
+  const eventCode = useMemo(() => selectedEvent?.code, [selectedEvent?.code]);
+  const configYear = useMemo(() => currentYear, [currentYear]);
+
   useEffect(() => {
     async function fetchPicklistData() {
-      if (!selectedEvent || !gameConfig) {
+      if (!eventCode || !gameConfig) {
         setLoading(false);
         return;
       }
@@ -35,7 +39,7 @@ export function usePicklistData() {
         setError(null);
 
         // Fetch picklist data from API
-        const apiData = await statsApi.getPicklistData(currentYear, selectedEvent.code, competitionType);
+        const apiData = await statsApi.getPicklistData(configYear, eventCode, competitionType);
 
         // Transform API response to hook format
         const transformedTeams: PicklistTeam[] = apiData.teams.map(team => ({
@@ -58,7 +62,7 @@ export function usePicklistData() {
     }
 
     fetchPicklistData();
-  }, [selectedEvent?.code, currentYear, gameConfig, competitionType]);
+  }, [eventCode, configYear, gameConfig, competitionType]);
 
   return { teams, loading, error };
 }
