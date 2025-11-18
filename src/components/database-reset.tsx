@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog';
 import { AlertTriangle, Trash2, Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
@@ -11,8 +11,10 @@ import { toast } from 'sonner';
 export function DatabaseResetComponent() {
   const [isResetting, setIsResetting] = useState(false);
   const [resetProgress, setResetProgress] = useState(0);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleResetDatabase = async () => {
+    setDialogOpen(false);
     setIsResetting(true);
     setResetProgress(0);
 
@@ -81,50 +83,42 @@ export function DatabaseResetComponent() {
           </p>
         </div>
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="destructive"
-              disabled={isResetting}
-              className="w-full"
-            >
-              {isResetting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="mr-2 h-4 w-4" />
-              )}
-              {isResetting ? 'Resetting...' : 'Reset Database'}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-                Are you absolutely sure?
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete all scouting data
-                from the database, including:
-                <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li>All pit scouting entries</li>
-                  <li>All match scouting entries</li>
-                  {/* <li>All user accounts and data</li> */}
-                </ul>
-                <br />
-                Make sure you have backed up any important data before proceeding.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleResetDatabase}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Yes, reset database
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <Button
+          variant="destructive"
+          disabled={isResetting}
+          className="w-full"
+          onClick={() => setDialogOpen(true)}
+        >
+          {isResetting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="mr-2 h-4 w-4" />
+          )}
+          {isResetting ? 'Resetting...' : 'Reset Database'}
+        </Button>
+
+        <DeleteConfirmationDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onConfirm={handleResetDatabase}
+          title="Are you absolutely sure?"
+          description={
+            <>
+              This action cannot be undone. This will permanently delete all scouting data
+              from the database, including:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>All pit scouting entries</li>
+                <li>All match scouting entries</li>
+              </ul>
+              <br />
+              Make sure you have backed up any important data before proceeding.
+            </>
+          }
+          loading={isResetting}
+          confirmButtonText="Yes, reset database"
+          loadingText="Resetting..."
+          variant="destructive"
+        />
       </CardContent>
     </Card>
   );
