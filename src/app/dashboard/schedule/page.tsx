@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Calendar, Clock, Users, Handshake, Loader2, AlertCircle } from "lucide-react"
 import { useScheduleData } from '@/hooks/use-schedule-data'
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import type { ScoutingBlockWithAssignments } from '@/lib/shared-types'
 
 // Define extended user type with preferred partners
@@ -71,6 +72,7 @@ export default function SchedulePage() {
   const [isCreatingBlocks, setIsCreatingBlocks] = useState(false)
   const [isAutoAssigning, setIsAutoAssigning] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showReconfigureDialog, setShowReconfigureDialog] = useState(false)
   
   // Local state for assignments (not synced to server until save)
   const [localBlocks, setLocalBlocks] = useState<DisplayBlock[]>([])
@@ -498,9 +500,13 @@ export default function SchedulePage() {
     }
   }
 
-  const handleReconfigureBlocks = async () => {
-    if (!matchCount || !confirm('This will delete all existing blocks and assignments. Continue?')) return
-    
+  const handleReconfigureBlocks = () => {
+    if (!matchCount) return
+    setShowReconfigureDialog(true)
+  }
+
+  const confirmReconfigure = async () => {
+    setShowReconfigureDialog(false)
     setIsCreatingBlocks(true)
     try {
       await createBlocks(blockSize, matchCount)
@@ -973,6 +979,18 @@ export default function SchedulePage() {
           </Card>
         </div>
       )}
+
+      <DeleteConfirmationDialog
+        open={showReconfigureDialog}
+        onOpenChange={setShowReconfigureDialog}
+        onConfirm={confirmReconfigure}
+        title="Reconfigure Blocks"
+        description="This will delete all existing blocks and assignments. Are you sure you want to continue?"
+        confirmButtonText="Reconfigure"
+        loadingText="Reconfiguring..."
+        loading={isCreatingBlocks}
+        variant="destructive"
+      />
     </div>
   )
 }
