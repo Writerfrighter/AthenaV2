@@ -34,6 +34,7 @@ export const PERMISSIONS = {
   EXPORT_DATA: "export_data",
   IMPORT_DATA: "import_data",
   RESET_DATABASE: "reset_database",
+  REVALIDATE_CACHE: "revalidate_cache",
   VIEW_DATA_DIAGNOSTICS: "view_data_diagnostics",
 
   // User Management
