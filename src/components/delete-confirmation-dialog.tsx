@@ -49,7 +49,7 @@ export function DeleteConfirmationDialog({
             className={
               variant === "destructive"
                 ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                : ""
+                : variant
             }
           >
             {loading ? loadingText : confirmButtonText}

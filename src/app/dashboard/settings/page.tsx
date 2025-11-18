@@ -57,12 +57,13 @@ export default function SettingsPage() {
           <PermissionGuard permissions={[PERMISSIONS.IMPORT_DATA, PERMISSIONS.EXPORT_DATA]}>
             <DataExportImportComponent />
           </PermissionGuard>
-          <PermissionGuard permission={PERMISSIONS.RESET_DATABASE}>
-            <DatabaseResetComponent />
-          </PermissionGuard>
           <PermissionGuard permission={PERMISSIONS.REVALIDATE_CACHE}>
             <CacheRevalidationComponent />
           </PermissionGuard>
+          <PermissionGuard permission={PERMISSIONS.RESET_DATABASE}>
+            <DatabaseResetComponent />
+          </PermissionGuard>
+         
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">

@@ -80,7 +80,6 @@ export function CacheRevalidationComponent() {
           loading={isRevalidating}
           confirmButtonText="Revalidate"
           loadingText="Revalidating..."
-          variant="default"
         />
       </CardContent>
     </Card>
