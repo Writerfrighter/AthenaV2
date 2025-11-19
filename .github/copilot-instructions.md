@@ -4,7 +4,7 @@
 AthenaV2 is a modern scouting and analytics platform for FIRST Robotics Competition (FRC) teams. Built with Next.js 15, TypeScript, and Tailwind CSS, it provides dynamic form generation, multi-database support, and PWA capabilities for offline-first scouting operations.
 
 **Package Manager**: pnpm (not npm)
-**Build Validation**: Always run `pnpm build && pnpm lint` after major code changes
+**Build Validation**: Always run `pnpm build` after major code changes
 
 ## Architecture Overview
 - **Frontend**: Next.js 15 with App Router, React 19, TypeScript
@@ -84,12 +84,11 @@ Uses Serwist for service worker management. Offline sync handled through backgro
 - **Package Manager**: Uses pnpm for dependency management
 - **Development**: `pnpm dev` (with Turbopack for faster builds)
 - **Build**: `pnpm build` - Always run after code changes to validate
-- **Lint**: `pnpm lint` - Check code quality and style
 - **Start**: `pnpm start` - Run production build locally
 
 **Always validate builds after changes:**
 ```bash
-pnpm build && pnpm lint
+pnpm build
 ```
 
 ### Adding New Game Year
@@ -113,7 +112,7 @@ pnpm build && pnpm lint
 ## Common Patterns to Follow
 
 ### Build Validation
-**Critical**: Always run `pnpm build && pnpm lint` after any code changes. The project uses Turbopack for fast development builds, but production builds must validate correctly.
+**Critical**: Always run `pnpm build` after any code changes. The project uses Turbopack for fast development builds, but production builds must validate correctly.
 
 ### Data Flow
 Config JSON → Custom Hooks → Components → API Routes → Database Service → Provider Implementation

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useGameConfig, useCurrentGameConfig } from '@/hooks/use-game-config';
 import { useSelectedEvent } from '@/hooks/use-event-config';
 import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
+import { useUnscoutedEventTeamNumbers } from '@/hooks/use-unscouted-event-teams';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ export function DynamicPitScoutForm() {
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
+  const { teamNumbers: unscoutedTeamNumbers, loading: unscoutedLoading } = useUnscoutedEventTeamNumbers();
 
   // Function to initialize form data with all pit scouting fields
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -158,6 +160,15 @@ export function DynamicPitScoutForm() {
         notes: '',
         gameSpecificData: {}
       });
+      // Notify local listeners (including our hook) that a pit entry was created so dropdown updates
+      try {
+        if (typeof window !== 'undefined') {
+          const ev = new CustomEvent('pitEntryCreated', { detail: { teamNumber: entryToSave.teamNumber } });
+          window.dispatchEvent(ev);
+        }
+      } catch (err) {
+        // ignore
+      }
     } catch (error) {
       toast("Failed to save data", {
         description: error instanceof Error ? error.message : "Unknown error",
@@ -256,20 +267,23 @@ export function DynamicPitScoutForm() {
                     <Label htmlFor="team" className="text-base font-medium">
                       Team Number
                     </Label>
-                    {eventTeamNumbers.length > 0 ? (
+                    {unscoutedTeamNumbers.length > 0 ? (
                       <Select value={formData.team === 0 ? undefined : String(formData.team)} onValueChange={(value) => handleSelectChange('team', value)}>
                         <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder="Select team number" />
                         </SelectTrigger>
                         <SelectContent>
-                          {eventTeamNumbers.map((teamNumber) => (
+                          {unscoutedTeamNumbers.map((teamNumber) => (
                             <SelectItem key={teamNumber} value={String(teamNumber)}>
                               Team {teamNumber}
                             </SelectItem>
                           ))}
+                          {unscoutedTeamNumbers.length === 0 && eventTeamNumbers.length > 0 && (
+                            <SelectItem value="-" disabled>All teams have pit entries</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
-                    ) : teamsLoading ? (
+                    ) : unscoutedLoading || teamsLoading ? (
                       <Select disabled>
                         <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder="Loading teams..." />
