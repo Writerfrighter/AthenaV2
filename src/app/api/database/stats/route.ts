@@ -21,25 +21,25 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_DASHBOARD)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
-    console.log('Stats API: Starting request processing');
+    // console.log('Stats API: Starting request processing');
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const eventCode = searchParams.get('eventCode') || undefined;
     const competitionType = (searchParams.get('competitionType') as CompetitionType) || 'FRC';
 
-    console.log('Stats API: Parameters -', { year, eventCode, competitionType });
+    // console.log('Stats API: Parameters -', { year, eventCode, competitionType });
 
     const service = getDbService();
-    console.log('Stats API: Database service retrieved');
+    // console.log('Stats API: Database service retrieved');
 
     // Get all entries for the year and competition type
-    console.log('Stats API: Fetching pit entries...');
+    // console.log('Stats API: Fetching pit entries...');
     const pitEntries = await service.getAllPitEntries(year, eventCode, competitionType);
-    console.log('Stats API: Pit entries count:', pitEntries.length);
+    // console.log('Stats API: Pit entries count:', pitEntries.length);
     
-    console.log('Stats API: Fetching match entries...');
+    // console.log('Stats API: Fetching match entries...');
     const matchEntries = await service.getAllMatchEntries(year, eventCode, competitionType);
-    console.log('Stats API: Match entries count:', matchEntries.length);  
+    // console.log('Stats API: Match entries count:', matchEntries.length);  
     // Calculate statistics
     const uniqueTeams = new Set([
       ...pitEntries.map(entry => entry.teamNumber),

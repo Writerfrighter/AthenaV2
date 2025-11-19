@@ -254,13 +254,11 @@
           },
           "autoArtifactsClassified": {
             "label": "Auto Artifacts Classification",
-            "type": "select",
-            "options": ["0", "1", "2", "3+"]
+            "type": "number"
           },
           "autoPatterns": {
             "label": "Auto Patterns Completed",
-            "type": "select",
-            "options": ["0", "1", "2", "3+"]
+            "type": "number"
           },
           "autoRoutineCount": {
             "label": "Number of Auto Routines",
