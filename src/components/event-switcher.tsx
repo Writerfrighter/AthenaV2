@@ -394,7 +394,7 @@ export function EventSwitcher() {
                     className="gap-2 p-2 pr-16"
                   >
                     {event.name}
-                    <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+                    {/* <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut> */}
                   </DropdownMenuItem>
                   {isCustomEvent(event.code) && (
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">

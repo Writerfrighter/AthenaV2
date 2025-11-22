@@ -18,22 +18,17 @@ export default function Page() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Performance Analysis
-          </CardTitle>
-          <CardDescription>
-            Analyze team performance with EPA (Expected Points Added) metrics and visualizations
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Performance Analysis</h1>
+        <p className="text-muted-foreground">
+          Analyze team performance with EPA (Expected Points Added) metrics and visualizations
+        </p>
+      </div>
 
       {/* Analysis Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="pt-4">
+          <CardContent >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Teams Analyzed</p>
@@ -47,7 +42,7 @@ export default function Page() {
         </Card>
 
         <Card>
-          <CardContent className="pt-4">
+          <CardContent >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Highest EPA</p>
@@ -61,7 +56,7 @@ export default function Page() {
         </Card>
 
         <Card>
-          <CardContent className="pt-4">
+          <CardContent >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Average EPA</p>
@@ -75,7 +70,7 @@ export default function Page() {
         </Card>
 
         <Card>
-          <CardContent className="pt-4">
+          <CardContent >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Data Points</p>
@@ -117,26 +112,10 @@ export default function Page() {
             </TabsList>
 
             <TabsContent value="graph" className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Badge variant="outline">
-                  Interactive Chart
-                </Badge>
-                <Badge variant="secondary">
-                  EPA Breakdown
-                </Badge>
-              </div>
               <StackedEPAChart data={stats.teamEPAData} />
             </TabsContent>
 
             <TabsContent value="table" className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Badge variant="outline">
-                  Sortable Table
-                </Badge>
-                <Badge variant="secondary">
-                  Detailed Metrics
-                </Badge>
-              </div>
               <EPATable data={stats.teamEPAData} />
             </TabsContent>
           </Tabs>

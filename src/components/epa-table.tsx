@@ -12,7 +12,7 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown } from "lucide-react";
+import { ArrowUpDown, ChevronDown, Filter } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,29 +36,34 @@ export const columns: ColumnDef<EPABreakdown>[] = [
   {
     accessorKey: "team",
     header: "Team",
+    enableHiding: false,
     cell: ({ row }) => <div className="capitalize">{row.getValue("team")}</div>,
   },
   {
     accessorKey: "auto",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Auto <ArrowUpDown />
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Auto <ArrowUpDown />
+        </Button>
+      </div>
     ),
     cell: ({ row }) => <div className="text-right">{row.getValue("auto")}</div>,
   },
   {
     accessorKey: "teleop",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Teleop <ArrowUpDown />
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Teleop <ArrowUpDown />
+        </Button>
+      </div>
     ),
     cell: ({ row }) => (
       <div className="text-right">{row.getValue("teleop")}</div>
@@ -67,12 +72,14 @@ export const columns: ColumnDef<EPABreakdown>[] = [
   {
     accessorKey: "endgame",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Endgame <ArrowUpDown />
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Endgame <ArrowUpDown />
+        </Button>
+      </div>
     ),
     cell: ({ row }) => (
       <div className="text-right">{row.getValue("endgame")}</div>
@@ -81,12 +88,14 @@ export const columns: ColumnDef<EPABreakdown>[] = [
   {
     accessorKey: "penalties",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Penalties <ArrowUpDown />
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Penalties <ArrowUpDown />
+        </Button>
+      </div>
     ),
     cell: ({ row }) => (
       <div className="text-right">{row.getValue("penalties")}</div>
@@ -95,12 +104,14 @@ export const columns: ColumnDef<EPABreakdown>[] = [
   {
     accessorKey: "totalEPA",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Total EPA <ArrowUpDown />
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Total EPA <ArrowUpDown />
+        </Button>
+      </div>
     ),
     cell: ({ row }) => (
       <div className="text-right">
@@ -155,7 +166,7 @@ export function EPATable({ data }: { data?: EPABreakdown[] }) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown />
+              <Filter/> Filters <ChevronDown /> 
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

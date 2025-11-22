@@ -177,7 +177,7 @@ export function MatchScoutingTable({ data, onEdit, onDelete }: MatchScoutingTabl
 
   return (
     <div className="w-full">
-      <div className="flex items-center py-4">
+      <div className="flex items-center pb-4 pt-1">
         <Input
           placeholder="Filter teams..."
           value={(table.getColumn("teamNumber")?.getFilterValue() as string) ?? ""}

@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { Card, CardDescription, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users } from "lucide-react";
 import { getTeamMedia, getEventTeams } from "@/lib/api/tba";
 import { TbaTeam } from "@/lib/api/tba-types";
 import { getSelectedEvent } from "@/lib/server-event-utils";
@@ -116,17 +115,12 @@ export default function TeamListPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-200">
-            <Users className="h-5 w-5" />
-            Team Directory
-          </CardTitle>
-          <CardDescription>
-            Browse all teams competing at the selected event
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Team Directory</h1>
+        <p className="text-muted-foreground">
+          Browse all teams competing at the selected event
+        </p>
+      </div>
 
       <Suspense fallback={<TeamListSkeleton />}>
         <InitialTeamList />

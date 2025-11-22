@@ -27,17 +27,12 @@ export default function SortablePicklist() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5" />
-            Team Picklist
-          </CardTitle>
-          <CardDescription>
-            Drag and drop teams to reorder your alliance selection preferences. Teams are ranked by Total EPA.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Team Picklist</h1>
+        <p className="text-muted-foreground">
+          Drag and drop teams to reorder your alliance selection preferences. Teams are ranked by Total EPA.
+        </p>
+      </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
