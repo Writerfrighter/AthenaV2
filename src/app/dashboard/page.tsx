@@ -107,7 +107,7 @@ export default function Page() {
       </div>
 
       {/* Event Information */}
-      <EventInfoCard />
+      {/* <EventInfoCard /> */}
 
       {/* Quick Actions & Event Progress */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -169,20 +169,18 @@ export default function Page() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Qualification Matches</span>
-                <span>{loading ? "..." : `${stats.qualificationProgress.current}/${stats.qualificationProgress.total}`}</span>
-              </div>
-              <Progress value={loading ? 0 : (stats.qualificationProgress.current / stats.qualificationProgress.total) * 100} className="h-2" />
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
                 <span>Pit Scouting</span>
                 <span>{loading ? "..." : `${stats.pitScoutingProgress.current}/${stats.pitScoutingProgress.total}`}</span>
               </div>
               <Progress value={loading ? 0 : (stats.pitScoutingProgress.current / stats.pitScoutingProgress.total) * 100} className="h-2" />
             </div>
-            
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Qualification Matches</span>
+                <span>{loading ? "..." : `${stats.qualificationProgress.current}/${stats.qualificationProgress.total}`}</span>
+              </div>
+              <Progress value={loading ? 0 : (stats.qualificationProgress.current / stats.qualificationProgress.total) * 100} className="h-2" />
+            </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Data Completeness</span>
