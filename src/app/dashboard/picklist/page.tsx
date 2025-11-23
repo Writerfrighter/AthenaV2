@@ -37,7 +37,7 @@ export default function SortablePicklist() {
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardContent className="pt-4">
+          <CardContent>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Teams Listed</p>
@@ -51,7 +51,7 @@ export default function SortablePicklist() {
         </Card>
 
         <Card>
-          <CardContent className="pt-4">
+          <CardContent>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Top Team EPA</p>
@@ -65,7 +65,7 @@ export default function SortablePicklist() {
         </Card>
 
         <Card>
-          <CardContent className="pt-4">
+          <CardContent>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Average EPA</p>

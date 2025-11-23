@@ -6,12 +6,14 @@ import {
   ChevronsUpDown,
   LogOut,
   Trophy,
+  Palette,
 } from "lucide-react"
 
 import { useAccountSettingsDialog } from "@/app/dashboard/layout"
 import { useNotificationSettingsDialog } from "@/app/dashboard/layout"
 import { signOut } from "next-auth/react"
 import { useGameConfig } from "@/hooks/use-game-config"
+import { ThemeSelector } from "@/components/theme-selector"
 
 import {
   Avatar,
@@ -116,6 +118,15 @@ export function NavUser({
                 <Bell />
                 Notifications
               </DropdownMenuItem>
+              {/* <DropdownMenuItem asChild>
+                <div className="flex items-center w-full cursor-pointer">
+                  <Palette className="mr-2 h-4 w-4" />
+                  <span className="flex-1">Theme</span>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <ThemeSelector />
+                  </div>
+                </div>
+              </DropdownMenuItem> */}
               <DropdownMenuItem onClick={handleSwitchProgram}>
                 <Trophy className={competitionType === 'FTC' ? 'text-blue-500' : 'text-orange-500'} />
                 <span className={competitionType === 'FTC' ? 'text-blue-500' : 'text-orange-500'}>

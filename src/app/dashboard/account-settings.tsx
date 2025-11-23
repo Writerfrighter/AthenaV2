@@ -231,7 +231,7 @@ export function AccountSettingsDialog({ open, onOpenChange }: { open: boolean, o
           <div>
             <h3 className="text-lg font-semibold mb-3">Profile Information</h3>
             <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
                 <Input
                   id="name"
@@ -242,7 +242,7 @@ export function AccountSettingsDialog({ open, onOpenChange }: { open: boolean, o
                   required
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
@@ -265,7 +265,7 @@ export function AccountSettingsDialog({ open, onOpenChange }: { open: boolean, o
           <div>
             <h3 className="text-lg font-semibold mb-3">Change Password</h3>
             <form onSubmit={handleChangePassword} className="space-y-4">
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <Label htmlFor="current-password">Current Password</Label>
                 <Input
                   id="current-password"
@@ -276,7 +276,7 @@ export function AccountSettingsDialog({ open, onOpenChange }: { open: boolean, o
                   autoComplete="current-password"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
                 <Input
                   id="new-password"
@@ -287,7 +287,7 @@ export function AccountSettingsDialog({ open, onOpenChange }: { open: boolean, o
                   autoComplete="new-password"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <Label htmlFor="confirm-password">Confirm New Password</Label>
                 <Input
                   id="confirm-password"

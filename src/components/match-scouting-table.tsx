@@ -40,31 +40,35 @@ interface MatchScoutingTableProps {
   onDelete: (id: number) => void;
 }
 
-export function MatchScoutingTable({ data, onEdit, onDelete }: MatchScoutingTableProps) {
-  const columns: ColumnDef<MatchEntry>[] = [
+export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data, onEdit, onDelete }: MatchScoutingTableProps) {
+  const columns = React.useMemo<ColumnDef<MatchEntry>[]>(() => [
   {
     accessorKey: "matchNumber",
     header: ({ column }) => (
       <Button
         variant="ghost"
+        size="sm"
+        className="h-8 px-2"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Match <ArrowUpDown />
+        Match <ArrowUpDown className="ml-1 h-3 w-3" />
       </Button>
     ),
-    cell: ({ row }) => <div className="font-medium">#{row.getValue("matchNumber")}</div>,
+    cell: ({ row }) => <div className="font-medium text-sm">#{row.getValue("matchNumber")}</div>,
   },
   {
     accessorKey: "teamNumber",
     header: ({ column }) => (
       <Button
         variant="ghost"
+        size="sm"
+        className="h-8 px-2"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Team <ArrowUpDown />
+        Team <ArrowUpDown className="ml-1 h-3 w-3" />
       </Button>
     ),
-    cell: ({ row }) => <div className="font-medium">{row.getValue("teamNumber")}</div>,
+    cell: ({ row }) => <div className="font-medium text-sm">{row.getValue("teamNumber")}</div>,
   },
   {
     accessorKey: "alliance",
@@ -74,7 +78,7 @@ export function MatchScoutingTable({ data, onEdit, onDelete }: MatchScoutingTabl
       return (
         <Badge
           variant={alliance === 'red' ? 'destructive' : 'default'}
-          className={alliance === 'blue' ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}
+          className={`text-xs px-1.5 py-0 ${alliance === 'blue' ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}`}
         >
           {alliance.toUpperCase()}
         </Badge>
@@ -86,14 +90,16 @@ export function MatchScoutingTable({ data, onEdit, onDelete }: MatchScoutingTabl
     header: ({ column }) => (
       <Button
         variant="ghost"
+        size="sm"
+        className="h-8 px-2"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Time <ArrowUpDown />
+        Time <ArrowUpDown className="ml-1 h-3 w-3" />
       </Button>
     ),
     cell: ({ row }) => {
       const timestamp = row.getValue("timestamp") as Date;
-      return <div className="text-sm">{timestamp.toLocaleString()}</div>;
+      return <div className="text-xs">{timestamp.toLocaleString()}</div>;
     },
   },
   {
@@ -107,7 +113,7 @@ export function MatchScoutingTable({ data, onEdit, onDelete }: MatchScoutingTabl
       if (data.autoPoints !== undefined) metrics.push(`Auto: ${data.autoPoints}`);
       if (data.teleopPoints !== undefined) metrics.push(`Teleop: ${data.teleopPoints}`);
       if (data.totalPoints !== undefined) metrics.push(`Total: ${data.totalPoints}`);
-      return <div className="text-sm">{metrics.join(", ")}</div>;
+      return <div className="text-xs">{metrics.join(", ")}</div>;
     },
   },
   {
@@ -115,7 +121,7 @@ export function MatchScoutingTable({ data, onEdit, onDelete }: MatchScoutingTabl
     header: "Notes",
     cell: ({ row }) => {
       const notes = row.getValue("notes") as string;
-      return <div className="text-sm max-w-xs truncate" title={notes}>{notes}</div>;
+      return <div className="text-xs max-w-xs truncate" title={notes}>{notes}</div>;
     },
   },
   {
@@ -149,7 +155,7 @@ export function MatchScoutingTable({ data, onEdit, onDelete }: MatchScoutingTabl
       );
     },
     },
-  ];
+  ], [onEdit, onDelete]);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -177,14 +183,14 @@ export function MatchScoutingTable({ data, onEdit, onDelete }: MatchScoutingTabl
 
   return (
     <div className="w-full">
-      <div className="flex items-center pb-4 pt-1">
+      <div className="flex items-center pb-2">
         <Input
           placeholder="Filter teams..."
           value={(table.getColumn("teamNumber")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("teamNumber")?.setFilterValue(event.target.value)
           }
-          className="max-w-sm"
+          className="max-w-sm h-9"
         />
       </div>
       <div className="rounded-md border">
@@ -237,8 +243,8 @@ export function MatchScoutingTable({ data, onEdit, onDelete }: MatchScoutingTabl
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
+      <div className="flex items-center justify-end space-x-2 pt-2">
+        <div className="flex-1 text-xs text-muted-foreground">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} row(s) selected.
         </div>
@@ -263,4 +269,4 @@ export function MatchScoutingTable({ data, onEdit, onDelete }: MatchScoutingTabl
       </div>
     </div>
   );
-}
+});

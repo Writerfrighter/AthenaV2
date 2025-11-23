@@ -10,6 +10,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { ThemeSelector } from "@/components/theme-selector";
 
 // Context to control account settings dialog
 const AccountSettingsContext = createContext<{ openAccountSettings: () => void } | undefined>(undefined);
@@ -47,8 +48,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 orientation="vertical"
                 className="mr-2 data-[orientation=vertical]:h-4"
               />
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-1">
                 <ModeToggle />
+                <ThemeSelector />
               </div>
             </header>
             <div className="flex flex-1 flex-col gap-4 p-4">

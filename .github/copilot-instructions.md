@@ -8,7 +8,8 @@ AthenaV2 is a modern scouting and analytics platform for FIRST Robotics Competit
 
 ## Architecture Overview
 - **Frontend**: Next.js 15 with App Router, React 19, TypeScript
-- **UI**: Radix UI components with Tailwind CSS for consistent design system, dark mode support
+- **UI**: Radix UI components with Tailwind CSS for consistent design system
+- **Theming**: Multi-theme system with 5 color schemes (Green, Blue, Purple, Rose, Orange), each supporting light/dark modes
 - **Database**: Azure SQL with service abstraction layer
 - **Configuration**: Year-based JSON configs drive dynamic form generation
 - **PWA**: Service workers with Serwist for offline caching and sync
@@ -70,7 +71,17 @@ DELETE /api/database/match/[id] - Delete entry
 - `/components/` - App-specific components
 - `/components/[feature]-pages/` - Feature-specific page components
 
-### 7. PWA & Service Worker Setup
+### 7. Multi-Theme System
+5 color themes (Green, Blue, Purple, Rose, Orange) with light/dark mode support. Themes use OKLCH color space for perceptually uniform colors.
+
+**Key files**:
+- `src/lib/theme-config.ts` - Theme definitions and color tokens
+- `src/components/theme-selector.tsx` - UI for theme selection
+- `src/app/globals.css` - CSS variables for theming
+
+**Usage**: Theme selector accessible via user menu dropdown in sidebar.
+
+### 8. PWA & Service Worker Setup
 Uses Serwist for service worker management. Offline sync handled through background sync API.
 
 **Key files**:

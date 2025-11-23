@@ -27,6 +27,11 @@ AthenaV2 is a modern scouting and analytics platform designed for competitive ro
 	- Secure login and signup flows.
 	- Account settings and role-based access.
 
+- **Customizable Themes:**
+	- Multiple color themes (Green, Blue, Purple, Rose, Orange) with light/dark mode support.
+	- User preference persists across sessions.
+	- See [THEME_SYSTEM.md](THEME_SYSTEM.md) for details.
+
 - **Progressive Web App (PWA):**
 	- Installable on devices with offline caching and background sync.
 
