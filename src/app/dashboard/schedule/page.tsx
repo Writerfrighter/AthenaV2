@@ -579,7 +579,7 @@ export default function SchedulePage() {
         <div className="flex items-center gap-2 flex-wrap">
           {hasUnsavedChanges && (
             <>
-              <Badge variant="outline" className="text-orange-600 border-orange-600">
+              <Badge variant="outline" className="text-chart-5 border-chart-5">
                 Unsaved Changes
               </Badge>
               <Button variant="outline" onClick={discardChanges} disabled={isSaving}>
@@ -756,7 +756,7 @@ export default function SchedulePage() {
                           const pairedPartners = assignedScout ? getPairedPartnersInBlock(assignedScout.id, block) : []
 
                           return (
-                            <div key={scoutIndex} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950 rounded-lg">
+                            <div key={scoutIndex} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                               <div className="flex items-center gap-3">
                                 <span className="font-medium">Scout {scoutIndex + 1}</span>
                                 {assignedScout && (
@@ -768,7 +768,7 @@ export default function SchedulePage() {
                                     {isPaired && (
                                       <Badge 
                                         variant="outline" 
-                                        className="flex items-center gap-1 text-green-700 dark:text-green-400 border-green-600 dark:border-green-500"
+                                        className="flex items-center gap-1 text-primary border-primary"
                                         title={`Paired with: ${pairedPartners.map(id => usersById.get(id)?.name).join(', ')}`}
                                       >
                                         <Handshake className="h-3 w-3" />
@@ -814,8 +814,8 @@ export default function SchedulePage() {
 
                     {/* Blue Alliance Scouts */}
                     <div>
-                      <h4 className="font-medium text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
-                        <div className="w-4 h-4 bg-blue-500 dark:bg-blue-600 rounded"></div>
+                      <h4 className="font-medium text-chart-2 mb-4 flex items-center gap-2">
+                        <div className="w-4 h-4 bg-chart-2 rounded"></div>
                         Blue Alliance Scouts
                       </h4>
                       <div className="space-y-3">
@@ -826,7 +826,7 @@ export default function SchedulePage() {
                           const pairedPartners = assignedScout ? getPairedPartnersInBlock(assignedScout.id, block) : []
 
                           return (
-                            <div key={scoutIndex} className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                            <div key={scoutIndex} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                               <div className="flex items-center gap-3">
                                 <span className="font-medium">Scout {scoutIndex + 1}</span>
                                 {assignedScout && (
@@ -838,7 +838,7 @@ export default function SchedulePage() {
                                     {isPaired && (
                                       <Badge 
                                         variant="outline" 
-                                        className="flex items-center gap-1 text-green-700 dark:text-green-400 border-green-600 dark:border-green-500"
+                                        className="flex items-center gap-1 text-primary border-primary"
                                         title={`Paired with: ${pairedPartners.map(id => usersById.get(id)?.name).join(', ')}`}
                                       >
                                         <Handshake className="h-3 w-3" />
@@ -968,10 +968,10 @@ export default function SchedulePage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Preferred Pairings</CardTitle>
-              <Handshake className="h-4 w-4 text-green-700 dark:text-green-400" />
+              <Handshake className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-700 dark:text-green-400">{scheduleSummary.preferredPairings}</div>
+              <div className="text-2xl font-bold text-primary">{scheduleSummary.preferredPairings}</div>
               <p className="text-xs text-muted-foreground">
                 Scout pairs working together
               </p>

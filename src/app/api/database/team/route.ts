@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
       : matchEntries;
 
     // Get pit entry for the team, filtered by competition type
-    const pitEntry = await service.getPitEntry(parseInt(teamNumber), year || new Date().getFullYear(), competitionType);
+    const definedYear = year || (competitionType == "FRC" ? new Date().getFullYear() : new Date().getFullYear()+1);
+    const pitEntry = await service.getPitEntry(parseInt(teamNumber), definedYear, competitionType);
 
     // Calculate statistics if we have match data
     let teamStats = null;

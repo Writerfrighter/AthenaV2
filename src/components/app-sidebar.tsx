@@ -126,8 +126,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         
       </SidebarHeader>
       <SidebarContent>
-        <EventSwitcher/>
-        <SearchForm className="ml-2"/>
+        <div className="mx-2 mt-1"><EventSwitcher/></div>
+        <SearchForm className="mt-1 ms-2"/>
         <NavMain items={data.navMain} />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>

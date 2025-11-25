@@ -159,11 +159,11 @@ export function NotificationSender() {
         </div>
 
         {lastResult && (
-          <Alert className={lastResult.successful > 0 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+          <Alert className={lastResult.successful > 0 ? 'border-primary/20 bg-primary/5' : 'border-destructive/20 bg-destructive/5'}>
             {lastResult.successful > 0 ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-primary" />
             ) : (
-              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertTriangle className="h-4 w-4 text-destructive" />
             )}
             <AlertDescription>
               <div className="space-y-1">

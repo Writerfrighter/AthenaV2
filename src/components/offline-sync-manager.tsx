@@ -126,13 +126,13 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
   const getStatusBadge = (entry: QueuedEntry) => {
     switch (entry.status) {
       case 'pending':
-        return <Badge variant="outline" className="text-orange-600 border-orange-600">Pending</Badge>;
+        return <Badge variant="outline" className="text-chart-5 border-chart-5">Pending</Badge>;
       case 'syncing':
-        return <Badge variant="outline" className="text-blue-600 border-blue-600">Syncing</Badge>;
+        return <Badge variant="outline" className="text-chart-2 border-chart-2">Syncing</Badge>;
       case 'synced':
-        return <Badge variant="outline" className="text-green-600 border-green-600">Synced</Badge>;
+        return <Badge variant="outline" className="text-primary border-primary">Synced</Badge>;
       case 'error':
-        return <Badge variant="outline" className="text-red-600 border-red-600">Error</Badge>;
+        return <Badge variant="outline" className="text-destructive border-destructive">Error</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
@@ -155,12 +155,12 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
           <div className="flex items-center gap-2">
             {isOnline ? (
               <>
-                <Wifi className="h-4 w-4 text-green-600" />
+                <Wifi className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">Online</span>
               </>
             ) : (
               <>
-                <WifiOff className="h-4 w-4 text-orange-600" />
+                <WifiOff className="h-4 w-4 text-chart-5" />
                 <span className="text-sm font-medium">Offline</span>
               </>
             )}
@@ -181,7 +181,7 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
         {/* Queue Status */}
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold text-orange-600">{pendingCount}</div>
+            <div className="text-2xl font-bold text-chart-5">{pendingCount}</div>
             <div className="text-sm text-muted-foreground">Pending</div>
           </div>
           <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -196,9 +196,9 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Last Sync</span>
               {lastSyncResult.success ? (
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                <CheckCircle className="h-4 w-4 text-primary" />
               ) : (
-                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertCircle className="h-4 w-4 text-destructive" />
               )}
             </div>
             <div className="text-xs text-muted-foreground">

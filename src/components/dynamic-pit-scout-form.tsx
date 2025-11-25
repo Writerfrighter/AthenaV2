@@ -20,7 +20,7 @@ import type { DynamicPitData } from '@/lib/shared-types';
 
 export function DynamicPitScoutForm() {
   const gameConfig = useCurrentGameConfig();
-  const { competitionType } = useGameConfig();
+  const { competitionType, currentYear } = useGameConfig();
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
@@ -121,7 +121,7 @@ export function DynamicPitScoutForm() {
     try {
       const entryToSave = {
         teamNumber: Number(formData.team),
-        year: new Date().getFullYear(),
+        year: currentYear,
         competitionType: competitionType,
         driveTrain: formData.drivetrain as "Swerve" | "Mecanum" | "Tank" | "Other",
         weight: Number(formData.weight),

@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     // Get all entries for the year and competition type
     // console.log('Stats API: Fetching pit entries...');
     const pitEntries = await service.getAllPitEntries(year, eventCode, competitionType);
-    // console.log('Stats API: Pit entries count:', pitEntries.length);
+    // console.log('Stats API: Pit entries count:', pitEntries.length, year, eventCode, competitionType);
     
     // console.log('Stats API: Fetching match entries...');
     const matchEntries = await service.getAllMatchEntries(year, eventCode, competitionType);

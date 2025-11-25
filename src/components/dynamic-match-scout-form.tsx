@@ -275,11 +275,7 @@ export function DynamicMatchScoutForm() {
                 variant={Boolean(currentValue) ? "default" : "outline"}
                 size="lg"
                 onClick={() => handleInputChange(section, fieldKey, !Boolean(currentValue))}
-                className={`h-16 w-full font-semibold transition-all duration-200 ${
-                  Boolean(currentValue) 
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'hover:bg-green-50 border-2'
-                }`}
+                className="h-16 w-full font-semibold transition-all duration-200 border-2"
               >
                 {Boolean(currentValue) ? (
                   <>
@@ -310,7 +306,7 @@ export function DynamicMatchScoutForm() {
                 value={selectValue}
                 onValueChange={(value) => handleInputChange(section, fieldKey, value)}
               >
-                <SelectTrigger className="h-16 w-full text-base font-semibold focus:border-green-500 focus:ring-2 focus:ring-green-400 bg-muted border-2">
+                <SelectTrigger className="h-16 w-full text-base font-semibold focus:ring-2 focus:ring-primary/20 bg-muted border-2">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -342,7 +338,7 @@ export function DynamicMatchScoutForm() {
                 variant="outline"
                 size="lg"
                 onClick={() => handleNumberChange(section, fieldKey, false)}
-                className="h-16 w-16 hover:bg-green-50 p-0 flex-shrink-0"
+                className="h-16 w-16 p-0 flex-shrink-0"
               >
                 <Minus className="h-5 w-5" />
               </Button>
@@ -352,7 +348,7 @@ export function DynamicMatchScoutForm() {
                   min={0}
                   value={numValue}
                   onChange={e => handleInputChange(section, fieldKey, Math.max(0, Number(e.target.value)))}
-                  className="hide-spinners min-w-[4rem] w-full text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-green-400"
+                  className="hide-spinners min-w-[4rem] w-full text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-primary/20"
                   style={{height: '4rem'}}
                 />
               </div>
@@ -360,7 +356,7 @@ export function DynamicMatchScoutForm() {
                 variant="outline"
                 size="lg"
                 onClick={() => handleNumberChange(section, fieldKey, true)}
-                className="h-16 w-16 hover:bg-green-50 p-0 flex-shrink-0"
+                className="h-16 w-16 p-0 flex-shrink-0"
               >
                 <Plus className="h-5 w-5" />
               </Button>
@@ -401,7 +397,6 @@ export function DynamicMatchScoutForm() {
               type="number"
               value={formData.matchNumber}
               onChange={(e) => handleBasicInputChange('matchNumber', e.target.value)}
-              className="focus:border-green-500"
               min={1}
               max={200}
               required
@@ -412,7 +407,7 @@ export function DynamicMatchScoutForm() {
             <Label htmlFor="teamNumber">Team Number</Label>
             {eventTeamNumbers.length > 0 ? (
               <Select value={formData.teamNumber === 0 ? undefined : String(formData.teamNumber)} onValueChange={(value) => handleBasicInputChange('teamNumber', Number(value))}>
-                <SelectTrigger className="focus:border-green-500">
+                <SelectTrigger>
                   <SelectValue placeholder="Select team number" />
                 </SelectTrigger>
                 <SelectContent>
@@ -425,7 +420,7 @@ export function DynamicMatchScoutForm() {
               </Select>
             ) : teamsLoading ? (
               <Select disabled>
-                <SelectTrigger className="focus:border-green-500">
+                <SelectTrigger>
                   <SelectValue placeholder="Loading teams..." />
                 </SelectTrigger>
               </Select>
@@ -439,7 +434,6 @@ export function DynamicMatchScoutForm() {
                 required
                 min="1"
                 max="9999"
-                className="focus:border-green-500"
               />
             )}
           </div>

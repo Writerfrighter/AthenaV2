@@ -10,19 +10,19 @@ import Image from "next/image"
 
 export default function Page() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-slate-900 flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex flex-col relative overflow-hidden">
       {/* Decorative Animated Blobs (subtle) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none select-none absolute -top-40 -left-40 w-[520px] h-[520px] rounded-full bg-gradient-to-tr from-green-300 via-green-400 to-emerald-200 dark:from-green-900 dark:via-emerald-800 dark:to-green-700 opacity-15 blur-3xl animate-blob z-0 blob1"
+        className="pointer-events-none select-none absolute -top-40 -left-40 w-[520px] h-[520px] rounded-full bg-primary/20 opacity-15 blur-3xl animate-blob z-0 blob1"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none select-none absolute bottom-0 right-0 w-[340px] h-[340px] rounded-full bg-gradient-to-br from-yellow-200 via-pink-100 to-blue-200 dark:from-yellow-900 dark:via-pink-900 dark:to-blue-900 opacity-10 blur-2xl animate-blob2 z-0 blob2"
+        className="pointer-events-none select-none absolute bottom-0 right-0 w-[340px] h-[340px] rounded-full bg-chart-4/20 opacity-10 blur-2xl animate-blob2 z-0 blob2"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none select-none absolute top-1/2 left-1/2 w-[180px] h-[180px] rounded-full bg-gradient-to-br from-green-200 via-emerald-100 to-teal-200 dark:from-green-900 dark:via-emerald-900 dark:to-teal-900 opacity-08 blur-xl animate-blob3 z-0 blob3"
+        className="pointer-events-none select-none absolute top-1/2 left-1/2 w-[180px] h-[180px] rounded-full bg-chart-2/20 opacity-08 blur-xl animate-blob3 z-0 blob3"
       />
       {/* Header with Dark Mode Toggle */}
       <div className="absolute top-4 right-4">
@@ -50,11 +50,11 @@ export default function Page() {
             </div>
           </div>
           
-          <h1 className="text-3xl md:text-4xl font-bold text-primary/90 dark:text-white mb-3">
+          <h1 className="text-3xl md:text-4xl font-bold text-primary mb-3">
             TRC Athena Scouting
           </h1>
           
-          <p className="text-lg text-muted-foreground/80 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
             Professional scouting platform for FIRST Robotics teams
           </p>
 
@@ -68,7 +68,7 @@ export default function Page() {
             </Link>
             
             <Link href="/signup">
-              <Button size="lg" variant="outline" className="shadow-sm border-primary/20 hover:bg-primary/5">
+              <Button size="lg" variant="outline" className="shadow-sm">
                 <UserPlus className="mr-2 h-4 w-4" />
                 Create Account
               </Button>
@@ -81,9 +81,9 @@ export default function Page() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Pit Scouting */}
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-primary/10 rounded-xl bg-white/80 dark:bg-background/80 backdrop-blur-sm">
+          <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 rounded-xl backdrop-blur-sm">
             <CardHeader className="text-center pb-3">
-              <div className="mx-auto mb-3 p-2 bg-primary/10 dark:bg-primary/20 rounded-lg w-10 h-10 flex items-center justify-center">
+              <div className="mx-auto mb-3 p-2 bg-primary/10 rounded-lg w-10 h-10 flex items-center justify-center">
                 <Users className="h-5 w-5 text-primary" />
               </div>
               <CardTitle className="text-lg">Pit Scouting</CardTitle>
@@ -101,9 +101,9 @@ export default function Page() {
           </Card>
 
           {/* Match Scouting */}
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-primary/10 rounded-xl bg-white/80 dark:bg-background/80 backdrop-blur-sm">
+          <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 rounded-xl backdrop-blur-sm">
             <CardHeader className="text-center pb-3">
-              <div className="mx-auto mb-3 p-2 bg-primary/10 dark:bg-primary/20 rounded-lg w-10 h-10 flex items-center justify-center">
+              <div className="mx-auto mb-3 p-2 bg-primary/10 rounded-lg w-10 h-10 flex items-center justify-center">
                 <ClipboardList className="h-5 w-5 text-primary" />
               </div>
               <CardTitle className="text-lg">Match Scouting</CardTitle>
@@ -121,9 +121,9 @@ export default function Page() {
           </Card>
 
           {/* Data Analysis */}
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-primary/10 rounded-xl bg-white/80 dark:bg-background/80 backdrop-blur-sm">
+          <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 rounded-xl backdrop-blur-sm">
             <CardHeader className="text-center pb-3">
-              <div className="mx-auto mb-3 p-2 bg-primary/10 dark:bg-primary/20 rounded-lg w-10 h-10 flex items-center justify-center">
+              <div className="mx-auto mb-3 p-2 bg-primary/10 rounded-lg w-10 h-10 flex items-center justify-center">
                 <BarChart3 className="h-5 w-5 text-primary" />
               </div>
               <CardTitle className="text-lg">Analytics</CardTitle>
@@ -141,9 +141,9 @@ export default function Page() {
           </Card>
 
           {/* Team Dashboard */}
-          <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-primary/10 rounded-xl bg-white/80 dark:bg-background/80 backdrop-blur-sm">
+          <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 rounded-xl backdrop-blur-sm">
             <CardHeader className="text-center pb-3">
-              <div className="mx-auto mb-3 p-2 bg-primary/10 dark:bg-primary/20 rounded-lg w-10 h-10 flex items-center justify-center">
+              <div className="mx-auto mb-3 p-2 bg-primary/10 rounded-lg w-10 h-10 flex items-center justify-center">
                 <Target className="h-5 w-5 text-primary" />
               </div>
               <CardTitle className="text-lg">Dashboard</CardTitle>
@@ -163,15 +163,15 @@ export default function Page() {
 
         {/* Competition Badges */}
         <div className="mt-12 text-center">
-          <p className="text-sm text-muted-foreground/80 dark:text-gray-400 mb-4">Supports both FIRST programs</p>
+          <p className="text-sm text-muted-foreground mb-4">Supports both FIRST programs</p>
           <div className="flex justify-center gap-4">
-            <Badge variant="secondary" className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary shadow-sm">
+            <Badge variant="secondary" className="bg-primary/10 text-primary shadow-sm">
               FRC Compatible
             </Badge>
-            <Badge variant="secondary" className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary shadow-sm">
+            <Badge variant="secondary" className="bg-primary/10 text-primary shadow-sm">
               FTC Ready
             </Badge>
-            <Badge variant="secondary" className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary shadow-sm">
+            <Badge variant="secondary" className="bg-primary/10 text-primary shadow-sm">
               Offline Capable
             </Badge>
           </div>
@@ -179,10 +179,10 @@ export default function Page() {
       </div>
 
       {/* Simple Footer - Pushed to bottom */}
-      <footer className="mt-auto border-t border-primary/20 dark:border-primary/20 bg-primary/5 dark:bg-primary/5">
+      <footer className="mt-auto border-t bg-primary/5">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
-            <p className="text-sm text-muted-foreground/80 dark:text-gray-400">
+            <p className="text-sm text-muted-foreground">
               {/* © 2025 TRC Athena Scouting. Built for FIRST Robotics teams. */}
             </p>
           </div>

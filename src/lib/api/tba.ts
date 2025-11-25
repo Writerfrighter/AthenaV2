@@ -122,10 +122,8 @@ export async function getTeamMatchesForEvent(
   teamNumber: number,
   eventCode: string
 ): Promise<TbaMatchSimple[]> {
-  const year = new Date().getFullYear();
-  const key = `${year}${eventCode}`;
   const matches = await getFromTba<TbaMatchSimple[]>(
-    `team/frc${teamNumber}/event/${key}/matches/simple`
+    `team/frc${teamNumber}/event/${eventCode}/matches/simple`
   );
   return matches.sort((a, b) =>
     a.comp_level === "qm" && b.comp_level !== "qm"

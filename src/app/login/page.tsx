@@ -94,13 +94,13 @@ export default function Page() {
         </div>
         
         <div className="w-full max-w-md">
-          <Card className="shadow-lg border border-primary/10 rounded-2xl bg-white/80 dark:bg-background/80 backdrop-blur-sm">
+          <Card className="shadow-lg rounded-2xl backdrop-blur-sm">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-primary/10 dark:bg-primary/20 rounded-full w-12 h-12 flex items-center justify-center shadow-sm">
+              <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full w-12 h-12 flex items-center justify-center shadow-sm">
                 <UserRound className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle className="text-2xl font-semibold text-primary/90">Sign In</CardTitle>
-              <CardDescription className="text-muted-foreground/80">
+              <CardTitle className="text-2xl font-semibold text-primary">Sign In</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Log in to your TRC Athena account
               </CardDescription>
             </CardHeader>
@@ -154,7 +154,7 @@ export default function Page() {
                 {/* OAuth Options */}
                 {/* <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-green-200" />
+                    <span className="w-full border-t" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
                     <span className="bg-background px-2 text-muted-foreground">
@@ -163,7 +163,7 @@ export default function Page() {
                   </div>
                 </div>
 
-                <Button variant="outline" type="button" className="w-full border-green-200 hover:bg-green-50">
+                <Button variant="outline" type="button" className="w-full">
                   <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

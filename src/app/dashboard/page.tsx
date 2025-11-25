@@ -39,11 +39,11 @@ export default function Page() {
         <div className="flex items-center gap-2">
           {selectedEvent && (
             <>
-              <Badge variant="outline" className="flex items-center gap-1 border-green-200 text-green-700 dark:border-green-600 dark:text-green-600">
+              <Badge variant="outline" className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
                 {selectedEvent.name}
               </Badge>
-              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+              <Badge variant="secondary">
                 {selectedEvent.region}
               </Badge>
             </>
@@ -56,7 +56,7 @@ export default function Page() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Teams Scouted</CardTitle>
-            <Users className="h-4 w-4 text-green-600" />
+            <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{loading ? "..." : stats.teamsScouted}</div>
@@ -69,7 +69,7 @@ export default function Page() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Entries Recorded</CardTitle>
-            <ClipboardList className="h-4 w-4 text-green-600" />
+            <ClipboardList className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{loading ? "..." : stats.matchesRecorded}</div>
@@ -82,7 +82,7 @@ export default function Page() {
         {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Data Quality</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{loading ? "..." : `${stats.dataQuality}%`}</div>
@@ -95,7 +95,7 @@ export default function Page() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ranking</CardTitle>
-            <Trophy className="h-4 w-4 text-green-600" />
+            <Trophy className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{loading ? "..." : `#${stats.ranking}`}</div>
@@ -217,8 +217,8 @@ export default function Page() {
                 stats.recentActivity.map((activity, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <div className={`w-2 h-2 rounded-full ${
-                      activity.type === 'pit' ? 'bg-green-500' :
-                      activity.type === 'match' ? 'bg-blue-500' : 'bg-purple-500'
+                      activity.type === 'pit' ? 'bg-primary' :
+                      activity.type === 'match' ? 'bg-chart-2' : 'bg-chart-3'
                     }`}></div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">{activity.message}</p>

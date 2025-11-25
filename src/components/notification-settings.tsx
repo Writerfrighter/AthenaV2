@@ -72,11 +72,11 @@ export function NotificationSettings() {
   const getPermissionStatus = () => {
     switch (permission) {
       case 'granted':
-        return { icon: <Check className="h-4 w-4 text-green-500" />, text: 'Granted', color: 'text-green-500' };
+        return { icon: <Check className="h-4 w-4 text-primary" />, text: 'Granted', color: 'text-primary' };
       case 'denied':
-        return { icon: <X className="h-4 w-4 text-red-500" />, text: 'Denied', color: 'text-red-500' };
+        return { icon: <X className="h-4 w-4 text-destructive" />, text: 'Denied', color: 'text-destructive' };
       default:
-        return { icon: <AlertTriangle className="h-4 w-4 text-yellow-500" />, text: 'Not requested', color: 'text-yellow-500' };
+        return { icon: <AlertTriangle className="h-4 w-4 text-chart-4" />, text: 'Not requested', color: 'text-chart-4' };
     }
   };
 

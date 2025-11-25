@@ -52,7 +52,6 @@ export function ThemeSelector() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Color Theme</DropdownMenuLabel>
         {themes.map((theme) => (
           <DropdownMenuItem
             key={theme.name}
