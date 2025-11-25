@@ -225,7 +225,7 @@ export function DynamicMatchScoutForm() {
       const newFormData = gameConfig ? initializeFormData(gameConfig) : defaultData;
       newFormData.alliance = formData.alliance;
       newFormData.alliancePosition = formData.alliancePosition;
-      newFormData.matchNumber = formData.matchNumber + 1;
+      newFormData.matchNumber = Number(formData.matchNumber) + 1;
       setFormData(newFormData);
     } catch (error) {
       toast.error("Failed to save data", {
@@ -397,7 +397,7 @@ export function DynamicMatchScoutForm() {
             <Label htmlFor="matchNumber">Match Number</Label>
             <Input
               id="matchNumber"
-              placeholder="Q45"
+              placeholder="45"
               type="number"
               value={formData.matchNumber}
               onChange={(e) => handleBasicInputChange('matchNumber', e.target.value)}
@@ -641,7 +641,7 @@ export function DynamicMatchScoutForm() {
                 )}
               </Button>
             </div>
-          </div>
+          </div> 
         </CardContent>
       </Card>
       </div>
