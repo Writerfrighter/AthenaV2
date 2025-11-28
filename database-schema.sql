@@ -26,9 +26,11 @@ CREATE TABLE pitEntries (
     width DECIMAL(10,2) NOT NULL,
     eventName NVARCHAR(255),
     eventCode NVARCHAR(50),
+    userId NVARCHAR(255), -- User who created this entry
     gameSpecificData NVARCHAR(MAX), -- JSON object with game-specific pit scouting data
     created_at DATETIME DEFAULT GETDATE(),
-    updated_at DATETIME DEFAULT GETDATE()
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- Match scouting entries table
@@ -42,11 +44,13 @@ CREATE TABLE matchEntries (
     alliancePosition INT, -- 1, 2, or 3 for alliance position (Red 1, Red 2, Red 3, etc.)
     eventName NVARCHAR(255),
     eventCode NVARCHAR(50),
+    userId NVARCHAR(255), -- User who created this entry
     gameSpecificData NVARCHAR(MAX), -- JSON object with game-specific match data
     notes NVARCHAR(MAX),
     timestamp DATETIME2 NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
-    updated_at DATETIME DEFAULT GETDATE()
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- Custom events table for events not available on The Blue Alliance

@@ -51,8 +51,13 @@ export async function POST(request: NextRequest) {
     }
 
     const entry: Omit<MatchEntry, 'id'> = await request.json();
+    // Add userId from session
+    const entryWithUser = {
+      ...entry,
+      userId: session.user.id
+    };
     const service = getDbService();
-    const id = await service.addMatchEntry(entry);
+    const id = await service.addMatchEntry(entryWithUser);
     return NextResponse.json({ id }, { status: 201 });
   } catch (error) {
     console.error('Error adding match entry:', error);

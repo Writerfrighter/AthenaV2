@@ -63,8 +63,13 @@ export async function POST(request: NextRequest) {
     }
 
     const entry: Omit<PitEntry, 'id'> = await request.json();
+    // Add userId from session
+    const entryWithUser = {
+      ...entry,
+      userId: session.user.id
+    };
     const service = getDbService();
-    const id = await service.addPitEntry(entry);
+    const id = await service.addPitEntry(entryWithUser);
     return NextResponse.json({ id }, { status: 201 });
   } catch (error) {
     console.error('Error adding pit entry:', error);

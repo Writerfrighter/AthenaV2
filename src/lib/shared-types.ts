@@ -18,6 +18,7 @@ export interface PitEntry {
   width: number;
   eventName?: string;
   eventCode?: string;
+  userId?: string;
   gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>;
   [extra: string]: unknown;
 }
@@ -32,6 +33,7 @@ export interface MatchEntry {
   alliancePosition?: number; // 1, 2, or 3 for alliance position
   eventName?: string;
   eventCode?: string;
+  userId?: string;
   gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>;
   notes: string;
   timestamp: Date;
@@ -62,6 +64,7 @@ export interface PitEntryRow {
   width: number;
   eventName: string | null;
   eventCode: string | null;
+  userId: string | null;
   gameSpecificData: string;
 }
 
@@ -75,6 +78,7 @@ export interface MatchEntryRow {
   alliancePosition: number | null;
   eventName: string | null;
   eventCode: string | null;
+  userId: string | null;
   gameSpecificData: string;
   notes: string;
   timestamp: Date;

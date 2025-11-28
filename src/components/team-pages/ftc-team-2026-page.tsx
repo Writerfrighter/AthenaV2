@@ -251,12 +251,6 @@ export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
         <div>
           <p className="text-muted-foreground">2026 DECODE performance analysis and scouting data</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="flex items-center gap-1">
-            <Package className="h-3 w-3" />
-            FTC INTO THE DEEP
-          </Badge>
-        </div>
       </div>
 
       {/* Basic Info - No Robot Image for FTC */}

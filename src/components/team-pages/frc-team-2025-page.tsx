@@ -64,7 +64,6 @@ interface ReefscapeData {
 export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
   const [searchNote, setSearchNote] = useState("");
   const { teamData, loading, error } = useTeamData(teamNumber);
-
   // Calculate REEFSCAPE specific statistics using the SQL data
   const calculateReefscapeStats = (): ReefscapeData | null => {
     if (!teamData?.matchEntries || teamData.matchEntries.length === 0) return null;
@@ -260,12 +259,6 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-muted-foreground">2025 REEFSCAPE performance analysis and scouting data</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            Silicon Valley Regional 2025
-          </Badge>
         </div>
       </div>
 

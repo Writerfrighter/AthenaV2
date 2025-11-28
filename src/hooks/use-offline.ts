@@ -57,7 +57,10 @@ export function useOffline(): UseOfflineReturn {
 
   // Trigger manual sync
   const triggerSync = useCallback(async (): Promise<SyncResult> => {
-    if (!isOnline) {
+    // Check navigator.onLine directly to avoid stale closure issues
+    const currentlyOnline = typeof window !== 'undefined' ? navigator.onLine : false;
+    
+    if (!currentlyOnline) {
       throw new Error('Cannot sync while offline');
     }
 
@@ -75,11 +78,14 @@ export function useOffline(): UseOfflineReturn {
       setSyncInProgress(false);
       throw error;
     }
-  }, [isOnline, syncInProgress, handleSyncResult]);
+  }, [syncInProgress, handleSyncResult]);
 
   // Retry failed entries
   const retryFailedEntries = useCallback(async (): Promise<SyncResult> => {
-    if (!isOnline) {
+    // Check navigator.onLine directly to avoid stale closure issues
+    const currentlyOnline = typeof window !== 'undefined' ? navigator.onLine : false;
+    
+    if (!currentlyOnline) {
       throw new Error('Cannot retry while offline');
     }
 
@@ -97,7 +103,7 @@ export function useOffline(): UseOfflineReturn {
       setSyncInProgress(false);
       throw error;
     }
-  }, [isOnline, syncInProgress, handleSyncResult]);
+  }, [syncInProgress, handleSyncResult]);
 
   // Clear synced entries
   const clearSyncedEntries = useCallback(async (): Promise<number> => {

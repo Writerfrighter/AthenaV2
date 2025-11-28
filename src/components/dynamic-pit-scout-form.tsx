@@ -268,7 +268,7 @@ export function DynamicPitScoutForm() {
                       Team Number
                     </Label>
                     {unscoutedTeamNumbers.length > 0 ? (
-                      <Select value={formData.team === 0 ? undefined : String(formData.team)} onValueChange={(value) => handleSelectChange('team', value)}>
+                      <Select value={formData.team === 0 ? '' : String(formData.team)} onValueChange={(value) => handleSelectChange('team', value)}>
                         <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder="Select team number" />
                         </SelectTrigger>
