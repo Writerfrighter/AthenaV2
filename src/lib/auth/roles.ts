@@ -2,6 +2,7 @@ export const ROLES = {
   ADMIN: "admin",
   LEAD_SCOUT: "lead_scout",
   SCOUT: "scout",
+  TABLET: "tablet",
   VIEWER: "viewer",
   EXTERNAL: "external",
 } as const;
@@ -52,6 +53,9 @@ export const PERMISSIONS = {
   // Advanced Features
   MANAGE_GAME_CONFIG: "manage_game_config",
   ACCESS_ADMIN_PANEL: "access_admin_panel",
+
+  // Tablet-specific permissions
+  SCOUT_ON_BEHALF: "scout_on_behalf", // Allows submitting data on behalf of other users
 } as const;
 
 export const ROLE_PERMISSIONS = {
@@ -99,6 +103,24 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.VIEW_PIT_SCOUTING,
 
     PERMISSIONS.VIEW_PICKLIST,
+  ],
+  [ROLES.TABLET]: [
+    // Tablet accounts can scout on behalf of others
+    PERMISSIONS.VIEW_DASHBOARD,
+    PERMISSIONS.VIEW_COMMENTS,
+
+    PERMISSIONS.CREATE_MATCH_SCOUTING,
+    PERMISSIONS.EDIT_MATCH_SCOUTING,
+    PERMISSIONS.VIEW_MATCH_SCOUTING,
+
+    PERMISSIONS.CREATE_PIT_SCOUTING,
+    PERMISSIONS.EDIT_PIT_SCOUTING,
+    PERMISSIONS.VIEW_PIT_SCOUTING,
+
+    PERMISSIONS.VIEW_PICKLIST,
+    PERMISSIONS.VIEW_USERS, // Can view users to select who they're scouting for
+
+    PERMISSIONS.SCOUT_ON_BEHALF, // Special permission for tablets
   ],
   [ROLES.VIEWER]: [
     // Read-only access to most things

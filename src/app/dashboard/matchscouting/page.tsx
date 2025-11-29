@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, AlertCircle, Database, Trophy, Download } from "lucide-react";
 import { toast } from "sonner";
 import { MatchScoutingTable } from "@/components/match-scouting-table";
-import { EditMatchEntryDialog } from "@/components/edit-match-entry-dialog";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { MatchEntry } from "@/lib/shared-types";
 import { useGameConfig } from "@/hooks/use-game-config";
@@ -19,8 +18,6 @@ export default function MatchScoutingPage() {
   const [matchEntries, setMatchEntries] = useState<MatchEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingEntry, setEditingEntry] = useState<MatchEntry | null>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -130,38 +127,9 @@ export default function MatchScoutingPage() {
     fetchMatchEntries();
   }, [selectedEvent, competitionType]);
 
-  // Handle edit
+  // Handle edit - navigate to scout form with edit ID
   const handleEdit = (entry: MatchEntry) => {
-    setEditingEntry(entry);
-    setEditDialogOpen(true);
-  };
-
-  // Handle save edit
-  const handleSaveEdit = async (updatedEntry: MatchEntry) => {
-    try {
-      const response = await fetch('/api/database/match', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: updatedEntry.id,
-          ...updatedEntry,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update match entry');
-      }
-
-      // Refresh data
-      await fetchMatchEntries();
-      toast.success('Match entry updated successfully');
-    } catch (err) {
-      console.error('Error updating match entry:', err);
-      toast.error('Failed to update match entry');
-      throw err;
-    }
+    window.location.href = `/scout/matchscout?editId=${entry.id}`;
   };
 
   // Handle delete
@@ -300,14 +268,6 @@ export default function MatchScoutingPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Edit Dialog */}
-      <EditMatchEntryDialog
-        entry={editingEntry}
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        onSave={handleSaveEdit}
-      />
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog

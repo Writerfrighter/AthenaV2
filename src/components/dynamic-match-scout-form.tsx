@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameConfig, useCurrentGameConfig } from '@/hooks/use-game-config';
 import { useSelectedEvent } from '@/hooks/use-event-config';
 import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
@@ -14,7 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Minus, Target, Zap, Award, AlertTriangle, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { matchApi } from '@/lib/api/database-client';
-import type { ScoringDefinition, DynamicMatchData } from '@/lib/shared-types';
+import { ScoutSelector } from '@/components/scout-selector';
+import type { ScoringDefinition, DynamicMatchData, MatchEntry } from '@/lib/shared-types';
 
 // CSS to hide number input spinners
 const hideSpinnersStyle = `
@@ -141,6 +144,10 @@ const initializeFormData = (gameConfig: any): DynamicMatchData => {
 };
 
 export function DynamicMatchScoutForm() {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('editId');
   const gameConfig = useCurrentGameConfig();
   const { competitionType, currentYear } = useGameConfig();
   const selectedEvent = useSelectedEvent();
@@ -150,13 +157,73 @@ export function DynamicMatchScoutForm() {
     gameConfig ? initializeFormData(gameConfig) : defaultData
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedScoutId, setSelectedScoutId] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
 
-  // Reinitialize form data when game config changes
+  // Fetch entry for editing
   useEffect(() => {
-    if (gameConfig) {
+    let isMounted = true;
+    
+    const fetchEntryForEdit = async () => {
+      if (!editId || !gameConfig) return;
+      
+      setIsLoadingEdit(true);
+      try {
+        const response = await fetch(`/api/database/match?id=${editId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch entry for editing');
+        }
+        
+        const entry: MatchEntry = await response.json();
+        
+        if (!isMounted) return;
+        
+        // Populate form with existing data
+        const populatedData: DynamicMatchData = {
+          matchNumber: entry.matchNumber,
+          teamNumber: entry.teamNumber,
+          alliance: entry.alliance,
+          alliancePosition: entry.alliancePosition,
+          autonomous: (entry.gameSpecificData?.autonomous as Record<string, number | string | boolean>) || {},
+          teleop: (entry.gameSpecificData?.teleop as Record<string, number | string | boolean>) || {},
+          endgame: (entry.gameSpecificData?.endgame as Record<string, number | string | boolean>) || {},
+          fouls: (entry.gameSpecificData?.fouls as Record<string, number | string | boolean>) || {},
+          notes: entry.notes || ''
+        };
+        
+        setFormData(populatedData);
+        setIsEditMode(true);
+        setEditingEntryId(entry.id ?? null);
+        
+        toast.info('Editing entry', {
+          description: `Match ${entry.matchNumber} - Team ${entry.teamNumber}`
+        });
+      } catch (error) {
+        if (!isMounted) return;
+        console.error('Error fetching entry for edit:', error);
+        toast.error('Failed to load entry for editing');
+      } finally {
+        if (isMounted) {
+          setIsLoadingEdit(false);
+        }
+      }
+    };
+    
+    fetchEntryForEdit();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [editId, gameConfig]);
+
+  // Reinitialize form data when game config changes (but not in edit mode)
+  useEffect(() => {
+    if (gameConfig && !isEditMode) {
       setFormData(initializeFormData(gameConfig));
     }
-  }, [gameConfig]);
+  }, [gameConfig, isEditMode]);
 
   const handleInputChange = (section: string, field: string, value: number | string | boolean) => {
     setFormData(prev => ({
@@ -185,48 +252,97 @@ export function DynamicMatchScoutForm() {
       return;
     }
 
+    // For tablet accounts, ensure a scout is selected
+    if (session?.user?.role === 'tablet' && !selectedScoutId && !isEditMode) {
+      toast.error("Please select which scout you're entering data for");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const entryToSave = {
-        matchNumber: formData.matchNumber,
-        teamNumber: formData.teamNumber,
-        year: currentYear,
-        competitionType: competitionType,
-        alliance: formData.alliance,
-        alliancePosition: formData.alliancePosition,
-        eventName: selectedEvent?.name || 'Unknown Event',
-        eventCode: selectedEvent?.code || 'Unknown Code',
-        gameSpecificData: {
-          autonomous: formData.autonomous,
-          teleop: formData.teleop,
-          endgame: formData.endgame,
-          fouls: formData.fouls
-        },
-        notes: formData.notes,
-        timestamp: new Date()
-      };
-
-      const result = await matchApi.create(entryToSave);
-
-      if (result.isQueued) {
-        toast.success("Data queued for sync", {
-          description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} saved offline. Will sync when online.`,
-          icon: <Clock className="h-4 w-4" />
+      if (isEditMode && editingEntryId) {
+        // Update existing entry
+        const response = await fetch('/api/database/match', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: editingEntryId,
+            matchNumber: formData.matchNumber,
+            teamNumber: formData.teamNumber,
+            year: currentYear,
+            competitionType: competitionType,
+            alliance: formData.alliance,
+            alliancePosition: formData.alliancePosition,
+            eventName: selectedEvent?.name || 'Unknown Event',
+            eventCode: selectedEvent?.code || 'Unknown Code',
+            gameSpecificData: {
+              autonomous: formData.autonomous,
+              teleop: formData.teleop,
+              endgame: formData.endgame,
+              fouls: formData.fouls
+            },
+            notes: formData.notes,
+          }),
         });
-      } else {
-        toast.success("Match data saved!", {
-          description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} saved successfully`,
+
+        if (!response.ok) {
+          throw new Error('Failed to update match entry');
+        }
+
+        toast.success("Match entry updated!", {
+          description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} updated successfully`,
           icon: <CheckCircle className="h-4 w-4" />
         });
+
+        // Navigate back to dashboard
+        router.push('/dashboard/matchscouting');
+      } else {
+        // Create new entry
+        const entryToSave = {
+          matchNumber: formData.matchNumber,
+          teamNumber: formData.teamNumber,
+          year: currentYear,
+          competitionType: competitionType,
+          alliance: formData.alliance,
+          alliancePosition: formData.alliancePosition,
+          eventName: selectedEvent?.name || 'Unknown Event',
+          eventCode: selectedEvent?.code || 'Unknown Code',
+          gameSpecificData: {
+            autonomous: formData.autonomous,
+            teleop: formData.teleop,
+            endgame: formData.endgame,
+            fouls: formData.fouls
+          },
+          notes: formData.notes,
+          timestamp: new Date(),
+          // Include scout ID for tablet accounts
+          ...(session?.user?.role === 'tablet' && selectedScoutId ? { scoutingForUserId: selectedScoutId } : {})
+        };
+
+        const result = await matchApi.create(entryToSave);
+
+        if (result.isQueued) {
+          toast.success("Data queued for sync", {
+            description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} saved offline. Will sync when online.`,
+            icon: <Clock className="h-4 w-4" />
+          });
+        } else {
+          toast.success("Match data saved!", {
+            description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} saved successfully`,
+            icon: <CheckCircle className="h-4 w-4" />
+          });
+        }
+        
+        // Keep alliance position and increment match number when resetting form
+        const newFormData = gameConfig ? initializeFormData(gameConfig) : defaultData;
+        newFormData.alliance = formData.alliance;
+        newFormData.alliancePosition = formData.alliancePosition;
+        newFormData.matchNumber = Number(formData.matchNumber) + 1;
+        setFormData(newFormData);
       }
-      
-      // Keep alliance position and increment match number when resetting form
-      const newFormData = gameConfig ? initializeFormData(gameConfig) : defaultData;
-      newFormData.alliance = formData.alliance;
-      newFormData.alliancePosition = formData.alliancePosition;
-      newFormData.matchNumber = Number(formData.matchNumber) + 1;
-      setFormData(newFormData);
     } catch (error) {
       toast.error("Failed to save data", {
         description: error instanceof Error ? error.message : "Unknown error",
@@ -376,9 +492,28 @@ export function DynamicMatchScoutForm() {
         {/* Game Title */}
         <div className="text-center">
           <Badge variant="outline" className="text-lg px-4 py-2">
-            {gameConfig?.gameName || 'Unknown Game'} - Match Scouting
+            {gameConfig?.gameName || 'Unknown Game'} - {isEditMode ? 'Edit Match Entry' : 'Match Scouting'}
           </Badge>
         </div>
+
+        {/* Loading indicator for edit mode */}
+        {isLoadingEdit && (
+          <Card className="border rounded-xl shadow-sm">
+            <CardContent className="pt-6 text-center">
+              <div className="text-muted-foreground">Loading entry for editing...</div>
+            </CardContent>
+          </Card>
+        )}
+
+      {/* Scout Selector (for tablet accounts only) */}
+      {session?.user && (
+        <ScoutSelector
+          selectedScoutId={selectedScoutId}
+          onScoutChange={setSelectedScoutId}
+          currentUserId={session.user.id || ''}
+          currentUserRole={session.user.role || null}
+        />
+      )}
 
       {/* Match Info */}
       <Card className="border rounded-xl shadow-sm">
@@ -608,32 +743,62 @@ export function DynamicMatchScoutForm() {
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
             <div className="text-sm text-muted-foreground">
-              Data saves locally and syncs automatically
+              {isEditMode ? 'Update the entry and return to dashboard' : 'Data saves locally and syncs automatically'}
             </div>
             <div className="flex flex-col md:flex-row gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData)}
-                className="hover:bg-green-50 h-14"
-                size="lg"
-              >
-                Clear Form
-              </Button>
-              <Button 
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="min-w-[140px] h-14 bg-green-600 hover:bg-green-700 text-base"
-                size="lg"
-              >
-                {isSubmitting ? (
-                  "Saving..."
-                ) : (
-                  <>
-                    <CheckCircle className="mr-2 h-5 w-5" />
-                    Save Data
-                  </>
-                )}
-              </Button>
+              {isEditMode ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => router.push('/dashboard/matchscouting')}
+                    className="h-14"
+                    size="lg"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="min-w-[140px] h-14 bg-green-600 hover:bg-green-700 text-base"
+                    size="lg"
+                  >
+                    {isSubmitting ? (
+                      "Updating..."
+                    ) : (
+                      <>
+                        <CheckCircle className="mr-2 h-5 w-5" />
+                        Update Entry
+                      </>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData)}
+                    className="hover:bg-green-50 h-14"
+                    size="lg"
+                  >
+                    Clear Form
+                  </Button>
+                  <Button 
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="min-w-[140px] h-14 bg-green-600 hover:bg-green-700 text-base"
+                    size="lg"
+                  >
+                    {isSubmitting ? (
+                      "Saving..."
+                    ) : (
+                      <>
+                        <CheckCircle className="mr-2 h-5 w-5" />
+                        Save Data
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
             </div>
           </div> 
         </CardContent>

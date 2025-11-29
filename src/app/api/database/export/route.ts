@@ -121,7 +121,7 @@ async function convertToCSV(data: { pitEntries: PitEntry[], matchEntries: MatchE
 }
 
 async function convertToXLSX(data: { pitEntries: PitEntry[], matchEntries: MatchEntry[] }): Promise<ArrayBuffer> {
-  const XLSX = await import('xlsx');
+  const XLSX = await import('xlsx-js-style');
 
   // Function to expand gameSpecificData (only one level)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

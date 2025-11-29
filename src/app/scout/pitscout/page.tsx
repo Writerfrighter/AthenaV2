@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +45,9 @@ export default function Page() {
         </div>
       </div>
 
-      <DynamicPitScoutForm />
+      <Suspense fallback={<div className="max-w-4xl mx-auto px-4 py-6 text-center">Loading...</div>}>
+        <DynamicPitScoutForm />
+      </Suspense>
     </div>
   );
 }

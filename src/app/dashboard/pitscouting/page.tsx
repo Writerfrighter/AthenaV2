@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, AlertCircle, Database, Download, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { PitScoutingTable } from "@/components/pit-scouting-table";
-import { EditPitEntryDialog } from "@/components/edit-pit-entry-dialog";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { PitEntry } from "@/lib/shared-types";
 import { useGameConfig } from "@/hooks/use-game-config";
@@ -19,8 +18,6 @@ export default function PitScoutingPage() {
   const [pitEntries, setPitEntries] = useState<PitEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingEntry, setEditingEntry] = useState<PitEntry | null>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -133,38 +130,9 @@ export default function PitScoutingPage() {
     fetchPitEntries();
   }, [selectedEvent, competitionType]);
 
-  // Handle edit
+  // Handle edit - navigate to scout form with edit ID
   const handleEdit = (entry: PitEntry) => {
-    setEditingEntry(entry);
-    setEditDialogOpen(true);
-  };
-
-  // Handle save edit
-  const handleSaveEdit = async (updatedEntry: PitEntry) => {
-    try {
-      const response = await fetch('/api/database/pit', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: updatedEntry.id,
-          ...updatedEntry,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update pit entry');
-      }
-
-      // Refresh data
-      await fetchPitEntries();
-      toast.success('Pit entry updated successfully');
-    } catch (err) {
-      console.error('Error updating pit entry:', err);
-      toast.error('Failed to update pit entry');
-      throw err;
-    }
+    window.location.href = `/scout/pitscout?editId=${entry.id}`;
   };
 
   // Handle delete
@@ -301,14 +269,6 @@ export default function PitScoutingPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Edit Dialog */}
-      <EditPitEntryDialog
-        entry={editingEntry}
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        onSave={handleSaveEdit}
-      />
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog

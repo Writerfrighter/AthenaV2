@@ -139,7 +139,7 @@ async function parseCSV(file: File): Promise<{ pitEntries: PitEntry[], matchEntr
 }
 
 async function parseXLSX(file: File): Promise<{ pitEntries: PitEntry[], matchEntries: MatchEntry[] }> {
-  const XLSX = await import('xlsx');
+  const XLSX = await import('xlsx-js-style');
   const arrayBuffer = await file.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 

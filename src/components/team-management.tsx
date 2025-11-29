@@ -170,6 +170,8 @@ export function TeamManagement() {
         return 'default'
       case ROLES.SCOUT:
         return 'secondary'
+      case ROLES.TABLET:
+        return 'default'
       case ROLES.VIEWER:
         return 'outline'
       case ROLES.EXTERNAL:
@@ -187,6 +189,8 @@ export function TeamManagement() {
         return 'Lead Scout'
       case ROLES.SCOUT:
         return 'Scout'
+      case ROLES.TABLET:
+        return 'Tablet'
       case ROLES.VIEWER:
         return 'Viewer'
       case ROLES.EXTERNAL:
@@ -273,6 +277,7 @@ export function TeamManagement() {
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="lead_scout">Lead Scout</SelectItem>
+                          <SelectItem value="tablet">Tablet</SelectItem>
                           <SelectItem value="scout">Scout</SelectItem>
                           <SelectItem value="viewer">Viewer</SelectItem>
                           <SelectItem value="external">External</SelectItem>
@@ -412,6 +417,7 @@ export function TeamManagement() {
                 <SelectContent>
                   <SelectItem value="scout">Scout</SelectItem>
                   <SelectItem value="lead_scout">Lead Scout</SelectItem>
+                  <SelectItem value="tablet">Tablet</SelectItem>
                   <SelectItem value="viewer">Viewer</SelectItem>
                   <SelectItem value="external">External</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>

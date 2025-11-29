@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameConfig, useCurrentGameConfig } from '@/hooks/use-game-config';
 import { useSelectedEvent } from '@/hooks/use-event-config';
 import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
@@ -16,15 +18,24 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { pitApi } from '@/lib/api/database-client';
-import type { DynamicPitData } from '@/lib/shared-types';
+import { ScoutSelector } from '@/components/scout-selector';
+import type { DynamicPitData, PitEntry } from '@/lib/shared-types';
 
 export function DynamicPitScoutForm() {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('editId');
   const gameConfig = useCurrentGameConfig();
   const { competitionType, currentYear } = useGameConfig();
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
   const { teamNumbers: unscoutedTeamNumbers, loading: unscoutedLoading } = useUnscoutedEventTeamNumbers();
+  const [selectedScoutId, setSelectedScoutId] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
 
   // Function to initialize form data with all pit scouting fields
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,12 +91,71 @@ export function DynamicPitScoutForm() {
     }
   );
 
-  // Reinitialize form data when game config changes
+  // Fetch entry for editing
   useEffect(() => {
-    if (gameConfig) {
+    let isMounted = true;
+    
+    const fetchEntryForEdit = async () => {
+      if (!editId || !gameConfig) return;
+      
+      setIsLoadingEdit(true);
+      try {
+        const response = await fetch(`/api/database/pit?id=${editId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch entry for editing');
+        }
+        
+        const entry: PitEntry = await response.json();
+        
+        if (!isMounted) return;
+        
+        // Populate form with existing data
+        const gameData = { ...entry.gameSpecificData };
+        const hasAuto = Boolean(gameData.hasAuto);
+        delete gameData.hasAuto; // Remove hasAuto from gameSpecificData
+        
+        const populatedData: DynamicPitData = {
+          team: entry.teamNumber,
+          drivetrain: entry.driveTrain.toLowerCase(),
+          weight: String(entry.weight),
+          length: String(entry.length),
+          width: String(entry.width),
+          hasAuto,
+          notes: typeof entry.notes === 'string' ? entry.notes : '',
+          gameSpecificData: gameData as Record<string, number | string | boolean>
+        };
+        
+        setFormData(populatedData);
+        setIsEditMode(true);
+        setEditingEntryId(entry.id ?? null);
+        
+        toast.info('Editing entry', {
+          description: `Team ${entry.teamNumber}`
+        });
+      } catch (error) {
+        if (!isMounted) return;
+        console.error('Error fetching entry for edit:', error);
+        toast.error('Failed to load entry for editing');
+      } finally {
+        if (isMounted) {
+          setIsLoadingEdit(false);
+        }
+      }
+    };
+    
+    fetchEntryForEdit();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [editId, gameConfig]);
+
+  // Reinitialize form data when game config changes (but not in edit mode)
+  useEffect(() => {
+    if (gameConfig && !isEditMode) {
       setFormData(initializePitFormData(gameConfig));
     }
-  }, [gameConfig]);
+  }, [gameConfig, isEditMode]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -118,56 +188,103 @@ export function DynamicPitScoutForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    try {
-      const entryToSave = {
-        teamNumber: Number(formData.team),
-        year: currentYear,
-        competitionType: competitionType,
-        driveTrain: formData.drivetrain as "Swerve" | "Mecanum" | "Tank" | "Other",
-        weight: Number(formData.weight),
-        length: Number(formData.length),
-        width: Number(formData.width),
-        eventName: selectedEvent?.name || 'Unknown Event',
-        eventCode: selectedEvent?.code || 'Unknown Code',
-        gameSpecificData: {
-          hasAuto: formData.hasAuto,
-          ...formData.gameSpecificData
-        }
-      };
+    // For tablet accounts, ensure a scout is selected
+    if (session?.user?.role === 'tablet' && !selectedScoutId && !isEditMode) {
+      toast.error("Please select which scout you're entering data for");
+      return;
+    }
 
-      const result = await pitApi.create(entryToSave);
-      
-      if (result.isQueued) {
-        toast("Data queued for sync", {
-          description: `Team ${formData.team} entry saved offline. Will sync when online.`,
-          icon: <Clock className="h-4 w-4" />
+    try {
+      if (isEditMode && editingEntryId) {
+        // Update existing entry
+        const response = await fetch('/api/database/pit', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: editingEntryId,
+            teamNumber: Number(formData.team),
+            year: currentYear,
+            competitionType: competitionType,
+            driveTrain: formData.drivetrain.charAt(0).toUpperCase() + formData.drivetrain.slice(1) as "Swerve" | "Mecanum" | "Tank" | "Other",
+            weight: Number(formData.weight),
+            length: Number(formData.length),
+            width: Number(formData.width),
+            eventName: selectedEvent?.name || 'Unknown Event',
+            eventCode: selectedEvent?.code || 'Unknown Code',
+            gameSpecificData: {
+              hasAuto: formData.hasAuto,
+              ...formData.gameSpecificData
+            },
+          }),
         });
-      } else {
-        toast("Scouting data saved!", {
-          description: `Team ${formData.team} entry stored successfully.`,
+
+        if (!response.ok) {
+          throw new Error('Failed to update pit entry');
+        }
+
+        toast("Pit entry updated!", {
+          description: `Team ${formData.team} updated successfully.`,
           icon: <CheckCircle className="h-4 w-4" />
         });
-      }
-      
-      // Reset form
-      setFormData(gameConfig ? initializePitFormData(gameConfig) : {
-        team: 0,
-        drivetrain: '',
-        weight: '',
-        length: '',
-        width: '',
-        hasAuto: false,
-        notes: '',
-        gameSpecificData: {}
-      });
-      // Notify local listeners (including our hook) that a pit entry was created so dropdown updates
-      try {
-        if (typeof window !== 'undefined') {
-          const ev = new CustomEvent('pitEntryCreated', { detail: { teamNumber: entryToSave.teamNumber } });
-          window.dispatchEvent(ev);
+
+        // Navigate back to dashboard
+        router.push('/dashboard/pitscouting');
+      } else {
+        // Create new entry
+        const entryToSave = {
+          teamNumber: Number(formData.team),
+          year: currentYear,
+          competitionType: competitionType,
+          driveTrain: formData.drivetrain as "Swerve" | "Mecanum" | "Tank" | "Other",
+          weight: Number(formData.weight),
+          length: Number(formData.length),
+          width: Number(formData.width),
+          eventName: selectedEvent?.name || 'Unknown Event',
+          eventCode: selectedEvent?.code || 'Unknown Code',
+          gameSpecificData: {
+            hasAuto: formData.hasAuto,
+            ...formData.gameSpecificData
+          },
+          // Include scout ID for tablet accounts
+          ...(session?.user?.role === 'tablet' && selectedScoutId ? { scoutingForUserId: selectedScoutId } : {})
+        };
+
+        const result = await pitApi.create(entryToSave);
+        
+        if (result.isQueued) {
+          toast("Data queued for sync", {
+            description: `Team ${formData.team} entry saved offline. Will sync when online.`,
+            icon: <Clock className="h-4 w-4" />
+          });
+        } else {
+          toast("Scouting data saved!", {
+            description: `Team ${formData.team} entry stored successfully.`,
+            icon: <CheckCircle className="h-4 w-4" />
+          });
         }
-      } catch (err) {
-        // ignore
+        
+        // Reset form
+        setFormData(gameConfig ? initializePitFormData(gameConfig) : {
+          team: 0,
+          drivetrain: '',
+          weight: '',
+          length: '',
+          width: '',
+          hasAuto: false,
+          notes: '',
+          gameSpecificData: {}
+        });
+        // Notify local listeners (including our hook) that a pit entry was created so dropdown updates
+        try {
+          if (typeof window !== 'undefined') {
+            const ev = new CustomEvent('pitEntryCreated', { detail: { teamNumber: entryToSave.teamNumber } });
+            window.dispatchEvent(ev);
+          }
+        } catch (err) {
+          // ignore
+        }
       }
     } catch (error) {
       toast("Failed to save data", {
@@ -250,9 +367,28 @@ export function DynamicPitScoutForm() {
       {/* Game Title */}
       <div className="text-center">
         <Badge variant="outline" className="text-lg px-4 py-2">
-          {gameConfig?.gameName || 'Unknown Game'} - Pit Scouting
+          {gameConfig?.gameName || 'Unknown Game'} - {isEditMode ? 'Edit Pit Entry' : 'Pit Scouting'}
         </Badge>
       </div>
+
+      {/* Loading indicator for edit mode */}
+      {isLoadingEdit && (
+        <Card className="border rounded-xl shadow-sm">
+          <CardContent className="pt-6 text-center">
+            <div className="text-muted-foreground">Loading entry for editing...</div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Scout Selector (for tablet accounts only) */}
+      {session?.user && !isEditMode && (
+        <ScoutSelector
+          selectedScoutId={selectedScoutId}
+          onScoutChange={setSelectedScoutId}
+          currentUserId={session.user.id || ''}
+          currentUserRole={session.user.role || null}
+        />
+      )}
 
       {/* Main Form */}
       <Card className="shadow-sm">
@@ -267,7 +403,35 @@ export function DynamicPitScoutForm() {
                     <Label htmlFor="team" className="text-base font-medium">
                       Team Number
                     </Label>
-                    {unscoutedTeamNumbers.length > 0 ? (
+                    {isEditMode ? (
+                      // In edit mode, show the team number as read-only or allow selection from all teams
+                      eventTeamNumbers.length > 0 ? (
+                        <Select value={formData.team === 0 ? '' : String(formData.team)} onValueChange={(value) => handleSelectChange('team', value)}>
+                          <SelectTrigger className="h-12 text-base">
+                            <SelectValue placeholder="Select team number" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {eventTeamNumbers.map((teamNumber) => (
+                              <SelectItem key={teamNumber} value={String(teamNumber)}>
+                                Team {teamNumber}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          name="team"
+                          type="number"
+                          value={formData.team}
+                          onChange={handleChange}
+                          placeholder="Enter team number (e.g. 254)"
+                          required
+                          min="1"
+                          max="9999"
+                          className="h-12 text-base"
+                        />
+                      )
+                    ) : unscoutedTeamNumbers.length > 0 ? (
                       <Select value={formData.team === 0 ? '' : String(formData.team)} onValueChange={(value) => handleSelectChange('team', value)}>
                         <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder="Select team number" />
@@ -475,14 +639,36 @@ export function DynamicPitScoutForm() {
 
               {/* Submit Button */}
               <div className="pt-4">
-                <Button 
-                  type="submit" 
-                  size="lg" 
-                  className="w-full h-12 text-base"
-                >
-                  <CheckCircle className="mr-2 h-5 w-5" />
-                  Save Scouting Data
-                </Button>
+                {isEditMode ? (
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      onClick={() => router.push('/dashboard/pitscouting')}
+                      size="lg" 
+                      className="flex-1 h-12 text-base"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      size="lg" 
+                      className="flex-1 h-12 text-base"
+                    >
+                      <CheckCircle className="mr-2 h-5 w-5" />
+                      Update Entry
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    type="submit" 
+                    size="lg" 
+                    className="w-full h-12 text-base"
+                  >
+                    <CheckCircle className="mr-2 h-5 w-5" />
+                    Save Scouting Data
+                  </Button>
+                )}
               </div>
             </div>
           </form>

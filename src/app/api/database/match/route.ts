@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id') ? parseInt(searchParams.get('id')!) : undefined;
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const teamNumber = searchParams.get('teamNumber') ? parseInt(searchParams.get('teamNumber')!) : undefined;
     const eventCode = searchParams.get('eventCode') || undefined;
@@ -29,7 +30,15 @@ export async function GET(request: NextRequest) {
 
     const service = getDbService();
 
-    if (teamNumber) {
+    // If ID is provided, fetch single entry by ID
+    if (id) {
+      const entries = await service.getAllMatchEntries();
+      const entry = entries.find(e => e.id === id);
+      if (!entry) {
+        return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
+      }
+      return NextResponse.json(entry);
+    } else if (teamNumber) {
       const entries = await service.getMatchEntries(teamNumber, year, competitionType);
       return NextResponse.json(entries);
     } else {
@@ -50,11 +59,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const entry: Omit<MatchEntry, 'id'> = await request.json();
-    // Add userId from session
+    const body = await request.json();
+    const { scoutingForUserId, ...entry } = body;
+    
+    // Determine which userId to use
+    let actualUserId = session.user.id;
+    
+    // If tablet account is scouting on behalf of someone
+    if (scoutingForUserId && hasPermission(session.user.role, PERMISSIONS.SCOUT_ON_BEHALF)) {
+      actualUserId = scoutingForUserId;
+    }
+    
+    // Add userId from session or scout selection
     const entryWithUser = {
       ...entry,
-      userId: session.user.id
+      userId: actualUserId
     };
     const service = getDbService();
     const id = await service.addMatchEntry(entryWithUser);

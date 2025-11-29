@@ -23,17 +23,28 @@ export async function GET(request: NextRequest) {
     }
     console.log('Pit API: Starting request processing');
     const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id') ? parseInt(searchParams.get('id')!) : undefined;
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const teamNumber = searchParams.get('teamNumber') ? parseInt(searchParams.get('teamNumber')!) : undefined;
     const eventCode = searchParams.get('eventCode') || undefined;
     const competitionType = (searchParams.get('competitionType') as CompetitionType) || undefined;
 
-    console.log('Pit API: Parameters -', { year, teamNumber, eventCode, competitionType });
+    console.log('Pit API: Parameters -', { id, year, teamNumber, eventCode, competitionType });
 
     const service = getDbService();
     console.log('Pit API: Database service retrieved');
 
-    if (teamNumber && year) {
+    // If ID is provided, fetch single entry by ID
+    if (id) {
+      console.log('Pit API: Fetching entry by ID');
+      const entries = await service.getAllPitEntries();
+      const entry = entries.find(e => e.id === id);
+      if (!entry) {
+        return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
+      }
+      console.log('Pit API: Found entry by ID');
+      return NextResponse.json(entry);
+    } else if (teamNumber && year) {
       console.log('Pit API: Fetching specific pit entry');
       const entry = await service.getPitEntry(teamNumber, year, competitionType);
       console.log('Pit API: Found entry:', entry ? 'Yes' : 'No');
@@ -62,11 +73,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const entry: Omit<PitEntry, 'id'> = await request.json();
-    // Add userId from session
+    const body = await request.json();
+    const { scoutingForUserId, ...entry } = body;
+    
+    // Determine which userId to use
+    let actualUserId = session.user.id;
+    
+    // If tablet account is scouting on behalf of someone
+    if (scoutingForUserId && hasPermission(session.user.role, PERMISSIONS.SCOUT_ON_BEHALF)) {
+      actualUserId = scoutingForUserId;
+    }
+    
+    // Add userId from session or scout selection
     const entryWithUser = {
       ...entry,
-      userId: session.user.id
+      userId: actualUserId
     };
     const service = getDbService();
     const id = await service.addPitEntry(entryWithUser);
