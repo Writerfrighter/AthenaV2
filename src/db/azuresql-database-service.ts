@@ -391,6 +391,26 @@ export class AzureSqlDatabaseService implements DatabaseService {
       .query('DELETE FROM pitEntries WHERE id = @id');
   }
 
+  async checkPitScoutExists(teamNumber: number, eventCode: string): Promise<boolean> {
+    try {
+      const pool = await this.getPool();
+      const mssql = await import('mssql');
+      const result = await pool.request()
+        .input('teamNumber', mssql.Int, teamNumber)
+        .input('eventCode', mssql.NVarChar, eventCode)
+        .query(`
+          SELECT COUNT(*) as count 
+          FROM pitEntries 
+          WHERE teamNumber = @teamNumber AND eventCode = @eventCode
+        `);
+      
+      return result.recordset[0].count > 0;
+    } catch (error) {
+      console.error('Error checking pit scout existence:', error);
+      throw error;
+    }
+  }
+
   // Match scouting methods
   async addMatchEntry(entry: Omit<MatchEntry, 'id'>): Promise<number> {
     const pool = await this.getPool();
@@ -562,6 +582,29 @@ export class AzureSqlDatabaseService implements DatabaseService {
     await pool.request()
       .input('id', mssql.Int, id)
       .query('DELETE FROM matchEntries WHERE id = @id');
+  }
+
+  async checkMatchScoutExists(teamNumber: number, matchNumber: number, eventCode: string): Promise<boolean> {
+    try {
+      const pool = await this.getPool();
+      const mssql = await import('mssql');
+      const result = await pool.request()
+        .input('teamNumber', mssql.Int, teamNumber)
+        .input('matchNumber', mssql.Int, matchNumber)
+        .input('eventCode', mssql.NVarChar, eventCode)
+        .query(`
+          SELECT COUNT(*) as count 
+          FROM matchEntries 
+          WHERE teamNumber = @teamNumber 
+            AND matchNumber = @matchNumber 
+            AND eventCode = @eventCode
+        `);
+      
+      return result.recordset[0].count > 0;
+    } catch (error) {
+      console.error('Error checking match scout existence:', error);
+      throw error;
+    }
   }
 
   // Custom events

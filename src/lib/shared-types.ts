@@ -138,6 +138,7 @@ export interface DatabaseService {
   getAllPitEntries(year?: number, eventCode?: string, competitionType?: CompetitionType): Promise<PitEntry[]>;
   updatePitEntry(id: number, updates: Partial<PitEntry>): Promise<void>;
   deletePitEntry(id: number): Promise<void>;
+  checkPitScoutExists(teamNumber: number, eventCode: string): Promise<boolean>;
 
   // Match scouting
   addMatchEntry(entry: Omit<MatchEntry, 'id'>): Promise<number>;
@@ -145,6 +146,7 @@ export interface DatabaseService {
   getAllMatchEntries(year?: number, eventCode?: string, competitionType?: CompetitionType): Promise<MatchEntry[]>;
   updateMatchEntry(id: number, updates: Partial<MatchEntry>): Promise<void>;
   deleteMatchEntry(id: number): Promise<void>;
+  checkMatchScoutExists(teamNumber: number, matchNumber: number, eventCode: string): Promise<boolean>;
 
   // Custom events
   addCustomEvent(event: Omit<CustomEvent, 'id'>): Promise<number>;

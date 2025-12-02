@@ -258,6 +258,28 @@ export function DynamicMatchScoutForm() {
       return;
     }
 
+    // Check for duplicate match scout entry (only for new entries, not edits)
+    if (!isEditMode && selectedEvent?.code) {
+      try {
+        const response = await fetch(
+          `/api/database/match/check?teamNumber=${formData.teamNumber}&matchNumber=${formData.matchNumber}&eventCode=${selectedEvent.code}`
+        );
+        const data = await response.json();
+        
+        if (data.exists) {
+          toast.error("Duplicate entry detected", {
+            description: `Team ${formData.teamNumber} has already been scouted for Match ${formData.matchNumber}. Please check existing entries or edit the existing entry.`,
+            icon: <AlertCircle className="h-4 w-4" />
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking for duplicate:', error);
+        // Continue with submission even if check fails
+      }
+    }
+
     setIsSubmitting(true);
 
     try {

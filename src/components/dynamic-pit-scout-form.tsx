@@ -194,6 +194,27 @@ export function DynamicPitScoutForm() {
       return;
     }
 
+    // Check for duplicate pit scout entry (only for new entries, not edits)
+    if (!isEditMode && selectedEvent?.code) {
+      try {
+        const response = await fetch(
+          `/api/database/pit/check?teamNumber=${formData.team}&eventCode=${selectedEvent.code}`
+        );
+        const data = await response.json();
+        
+        if (data.exists) {
+          toast.error("Duplicate entry detected", {
+            description: `Team ${formData.team} has already been pit scouted for this event. Please check existing entries or edit the existing entry.`,
+            icon: <AlertCircle className="h-4 w-4" />
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking for duplicate:', error);
+        // Continue with submission even if check fails
+      }
+    }
+
     try {
       if (isEditMode && editingEntryId) {
         // Update existing entry
