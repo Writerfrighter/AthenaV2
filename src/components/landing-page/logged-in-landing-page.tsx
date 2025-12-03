@@ -7,8 +7,10 @@ import { ModeToggle } from "@/components/ui/light-dark-toggle"
 import Link from "next/link"
 import Image from "next/image"
 import { useEffect, useState } from "react"
-import { useSession } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import { useScheduleData } from "@/hooks/use-schedule-data"
+import { EventInfoCard } from "@/components/event-info-card"
+import { OfflineStatusWidget } from "@/components/offline-status-widget"
 
 interface MatchItem {
   matchNumber: number
@@ -76,8 +78,12 @@ export function LoggedInLandingPage() {
             </div>
             <span className="font-bold text-lg">Athena V2</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <OfflineStatusWidget showSyncButton className="hidden sm:flex" />
             <ModeToggle />
+            <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: '/login' })}>
+              Logout
+            </Button>
           </div>
         </div>
       </header>
@@ -152,48 +158,53 @@ export function LoggedInLandingPage() {
             </Link>
           </section>
 
-          {/* Schedule Section */}
-          <section>
-            <h2 className="text-2xl font-bold mb-4">Your Schedule</h2>
-            {isLoading ? (
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-muted-foreground">Loading schedule...</p>
-                </CardContent>
-              </Card>
-            ) : error ? (
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-red-500">Failed to load schedule</p>
-                </CardContent>
-              </Card>
-            ) : upcomingMatches.length > 0 ? (
-              <div className="space-y-3">
-                {upcomingMatches.map((match: MatchItem, idx: number) => (
-                  <Card key={idx}>
-                    <CardContent className="pt-6 flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold">Match {match.matchNumber}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {match.alliance && `${match.alliance.toUpperCase()} Alliance`}
-                        </p>
-                      </div>
-                      <Link href={`/scout/match?match=${match.matchNumber}`}>
-                        <Button variant="outline" size="sm">
-                          Scout
-                        </Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-muted-foreground">No upcoming matches</p>
-                </CardContent>
-              </Card>
-            )}
+          {/* Schedule & Event Section */}
+          <section className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <h2 className="text-2xl font-bold mb-4">Your Schedule</h2>
+              {isLoading ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-muted-foreground">Loading schedule...</p>
+                  </CardContent>
+                </Card>
+              ) : error ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-red-500">Failed to load schedule</p>
+                  </CardContent>
+                </Card>
+              ) : upcomingMatches.length > 0 ? (
+                <div className="space-y-3">
+                  {upcomingMatches.map((match: MatchItem, idx: number) => (
+                    <Card key={idx}>
+                      <CardContent className="pt-6 flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold">Match {match.matchNumber}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {match.alliance && `${match.alliance.toUpperCase()} Alliance`}
+                          </p>
+                        </div>
+                        <Link href={`/scout/match?match=${match.matchNumber}`}>
+                          <Button variant="outline" size="sm">
+                            Scout
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-muted-foreground">No upcoming matches</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+            <div className="space-y-6">
+              <EventInfoCard />
+            </div>
           </section>
         </div>
       </main>
