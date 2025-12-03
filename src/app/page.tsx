@@ -10,6 +10,7 @@ import { useState, useEffect } from "react"
 
 export default function Page() {
   const [hasScrolled, setHasScrolled] = useState(false)
+  const [isDark, setIsDark] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,8 +21,20 @@ export default function Page() {
       }
     }
 
+    // Check for dark mode
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    }
+
+    checkDarkMode()
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, { attributes: true })
+
     window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      observer.disconnect()
+    }
   }, [])
 
   return (
@@ -38,7 +51,7 @@ export default function Page() {
           <div className="flex items-center gap-2">
             <div className="relative flex items-center justify-center">
               <Image
-                src="/TRCLogo.webp"
+                src={isDark ? "/TRCLogoWhite.png" : "/TRCLogo.webp"}
                 alt="TRC Scouting Logo"
                 width={40}
                 height={40}
@@ -54,9 +67,9 @@ export default function Page() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 w-full py-20 sm:py-32 overflow-hidden">
+      <section className="relative z-10 w-full py-0 sm:py-0 overflow-hidden min-h-screen flex items-center">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="text-center space-y-6">
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight">
               Titan Robotics Club
@@ -139,7 +152,7 @@ export default function Page() {
             </div>
 
             {/* Scroll Indicator */}
-            <div className={`flex justify-center mt-24 animate-bounce transition-opacity duration-300 ${hasScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <div className={`flex justify-center mt-20 animate-bounce transition-opacity duration-300 ${hasScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-2">Scroll for feature details</p>
                 <ChevronDown className="h-6 w-6 text-primary mx-auto" />
