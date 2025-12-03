@@ -31,6 +31,8 @@ import { computeScouterAccuracy } from './src/lib/statistics';
 import type { MatchEntry } from './src/db/types';
 import type { YearConfig } from './src/lib/shared-types';
 
+const MATCH_COUNT = 60; // Increase to test convergence on larger datasets
+
 // Mock 2025 FRC game config (simplified)
 const mockConfig: YearConfig = {
   competitionType: 'FRC',
@@ -73,7 +75,7 @@ const mockConfig: YearConfig = {
  * - diana: Accurate but fewer matches
  * - eve: Very inaccurate (highest error)
  */
-function generateMockMatches(): MatchEntry[] {
+function generateMockMatches(matchCount: number = MATCH_COUNT): MatchEntry[] {
   const matches: MatchEntry[] = [];
   const scouters = ['alice', 'bob', 'charlie', 'diana', 'eve'];
   
@@ -93,49 +95,35 @@ function generateMockMatches(): MatchEntry[] {
     'eve': 1.25      // 25% over-count
   };
   
-  // Hardcoded scouter assignments (18 assignments per scouter, mixed across alliances)
-  // Pattern ensures each scouter scouts with different combinations of other scouters
-  const scouterAssignments = [
-    // Match 1: Red [alice, diana, bob], Blue [charlie, eve, alice]
-    'alice', 'diana', 'bob', 'charlie', 'eve', 'alice',
-    // Match 2: Red [diana, bob, charlie], Blue [eve, alice, diana]
-    'diana', 'bob', 'charlie', 'eve', 'alice', 'diana',
-    // Match 3: Red [bob, charlie, eve], Blue [alice, diana, bob]
-    'bob', 'charlie', 'eve', 'alice', 'diana', 'bob',
-    // Match 4: Red [charlie, eve, alice], Blue [diana, bob, charlie]
+  // Hardcoded base assignments (15 matches * 6 scouters) to ensure diverse pairings
+  const baseAssignments = [
+    'alice', 'diana', 'bob', 'charlie', 'eve', 'alice', // Match 1
+    'diana', 'bob', 'charlie', 'eve', 'alice', 'diana', // Match 2
+    'bob', 'charlie', 'eve', 'alice', 'diana', 'bob',   // Match 3
     'charlie', 'eve', 'alice', 'diana', 'bob', 'charlie',
-    // Match 5: Red [eve, alice, diana], Blue [bob, charlie, eve]
     'eve', 'alice', 'diana', 'bob', 'charlie', 'eve',
-    // Match 6: Red [alice, bob, eve], Blue [diana, alice, charlie]
     'alice', 'bob', 'eve', 'diana', 'alice', 'charlie',
-    // Match 7: Red [diana, charlie, alice], Blue [bob, eve, diana]
     'diana', 'charlie', 'alice', 'bob', 'eve', 'diana',
-    // Match 8: Red [bob, eve, diana], Blue [charlie, alice, bob]
     'bob', 'eve', 'diana', 'charlie', 'alice', 'bob',
-    // Match 9: Red [charlie, alice, bob], Blue [eve, diana, charlie]
     'charlie', 'alice', 'bob', 'eve', 'diana', 'charlie',
-    // Match 10: Red [eve, diana, charlie], Blue [alice, bob, eve]
     'eve', 'diana', 'charlie', 'alice', 'bob', 'eve',
-    // Match 11: Red [alice, charlie, diana], Blue [bob, alice, eve]
     'alice', 'charlie', 'diana', 'bob', 'alice', 'eve',
-    // Match 12: Red [diana, eve, bob], Blue [charlie, diana, alice]
     'diana', 'eve', 'bob', 'charlie', 'diana', 'alice',
-    // Match 13: Red [bob, alice, charlie], Blue [eve, bob, diana]
     'bob', 'alice', 'charlie', 'eve', 'bob', 'diana',
-    // Match 14: Red [charlie, diana, eve], Blue [alice, charlie, bob]
     'charlie', 'diana', 'eve', 'alice', 'charlie', 'bob',
-    // Match 15: Red [eve, bob, alice], Blue [diana, eve, charlie]
     'eve', 'bob', 'alice', 'diana', 'eve', 'charlie'
   ];
+  const baseMatchCount = baseAssignments.length / 6;
   
-  // Generate 15 matches, 6 robots per match (3 per alliance)
+  // Generate matches, 6 robots per match (3 per alliance)
   let matchId = 1;
-  let assignmentIndex = 0;
   
-  for (let matchNum = 1; matchNum <= 15; matchNum++) {
+  for (let matchNum = 1; matchNum <= matchCount; matchNum++) {
+    const baseStart = ((matchNum - 1) % baseMatchCount) * 6;
+    
     // Red alliance - 3 robots
     for (let pos = 0; pos < 3; pos++) {
-      const scouterId = scouterAssignments[assignmentIndex++];
+      const scouterId = baseAssignments[baseStart + pos];
       const teamNumber = 1000 + (matchNum * 10) + pos;
       const bias = scouterBias[scouterId];
       
@@ -173,7 +161,7 @@ function generateMockMatches(): MatchEntry[] {
     
     // Blue alliance - 3 robots
     for (let pos = 0; pos < 3; pos++) {
-      const scouterId = scouterAssignments[assignmentIndex++];
+      const scouterId = baseAssignments[baseStart + 3 + pos];
       const teamNumber = 2000 + (matchNum * 10) + pos;
       const bias = scouterBias[scouterId];
       
@@ -224,44 +212,46 @@ function generateMockMatches(): MatchEntry[] {
  * 
  * Hardcoded values ensure consistent test results across runs
  */
-function generateOfficialResults(): Map<number, {
+function generateOfficialResults(matchCount: number = MATCH_COUNT): Map<number, {
   red: { officialScore: number; foulPoints: number };
   blue: { officialScore: number; foulPoints: number };
 }> {
   const results = new Map();
   
-  // Hardcoded results for deterministic testing
-  // These scores reflect the "true" performance (~255 per alliance)
-  const hardcodedResults = [
-    { match: 1, red: { score: 258, fouls: 5 }, blue: { score: 252, fouls: 0 } },
-    { match: 2, red: { score: 265, fouls: 10 }, blue: { score: 248, fouls: 5 } },
-    { match: 3, red: { score: 254, fouls: 0 }, blue: { score: 260, fouls: 5 } },
-    { match: 4, red: { score: 256, fouls: 5 }, blue: { score: 255, fouls: 10 } },
-    { match: 5, red: { score: 262, fouls: 10 }, blue: { score: 250, fouls: 0 } },
-    { match: 6, red: { score: 251, fouls: 0 }, blue: { score: 257, fouls: 5 } },
-    { match: 7, red: { score: 259, fouls: 5 }, blue: { score: 263, fouls: 10 } },
-    { match: 8, red: { score: 255, fouls: 10 }, blue: { score: 249, fouls: 0 } },
-    { match: 9, red: { score: 261, fouls: 0 }, blue: { score: 254, fouls: 5 } },
-    { match: 10, red: { score: 257, fouls: 5 }, blue: { score: 258, fouls: 10 } },
-    { match: 11, red: { score: 253, fouls: 10 }, blue: { score: 256, fouls: 0 } },
-    { match: 12, red: { score: 264, fouls: 0 }, blue: { score: 251, fouls: 5 } },
-    { match: 13, red: { score: 256, fouls: 5 }, blue: { score: 259, fouls: 10 } },
-    { match: 14, red: { score: 260, fouls: 10 }, blue: { score: 253, fouls: 0 } },
-    { match: 15, red: { score: 252, fouls: 0 }, blue: { score: 261, fouls: 5 } }
+  // Base results for first 15 matches (approximate true performance)
+  const baseResults = [
+    { red: { score: 258, fouls: 5 }, blue: { score: 252, fouls: 0 } },
+    { red: { score: 265, fouls: 10 }, blue: { score: 248, fouls: 5 } },
+    { red: { score: 254, fouls: 0 }, blue: { score: 260, fouls: 5 } },
+    { red: { score: 256, fouls: 5 }, blue: { score: 255, fouls: 10 } },
+    { red: { score: 262, fouls: 10 }, blue: { score: 250, fouls: 0 } },
+    { red: { score: 251, fouls: 0 }, blue: { score: 257, fouls: 5 } },
+    { red: { score: 259, fouls: 5 }, blue: { score: 263, fouls: 10 } },
+    { red: { score: 255, fouls: 10 }, blue: { score: 249, fouls: 0 } },
+    { red: { score: 261, fouls: 0 }, blue: { score: 254, fouls: 5 } },
+    { red: { score: 257, fouls: 5 }, blue: { score: 258, fouls: 10 } },
+    { red: { score: 253, fouls: 10 }, blue: { score: 256, fouls: 0 } },
+    { red: { score: 264, fouls: 0 }, blue: { score: 251, fouls: 5 } },
+    { red: { score: 256, fouls: 5 }, blue: { score: 259, fouls: 10 } },
+    { red: { score: 260, fouls: 10 }, blue: { score: 253, fouls: 0 } },
+    { red: { score: 252, fouls: 0 }, blue: { score: 261, fouls: 5 } }
   ];
-  
-  hardcodedResults.forEach(({ match, red, blue }) => {
+  const baseLength = baseResults.length;
+
+  for (let match = 1; match <= matchCount; match++) {
+    const cycle = baseResults[(match - 1) % baseLength];
+    const drift = Math.floor((match - 1) / baseLength) * 3; // Small drift per cycle
     results.set(match, {
       red: {
-        officialScore: red.score,
-        foulPoints: red.fouls
+        officialScore: cycle.red.score + drift,
+        foulPoints: cycle.red.fouls
       },
       blue: {
-        officialScore: blue.score,
-        foulPoints: blue.fouls
+        officialScore: cycle.blue.score + (drift % 5),
+        foulPoints: cycle.blue.fouls
       }
     });
-  });
+  }
   
   return results;
 }
@@ -275,8 +265,8 @@ function runTest() {
   
   // Generate test data
   console.log('\n📊 Generating test data...');
-  const matches = generateMockMatches();
-  const officialResults = generateOfficialResults();
+  const matches = generateMockMatches(MATCH_COUNT);
+  const officialResults = generateOfficialResults(MATCH_COUNT);
   
   console.log(`✓ Generated ${matches.length} match entries`);
   console.log(`✓ Generated ${officialResults.size} official match results`);

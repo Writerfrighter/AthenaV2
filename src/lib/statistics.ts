@@ -253,7 +253,7 @@ export interface ScouterAccuracyResult {
  * 
  * **Key Differences from OPR:**
  * - Lower values are better (less error contribution)
- * - Uses absolute error instead of actual scores
+ * - Uses signed error during equation solving, but aggregates on absolute values for rankings
  * - Subtracts foul points from official scores (fouls aren't related to robot actions scouters observe)
  * 
  * **Interpretation:**
@@ -355,8 +355,8 @@ export function computeScouterAccuracy(
       }
     });
     
-    // Calculate absolute error
-    const observedError = Math.abs(scoutedTotal - adjustedOfficialScore);
+    // Keep signed error so under- and over-counting cannot cancel
+    const observedError = scoutedTotal - adjustedOfficialScore;
     
     // Add equation if we have scouters
     if (scouterIndicesInAlliance.length > 0) {
@@ -398,9 +398,8 @@ export function computeScouterAccuracy(
     });
   });
 
-  // Solve using Gaussian elimination with partial pivoting
   const solution = solveLinearSystem(AtA, Atb);
-  
+
   if (!solution) {
     return {
       scouters: [],
@@ -421,7 +420,7 @@ export function computeScouterAccuracy(
   // Calculate total absolute error per scouter (for additional metric)
   const totalErrors = new Map<string, number>();
   equations.forEach(eq => {
-    const errorPerScouter = eq.observedError / eq.scouterIndices.length;
+    const errorPerScouter = Math.abs(eq.observedError) / eq.scouterIndices.length;
     eq.scouterIndices.forEach(idx => {
       const scouterId = scouters[idx];
       totalErrors.set(scouterId, (totalErrors.get(scouterId) || 0) + errorPerScouter);
@@ -429,13 +428,16 @@ export function computeScouterAccuracy(
   });
 
   // Build results
-  const scouterPerformances: ScouterPerformance[] = scouters.map((scouterId, idx) => ({
-    scouterId,
-    errorValue: solution[idx],
-    matchesScounted: matchCounts.get(scouterId) || 0,
-    percentile: 0, // Will calculate after sorting
-    totalAbsoluteError: totalErrors.get(scouterId) || 0
-  }));
+  const scouterPerformances: ScouterPerformance[] = scouters.map((scouterId, idx) => {
+    const rawError = solution[idx];
+    return {
+      scouterId,
+      errorValue: Math.abs(rawError),
+      matchesScounted: matchCounts.get(scouterId) || 0,
+      percentile: 0, // Will calculate after sorting
+      totalAbsoluteError: totalErrors.get(scouterId) || 0
+    };
+  });
 
   // Sort by error value (ascending - lower is better)
   scouterPerformances.sort((a, b) => a.errorValue - b.errorValue);
@@ -445,16 +447,18 @@ export function computeScouterAccuracy(
     perf.percentile = Math.round((1 - idx / scouterPerformances.length) * 100);
   });
 
-  // Calculate overall mean error
-  const overallMeanError = equations.reduce((sum, eq) => sum + eq.observedError, 0) / equations.length;
+  // Calculate overall mean error (absolute so magnitude reflects deviation)
+  const overallMeanError = equations.reduce((sum, eq) => sum + Math.abs(eq.observedError), 0) / equations.length;
+
+  const lowSampleWarning = scouterPerformances.some(s => s.matchesScounted < 10)
+    ? 'Warning: Some scouters have fewer than 10 matches - results may be unreliable'
+    : undefined;
 
   return {
     scouters: scouterPerformances,
     overallMeanError,
     convergenceAchieved: true,
-    message: scouterPerformances.some(s => s.matchesScounted < 10) 
-      ? 'Warning: Some scouters have fewer than 10 matches - results may be unreliable'
-      : undefined
+    message: lowSampleWarning
   };
 }
 
