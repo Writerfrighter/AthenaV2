@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { UserPlus, LogIn, ArrowRight, Hammer, Zap, BarChart3, Wifi, ChevronDown } from "lucide-react"
+import { UserPlus, LogIn, ArrowRight, Hammer, Zap, BarChart3, Wifi, ChevronDown, Heart } from "lucide-react"
 import { ModeToggle } from "@/components/ui/light-dark-toggle"
 import Link from "next/link"
 import Image from "next/image"
@@ -274,7 +274,12 @@ export function NotLoggedInLandingPage() {
       <footer className="relative z-10 w-full mt-auto border-t bg-primary/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-sm text-muted-foreground">
-            <p>© 2025 Titan Robotics Club. Built for FIRST Robotics teams.</p>
+            <span>
+              Made with
+              <Heart className="inline-block h-4 w-4 mx-1 text-green-500" />
+              by&nbsp; 
+              <a href="https://titanrobotics.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">Titan Robotics Club</a>
+            </span>
           </div>
         </div>
       </footer>
