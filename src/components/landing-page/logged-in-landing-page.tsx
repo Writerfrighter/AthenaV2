@@ -103,7 +103,7 @@ export function LoggedInLandingPage() {
 
           {/* Quick Actions Grid */}
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <Link href="/scout/pit">
+            <Link href="/scout/pitscout">
               <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -121,7 +121,7 @@ export function LoggedInLandingPage() {
               </Card>
             </Link>
 
-            <Link href="/scout/match">
+            <Link href="/scout/matchscout">
               <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
