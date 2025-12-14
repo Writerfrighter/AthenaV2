@@ -124,6 +124,7 @@ export function EventSwitcher() {
     try {
       const eventData = {
         eventCode: newEventForm.eventCode,
+        competitionType: competitionType,
         name: newEventForm.name,
         date: newEventForm.date.toISOString().split('T')[0], // Convert Date to YYYY-MM-DD string
         endDate: newEventForm.endDate ? newEventForm.endDate.toISOString().split('T')[0] : null,
