@@ -24,9 +24,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const format = searchParams.get('format') || 'json';
+    const dataType = searchParams.get('dataType'); // 'pit', 'match', or undefined for all
 
     const service = getDbService();
-    const data = await service.exportData(year);
+    let data = await service.exportData(year);
+
+    // Filter data based on dataType parameter
+    if (dataType === 'pit') {
+      data = { pitEntries: data.pitEntries, matchEntries: [] };
+    } else if (dataType === 'match') {
+      data = { pitEntries: [], matchEntries: data.matchEntries };
+    }
 
     if (format === 'csv') {
       const csvData = await convertToCSV(data);
