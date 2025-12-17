@@ -1,36 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEventMatches } from '@/lib/api/tba';
+import { getEventMatches as getTbaEventMatches } from '@/lib/api/tba';
+import { getEventMatches as getFtcEventMatches } from '@/lib/api/ftcevents';
 import type { TbaMatch } from '@/lib/api/tba-types';
+import type { FtcMatchResult } from '@/lib/api/ftcevents-types';
 
 /**
  * API endpoint to fetch official match results for SPR calculation
  * 
  * GET /api/database/spr/official-results?eventCode=<code>&competitionType=<type>&year=<year>
  * 
- * Returns a map of match numbers to alliance scores and foul points from The Blue Alliance
+ * Returns a map of match numbers to alliance scores and foul points from The Blue Alliance or FTC Events API
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const eventCode = searchParams.get('eventCode');
     const competitionType = searchParams.get('competitionType') || 'FRC';
-    const year = searchParams.get('year');
+    const yearParam = searchParams.get('year');
 
     if (!eventCode) {
       return NextResponse.json({ error: 'Missing eventCode parameter' }, { status: 400 });
     }
 
-    // For FTC, we don't have TBA data - return empty for now
-    // Future: integrate with FTC API or allow manual entry
+    // Handle FTC using FTC Events API
     if (competitionType === 'FTC') {
-      return NextResponse.json({ 
-        results: {},
-        message: 'FTC official results not yet supported. Manual entry required.'
-      });
+      const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
+      
+      try {
+        // Fetch matches from FTC Events API
+        const matchData = await getFtcEventMatches(year, eventCode, 'qual');
+        
+        if (!matchData || !matchData.matches || !Array.isArray(matchData.matches)) {
+          return NextResponse.json({ 
+            results: {},
+            message: 'No qualification matches found for this FTC event'
+          });
+        }
+
+        // Build result map: matchNumber -> { red: {...}, blue: {...} }
+        const results: Record<number, {
+          red: { officialScore: number; foulPoints: number };
+          blue: { officialScore: number; foulPoints: number };
+        }> = {};
+
+        for (const match of matchData.matches as FtcMatchResult[]) {
+          const matchNumber = match.matchNumber;
+          
+          results[matchNumber] = {
+            red: {
+              officialScore: match.scoreRedFinal || 0,
+              foulPoints: match.scoreRedFoul || 0
+            },
+            blue: {
+              officialScore: match.scoreBlueFinal || 0,
+              foulPoints: match.scoreBlueFoul || 0
+            }
+          };
+        }
+
+        return NextResponse.json({ 
+          results,
+          matchCount: matchData.matches.length,
+          eventCode
+        });
+      } catch (ftcError) {
+        console.error('Error fetching FTC results:', ftcError);
+        return NextResponse.json({ 
+          error: 'Failed to fetch FTC match results. Check API key and event code.',
+          details: ftcError instanceof Error ? ftcError.message : 'Unknown error'
+        }, { status: 502 });
+      }
     }
 
     // Fetch matches from TBA for FRC
-    const matches = await getEventMatches(eventCode);
+    const matches = await getTbaEventMatches(eventCode);
 
     if (!Array.isArray(matches)) {
       return NextResponse.json({ error: 'Invalid response from TBA' }, { status: 502 });
