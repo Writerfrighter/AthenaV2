@@ -21,9 +21,9 @@ CREATE TABLE pitEntries (
     year INT NOT NULL,
     competitionType NVARCHAR(10) DEFAULT 'FRC' NOT NULL,
     driveTrain NVARCHAR(50) NOT NULL, -- 'Swerve', 'Mecanum', 'Tank', 'Other'
-    weight DECIMAL(10,2) NOT NULL,
-    length DECIMAL(10,2) NOT NULL,
-    width DECIMAL(10,2) NOT NULL,
+    weight DECIMAL(10,2) NULL,
+    length DECIMAL(10,2) NULL,
+    width DECIMAL(10,2) NULL,
     eventName NVARCHAR(255),
     eventCode NVARCHAR(50),
     userId NVARCHAR(255), -- User who created this entry

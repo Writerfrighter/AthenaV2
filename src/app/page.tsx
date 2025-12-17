@@ -1,22 +1,9 @@
-'use client'
-
-import { useSession } from 'next-auth/react'
+import { auth } from '@/lib/auth/config'
 import { LoggedInLandingPage } from '@/components/landing-page/logged-in-landing-page'
 import { NotLoggedInLandingPage } from '@/components/landing-page/not-logged-in-landing-page'
 
-export default function Page() {
-  const { data: session, status } = useSession()
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
-  }
+export default async function Page() {
+  const session = await auth()
 
   return session ? <LoggedInLandingPage /> : <NotLoggedInLandingPage />
 }

@@ -68,17 +68,26 @@ export function PitScoutingTable({ data, onEdit, onDelete }: PitScoutingTablePro
         Weight (lbs) <ArrowUpDown />
       </Button>
     ),
-    cell: ({ row }) => <div className="text-right">{row.getValue("weight")}</div>,
+    cell: ({ row }) => {
+      const value = row.getValue("weight") as number | undefined;
+      return <div className="text-right">{value !== undefined && value !== null ? value : '-'}</div>;
+    },
   },
   {
     accessorKey: "length",
     header: "Length (in)",
-    cell: ({ row }) => <div className="text-right">{row.getValue("length")}</div>,
+    cell: ({ row }) => {
+      const value = row.getValue("length") as number | undefined;
+      return <div className="text-right">{value !== undefined && value !== null ? value : '-'}</div>;
+    },
   },
   {
     accessorKey: "width",
     header: "Width (in)",
-    cell: ({ row }) => <div className="text-right">{row.getValue("width")}</div>,
+    cell: ({ row }) => {
+      const value = row.getValue("width") as number | undefined;
+      return <div className="text-right">{value !== undefined && value !== null ? value : '-'}</div>;
+    },
   },
   {
     accessorKey: "gameSpecificData",

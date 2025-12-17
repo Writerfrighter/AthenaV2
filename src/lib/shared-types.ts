@@ -13,9 +13,9 @@ export interface PitEntry {
   year: number;
   competitionType: CompetitionType;
   driveTrain: "Swerve" | "Mecanum" | "Tank" | "Other";
-  weight: number;
-  length: number;
-  width: number;
+  weight?: number;
+  length?: number;
+  width?: number;
   eventName?: string;
   eventCode?: string;
   userId?: string;
@@ -59,9 +59,9 @@ export interface PitEntryRow {
   year: number;
   competitionType: string;
   driveTrain: string;
-  weight: number;
-  length: number;
-  width: number;
+  weight: number | null;
+  length: number | null;
+  width: number | null;
   eventName: string | null;
   eventCode: string | null;
   userId: string | null;

@@ -22,9 +22,9 @@ function getDbService() {
 interface TeamPicklistData {
   teamNumber: number;
   driveTrain: string;
-  weight: number;
-  length: number;
-  width: number;
+  weight?: number;
+  length?: number;
+  width?: number;
   matchesPlayed: number;
   totalEPA: number;
   autoEPA: number;
@@ -67,9 +67,9 @@ export async function GET(request: NextRequest) {
         teamData[pit.teamNumber] = {
           teamNumber: pit.teamNumber,
           driveTrain: pit.driveTrain,
-          weight: pit.weight,
-          length: pit.length,
-          width: pit.width,
+          weight: pit.weight ?? undefined,
+          length: pit.length ?? undefined,
+          width: pit.width ?? undefined,
           matchesPlayed: 0,
           totalEPA: 0,
           autoEPA: 0,
