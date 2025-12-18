@@ -85,7 +85,7 @@ const decodeConfig: YearConfig = {
       }
     },
     endgame: {
-      ending_base_state: {
+      ending_based_state: {
         label: 'Ending Base State',
         description: "Robot's final base state during endgame",
         type: 'select',
@@ -97,18 +97,7 @@ const decodeConfig: YearConfig = {
         }
       }
     },
-    fouls: {
-      minor_penalties: {
-        label: 'Minor Penalties',
-        points: -5,
-        description: 'Minor penalties committed'
-      },
-      major_penalties: {
-        label: 'Major Penalties',
-        points: -15,
-        description: 'Major penalties committed'
-      }
-    }
+    fouls: {}
   }
 };
 /*
@@ -361,19 +350,36 @@ async function runTest() {
       
       if (redEntries.length === 0 || blueEntries.length === 0) continue;
       
-      // Simple prediction: sum up all scored points
+      // Use the actual EPA calculation with config (same as SPR algorithm)
       const predictRed = redEntries.reduce((sum, entry) => {
+        const epa = computeScouterAccuracy([entry], officialResults, decodeConfig);
+        // Directly calculate using config
         let points = 0;
         if (entry.gameSpecificData) {
           const data = entry.gameSpecificData as any;
-          // Sum up all numeric values (simplified)
-          for (const phase of ['autonomous', 'teleop', 'endgame']) {
-            if (data[phase]) {
-              for (const [key, value] of Object.entries(data[phase])) {
-                if (typeof value === 'number') points += value;
-                if (typeof value === 'boolean' && value) points += 3; // Simplified
-              }
-            }
+          // Autonomous
+          if (data.autonomous) {
+            if (data.autonomous.leave === true) points += 3;
+            if (typeof data.autonomous.artifacts_classified === 'number') points += data.autonomous.artifacts_classified * 3;
+            if (typeof data.autonomous.artifacts_overflow === 'number') points += data.autonomous.artifacts_overflow * 1;
+            if (typeof data.autonomous.patterns === 'number') points += data.autonomous.patterns * 2;
+          }
+          // Teleop
+          if (data.teleop) {
+            if (typeof data.teleop.artifacts_classified === 'number') points += data.teleop.artifacts_classified * 3;
+            if (typeof data.teleop.artifacts_overflow === 'number') points += data.teleop.artifacts_overflow * 1;
+            if (typeof data.teleop.artifacts_depot === 'number') points += data.teleop.artifacts_depot * 1;
+            if (typeof data.teleop.patterns === 'number') points += data.teleop.patterns * 2;
+          }
+          // Endgame
+          if (data.endgame?.ending_based_state) {
+            const endgamePoints: Record<string, number> = { none: 0, partial: 5, full: 10 };
+            points += endgamePoints[data.endgame.ending_based_state] || 0;
+          }
+          // Fouls (subtract)
+          if (data.fouls) {
+            if (typeof data.fouls.minor_penalties === 'number') points -= data.fouls.minor_penalties * 5;
+            if (typeof data.fouls.major_penalties === 'number') points -= data.fouls.major_penalties * 15;
           }
         }
         return sum + points;
@@ -383,24 +389,40 @@ async function runTest() {
         let points = 0;
         if (entry.gameSpecificData) {
           const data = entry.gameSpecificData as any;
-          for (const phase of ['autonomous', 'teleop', 'endgame']) {
-            if (data[phase]) {
-              for (const [key, value] of Object.entries(data[phase])) {
-                if (typeof value === 'number') points += value;
-                if (typeof value === 'boolean' && value) points += 3;
-              }
-            }
+          // Autonomous
+          if (data.autonomous) {
+            if (data.autonomous.leave === true) points += 3;
+            if (typeof data.autonomous.artifacts_classified === 'number') points += data.autonomous.artifacts_classified * 3;
+            if (typeof data.autonomous.artifacts_overflow === 'number') points += data.autonomous.artifacts_overflow * 1;
+            if (typeof data.autonomous.patterns === 'number') points += data.autonomous.patterns * 2;
+          }
+          // Teleop
+          if (data.teleop) {
+            if (typeof data.teleop.artifacts_classified === 'number') points += data.teleop.artifacts_classified * 3;
+            if (typeof data.teleop.artifacts_overflow === 'number') points += data.teleop.artifacts_overflow * 1;
+            if (typeof data.teleop.artifacts_depot === 'number') points += data.teleop.artifacts_depot * 1;
+            if (typeof data.teleop.patterns === 'number') points += data.teleop.patterns * 2;
+          }
+          // Endgame
+          if (data.endgame?.ending_based_state) {
+            const endgamePoints: Record<string, number> = { none: 0, partial: 5, full: 10 };
+            points += endgamePoints[data.endgame.ending_based_state] || 0;
+          }
+          // Fouls (subtract)
+          if (data.fouls) {
+            if (typeof data.fouls.minor_penalties === 'number') points -= data.fouls.minor_penalties * 5;
+            if (typeof data.fouls.major_penalties === 'number') points -= data.fouls.major_penalties * 15;
           }
         }
         return sum + points;
       }, 0);
       
-      const redError = Math.abs(predictRed - official.red.officialScore);
-      const blueError = Math.abs(predictBlue - official.blue.officialScore);
+      const redError = Math.abs(predictRed - (official.red.officialScore - official.red.foulPoints));
+      const blueError = Math.abs(predictBlue - (official.blue.officialScore - official.blue.foulPoints));
       
       console.log(`\n   Match ${matchNum}:`);
-      console.log(`      Red:  Predicted ${predictRed.toFixed(0)} | Official ${official.red.officialScore} | Error ${redError.toFixed(0)}`);
-      console.log(`      Blue: Predicted ${predictBlue.toFixed(0)} | Official ${official.blue.officialScore} | Error ${blueError.toFixed(0)}`);
+      console.log(`      Red:  Predicted ${predictRed.toFixed(0)} | Official ${official.red.officialScore - official.red.foulPoints} | Error ${redError.toFixed(0)}`);
+      console.log(`      Blue: Predicted ${predictBlue.toFixed(0)} | Official ${official.blue.officialScore - official.blue.foulPoints} | Error ${blueError.toFixed(0)}`);
     }
     
   } catch (error) {

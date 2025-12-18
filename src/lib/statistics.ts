@@ -287,7 +287,6 @@ export function computeScouterAccuracy(
 ): ScouterAccuracyResult {
   // Filter matches that have userId (scouterId) and official results
   const validMatches = matches.filter(m => m.userId && officialResults.has(m.matchNumber));
-  
   if (validMatches.length === 0) {
     return {
       scouters: [],
