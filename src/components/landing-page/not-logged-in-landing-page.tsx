@@ -17,7 +17,6 @@ import {
   Trophy,
   Heart
 } from "lucide-react"
-import { ModeToggle } from "@/components/ui/light-dark-toggle"
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useEffect } from "react"
@@ -26,21 +25,17 @@ export function NotLoggedInLandingPage() {
   const [hasScrolled, setHasScrolled] = useState(false)
   const [isDark, setIsDark] = useState(false)
 
-  const highlightStats = [
-    { label: "Matches logged", value: "500+" },
-    { label: "Offline sessions", value: "200+" },
-    { label: "Seasons on field", value: "6" }
-  ]
+  // const highlightStats = []
 
   const missionHighlights = [
     {
       title: "Purpose-built workflows",
-      description: "Forms, analytics, and exports tuned for the chaos of competition weekends.",
+      description: "Forms, analytics, and exports made for the chaos of competition.",
       icon: Target
     },
     {
       title: "Reliable everywhere",
-      description: "Offline-first sync keeps scouts productive from the stands to the pits.",
+      description: "Offline sync keeps scouts productive from the stands to the pits.",
       icon: ShieldCheck
     },
     {
@@ -152,10 +147,10 @@ export function NotLoggedInLandingPage() {
               <div className="space-y-3">
                 {/* <Badge variant="outline" className="w-fit">Titan Robotics Club</Badge> */}
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
-                  Built by the Titan Robotics Club to help every scout team make bold decisions.
+                  A Modern Scouting Solution for FIRST.
                 </h1>
                 <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl">
-                  Athena is our competitive advantage: one platform for storytelling, scouting, and alliance prep that feels as polished as the teams we look up to.
+                  Athena provides a one platform for scouting, metrics, and alliance prep.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
@@ -165,50 +160,14 @@ export function NotLoggedInLandingPage() {
                     Get Started
                   </Button>
                 </Link>
-                {/* <Link href="#mission">
-                  <Button size="lg" variant="outline" className="gap-2">
-                    Why Athena
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link> */}
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 pt-2">
-                {highlightStats.map((stat) => (
-                  <div key={stat.label} className="rounded-2xl border border-primary/20 bg-background/60 backdrop-blur px-4 py-5">
-                    <p className="text-3xl font-semibold text-primary">{stat.value}</p>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  </div>
-                ))}
               </div>
             </div>
-
-            {/* <div className="relative h-full min-h-[420px]">
-              <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-primary/20 via-primary/5 to-transparent blur-3xl" />
-              <div className="relative h-full rounded-[32px] border border-primary/20 bg-background/80 backdrop-blur-lg p-8 flex flex-col gap-6 shadow-2xl">
-                <div className="rounded-2xl border border-primary/30 bg-primary/10 p-6">
-                  <p className="text-sm text-muted-foreground mb-2">TRC Mission</p>
-                  <p className="text-xl font-semibold">Give every scout a clear voice in match strategy.</p>
-                </div>
-                <div className="rounded-2xl border bg-background/90 p-6 space-y-2">
-                  <p className="text-sm text-muted-foreground">Recent win</p>
-                  <p className="text-2xl font-bold">3 events planned with Athena</p>
-                  <p className="text-sm text-muted-foreground">From pit data to alliance slides without leaving the app.</p>
-                </div>
-                <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 to-background/80 p-6 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Community spotlight</p>
-                    <p className="text-lg font-semibold">Titan Robotics Club</p>
-                  </div>
-                  <Sparkles className="h-8 w-8 text-primary" />
-                </div>
-              </div>
-            </div> */}
           </div>
 
           {/* Scroll Indicator */}
           <div className={`flex justify-center mt-16 animate-bounce transition-opacity duration-300 ${hasScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">Scroll to learn why teams choose Athena</p>
+              <p className="text-sm text-muted-foreground mb-2">Why choose Athena?</p>
               <ChevronDown className="h-6 w-6 text-primary mx-auto" />
             </div>
           </div>
@@ -216,13 +175,13 @@ export function NotLoggedInLandingPage() {
       </section>
 
       {/* Mission Section */}
-      <section id="mission" className="relative z-10 w-full py-16 sm:py-20">
+      <section id="mission" className="relative z-10 w-full py-16 sm:py-20 bg-primary/5">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 max-w-3xl mx-auto">
-            {/* <Badge variant="outline" className="mx-auto w-fit">Why Athena exists</Badge> */}
-            <h2 className="text-3xl sm:text-4xl font-bold">Give your team the same scouting edge we built for ours.</h2>
+            <Badge variant="outline" className="mx-auto w-fit">Why does this exist?</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold">Give your team the edge we built for ours.</h2>
             <p className="text-lg text-muted-foreground">
-              Athena connects the story of every match, every pit interview, and every overnight strategy meeting so your drive team can move with certainty.
+              Athena connects every match entry, every pit entry, and every strategy meeting so your team can move with certainty.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-12">
@@ -241,7 +200,7 @@ export function NotLoggedInLandingPage() {
       </section>
 
       {/* TRC Spotlight Section */}
-      <section id="trc" className="relative z-10 w-full py-16 bg-primary/5">
+      {/* <section id="trc" className="relative z-10 w-full py-16 bg-primary/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] items-start">
             <div className="space-y-5">
@@ -295,7 +254,7 @@ export function NotLoggedInLandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Feature Highlights Section */}
       <section className="relative z-10 w-full py-16 sm:py-20">
