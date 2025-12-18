@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, AlertCircle, Database, Trophy, Download } from "lucide-react";
+import { Plus, AlertCircle, Database, Trophy, Download, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { MatchScoutingTable } from "@/components/match-scouting-table";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
@@ -26,74 +32,50 @@ export default function MatchScoutingPage() {
   const { selectedEvent } = useEventConfig();
 
   // Handle export
-  const handleExport = async () => {
+  const handleExport = async (format: 'json' | 'csv' | 'xlsx' = 'csv') => {
     try {
-      const eventCode = selectedEvent?.code;
       const params = new URLSearchParams();
-      if (eventCode) params.append('eventCode', eventCode);
+      params.append('year', currentYear.toString());
+      params.append('format', format);
+      params.append('dataType', 'match'); // Only export match data
+      if (selectedEvent?.code) {
+        params.append('eventCode', selectedEvent.code);
+      }
       params.append('competitionType', competitionType);
       
-      const url = `/api/database/match?${params.toString()}`;
-      const response = await fetch(url);
+      const response = await fetch(`/api/database/export?${params.toString()}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch data for export');
+        throw new Error('Failed to export data');
       }
 
-      const data = await response.json();
+      // Get filename from response headers or create default
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = `match-scouting-${currentYear}${selectedEvent ? `-${selectedEvent.code}` : ''}.${format}`;
 
-      // Convert to CSV
-      const csvContent = convertToCSV(data);
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Download the file
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
-      if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `match-scouting-${currentYear}${selectedEvent ? `-${selectedEvent.code}` : ''}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-
-      toast.success('Data exported successfully');
+      toast.success(`Data exported successfully as ${format.toUpperCase()}`);
     } catch (err) {
       console.error('Error exporting data:', err);
       toast.error('Failed to export data');
     }
-  };
-
-  // Convert data to CSV
-  const convertToCSV = (data: MatchEntry[]) => {
-    if (data.length === 0) return '';
-
-    const headers = [
-      'Match Number',
-      'Team Number',
-      'Alliance',
-      'Timestamp',
-      'Auto Points',
-      'Teleop Points',
-      'Total Points',
-      'Notes'
-    ];
-
-    const rows = data.map(entry => [
-      entry.matchNumber,
-      entry.teamNumber,
-      entry.alliance,
-      entry.timestamp.toISOString(),
-      entry.gameSpecificData?.autoPoints || '',
-      entry.gameSpecificData?.teleopPoints || '',
-      entry.gameSpecificData?.totalPoints || '',
-      entry.notes
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(field => `"${field}"`).join(','))
-      .join('\n');
-
-    return csvContent;
   };
 
   // Fetch match entries
@@ -187,10 +169,26 @@ export default function MatchScoutingPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('csv')}>
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('json')}>
+                Export as JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+                Export as Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={() => window.open('/scout/matchscout', '_blank')}>
             <Plus className="mr-2 h-4 w-4" />
             Add New Entry

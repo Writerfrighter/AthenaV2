@@ -235,9 +235,9 @@ export class AzureSqlDatabaseService implements DatabaseService {
       .input('year', mssql.Int, entry.year)
       .input('competitionType', mssql.NVarChar, entry.competitionType)
       .input('driveTrain', mssql.NVarChar, entry.driveTrain)
-      .input('weight', mssql.Decimal(10, 2), entry.weight)
-      .input('length', mssql.Decimal(10, 2), entry.length)
-      .input('width', mssql.Decimal(10, 2), entry.width)
+      .input('weight', mssql.Decimal(10, 2), entry.weight !== undefined ? entry.weight : null)
+      .input('length', mssql.Decimal(10, 2), entry.length !== undefined ? entry.length : null)
+      .input('width', mssql.Decimal(10, 2), entry.width !== undefined ? entry.width : null)
       .input('eventName', mssql.NVarChar, entry.eventName)
       .input('eventCode', mssql.NVarChar, entry.eventCode)
       .input('userId', mssql.NVarChar, entry.userId || null)
@@ -277,9 +277,9 @@ export class AzureSqlDatabaseService implements DatabaseService {
       year: row.year,
       competitionType: (row.competitionType || 'FRC') as CompetitionType,
       driveTrain: row.driveTrain as "Swerve" | "Mecanum" | "Tank" | "Other",
-      weight: row.weight,
-      length: row.length,
-      width: row.width,
+      weight: row.weight !== null ? row.weight : undefined,
+      length: row.length !== null ? row.length : undefined,
+      width: row.width !== null ? row.width : undefined,
       eventName: row.eventName || undefined,
       eventCode: row.eventCode || undefined,
       userId: row.userId || undefined,
@@ -323,9 +323,9 @@ export class AzureSqlDatabaseService implements DatabaseService {
         year: pitRow.year,
         competitionType: (pitRow.competitionType || 'FRC') as CompetitionType,
         driveTrain: pitRow.driveTrain as "Swerve" | "Mecanum" | "Tank" | "Other",
-        weight: pitRow.weight,
-        length: pitRow.length,
-        width: pitRow.width,
+        weight: pitRow.weight !== null ? pitRow.weight : undefined,
+        length: pitRow.length !== null ? pitRow.length : undefined,
+        width: pitRow.width !== null ? pitRow.width : undefined,
         eventName: pitRow.eventName || undefined,
         eventCode: pitRow.eventCode || undefined,
         userId: pitRow.userId || undefined,

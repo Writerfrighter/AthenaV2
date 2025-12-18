@@ -117,9 +117,9 @@ export function DynamicPitScoutForm() {
         const populatedData: DynamicPitData = {
           team: entry.teamNumber,
           drivetrain: entry.driveTrain.toLowerCase(),
-          weight: String(entry.weight),
-          length: String(entry.length),
-          width: String(entry.width),
+          weight: entry.weight !== null && entry.weight !== undefined ? String(entry.weight) : '',
+          length: entry.length !== null && entry.length !== undefined ? String(entry.length) : '',
+          width: entry.width !== null && entry.width !== undefined ? String(entry.width) : '',
           hasAuto,
           notes: typeof entry.notes === 'string' ? entry.notes : '',
           gameSpecificData: gameData as Record<string, number | string | boolean>
@@ -229,9 +229,9 @@ export function DynamicPitScoutForm() {
             year: currentYear,
             competitionType: competitionType,
             driveTrain: formData.drivetrain.charAt(0).toUpperCase() + formData.drivetrain.slice(1) as "Swerve" | "Mecanum" | "Tank" | "Other",
-            weight: Number(formData.weight),
-            length: Number(formData.length),
-            width: Number(formData.width),
+            weight: formData.weight ? parseFloat(formData.weight as string) : undefined,
+            length: formData.length ? parseFloat(formData.length as string) : undefined,
+            width: formData.width ? parseFloat(formData.width as string) : undefined,
             eventName: selectedEvent?.name || 'Unknown Event',
             eventCode: selectedEvent?.code || 'Unknown Code',
             gameSpecificData: {
@@ -259,9 +259,9 @@ export function DynamicPitScoutForm() {
           year: currentYear,
           competitionType: competitionType,
           driveTrain: formData.drivetrain as "Swerve" | "Mecanum" | "Tank" | "Other",
-          weight: Number(formData.weight),
-          length: Number(formData.length),
-          width: Number(formData.width),
+          weight: formData.weight ? parseFloat(formData.weight as string) : undefined,
+          length: formData.length ? parseFloat(formData.length as string) : undefined,
+          width: formData.width ? parseFloat(formData.width as string) : undefined,
           eventName: selectedEvent?.name || 'Unknown Event',
           eventCode: selectedEvent?.code || 'Unknown Code',
           gameSpecificData: {
@@ -532,10 +532,10 @@ export function DynamicPitScoutForm() {
                     <Input
                       name="length"
                       type="number"
+                      step="0.01"
                       value={formData.length}
                       onChange={handleChange}
                       placeholder="30"
-                      required
                       className="h-12 text-base"
                       min={0}
                     />
@@ -547,10 +547,10 @@ export function DynamicPitScoutForm() {
                     <Input
                       name="width"
                       type="number"
+                      step="0.01"
                       value={formData.width}
                       onChange={handleChange}
                       placeholder="30"
-                      required
                       className="h-12 text-base"
                       min={0}
                     />
@@ -562,10 +562,10 @@ export function DynamicPitScoutForm() {
                     <Input
                       name="weight"
                       type="number"
+                      step="0.01"
                       value={formData.weight}
                       onChange={handleChange}
                       placeholder="125"
-                      required
                       className="h-12 text-base"
                       min={0}
                     />

@@ -164,11 +164,15 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
               </div>
               <div>
                 <span className="font-semibold text-muted-foreground">Weight:</span>
-                <p className="text-lg">{pitEntry.weight} lbs</p>
+                <p className="text-lg">{pitEntry.weight !== undefined && pitEntry.weight !== null ? `${pitEntry.weight} lbs` : 'Not recorded'}</p>
               </div>
               <div>
                 <span className="font-semibold text-muted-foreground">Dimensions:</span>
-                <p className="text-lg">{pitEntry.length}&quot; × {pitEntry.width}&quot;</p>
+                <p className="text-lg">
+                  {pitEntry.length !== undefined && pitEntry.length !== null && pitEntry.width !== undefined && pitEntry.width !== null 
+                    ? `${pitEntry.length}" × ${pitEntry.width}"` 
+                    : 'Not recorded'}
+                </p>
               </div>
             </div>
             
