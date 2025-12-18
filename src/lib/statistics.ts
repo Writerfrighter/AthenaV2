@@ -219,6 +219,24 @@ export interface ScouterPerformance {
 }
 
 /**
+ * Verbose data for a single alliance equation
+ */
+export interface AllianceEquationData {
+  matchNumber: number;
+  alliance: 'red' | 'blue';
+  scouterIds: string[];
+  robotCount: number;
+  expectedRobots: number;
+  scoutedTotal: number;
+  officialScore: number;
+  foulPoints: number;
+  adjustedOfficial: number;
+  error: number;
+  skipped: boolean;
+  skipReason?: string;
+}
+
+/**
  * Result of the scouter accuracy analysis
  */
 export interface ScouterAccuracyResult {
@@ -226,6 +244,12 @@ export interface ScouterAccuracyResult {
   overallMeanError: number; // Average error across all matches
   convergenceAchieved: boolean; // Whether the least-squares solution converged
   message?: string; // Additional info or warnings
+  verboseData?: {
+    equations: AllianceEquationData[];
+    totalEquations: number;
+    skippedEquations: number;
+    usedEquations: number;
+  };
 }
 
 /**
@@ -283,8 +307,30 @@ export interface ScouterAccuracyResult {
 export function computeScouterAccuracy(
   matches: MatchEntry[],
   officialResults: Map<number, { red: { officialScore: number; foulPoints: number }; blue: { officialScore: number; foulPoints: number } }>,
-  config: YearConfig
+  config: YearConfig,
+  options?: {
+    /**
+     * Expected number of robots per alliance. Defaults to competition type: FRC = 3, FTC = 2, otherwise 3.
+     */
+    expectedAllianceSize?: number;
+    /**
+     * When true, alliances with fewer than the expected number of robots are skipped to avoid skewed errors.
+     */
+    skipIncompleteAlliances?: boolean;
+    /**
+     * When true, includes detailed data about each alliance equation in the result.
+     */
+    verbose?: boolean;
+  }
 ): ScouterAccuracyResult {
+  const expectedAllianceSize = options?.expectedAllianceSize
+    ?? (config.competitionType?.toUpperCase() === 'FTC' ? 2 : 3);
+  const skipIncompleteAlliances = options?.skipIncompleteAlliances ?? true;
+  const verbose = options?.verbose ?? false;
+  
+  // Verbose data collection
+  const verboseEquations: AllianceEquationData[] = [];
+
   // Filter matches that have userId (scouterId) and official results
   const validMatches = matches.filter(m => m.userId && officialResults.has(m.matchNumber));
   if (validMatches.length === 0) {
@@ -333,12 +379,44 @@ export function computeScouterAccuracy(
     const [matchNumStr, alliance] = key.split('-');
     const matchNumber = parseInt(matchNumStr);
     const allianceKey = alliance as 'red' | 'blue';
-    
+
     const officialData = officialResults.get(matchNumber);
-    if (!officialData) return;
+    const robotCount = allianceMatches.length;
+    const scouterIdsInAlliance = allianceMatches.map(m => m.userId!).filter(Boolean);
+    
+    // Check if we should skip this alliance
+    const isIncomplete = robotCount < expectedAllianceSize;
+    const shouldSkip = skipIncompleteAlliances && isIncomplete;
+    const noOfficialData = !officialData;
+    
+    if (shouldSkip || noOfficialData) {
+      // Record skipped equation in verbose data
+      if (verbose) {
+        verboseEquations.push({
+          matchNumber,
+          alliance: allianceKey,
+          scouterIds: scouterIdsInAlliance,
+          robotCount,
+          expectedRobots: expectedAllianceSize,
+          scoutedTotal: 0,
+          officialScore: officialData?.[allianceKey]?.officialScore ?? 0,
+          foulPoints: officialData?.[allianceKey]?.foulPoints ?? 0,
+          adjustedOfficial: 0,
+          error: 0,
+          skipped: true,
+          skipReason: noOfficialData 
+            ? 'No official data' 
+            : `Incomplete alliance (${robotCount}/${expectedAllianceSize} robots)`
+        });
+      }
+      return;
+    }
     
     const allianceOfficial = officialData[allianceKey];
-    const adjustedOfficialScore = allianceOfficial.officialScore - allianceOfficial.foulPoints;
+    // Foul points are awarded TO the opposing alliance, so subtract opponent's fouls from this alliance's score
+    const oppositeAllianceKey = allianceKey === 'red' ? 'blue' : 'red';
+    const opponentFoulPoints = officialData[oppositeAllianceKey].foulPoints;
+    const adjustedOfficialScore = allianceOfficial.officialScore - opponentFoulPoints;
     
     // Calculate total contributed points from scouted data
     let scoutedTotal = 0;
@@ -356,6 +434,23 @@ export function computeScouterAccuracy(
     
     // Keep signed error so under- and over-counting cannot cancel
     const observedError = scoutedTotal - adjustedOfficialScore;
+    
+    // Record in verbose data
+    if (verbose) {
+      verboseEquations.push({
+        matchNumber,
+        alliance: allianceKey,
+        scouterIds: scouterIdsInAlliance,
+        robotCount,
+        expectedRobots: expectedAllianceSize,
+        scoutedTotal: Math.round(scoutedTotal),
+        officialScore: allianceOfficial.officialScore,
+        foulPoints: opponentFoulPoints, // Opponent's fouls that were awarded to this alliance
+        adjustedOfficial: adjustedOfficialScore,
+        error: Math.round(observedError),
+        skipped: false
+      });
+    }
     
     // Add equation if we have scouters
     if (scouterIndicesInAlliance.length > 0) {
@@ -453,11 +548,20 @@ export function computeScouterAccuracy(
     ? 'Warning: Some scouters have fewer than 10 matches - results may be unreliable'
     : undefined;
 
+  // Build verbose data summary
+  const verboseDataResult = verbose ? {
+    equations: verboseEquations.sort((a, b) => a.matchNumber - b.matchNumber || a.alliance.localeCompare(b.alliance)),
+    totalEquations: verboseEquations.length,
+    skippedEquations: verboseEquations.filter(e => e.skipped).length,
+    usedEquations: verboseEquations.filter(e => !e.skipped).length
+  } : undefined;
+
   return {
     scouters: scouterPerformances,
     overallMeanError,
     convergenceAchieved: true,
-    message: lowSampleWarning
+    message: lowSampleWarning,
+    verboseData: verboseDataResult
   };
 }
 

@@ -286,7 +286,10 @@ function runTest() {
   
   // Run SPR calculation
   console.log('\n⚙️  Calculating Scouter Performance Ratings...\n');
-  const result = computeScouterAccuracy(matches, officialResults, mockConfig);
+  const result = computeScouterAccuracy(matches, officialResults, mockConfig, {
+    expectedAllianceSize: 3,
+    skipIncompleteAlliances: true
+  });
   
   // Display results
   console.log('=' .repeat(70));

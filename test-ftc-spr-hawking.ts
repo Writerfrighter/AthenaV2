@@ -246,9 +246,12 @@ async function runTest() {
     console.log(`   Official results available: ${officialResults.size}`);
     console.log(`   Total match entries: ${matches.length}`);
     
-    // Run SPR calculation
+    // Run SPR calculation with verbose option
     console.log('\n⚙️  Calculating Scouter Performance Ratings...\n');
-    const result = computeScouterAccuracy(matches, officialResults, decodeConfig);
+    const result = computeScouterAccuracy(matches, officialResults, decodeConfig, {
+      verbose: true,
+      skipIncompleteAlliances: true
+    });
     
     // Display results
     console.log('='.repeat(70));
@@ -334,95 +337,61 @@ async function runTest() {
     console.log(`   Matches with official results: ${officialResults.size}`);
     console.log(`   Total match entries analyzed: ${matches.length}`);
     
-    // Show match-by-match comparison for first few matches
-    console.log('\n📋 Sample Match Predictions vs Official Results:');
-    console.log('─'.repeat(70));
-    
-    const sampleMatches = Array.from(officialResults.keys()).slice(0, 5);
-    for (const matchNum of sampleMatches) {
-      const official = officialResults.get(matchNum);
-      if (!official) continue;
+    // Show verbose data if available
+    if (result.verboseData) {
+      const v = result.verboseData;
+      console.log('\n📋 VERBOSE: All Alliance Equations Sent to Algorithm');
+      console.log('─'.repeat(90));
+      console.log(`   Total alliances: ${v.totalEquations} | Used: ${v.usedEquations} | Skipped: ${v.skippedEquations}`);
+      console.log('─'.repeat(90));
       
-      // Calculate predicted scores from scouter data
-      const matchEntries = matches.filter(m => m.matchNumber === matchNum);
-      const redEntries = matchEntries.filter(m => m.alliance === 'red');
-      const blueEntries = matchEntries.filter(m => m.alliance === 'blue');
+      // Group by match number for cleaner display
+      const matchMap = new Map<number, typeof v.equations>();
+      v.equations.forEach(eq => {
+        if (!matchMap.has(eq.matchNumber)) {
+          matchMap.set(eq.matchNumber, []);
+        }
+        matchMap.get(eq.matchNumber)!.push(eq);
+      });
       
-      if (redEntries.length === 0 || blueEntries.length === 0) continue;
-      
-      // Use the actual EPA calculation with config (same as SPR algorithm)
-      const predictRed = redEntries.reduce((sum, entry) => {
-        const epa = computeScouterAccuracy([entry], officialResults, decodeConfig);
-        // Directly calculate using config
-        let points = 0;
-        if (entry.gameSpecificData) {
-          const data = entry.gameSpecificData as any;
-          // Autonomous
-          if (data.autonomous) {
-            if (data.autonomous.leave === true) points += 3;
-            if (typeof data.autonomous.artifacts_classified === 'number') points += data.autonomous.artifacts_classified * 3;
-            if (typeof data.autonomous.artifacts_overflow === 'number') points += data.autonomous.artifacts_overflow * 1;
-            if (typeof data.autonomous.patterns === 'number') points += data.autonomous.patterns * 2;
-          }
-          // Teleop
-          if (data.teleop) {
-            if (typeof data.teleop.artifacts_classified === 'number') points += data.teleop.artifacts_classified * 3;
-            if (typeof data.teleop.artifacts_overflow === 'number') points += data.teleop.artifacts_overflow * 1;
-            if (typeof data.teleop.artifacts_depot === 'number') points += data.teleop.artifacts_depot * 1;
-            if (typeof data.teleop.patterns === 'number') points += data.teleop.patterns * 2;
-          }
-          // Endgame
-          if (data.endgame?.ending_based_state) {
-            const endgamePoints: Record<string, number> = { none: 0, partial: 5, full: 10 };
-            points += endgamePoints[data.endgame.ending_based_state] || 0;
-          }
-          // Fouls (subtract)
-          if (data.fouls) {
-            if (typeof data.fouls.minor_penalties === 'number') points -= data.fouls.minor_penalties * 5;
-            if (typeof data.fouls.major_penalties === 'number') points -= data.fouls.major_penalties * 15;
+      // Display each match
+      for (const [matchNum, alliances] of Array.from(matchMap.entries()).sort((a, b) => a[0] - b[0])) {
+        console.log(`\n   Match ${matchNum}:`);
+        
+        for (const eq of alliances.sort((a, b) => a.alliance.localeCompare(b.alliance))) {
+          const allianceLabel = eq.alliance === 'red' ? '🔴 Red ' : '🔵 Blue';
+          const status = eq.skipped ? `⏭️  SKIPPED (${eq.skipReason})` : '';
+          
+          if (eq.skipped) {
+            console.log(`      ${allianceLabel}: ${status}`);
+            console.log(`         Robots: ${eq.robotCount}/${eq.expectedRobots} | Scouters: ${eq.scouterIds.map(s => s.substring(5, 15)).join(', ') || 'none'}`);
+          } else {
+            const errorSign = eq.error >= 0 ? '+' : '';
+            const errorIndicator = Math.abs(eq.error) <= 10 ? '✓' : Math.abs(eq.error) <= 25 ? '⚠️' : '❌';
+            console.log(`      ${allianceLabel}: Predicted ${eq.scoutedTotal.toString().padStart(3)} | Official ${eq.adjustedOfficial.toString().padStart(3)} | Error ${errorSign}${eq.error.toString().padStart(3)} ${errorIndicator}`);
+            console.log(`         Robots: ${eq.robotCount}/${eq.expectedRobots} | Scouters: ${eq.scouterIds.map(s => s.substring(5, 15)).join(', ')}`);
+            console.log(`         (Raw official: ${eq.officialScore} - ${eq.foulPoints} fouls = ${eq.adjustedOfficial})`);
           }
         }
-        return sum + points;
-      }, 0);
+      }
       
-      const predictBlue = blueEntries.reduce((sum, entry) => {
-        let points = 0;
-        if (entry.gameSpecificData) {
-          const data = entry.gameSpecificData as any;
-          // Autonomous
-          if (data.autonomous) {
-            if (data.autonomous.leave === true) points += 3;
-            if (typeof data.autonomous.artifacts_classified === 'number') points += data.autonomous.artifacts_classified * 3;
-            if (typeof data.autonomous.artifacts_overflow === 'number') points += data.autonomous.artifacts_overflow * 1;
-            if (typeof data.autonomous.patterns === 'number') points += data.autonomous.patterns * 2;
-          }
-          // Teleop
-          if (data.teleop) {
-            if (typeof data.teleop.artifacts_classified === 'number') points += data.teleop.artifacts_classified * 3;
-            if (typeof data.teleop.artifacts_overflow === 'number') points += data.teleop.artifacts_overflow * 1;
-            if (typeof data.teleop.artifacts_depot === 'number') points += data.teleop.artifacts_depot * 1;
-            if (typeof data.teleop.patterns === 'number') points += data.teleop.patterns * 2;
-          }
-          // Endgame
-          if (data.endgame?.ending_based_state) {
-            const endgamePoints: Record<string, number> = { none: 0, partial: 5, full: 10 };
-            points += endgamePoints[data.endgame.ending_based_state] || 0;
-          }
-          // Fouls (subtract)
-          if (data.fouls) {
-            if (typeof data.fouls.minor_penalties === 'number') points -= data.fouls.minor_penalties * 5;
-            if (typeof data.fouls.major_penalties === 'number') points -= data.fouls.major_penalties * 15;
-          }
-        }
-        return sum + points;
-      }, 0);
-      
-      const redError = Math.abs(predictRed - (official.red.officialScore - official.red.foulPoints));
-      const blueError = Math.abs(predictBlue - (official.blue.officialScore - official.blue.foulPoints));
-      
-      console.log(`\n   Match ${matchNum}:`);
-      console.log(`      Red:  Predicted ${predictRed.toFixed(0)} | Official ${official.red.officialScore - official.red.foulPoints} | Error ${redError.toFixed(0)}`);
-      console.log(`      Blue: Predicted ${predictBlue.toFixed(0)} | Official ${official.blue.officialScore - official.blue.foulPoints} | Error ${blueError.toFixed(0)}`);
+      // Summary statistics
+      const usedEquations = v.equations.filter(e => !e.skipped);
+      if (usedEquations.length > 0) {
+        const errors = usedEquations.map(e => e.error);
+        const absErrors = errors.map(e => Math.abs(e));
+        const avgError = absErrors.reduce((a, b) => a + b, 0) / absErrors.length;
+        const maxError = Math.max(...absErrors);
+        const minError = Math.min(...absErrors);
+        const overCount = errors.filter(e => e > 0).length;
+        const underCount = errors.filter(e => e < 0).length;
+        
+        console.log('\n' + '─'.repeat(90));
+        console.log('   📊 Equation Statistics:');
+        console.log(`      Average absolute error: ${avgError.toFixed(1)} pts`);
+        console.log(`      Error range: ${minError} to ${maxError} pts`);
+        console.log(`      Over-counting alliances: ${overCount} | Under-counting: ${underCount}`);
+      }
     }
     
   } catch (error) {
