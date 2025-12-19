@@ -20,7 +20,7 @@ interface UserWithPartners extends User {
 
 export function useScheduleData() {
   const selectedEvent = useSelectedEvent();
-  const { currentYear } = useGameConfig();
+  const { currentYear, competitionType } = useGameConfig();
   const [matchCount, setMatchCount] = useState<number>(0);
   const [users, setUsers] = useState<UserWithPartners[]>([]);
   const [blocks, setBlocks] = useState<ScoutingBlockWithAssignments[]>([]);
@@ -74,7 +74,7 @@ export function useScheduleData() {
     fetchData();
   }, [selectedEvent, currentYear, refreshTrigger]);
 
-  // Fetch match count from TBA or custom events
+  // Fetch match count from unified API
   useEffect(() => {
     const fetchMatchCount = async () => {
       if (!selectedEvent) {
@@ -83,12 +83,12 @@ export function useScheduleData() {
       }
 
       try {
-        // Try TBA API first
-        const tbaResponse = await fetch(`/api/tba/qualification-matches?eventCode=${selectedEvent.code}`);
+        // Use unified API
+        const matchesResponse = await fetch(`/api/event/matches?eventCode=${selectedEvent.code}&competitionType=${competitionType}&season=${currentYear}`);
         
-        if (tbaResponse.ok) {
-          const tbaData = await tbaResponse.json();
-          setMatchCount(tbaData.qualMatchesCount || 0);
+        if (matchesResponse.ok) {
+          const matchesData = await matchesResponse.json();
+          setMatchCount(matchesData.qualMatchesCount || matchesData.totalMatches || 0);
         } else {
           // Fall back to custom events
           const customResponse = await fetch(`/api/database/custom-events?year=${currentYear}`);
@@ -97,7 +97,7 @@ export function useScheduleData() {
             const customEvent = customEvents.find((e: { eventCode: string }) => e.eventCode === selectedEvent.code);
             setMatchCount(customEvent?.matchCount || 0);
           } else {
-            console.error('Failed to fetch match count from both TBA and custom events');
+            console.error('Failed to fetch match count');
             setMatchCount(0);
           }
         }
@@ -114,14 +114,14 @@ export function useScheduleData() {
             setMatchCount(0);
           }
         } catch (customError) {
-          console.error('Both TBA and custom event fallback failed:', customError);
+          console.error('Failed to fetch match count from fallback:', customError);
           setMatchCount(0);
         }
       }
     };
 
     fetchMatchCount();
-  }, [selectedEvent, currentYear]);
+  }, [selectedEvent, currentYear, competitionType]);
 
   // Create scouting blocks
   const createBlocks = useCallback(async (blockSize: number, totalMatches: number) => {

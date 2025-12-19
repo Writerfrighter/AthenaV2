@@ -7,6 +7,8 @@ export async function GET(
 ) {
   try {
     const { teamNumber } = await params;
+    const { searchParams } = new URL(request.url);
+    const competitionType = searchParams.get('competitionType') || 'FRC';
     
     if (!teamNumber) {
       return NextResponse.json({ error: 'Team number is required' }, { status: 400 });
@@ -17,9 +19,15 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid team number' }, { status: 400 });
     }
 
-    const images = await getTeamMedia(teamNum);
-    
-    return NextResponse.json(images);
+    if (competitionType === 'FTC') {
+      // FTC doesn't have media API in the same way, return empty array
+      return NextResponse.json([]);
+    } else {
+      // FRC via TBA
+      const images = await getTeamMedia(teamNum);
+      
+      return NextResponse.json(images);
+    }
   } catch (error) {
     console.error('Error fetching team media:', error);
     return NextResponse.json(

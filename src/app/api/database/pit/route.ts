@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_PIT_SCOUTING)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
-    console.log('Pit API: Starting request processing');
+    // console.log('Pit API: Starting request processing');
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id') ? parseInt(searchParams.get('id')!) : undefined;
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
@@ -29,30 +29,30 @@ export async function GET(request: NextRequest) {
     const eventCode = searchParams.get('eventCode') || undefined;
     const competitionType = (searchParams.get('competitionType') as CompetitionType) || undefined;
 
-    console.log('Pit API: Parameters -', { id, year, teamNumber, eventCode, competitionType });
+    // console.log('Pit API: Parameters -', { id, year, teamNumber, eventCode, competitionType });
 
     const service = getDbService();
-    console.log('Pit API: Database service retrieved');
+    // console.log('Pit API: Database service retrieved');
 
     // If ID is provided, fetch single entry by ID
     if (id) {
-      console.log('Pit API: Fetching entry by ID');
+      // console.log('Pit API: Fetching entry by ID');
       const entries = await service.getAllPitEntries();
       const entry = entries.find(e => e.id === id);
       if (!entry) {
         return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
       }
-      console.log('Pit API: Found entry by ID');
+      // console.log('Pit API: Found entry by ID');
       return NextResponse.json(entry);
     } else if (teamNumber && year) {
-      console.log('Pit API: Fetching specific pit entry');
+      // console.log('Pit API: Fetching specific pit entry');
       const entry = await service.getPitEntry(teamNumber, year, competitionType);
-      console.log('Pit API: Found entry:', entry ? 'Yes' : 'No');
+      // console.log('Pit API: Found entry:', entry ? 'Yes' : 'No');
       return NextResponse.json(entry || null);
     } else {
-      console.log('Pit API: Fetching all pit entries');
+      // console.log('Pit API: Fetching all pit entries');
       const entries = await service.getAllPitEntries(year, eventCode, competitionType);
-      console.log('Pit API: Retrieved entries count:', entries.length);
+      // console.log('Pit API: Retrieved entries count:', entries.length);
       return NextResponse.json(entries);
     }
   } catch (error) {

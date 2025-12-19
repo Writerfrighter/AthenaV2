@@ -36,43 +36,32 @@ export function EventProvider({ children }: { children: ReactNode }) {
         setIsLoading(true);
         setError(null);
 
-        // Fetch TBA events (only for FRC, as TBA doesn't support FTC)
-        let tbaEvents: Event[] = [];
-        if (competitionType === 'FRC') {
-          try {
-            const teamNumber = 492; // FRC team number
-            const tbaResponse = await fetch(`/api/tba/team/${teamNumber}/events/${currentYear}`);
-            if (tbaResponse.ok) {
-              const tbaEventData = await tbaResponse.json();
+        // Fetch events using unified API
+        let apiEvents: Event[] = [];
+        try {
+          const teamNumber = competitionType === 'FRC' ? 492 : 3543;
+          const eventsResponse = await fetch(`/api/team/${teamNumber}/events/${currentYear}?competitionType=${competitionType}`);
+          if (eventsResponse.ok) {
+            const eventData = await eventsResponse.json();
 
-              // Transform TBA events to our Event format
-              tbaEvents = tbaEventData.map((tbaEvent: TbaEvent) => ({
+            // Transform events to our Event format
+            if (competitionType === 'FRC') {
+              apiEvents = eventData.map((tbaEvent: TbaEvent) => ({
                 name: tbaEvent.name,
                 region: `${tbaEvent.event_code.toUpperCase()}: ${tbaEvent.year}`,
                 code: tbaEvent.key,
               }));
-            }
-          } catch (tbaError) {
-            console.warn('Failed to fetch TBA events, continuing with custom events only:', tbaError);
-          }
-        } else if (competitionType === 'FTC') {
-          // Fetch FTC events
-          try {
-            const teamNumber = 3543; // FTC team number
-            const ftcResponse = await fetch(`/api/ftc/team/${teamNumber}/events/${currentYear}`);
-            if (ftcResponse.ok) {
-              const ftcEventData = await ftcResponse.json();
-
-              // Transform FTC events to our Event format
-              tbaEvents = ftcEventData.map((ftcEvent: FtcEvent) => ({
+            } else {
+              // FTC
+              apiEvents = eventData.map((ftcEvent: FtcEvent) => ({
                 name: ftcEvent.name || 'Unknown Event',
                 region: `${ftcEvent.city || ''}${ftcEvent.city && ftcEvent.stateprov ? ', ' : ''}${ftcEvent.stateprov || ''}` || ftcEvent.typeName || 'FTC Event',
                 code: ftcEvent.code || ftcEvent.eventId,
               }));
             }
-          } catch (ftcError) {
-            console.warn('Failed to fetch FTC events, continuing with custom events only:', ftcError);
           }
+        } catch (apiError) {
+          console.warn('Failed to fetch events, continuing with custom events only:', apiError);
         }
 
         // Fetch custom events
@@ -93,8 +82,8 @@ export function EventProvider({ children }: { children: ReactNode }) {
           console.warn('Failed to fetch custom events:', customError);
         }
 
-        // Combine TBA and custom events
-        const allEvents = [...tbaEvents, ...customEvents];
+        // Combine API and custom events
+        const allEvents = [...apiEvents, ...customEvents];
         setEvents(allEvents);
 
         if (allEvents.length === 0) {
