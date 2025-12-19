@@ -1,5 +1,6 @@
 ignoredBuiltDependencies:
   - '@prisma/client'
+  - esbuild
 
 onlyBuiltDependencies:
   - '@tailwindcss/oxide'
