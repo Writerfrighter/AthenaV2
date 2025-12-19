@@ -814,8 +814,8 @@ export default function SchedulePage() {
 
                     {/* Blue Alliance Scouts */}
                     <div>
-                      <h4 className="font-medium text-chart-2 mb-4 flex items-center gap-2">
-                        <div className="w-4 h-4 bg-chart-2 rounded"></div>
+                      <h4 className="font-medium text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
+                        <div className="w-4 h-4 bg-blue-600 dark:bg-blue-400 rounded"></div>
                         Blue Alliance Scouts
                       </h4>
                       <div className="space-y-3">
