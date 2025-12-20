@@ -13,7 +13,7 @@ import { useAccountSettingsDialog } from "@/app/dashboard/layout"
 import { useNotificationSettingsDialog } from "@/app/dashboard/layout"
 import { signOut } from "next-auth/react"
 import { useGameConfig } from "@/hooks/use-game-config"
-import { ThemeSelector } from "@/components/theme-selector"
+import { ThemeSelector } from "@/components/settings/theme-selector"
 
 import {
   Avatar,

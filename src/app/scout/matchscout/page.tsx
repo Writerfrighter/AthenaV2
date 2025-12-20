@@ -5,8 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
-import { DynamicMatchScoutForm } from "@/components/dynamic-match-scout-form";
-import { OfflineStatusWidget } from "@/components/offline-status-widget";
+import { DynamicMatchScoutForm } from "@/components/forms/dynamic-match-scout-form";
+import { OfflineStatusWidget } from "@/components/sync/offline-status-widget";
 import { useSelectedEvent } from "@/hooks/use-event-config";
 import Link from "next/link";
 

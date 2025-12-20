@@ -9,8 +9,8 @@ import Image from "next/image"
 import { useEffect, useState } from "react"
 import { signOut, useSession } from "next-auth/react"
 import { useScheduleData } from "@/hooks/use-schedule-data"
-import { EventInfoCard } from "@/components/event-info-card"
-import { OfflineStatusWidget } from "@/components/offline-status-widget"
+import { EventInfoCard } from "@/components/events/event-info-card"
+import { OfflineStatusWidget } from "@/components/sync/offline-status-widget"
 
 interface MatchItem {
   matchNumber: number

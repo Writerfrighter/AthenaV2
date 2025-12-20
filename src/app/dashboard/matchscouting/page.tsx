@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { MatchScoutingTable } from "@/components/match-scouting-table";
+import { MatchScoutingTable } from "@/components/tables/match-scouting-table";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { MatchEntry } from "@/lib/shared-types";
 import { useGameConfig } from "@/hooks/use-game-config";

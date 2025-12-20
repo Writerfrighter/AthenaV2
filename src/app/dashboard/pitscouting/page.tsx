@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { PitScoutingTable } from "@/components/pit-scouting-table";
+import { PitScoutingTable } from "@/components/tables/pit-scouting-table";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { PitEntry } from "@/lib/shared-types";
 import { useGameConfig } from "@/hooks/use-game-config";

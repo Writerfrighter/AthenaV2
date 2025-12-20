@@ -12,9 +12,9 @@ import {
   CalendarClock,
 } from "lucide-react";
 
-import { NavMain } from "@/components/nav-main";
-import { NavUser } from "@/components/nav-user";
-import { EventSwitcher } from "@/components/event-switcher";
+import { NavMain } from "@/components/navigation/nav-main";
+import { NavUser } from "@/components/navigation/nav-user";
+import { EventSwitcher } from "@/components/events/event-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -22,7 +22,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { SearchForm } from "./search-form";
+import { SearchForm } from "@/components/forms/search-form";
 import { useSession } from "next-auth/react";
 import { useGameConfig } from "@/hooks/use-game-config";
 
