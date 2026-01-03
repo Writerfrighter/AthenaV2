@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import webPush from 'web-push';
 import { auth } from '@/lib/auth/config';
 import { databaseManager } from '@/db/database-manager';
+import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 
 interface StoredSubscription {
   endpoint: string;
@@ -66,9 +67,9 @@ async function loadAllSubscriptions(): Promise<Map<string, StoredSubscription>> 
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || session.user.role !== 'admin') {
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.SEND_NOTIFICATIONS)) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: 'Unauthorized - Notification permission required' },
         { status: 403 }
       );
     }
@@ -150,9 +151,9 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     const session = await auth();
-    if (!session?.user?.role || session.user.role !== 'admin') {
+    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.SEND_NOTIFICATIONS)) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: 'Unauthorized - Notification permission required' },
         { status: 403 }
       );
     }

@@ -108,6 +108,23 @@ export async function PUT(request: NextRequest) {
 
     const { id, ...updates } = await request.json();
     const service = getDbService();
+    
+    // Get the existing entry to check ownership
+    const entries = await service.getAllPitEntries();
+    const existingEntry = entries.find(e => e.id === id);
+    
+    if (!existingEntry) {
+      return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
+    }
+    
+    // Users can only edit their own entries unless they have DELETE permission (higher privilege)
+    const isOwner = existingEntry.userId === session.user.id;
+    const canEditAny = hasPermission(session.user.role, PERMISSIONS.DELETE_PIT_SCOUTING);
+    
+    if (!isOwner && !canEditAny) {
+      return NextResponse.json({ error: 'Forbidden - can only edit your own entries' }, { status: 403 });
+    }
+    
     await service.updatePitEntry(id, updates);
     return NextResponse.json({ success: true });
   } catch (error) {

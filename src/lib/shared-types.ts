@@ -120,8 +120,8 @@ export interface BlockAssignment {
 }
 
 export interface ScoutingBlockWithAssignments extends ScoutingBlock {
-  redScouts: (string | null)[]; // Array of 3 user IDs or null
-  blueScouts: (string | null)[]; // Array of 3 user IDs or null
+  redScouts: (string | null)[]; // Array of user IDs or null (2 for FTC, 3 for FRC)
+  blueScouts: (string | null)[]; // Array of user IDs or null (2 for FTC, 3 for FRC)
 }
 
 // ========== SCHEDULING DATABASE SERVICE TYPES ==========
@@ -174,7 +174,7 @@ export interface DatabaseService {
   deleteBlockAssignmentsByBlock(blockId: number): Promise<void>;
 
   // Scouting blocks with assignments (combined query)
-  getScoutingBlocksWithAssignments(eventCode: string, year: number): Promise<ScoutingBlockWithAssignments[]>;
+  getScoutingBlocksWithAssignments(eventCode: string, year: number, scoutsPerAlliance?: number): Promise<ScoutingBlockWithAssignments[]>;
 
   // User preferred partners
   updateUserPreferredPartners(userId: string, preferredPartners: string[]): Promise<void>;

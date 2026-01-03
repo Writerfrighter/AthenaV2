@@ -448,7 +448,6 @@ export function DynamicPitScoutForm() {
                           placeholder="Enter team number (e.g. 254)"
                           required
                           min="1"
-                          max="9999"
                           className="h-12 text-base"
                         />
                       )

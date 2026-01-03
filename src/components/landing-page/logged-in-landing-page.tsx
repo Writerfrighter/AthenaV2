@@ -39,21 +39,40 @@ export function LoggedInLandingPage() {
     }
   }, [])
 
-  // Extract upcoming matches from blocks
+  // Extract upcoming matches from blocks where user is assigned
   useEffect(() => {
-    if (blocks && blocks.length > 0) {
+    if (blocks && blocks.length > 0 && session?.user?.id) {
       const matches: MatchItem[] = []
-      blocks.slice(0, 3).forEach((block) => {
-        // Create a match item for each scouting block
-        matches.push({
-          matchNumber: block.startMatch,
-          teamNumber: 0, // Placeholder
-          alliance: 'red'
-        })
+      const userId = session.user.id
+      
+      blocks.forEach((block) => {
+        // Check if user is assigned to red alliance
+        const redIndex = block.redScouts?.indexOf(userId)
+        if (redIndex !== undefined && redIndex !== -1) {
+          matches.push({
+            matchNumber: block.startMatch,
+            teamNumber: 0, // Placeholder - could be derived from position
+            alliance: 'red'
+          })
+        }
+        
+        // Check if user is assigned to blue alliance
+        const blueIndex = block.blueScouts?.indexOf(userId)
+        if (blueIndex !== undefined && blueIndex !== -1) {
+          matches.push({
+            matchNumber: block.startMatch,
+            teamNumber: 0,
+            alliance: 'blue'
+          })
+        }
       })
-      setUpcomingMatches(matches)
+      
+      // Only show next 3 upcoming assignments
+      setUpcomingMatches(matches.slice(0, 3))
+    } else {
+      setUpcomingMatches([])
     }
-  }, [blocks])
+  }, [blocks, session?.user?.id])
 
   return (
     <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">

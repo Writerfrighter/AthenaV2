@@ -17,7 +17,7 @@ export async function GET(
 
     if (competitionType === 'FTC') {
       // Handle FTC events
-      const ftcTeamsResponse = await getSeasonTeams(year ? year : new Date().getFullYear() + 1, undefined, eventCode);
+      const ftcTeamsResponse = await getSeasonTeams(year ? year : new Date().getFullYear(), undefined, eventCode);
       
       const teams = ftcTeamsResponse.teams || [];
       

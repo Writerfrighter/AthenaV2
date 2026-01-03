@@ -829,15 +829,22 @@ export class AzureSqlDatabaseService implements DatabaseService {
     const pool = await this.getPool();
     const mssql = await import('mssql');
     
+    // Use MERGE to upsert - update userId if assignment slot already exists, otherwise insert
     const result = await pool.request()
       .input('blockId', mssql.Int, assignment.blockId)
       .input('userId', mssql.NVarChar, assignment.userId)
       .input('alliance', mssql.NVarChar, assignment.alliance)
       .input('position', mssql.Int, assignment.position)
       .query(`
-        INSERT INTO blockAssignments (blockId, userId, alliance, position)
-        OUTPUT INSERTED.id
-        VALUES (@blockId, @userId, @alliance, @position)
+        MERGE blockAssignments AS target
+        USING (SELECT @blockId AS blockId, @alliance AS alliance, @position AS position) AS source
+        ON target.blockId = source.blockId AND target.alliance = source.alliance AND target.position = source.position
+        WHEN MATCHED THEN
+          UPDATE SET userId = @userId
+        WHEN NOT MATCHED THEN
+          INSERT (blockId, userId, alliance, position)
+          VALUES (@blockId, @userId, @alliance, @position)
+        OUTPUT INSERTED.id;
       `);
 
     return result.recordset[0].id;
@@ -937,20 +944,22 @@ export class AzureSqlDatabaseService implements DatabaseService {
   }
 
   // Combined query for blocks with assignments
-  async getScoutingBlocksWithAssignments(eventCode: string, year: number): Promise<import('./types').ScoutingBlockWithAssignments[]> {
+  async getScoutingBlocksWithAssignments(eventCode: string, year: number, scoutsPerAlliance: number = 3): Promise<import('./types').ScoutingBlockWithAssignments[]> {
     const blocks = await this.getScoutingBlocks(eventCode, year);
     const assignments = await this.getBlockAssignmentsByEvent(eventCode, year);
 
     return blocks.map(block => {
       const blockAssignments = assignments.filter(a => a.blockId === block.id);
-      const redScouts: (string | null)[] = [null, null, null];
-      const blueScouts: (string | null)[] = [null, null, null];
+      const redScouts: (string | null)[] = Array(scoutsPerAlliance).fill(null);
+      const blueScouts: (string | null)[] = Array(scoutsPerAlliance).fill(null);
 
       blockAssignments.forEach(assignment => {
-        if (assignment.alliance === 'red') {
-          redScouts[assignment.position] = assignment.userId;
-        } else {
-          blueScouts[assignment.position] = assignment.userId;
+        if (assignment.position < scoutsPerAlliance) {
+          if (assignment.alliance === 'red') {
+            redScouts[assignment.position] = assignment.userId;
+          } else {
+            blueScouts[assignment.position] = assignment.userId;
+          }
         }
       });
 

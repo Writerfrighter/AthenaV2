@@ -23,9 +23,17 @@ export const PERMISSIONS = {
   DELETE_PIT_SCOUTING: "delete_pit_scouting",
   VIEW_PIT_SCOUTING: "view_pit_scouting",
 
-  // Picklist Management
+  // Picklist Management (Full CRUD)
   VIEW_PICKLIST: "view_picklist",
+  CREATE_PICKLIST: "create_picklist",
   EDIT_PICKLIST: "edit_picklist",
+  DELETE_PICKLIST: "delete_picklist",
+
+  // Schedule Management (Full CRUD)
+  VIEW_SCHEDULE: "view_schedule",
+  CREATE_SCHEDULE: "create_schedule",
+  EDIT_SCHEDULE: "edit_schedule",
+  DELETE_SCHEDULE: "delete_schedule",
 
   // Event Management
   CONFIGURE_EVENTS: "configure_events",
@@ -53,6 +61,7 @@ export const PERMISSIONS = {
   // Advanced Features
   MANAGE_GAME_CONFIG: "manage_game_config",
   ACCESS_ADMIN_PANEL: "access_admin_panel",
+  SEND_NOTIFICATIONS: "send_notifications", // Allows sending push notifications to users
 
   // Tablet-specific permissions
   SCOUT_ON_BEHALF: "scout_on_behalf", // Allows submitting data on behalf of other users
@@ -79,33 +88,41 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.VIEW_PIT_SCOUTING,
 
     PERMISSIONS.VIEW_PICKLIST,
+    PERMISSIONS.CREATE_PICKLIST,
     PERMISSIONS.EDIT_PICKLIST,
+    PERMISSIONS.DELETE_PICKLIST,
+
+    PERMISSIONS.VIEW_SCHEDULE,
+    PERMISSIONS.CREATE_SCHEDULE,
+    PERMISSIONS.EDIT_SCHEDULE,
+    PERMISSIONS.DELETE_SCHEDULE,
+    PERMISSIONS.VIEW_USERS, // Can view users for schedule assignments
 
     PERMISSIONS.CONFIGURE_EVENTS,
     PERMISSIONS.MANAGE_EVENT_SETTINGS,
 
     PERMISSIONS.EXPORT_DATA,
     PERMISSIONS.IMPORT_DATA,
-
-    PERMISSIONS.VIEW_USERS,
   ],
   [ROLES.SCOUT]: [
-    // Basic scouting permissions
+    // Basic scouting permissions - can view and create/edit their own scouting data
     PERMISSIONS.VIEW_DASHBOARD,
     PERMISSIONS.VIEW_COMMENTS,
 
     PERMISSIONS.CREATE_MATCH_SCOUTING,
-    PERMISSIONS.EDIT_MATCH_SCOUTING,
+    PERMISSIONS.EDIT_MATCH_SCOUTING, // Can edit their own entries
     PERMISSIONS.VIEW_MATCH_SCOUTING,
 
     PERMISSIONS.CREATE_PIT_SCOUTING,
-    PERMISSIONS.EDIT_PIT_SCOUTING,
+    PERMISSIONS.EDIT_PIT_SCOUTING, // Can edit their own entries
     PERMISSIONS.VIEW_PIT_SCOUTING,
 
     PERMISSIONS.VIEW_PICKLIST,
+    PERMISSIONS.VIEW_SCHEDULE,
+    PERMISSIONS.VIEW_USERS, // Can see who else is assigned to schedule blocks
   ],
   [ROLES.TABLET]: [
-    // Tablet accounts can scout on behalf of others
+    // Tablet accounts can scout on behalf of others - minimal permissions + scout selection
     PERMISSIONS.VIEW_DASHBOARD,
     PERMISSIONS.VIEW_COMMENTS,
 
@@ -118,22 +135,26 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.VIEW_PIT_SCOUTING,
 
     PERMISSIONS.VIEW_PICKLIST,
-    PERMISSIONS.VIEW_USERS, // Can view users to select who they're scouting for
+    PERMISSIONS.VIEW_SCHEDULE,
+    PERMISSIONS.VIEW_USERS, // Can see who is assigned to schedule blocks
 
-    PERMISSIONS.SCOUT_ON_BEHALF, // Special permission for tablets
+    PERMISSIONS.SCOUT_ON_BEHALF, // Special permission for tablets - implies VIEW_USERS for scout selection
   ],
   [ROLES.VIEWER]: [
-    // Read-only access to most things
+    // Read-only access to scouting data and team analysis
     PERMISSIONS.VIEW_DASHBOARD,
     PERMISSIONS.VIEW_COMMENTS,
 
     PERMISSIONS.VIEW_MATCH_SCOUTING,
     PERMISSIONS.VIEW_PIT_SCOUTING,
     PERMISSIONS.VIEW_PICKLIST,
+    PERMISSIONS.VIEW_SCHEDULE,
   ],
   [ROLES.EXTERNAL]: [
-    // Very limited access, mainly for external teams
+    // Very limited access, mainly for external teams - no comments due to GP concerns
     PERMISSIONS.VIEW_DASHBOARD,
+    PERMISSIONS.VIEW_MATCH_SCOUTING, // Can see match data (no comments)
+    PERMISSIONS.VIEW_PIT_SCOUTING,   // Can see pit data (no comments)
   ],
 };
 

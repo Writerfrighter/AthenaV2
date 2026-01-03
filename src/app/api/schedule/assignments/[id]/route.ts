@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.VIEW_MATCH_SCOUTING)) {
+    if (!hasPermission(session.user.role ?? null, PERMISSIONS.VIEW_SCHEDULE)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -56,19 +56,22 @@ export async function PUT(
     }
 
     // Check if user is updating their own assignment or has permission to update others
-    if (existing.userId !== session.user.id && !hasPermission(session.user.role ?? null, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
+    if (existing.userId !== session.user.id && !hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_SCHEDULE)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_MATCH_SCOUTING)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Users can edit their own assignments, otherwise need EDIT_SCHEDULE
+    if (existing.userId !== session.user.id) {
+      if (!hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_SCHEDULE)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     const updates: { userId?: string; alliance?: 'red' | 'blue'; position?: number } = {};
 
     if (body.userId !== undefined) {
-      // Only admins/lead scouts can reassign to different users
-      if (body.userId !== existing.userId && !hasPermission(session.user.role ?? null, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
+      // Only users with EDIT_SCHEDULE can reassign to different users
+      if (body.userId !== existing.userId && !hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_SCHEDULE)) {
         return NextResponse.json({ error: 'Forbidden - cannot reassign to another user' }, { status: 403 });
       }
       updates.userId = body.userId;
@@ -116,13 +119,12 @@ export async function DELETE(
     }
 
     // Check if user is deleting their own assignment or has permission to delete others
-    if (existing.userId !== session.user.id && !hasPermission(session.user.role ?? null, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
+    if (existing.userId !== session.user.id && !hasPermission(session.user.role ?? null, PERMISSIONS.DELETE_SCHEDULE)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.DELETE_MATCH_SCOUTING)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Users can remove themselves from assignments, otherwise need DELETE_SCHEDULE for others
+    // No additional permission check needed - self-removal is allowed for all users with VIEW_SCHEDULE
 
     await service.deleteBlockAssignment(parseInt(id));
 

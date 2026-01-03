@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { databaseManager } from '@/db/database-manager'
 import { auth } from '@/lib/auth/config'
-import { hasPermission, PERMISSIONS } from '@/lib/auth/roles'
+import { hasPermission, hasAnyPermission, PERMISSIONS } from '@/lib/auth/roles'
 
 interface RouteParams {
   params: Promise<{
@@ -13,8 +13,15 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     // Check if user has permission to view users
+    // VIEW_USERS: full user management access
+    // VIEW_SCHEDULE_USERS: limited access for schedule assignments
+    // SCOUT_ON_BEHALF: tablets need to see user info for scout selection
     const session = await auth()
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_USERS)) {
+    const allowedPermissions = [
+      PERMISSIONS.VIEW_USERS,
+      PERMISSIONS.SCOUT_ON_BEHALF
+    ]
+    if (!session?.user?.role || !hasAnyPermission(session.user.role, allowedPermissions)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

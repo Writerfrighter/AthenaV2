@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog'
 import { PermissionGuard } from '@/components/auth/PermissionGuard'
 import { PERMISSIONS, ROLES } from '@/lib/auth/roles'
 import { Plus, Edit, Trash2, Users } from 'lucide-react'
@@ -52,6 +52,8 @@ export function TeamManagement() {
   const [editForm, setEditForm] = useState<UpdateUserData>({
     role: 'scout'
   })
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const fetchUsers = useCallback(async () => {
     try {
       const response = await fetch('/api/users')
@@ -132,9 +134,11 @@ export function TeamManagement() {
     }
   }
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return
+
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${userToDelete.id}`, {
         method: 'DELETE'
       })
 
@@ -144,7 +148,8 @@ export function TeamManagement() {
       }
 
       toast.success('User deleted successfully')
-
+      setDeleteDialogOpen(false)
+      setUserToDelete(null)
       fetchUsers()
     } catch (error) {
       console.error('Error deleting user:', error)
@@ -334,30 +339,16 @@ export function TeamManagement() {
                         </Button>
                       </PermissionGuard>
                       <PermissionGuard permission={PERMISSIONS.DELETE_USERS}>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete User</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete {user.name}? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteUser(user.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setUserToDelete(user)
+                            setDeleteDialogOpen(true)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </PermissionGuard>
                     </div>
                   </TableCell>
@@ -372,6 +363,23 @@ export function TeamManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteUser}
+        title="Delete User"
+        description={
+          userToDelete ? (
+            <span>
+              Are you sure you want to delete <strong>{userToDelete.name}</strong>? This action cannot be undone.
+            </span>
+          ) : null
+        }
+        confirmButtonText="Delete"
+        loadingText="Deleting..."
+      />
 
       {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
