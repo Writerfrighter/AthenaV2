@@ -138,12 +138,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
         eventCode NVARCHAR(50),
         userId NVARCHAR(255),
         gameSpecificData NVARCHAR(MAX),
+        notes NVARCHAR(MAX),
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
         FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
-
+    
     // Create matchEntries table
     await pool.request().query(`
       IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='matchEntries' AND xtype='U')
@@ -242,10 +243,11 @@ export class AzureSqlDatabaseService implements DatabaseService {
       .input('eventCode', mssql.NVarChar, entry.eventCode)
       .input('userId', mssql.NVarChar, entry.userId || null)
       .input('gameSpecificData', mssql.NVarChar, JSON.stringify(entry.gameSpecificData))
+      .input('notes', mssql.NVarChar, entry.notes || null)
       .query(`
-        INSERT INTO pitEntries (teamNumber, year, competitionType, driveTrain, weight, length, width, eventName, eventCode, userId, gameSpecificData)
+        INSERT INTO pitEntries (teamNumber, year, competitionType, driveTrain, weight, length, width, eventName, eventCode, userId, gameSpecificData, notes)
         OUTPUT INSERTED.id
-        VALUES (@teamNumber, @year, @competitionType, @driveTrain, @weight, @length, @width, @eventName, @eventCode, @userId, @gameSpecificData)
+        VALUES (@teamNumber, @year, @competitionType, @driveTrain, @weight, @length, @width, @eventName, @eventCode, @userId, @gameSpecificData, @notes)
       `);
 
     return result.recordset[0].id;
@@ -284,6 +286,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
       eventCode: row.eventCode || undefined,
       userId: row.userId || undefined,
       gameSpecificData: JSON.parse(row.gameSpecificData),
+      notes: row.notes || undefined,
     };
   }
 
@@ -330,6 +333,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
         eventCode: pitRow.eventCode || undefined,
         userId: pitRow.userId || undefined,
         gameSpecificData: JSON.parse(pitRow.gameSpecificData),
+        notes: pitRow.notes || undefined,
       };
     });
   }
@@ -375,6 +379,10 @@ export class AzureSqlDatabaseService implements DatabaseService {
     if (updates.gameSpecificData !== undefined) {
       setParts.push('gameSpecificData = @gameSpecificData');
       request.input('gameSpecificData', mssql.NVarChar, JSON.stringify(updates.gameSpecificData));
+    }
+    if (updates.notes !== undefined) {
+      setParts.push('notes = @notes');
+      request.input('notes', mssql.NVarChar, updates.notes);
     }
 
     if (setParts.length > 0) {

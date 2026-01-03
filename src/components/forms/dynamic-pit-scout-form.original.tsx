@@ -234,6 +234,7 @@ export function DynamicPitScoutForm() {
             width: formData.width ? parseFloat(formData.width as string) : undefined,
             eventName: selectedEvent?.name || 'Unknown Event',
             eventCode: selectedEvent?.code || 'Unknown Code',
+            notes: formData.notes || '',
             gameSpecificData: {
               hasAuto: formData.hasAuto,
               ...formData.gameSpecificData
@@ -264,6 +265,7 @@ export function DynamicPitScoutForm() {
           width: formData.width ? parseFloat(formData.width as string) : undefined,
           eventName: selectedEvent?.name || 'Unknown Event',
           eventCode: selectedEvent?.code || 'Unknown Code',
+          notes: formData.notes || '',
           gameSpecificData: {
             hasAuto: formData.hasAuto,
             ...formData.gameSpecificData
@@ -649,8 +651,9 @@ export function DynamicPitScoutForm() {
                   Additional Notes
                 </Label>
                 <Textarea
+                  id="notes"
                   name="notes"
-                  value={formData.notes}
+                  value={formData.notes || ''}
                   onChange={handleChange}
                   placeholder="Any additional observations about this team..."
                   className="min-h-[4rem]"

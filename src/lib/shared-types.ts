@@ -20,6 +20,7 @@ export interface PitEntry {
   eventCode?: string;
   userId?: string;
   gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>;
+  notes?: string;
   [extra: string]: unknown;
 }
 
@@ -66,6 +67,7 @@ export interface PitEntryRow {
   eventCode: string | null;
   userId: string | null;
   gameSpecificData: string;
+  notes: string | null;
 }
 
 export interface MatchEntryRow {
