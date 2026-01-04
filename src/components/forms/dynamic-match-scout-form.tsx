@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameConfig, useCurrentGameConfig } from '@/hooks/use-game-config';
 import { useSelectedEvent } from '@/hooks/use-event-config';
 import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
+import { useMatchScheduleTeams } from '@/hooks/use-match-schedule-teams';
+import { useScoutingAssignment } from '@/hooks/use-scouting-assignment';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,9 +31,22 @@ export function DynamicMatchScoutForm() {
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
+  const { 
+    isLoading: scheduleLoading, 
+    hasScheduleData, 
+    getTeamForPosition 
+  } = useMatchScheduleTeams();
+  const {
+    isLoading: assignmentLoading,
+    hasAssignments,
+    recommendedStartMatch,
+    recommendedAlliance,
+    recommendedPosition
+  } = useScoutingAssignment();
   const [formData, setFormData] = useState<DynamicMatchData>(() => 
     gameConfig ? initializeFormData(gameConfig) : defaultData
   );
+  const [hasAppliedInitialAssignment, setHasAppliedInitialAssignment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedScoutId, setSelectedScoutId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -100,6 +115,38 @@ export function DynamicMatchScoutForm() {
       setFormData(initializeFormData(gameConfig));
     }
   }, [gameConfig, isEditMode]);
+
+  // Apply initial scouting assignment (match number, alliance, position) on first load
+  useEffect(() => {
+    // Skip if already applied, in edit mode, or assignment data not yet loaded
+    if (hasAppliedInitialAssignment || isEditMode || assignmentLoading) return;
+    
+    // Only apply if we have scouting assignments
+    if (!hasAssignments) return;
+
+    // Apply the recommended values from the scouting schedule
+    setFormData(prev => ({
+      ...prev,
+      matchNumber: recommendedStartMatch || prev.matchNumber,
+      alliance: recommendedAlliance || prev.alliance,
+      alliancePosition: recommendedPosition || prev.alliancePosition
+    }));
+    
+    setHasAppliedInitialAssignment(true);
+  }, [hasAssignments, recommendedStartMatch, recommendedAlliance, recommendedPosition, assignmentLoading, isEditMode, hasAppliedInitialAssignment]);
+
+  // Determine if current values match the scouting schedule assignment
+  const isMatchFromScoutingSchedule = hasAppliedInitialAssignment && 
+    hasAssignments && 
+    recommendedStartMatch !== null && 
+    Number(formData.matchNumber) === recommendedStartMatch;
+  
+  const isAllianceFromScoutingSchedule = hasAppliedInitialAssignment && 
+    hasAssignments && 
+    recommendedAlliance !== null && 
+    recommendedPosition !== null &&
+    formData.alliance === recommendedAlliance && 
+    formData.alliancePosition === recommendedPosition;
 
   const handleInputChange = (section: string, field: string, value: number | string | boolean) => {
     setFormData(prev => ({
@@ -292,6 +339,12 @@ export function DynamicMatchScoutForm() {
           teamsLoading={teamsLoading}
           onBasicInputChange={handleBasicInputChange}
           onAllianceChange={handleAllianceChange}
+          scheduleLoading={scheduleLoading}
+          hasScheduleData={hasScheduleData}
+          getTeamForPosition={getTeamForPosition}
+          isMatchFromScoutingSchedule={isMatchFromScoutingSchedule}
+          isAllianceFromScoutingSchedule={isAllianceFromScoutingSchedule}
+          assignmentLoading={assignmentLoading}
         />
 
         {gameConfig?.scoring?.autonomous && (

@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Target } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Target, Zap, Calendar } from 'lucide-react';
 import { getCombinedAlliancePosition, parseCombinedAlliancePosition } from './match-form-utils';
 import type { DynamicMatchData } from '@/lib/shared-types';
 
@@ -15,6 +17,14 @@ interface MatchInfoSectionProps {
   teamsLoading: boolean;
   onBasicInputChange: (field: keyof DynamicMatchData, value: string | number) => void;
   onAllianceChange: (alliance: 'red' | 'blue', position: number) => void;
+  // Event schedule auto-assign props (team number from match schedule)
+  scheduleLoading?: boolean;
+  hasScheduleData?: boolean;
+  getTeamForPosition?: (matchNumber: number, alliance: 'red' | 'blue', position: number) => number | null;
+  // Scouting schedule assignment props (match/alliance from scouting blocks)
+  isMatchFromScoutingSchedule?: boolean;
+  isAllianceFromScoutingSchedule?: boolean;
+  assignmentLoading?: boolean;
 }
 
 export function MatchInfoSection({
@@ -23,8 +33,55 @@ export function MatchInfoSection({
   eventTeamNumbers,
   teamsLoading,
   onBasicInputChange,
-  onAllianceChange
+  onAllianceChange,
+  scheduleLoading = false,
+  hasScheduleData = false,
+  getTeamForPosition,
+  isMatchFromScoutingSchedule = false,
+  isAllianceFromScoutingSchedule = false,
+  assignmentLoading = false
 }: MatchInfoSectionProps) {
+  // Track previous values to detect changes for auto-assign
+  const prevMatchNumber = useRef<number | string>(formData.matchNumber);
+  const prevAlliance = useRef<'red' | 'blue'>(formData.alliance);
+  const prevPosition = useRef<number>(formData.alliancePosition || 1);
+
+  // Auto-assign team number when match number or alliance position changes
+  useEffect(() => {
+    if (!getTeamForPosition || !hasScheduleData) return;
+    
+    const matchNum = Number(formData.matchNumber);
+    const currentAlliance = formData.alliance;
+    const currentPosition = formData.alliancePosition || 1;
+    
+    // Check if any relevant field changed
+    const matchChanged = prevMatchNumber.current !== formData.matchNumber;
+    const allianceChanged = prevAlliance.current !== currentAlliance;
+    const positionChanged = prevPosition.current !== currentPosition;
+    
+    // Update refs
+    prevMatchNumber.current = formData.matchNumber;
+    prevAlliance.current = currentAlliance;
+    prevPosition.current = currentPosition;
+    
+    // Only auto-assign if something changed and we have a valid match number
+    if ((matchChanged || allianceChanged || positionChanged) && matchNum > 0) {
+      const autoTeam = getTeamForPosition(matchNum, currentAlliance, currentPosition);
+      if (autoTeam !== null && autoTeam !== formData.teamNumber) {
+        onBasicInputChange('teamNumber', autoTeam);
+      }
+    }
+  }, [formData.matchNumber, formData.alliance, formData.alliancePosition, formData.teamNumber, getTeamForPosition, hasScheduleData, onBasicInputChange]);
+
+  // Determine if the current team number was auto-assigned from schedule
+  const isAutoAssigned = (() => {
+    if (!getTeamForPosition || !hasScheduleData) return false;
+    const matchNum = Number(formData.matchNumber);
+    if (matchNum <= 0) return false;
+    const expectedTeam = getTeamForPosition(matchNum, formData.alliance, formData.alliancePosition || 1);
+    return expectedTeam !== null && expectedTeam === formData.teamNumber;
+  })();
+
   return (
     <Card className="border rounded-xl shadow-sm">
       <CardHeader>
@@ -35,7 +92,20 @@ export function MatchInfoSection({
       </CardHeader>
       <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="matchNumber">Match Number</Label>
+          <div className="flex items-center gap-2 h-5">
+            <Label htmlFor="matchNumber">Match Number</Label>
+            {isMatchFromScoutingSchedule && (
+              <Badge variant="secondary" className="text-xs flex items-center gap-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 py-0 h-5">
+                <Calendar className="h-2.5 w-2.5" />
+                Assigned
+              </Badge>
+            )}
+            {assignmentLoading && !isMatchFromScoutingSchedule && (
+              <Badge variant="outline" className="text-xs py-0 h-4">
+                Loading...
+              </Badge>
+            )}
+          </div>
           <Input
             id="matchNumber"
             placeholder="45"
@@ -45,17 +115,31 @@ export function MatchInfoSection({
             min={1}
             max={200}
             required
+            className={isMatchFromScoutingSchedule ? 'border-amber-500/50 bg-amber-500/5' : ''}
           />
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="teamNumber">Team Number</Label>
+          <div className="flex items-center gap-2 h-5">
+            <Label htmlFor="teamNumber">Team Number</Label>
+            {isAutoAssigned && (
+              <Badge variant="secondary" className="text-xs flex items-center gap-0.5 bg-primary/10 text-primary py-0 h-5">
+                <Zap className="h-2.5 w-2.5" />
+                Auto
+              </Badge>
+            )}
+            {scheduleLoading && (
+              <Badge variant="outline" className="text-xs py-0 h-4">
+                Loading...
+              </Badge>
+            )}
+          </div>
           {eventTeamNumbers.length > 0 ? (
             <Select 
               value={formData.teamNumber === 0 ? undefined : String(formData.teamNumber)} 
               onValueChange={(value) => onBasicInputChange('teamNumber', Number(value))}
             >
-              <SelectTrigger>
+              <SelectTrigger className={isAutoAssigned ? 'border-primary/50 bg-primary/5' : ''}>
                 <SelectValue placeholder="Select team number" />
               </SelectTrigger>
               <SelectContent>
@@ -87,7 +171,15 @@ export function MatchInfoSection({
         </div>
         
         <div className="space-y-2">
-          <Label>Alliance Position</Label>
+          <div className="flex items-center gap-2 h-5">
+            <Label>Alliance Position</Label>
+            {isAllianceFromScoutingSchedule && (
+              <Badge variant="secondary" className="text-xs flex items-center gap-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 py-0 h-5">
+                <Calendar className="h-2.5 w-2.5" />
+                Assigned
+              </Badge>
+            )}
+          </div>
           <Select 
             value={getCombinedAlliancePosition(formData.alliance, formData.alliancePosition || 1)} 
             onValueChange={(value) => {
@@ -95,7 +187,7 @@ export function MatchInfoSection({
               onAllianceChange(alliance, position);
             }}
           >
-            <SelectTrigger className="focus:border-green-500">
+            <SelectTrigger className={isAllianceFromScoutingSchedule ? 'border-amber-500/50 bg-amber-500/5' : ''}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

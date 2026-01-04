@@ -55,13 +55,44 @@ export interface NetworkStatus {
   lastOffline?: Date;
 }
 
-// IndexedDB schema version
-export const DB_VERSION = 1;
+// Cached team info for offline scouting
+export interface CachedTeamInfo {
+  teamNumber: number;
+  nickname: string;
+  key: string;
+}
+
+// Cached event teams data
+export interface CachedEventTeams {
+  eventCode: string;
+  competitionType: string;
+  year: number;
+  teams: CachedTeamInfo[];
+  cachedAt: Date;
+}
+
+// Cached event list data
+export interface CachedEventList {
+  teamNumber: number;
+  competitionType: string;
+  year: number;
+  events: Array<{
+    name: string;
+    region: string;
+    code: string;
+  }>;
+  cachedAt: Date;
+}
+
+// IndexedDB schema version - increment when adding new stores
+export const DB_VERSION = 2;
 export const DB_NAME = 'athena-offline-cache';
 
 // Store names
 export const STORES = {
   QUEUE: 'queue',
   SYNC_LOG: 'sync_log',
-  CONFIG: 'config'
+  CONFIG: 'config',
+  EVENT_TEAMS: 'event_teams',
+  EVENT_LIST: 'event_list'
 } as const;

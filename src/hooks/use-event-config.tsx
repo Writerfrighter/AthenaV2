@@ -6,6 +6,7 @@ import { useGameConfig } from '@/hooks/use-game-config';
 import { TbaEvent } from '@/lib/api/tba-types';
 import { FtcEvent } from '@/lib/api/ftcevents-types';
 import type { CustomEvent } from '@/lib/shared-types';
+import { indexedDBService } from '@/lib/indexeddb-service';
 
 interface EventContextType {
   events: Event[];
@@ -14,6 +15,7 @@ interface EventContextType {
   setEvents: (events: Event[]) => void;
   isLoading: boolean;
   error: string | null;
+  isOfflineData: boolean;
 }
 
 const EventContext = createContext<EventContextType | undefined>(undefined);
@@ -23,6 +25,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOfflineData, setIsOfflineData] = useState(false);
 
   const [selectedEvent, setSelectedEventState] = useState<Event | null>(null);
 
@@ -32,14 +35,37 @@ export function EventProvider({ children }: { children: ReactNode }) {
     if (!isInitialized) return;
 
     const fetchEvents = async () => {
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      const teamNumber = competitionType === 'FRC' ? 492 : 3543;
+
+      // If offline, try to get cached data first
+      if (!isOnline) {
+        try {
+          const cachedData = await indexedDBService.getCachedEventList(teamNumber, competitionType, currentYear);
+          if (cachedData && cachedData.events.length > 0) {
+            setEvents(cachedData.events);
+            setIsOfflineData(true);
+            setIsLoading(false);
+            return;
+          }
+        } catch (cacheError) {
+          console.warn('Failed to get cached events:', cacheError);
+        }
+
+        // No cached data available while offline
+        setError('Offline - no cached event data available. Connect to internet to download events.');
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
+        setIsOfflineData(false);
 
         // Fetch events using unified API
         let apiEvents: Event[] = [];
         try {
-          const teamNumber = competitionType === 'FRC' ? 492 : 3543;
           const eventsResponse = await fetch(`/api/team/${teamNumber}/events/${currentYear}?competitionType=${competitionType}`);
           if (eventsResponse.ok) {
             const eventData = await eventsResponse.json();
@@ -86,11 +112,34 @@ export function EventProvider({ children }: { children: ReactNode }) {
         const allEvents = [...apiEvents, ...customEvents];
         setEvents(allEvents);
 
+        // Cache events for offline use
+        if (allEvents.length > 0) {
+          try {
+            await indexedDBService.cacheEventList(teamNumber, competitionType, currentYear, allEvents);
+          } catch (cacheError) {
+            console.warn('Failed to cache events:', cacheError);
+          }
+        }
+
         if (allEvents.length === 0) {
           setError('No events found for this year');
         }
       } catch (err) {
         console.error('Error fetching events:', err);
+        
+        // Try to fall back to cached data on fetch error
+        try {
+          const cachedData = await indexedDBService.getCachedEventList(teamNumber, competitionType, currentYear);
+          if (cachedData && cachedData.events.length > 0) {
+            setEvents(cachedData.events);
+            setIsOfflineData(true);
+            setIsLoading(false);
+            return;
+          }
+        } catch (cacheError) {
+          console.warn('Failed to get cached events on error fallback:', cacheError);
+        }
+
         setError('Failed to load events');
         setEvents([]);
       } finally {
@@ -150,6 +199,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
     setEvents,
     isLoading,
     error,
+    isOfflineData,
   };
 
   return (
