@@ -204,7 +204,7 @@ export function LoggedInLandingPage() {
                             {match.alliance && `${match.alliance.toUpperCase()} Alliance`}
                           </p>
                         </div>
-                        <Link href={`/scout/match?match=${match.matchNumber}`}>
+                        <Link href={`/scout/matchscout?match=${match.matchNumber}`}>
                           <Button variant="outline" size="sm">
                             Scout
                           </Button>
