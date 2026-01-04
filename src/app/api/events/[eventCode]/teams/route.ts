@@ -45,7 +45,7 @@ export async function GET(
       const teamsWithImages = await Promise.all(
         teams.map(async (team) => {
           try {
-            const images = await getTeamMedia(team.team_number);
+            const images = await getTeamMedia(team.team_number, year ? year : parseInt(eventCode.slice(0, 4)));
             return {
               ...team,
               images,

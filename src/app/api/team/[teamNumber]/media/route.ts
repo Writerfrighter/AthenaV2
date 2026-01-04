@@ -9,6 +9,8 @@ export async function GET(
     const { teamNumber } = await params;
     const { searchParams } = new URL(request.url);
     const competitionType = searchParams.get('competitionType') || 'FRC';
+    const seasonParam = searchParams.get('season');
+    const season = seasonParam ? parseInt(seasonParam) : new Date().getFullYear();
     
     if (!teamNumber) {
       return NextResponse.json({ error: 'Team number is required' }, { status: 400 });
@@ -24,7 +26,7 @@ export async function GET(
       return NextResponse.json([]);
     } else {
       // FRC via TBA
-      const images = await getTeamMedia(teamNum);
+      const images = await getTeamMedia(teamNum, season);
       
       return NextResponse.json(images);
     }

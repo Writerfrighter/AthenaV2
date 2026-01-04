@@ -37,7 +37,7 @@ async function InitialTeamList() {
     const teamsWithImages = await Promise.all(
       teams.map(async (team): Promise<TeamWithImages> => {
         try {
-          const images = await getTeamMedia(team.team_number);
+          const images = await getTeamMedia(team.team_number, Number(selectedEvent.code.slice(0, 4)));
           return {
             ...team,
             images,

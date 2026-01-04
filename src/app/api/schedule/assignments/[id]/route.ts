@@ -44,10 +44,14 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Require EDIT_SCHEDULE permission
+    if (!hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_SCHEDULE)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await request.json();
 
-    // Get existing assignment to check ownership
     const service = databaseManager.getService();
     const existing = await service.getBlockAssignment(parseInt(id));
 
@@ -55,25 +59,9 @@ export async function PUT(
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     }
 
-    // Check if user is updating their own assignment or has permission to update others
-    if (existing.userId !== session.user.id && !hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_SCHEDULE)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Users can edit their own assignments, otherwise need EDIT_SCHEDULE
-    if (existing.userId !== session.user.id) {
-      if (!hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_SCHEDULE)) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-    }
-
     const updates: { userId?: string; alliance?: 'red' | 'blue'; position?: number } = {};
 
     if (body.userId !== undefined) {
-      // Only users with EDIT_SCHEDULE can reassign to different users
-      if (body.userId !== existing.userId && !hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_SCHEDULE)) {
-        return NextResponse.json({ error: 'Forbidden - cannot reassign to another user' }, { status: 403 });
-      }
       updates.userId = body.userId;
     }
     if (body.alliance !== undefined) {
@@ -110,6 +98,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Users cannot delete their own assignments - require DELETE_SCHEDULE permission
+    if (!hasPermission(session.user.role ?? null, PERMISSIONS.DELETE_SCHEDULE)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const service = databaseManager.getService();
     const existing = await service.getBlockAssignment(parseInt(id));
@@ -117,14 +110,6 @@ export async function DELETE(
     if (!existing) {
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     }
-
-    // Check if user is deleting their own assignment or has permission to delete others
-    if (existing.userId !== session.user.id && !hasPermission(session.user.role ?? null, PERMISSIONS.DELETE_SCHEDULE)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Users can remove themselves from assignments, otherwise need DELETE_SCHEDULE for others
-    // No additional permission check needed - self-removal is allowed for all users with VIEW_SCHEDULE
 
     await service.deleteBlockAssignment(parseInt(id));
 

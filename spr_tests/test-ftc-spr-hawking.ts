@@ -19,9 +19,9 @@
  *   - Event USWAHALT must have match entries in database
  */
 
-import { computeScouterAccuracy } from './src/lib/statistics';
-import type { MatchEntry } from './src/db/types';
-import { YearConfig } from './src/lib/shared-types';
+import { computeScouterAccuracy } from '../src/lib/statistics';
+import type { MatchEntry } from '../src/db/types';
+import { YearConfig } from '../src/lib/shared-types';
 
 const DEV_SERVER = 'http://localhost:3000';
 const EVENT_CODE = 'USWAHALT'; // Hawking League Tournament

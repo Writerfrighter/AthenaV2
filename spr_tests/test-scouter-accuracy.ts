@@ -27,9 +27,9 @@
  *   ✓ Worst performers have highest error values
  */
 
-import { computeScouterAccuracy } from './src/lib/statistics';
-import type { MatchEntry } from './src/db/types';
-import type { YearConfig } from './src/lib/shared-types';
+import { computeScouterAccuracy } from '../src/lib/statistics';
+import type { MatchEntry } from '../src/db/types';
+import type { YearConfig } from '../src/lib/shared-types';
 
 const MATCH_COUNT = 60; // Increase to test convergence on larger datasets
 
