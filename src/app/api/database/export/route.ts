@@ -24,16 +24,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const format = searchParams.get('format') || 'json';
-    const dataType = searchParams.get('dataType'); // 'pit', 'match', or undefined for all
+    // `types` can be a comma-separated list: 'pit', 'match', or omitted for all
+    const typesParam = searchParams.get('types');
+    const requestedTypes = typesParam
+      ? typesParam.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
+      : null;
 
     const service = getDbService();
     let data = await service.exportData(year);
 
-    // Filter data based on dataType parameter
-    if (dataType === 'pit') {
-      data = { pitEntries: data.pitEntries, matchEntries: [] };
-    } else if (dataType === 'match') {
-      data = { pitEntries: [], matchEntries: data.matchEntries };
+    // Filter data based on requestedTypes parameter (supports comma-separated values)
+    if (requestedTypes) {
+      const includePit = requestedTypes.includes('pit');
+      const includeMatch = requestedTypes.includes('match');
+      data = {
+        pitEntries: includePit ? data.pitEntries : [],
+        matchEntries: includeMatch ? data.matchEntries : []
+      };
     }
 
     if (format === 'csv') {

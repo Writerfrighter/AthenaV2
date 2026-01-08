@@ -16,8 +16,16 @@ export function DataExportImportComponent() {
   const [exportProgress, setExportProgress] = useState(0);
   const [importProgress, setImportProgress] = useState(0);
   const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
+  const [includePit, setIncludePit] = useState(true);
+  const [includeMatch, setIncludeMatch] = useState(true);
 
   const handleExport = async (format: ExportFormat) => {
+    // Validate selection before starting
+    if (!includePit && !includeMatch) {
+      toast.error('Please select at least one data type to export');
+      return;
+    }
+
     setIsExporting(true);
     setExportProgress(0);
 
@@ -35,6 +43,17 @@ export function DataExportImportComponent() {
         params.append('year', selectedYear.toString());
       }
       params.append('format', format);
+
+      // Ensure at least one type is selected
+      const types: string[] = [];
+      if (includePit) types.push('pit');
+      if (includeMatch) types.push('match');
+
+      if (types.length === 0) {
+        throw new Error('Please select at least one data type to export');
+      }
+
+      params.append('types', types.join(','));
 
       const response = await fetch(`/api/database/export?${params}`);
       if (!response.ok) {
@@ -174,9 +193,29 @@ export function DataExportImportComponent() {
             </div>
           )}
           <div className="flex gap-2 flex-wrap">
+            <div className="flex items-center gap-4 mr-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={includePit}
+                  onChange={(e) => setIncludePit(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                Pit Scouting
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={includeMatch}
+                  onChange={(e) => setIncludeMatch(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                Match Scouting
+              </label>
+            </div>
             <Button
               onClick={() => handleExport('json')}
-              disabled={isExporting}
+              disabled={isExporting || (!includePit && !includeMatch)}
               variant="outline"
               size="sm"
               className="flex items-center gap-2 transition-all duration-200"
@@ -190,7 +229,7 @@ export function DataExportImportComponent() {
             </Button>
             <Button
               onClick={() => handleExport('csv')}
-              disabled={isExporting}
+              disabled={isExporting || (!includePit && !includeMatch)}
               variant="outline"
               size="sm"
               className="flex items-center gap-2 transition-all duration-200"
@@ -204,7 +243,7 @@ export function DataExportImportComponent() {
             </Button>
             <Button
               onClick={() => handleExport('xlsx')}
-              disabled={isExporting}
+              disabled={isExporting || (!includePit && !includeMatch)}
               variant="outline"
               size="sm"
               className="flex items-center gap-2 transition-all duration-200"
