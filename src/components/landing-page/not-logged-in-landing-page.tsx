@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   UserPlus,
   ArrowRight,
@@ -165,7 +164,7 @@ export function NotLoggedInLandingPage() {
           </div>
 
           {/* Scroll Indicator */}
-          <div className={`flex justify-center mt-16 animate-bounce transition-opacity duration-300 ${hasScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+          <div className={`flex justify-center mt-50 animate-bounce transition-opacity duration-300 ${hasScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Why choose Athena?</p>
               <ChevronDown className="h-6 w-6 text-primary mx-auto" />
@@ -178,7 +177,6 @@ export function NotLoggedInLandingPage() {
       <section id="mission" className="relative z-10 w-full py-16 sm:py-20 bg-primary/5">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <Badge variant="outline" className="mx-auto w-fit">Why does this exist?</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold">Give your team the edge we built for ours.</h2>
             <p className="text-lg text-muted-foreground">
               Athena connects every match entry, every pit entry, and every strategy meeting so your team can move with certainty.
@@ -260,7 +258,6 @@ export function NotLoggedInLandingPage() {
       <section className="relative z-10 w-full py-16 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 max-w-3xl mx-auto mb-10">
-            <Badge variant="outline" className="mx-auto w-fit">Platform highlights</Badge>
             <h2 className="text-3xl font-bold">Everything you need, ready when you need it.</h2>
             <p className="text-lg text-muted-foreground">Dive deeper into any capability below—each button drops you right into the overview further down the page.</p>
           </div>
@@ -296,7 +293,6 @@ export function NotLoggedInLandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1">
-              <Badge variant="outline" className="mb-4">Pit playbook</Badge>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">Pit Scouting</h2>
               <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
                 Collect detailed robot capabilities and team data directly from the pits. Comprehensive scouting tools designed to capture everything you need to know about each team's robot and strategy.
@@ -326,7 +322,6 @@ export function NotLoggedInLandingPage() {
               </div>
             </div>
             <div>
-              <Badge variant="outline" className="mb-4">Match intelligence</Badge>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">Match Scouting</h2>
               <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
                 Real-time match data collection during competitions. Capture live performance metrics, game events, and team actions with our fast and intuitive scouting interface designed for the heat of competition.
@@ -346,7 +341,6 @@ export function NotLoggedInLandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1">
-              <Badge variant="outline" className="mb-4">Alliance-ready insights</Badge>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">Analytics</h2>
               <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
                 Transform raw scouting data into actionable insights. Performance data and trends help your team make informed decisions about team rankings, alliance selection, and match strategy.
@@ -376,7 +370,6 @@ export function NotLoggedInLandingPage() {
               </div>
             </div>
             <div>
-              <Badge variant="outline" className="mb-4">Prepared for travel</Badge>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">Offline Capable</h2>
               <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
                 Scout anywhere, anytime. Athena V2's offline-first architecture ensures you can collect data from the pits or bleachers without worrying about connectivity. Data syncs automatically when you're back online, so nothing is ever lost.
