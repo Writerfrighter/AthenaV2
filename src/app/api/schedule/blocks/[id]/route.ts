@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.VIEW_MATCH_SCOUTING)) {
+    if (!hasPermission(session.user.role ?? null, PERMISSIONS.VIEW_SCHEDULE)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -44,7 +44,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
+    if (!hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_SCHEDULE)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -81,7 +81,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
+    if (!hasPermission(session.user.role ?? null, PERMISSIONS.DELETE_SCHEDULE)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

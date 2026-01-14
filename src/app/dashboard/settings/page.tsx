@@ -3,12 +3,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Database, Users, Info } from "lucide-react";
-import { DatabaseSyncComponent } from "@/components/database-sync";
-import { DataExportImportComponent } from "@/components/data-export-import";
-import { DatabaseResetComponent } from "@/components/database-reset";
+import { DatabaseSyncComponent } from "@/components/sync/database-sync";
+import { DataExportImportComponent } from "@/components/settings/data-export-import";
+import { DatabaseResetComponent } from "@/components/settings/database-reset";
 import { CacheRevalidationComponent } from "@/components/cache-revalidation";
 import { NotificationSender } from "@/components/notification-sender";
-import { TeamManagement } from "@/components/team-management";
+import { TeamManagement } from "@/components/settings/team-management";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { PERMISSIONS } from "@/lib/auth/roles";
 

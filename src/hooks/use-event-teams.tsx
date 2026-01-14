@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSelectedEvent } from './use-event-config';
 import { useGameConfig } from './use-game-config';
+import { indexedDBService } from '@/lib/indexeddb-service';
 
 export interface TeamInfo {
   teamNumber: number;
@@ -14,6 +15,7 @@ interface TeamState {
   teams: TeamInfo[];
   loading: boolean;
   error: string | null;
+  isOfflineData: boolean;
 }
 
 export function useEventTeams() {
@@ -23,6 +25,7 @@ export function useEventTeams() {
     teams: [],
     loading: false,
     error: null,
+    isOfflineData: false,
   });
 
   useEffect(() => {
@@ -32,6 +35,7 @@ export function useEventTeams() {
           teams: [],
           loading: false,
           error: null,
+          isOfflineData: false,
         });
         return;
       }
@@ -41,6 +45,35 @@ export function useEventTeams() {
         loading: true,
         error: null,
       }));
+
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+      // If offline, try to get cached data first
+      if (!isOnline) {
+        try {
+          const cachedData = await indexedDBService.getCachedEventTeams(selectedEvent.code);
+          if (cachedData && cachedData.teams.length > 0) {
+            setTeamState({
+              teams: cachedData.teams.sort((a, b) => a.teamNumber - b.teamNumber),
+              loading: false,
+              error: null,
+              isOfflineData: true,
+            });
+            return;
+          }
+        } catch (cacheError) {
+          console.warn('Failed to get cached teams:', cacheError);
+        }
+
+        // No cached data available while offline
+        setTeamState({
+          teams: [],
+          loading: false,
+          error: 'Offline - no cached team data available. Connect to internet to download team list.',
+          isOfflineData: false,
+        });
+        return;
+      }
 
       try {
         // Fetch data from our server-side API route with competition type
@@ -63,24 +96,56 @@ export function useEventTeams() {
           key: team.key || `${competitionType.toLowerCase()}${team.team_number}`,
         }));
 
+        const sortedTeams = teams.sort((a, b) => a.teamNumber - b.teamNumber);
+
+        // Cache the teams for offline use
+        try {
+          await indexedDBService.cacheEventTeams(
+            selectedEvent.code,
+            competitionType,
+            currentYear,
+            sortedTeams
+          );
+        } catch (cacheError) {
+          console.warn('Failed to cache teams:', cacheError);
+        }
+
         setTeamState({
-          teams: teams.sort((a, b) => a.teamNumber - b.teamNumber),
+          teams: sortedTeams,
           loading: false,
           error: null,
+          isOfflineData: false,
         });
       } catch (error) {
         console.error('Error fetching teams:', error);
         
+        // Try to fall back to cached data on fetch error
+        try {
+          const cachedData = await indexedDBService.getCachedEventTeams(selectedEvent.code);
+          if (cachedData && cachedData.teams.length > 0) {
+            setTeamState({
+              teams: cachedData.teams.sort((a, b) => a.teamNumber - b.teamNumber),
+              loading: false,
+              error: null,
+              isOfflineData: true,
+            });
+            return;
+          }
+        } catch (cacheError) {
+          console.warn('Failed to get cached teams on error fallback:', cacheError);
+        }
+
         setTeamState({
           teams: [],
           loading: false,
           error: `Failed to fetch teams: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          isOfflineData: false,
         });
       }
     }
 
     fetchTeams();
-  }, [selectedEvent?.code, competitionType]);
+  }, [selectedEvent?.code, competitionType, currentYear]);
 
   return teamState;
 }

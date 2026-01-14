@@ -1,7 +1,7 @@
 "use client"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { NotificationSettings } from "@/components/notification-settings"
+import { NotificationSettings } from "@/components/settings/notification-settings"
 
 export function NotificationSettingsDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
   return (

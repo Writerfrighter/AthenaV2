@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.VIEW_MATCH_SCOUTING)) {
+    if (!hasPermission(session.user.role ?? null, PERMISSIONS.VIEW_SCHEDULE)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -63,12 +63,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is assigning themselves or has permission to assign others
-    if (userId !== session.user.id && !hasPermission(session.user.role ?? null, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.CREATE_MATCH_SCOUTING)) {
+    // Users cannot assign themselves - only users with CREATE_SCHEDULE or EDIT_SCHEDULE can make assignments
+    if (!hasPermission(session.user.role ?? null, PERMISSIONS.CREATE_SCHEDULE) && 
+        !hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_SCHEDULE)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -103,7 +100,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
+    if (!hasPermission(session.user.role ?? null, PERMISSIONS.DELETE_SCHEDULE)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

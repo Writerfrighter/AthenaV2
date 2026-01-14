@@ -94,6 +94,23 @@ export async function PUT(request: NextRequest) {
 
     const { id, ...updates } = await request.json();
     const service = getDbService();
+    
+    // Get the existing entry to check ownership
+    const entries = await service.getAllMatchEntries();
+    const existingEntry = entries.find(e => e.id === id);
+    
+    if (!existingEntry) {
+      return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
+    }
+    
+    // Users can only edit their own entries unless they have DELETE permission (higher privilege)
+    const isOwner = existingEntry.userId === session.user.id;
+    const canEditAny = hasPermission(session.user.role, PERMISSIONS.DELETE_MATCH_SCOUTING);
+    
+    if (!isOwner && !canEditAny) {
+      return NextResponse.json({ error: 'Forbidden - can only edit your own entries' }, { status: 403 });
+    }
+    
     await service.updateMatchEntry(id, updates);
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -112,6 +129,11 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const id = parseInt(searchParams.get('id')!);
+    
+    if (!id || isNaN(id)) {
+      return NextResponse.json({ error: 'Valid entry ID is required' }, { status: 400 });
+    }
+    
     const service = getDbService();
     await service.deleteMatchEntry(id);
     return NextResponse.json({ success: true });

@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 interface TeamImageProps {
   teamNumber: string;
   yearLabel?: string;
+  competitionType?: 'FRC' | 'FTC';
 }
 
-export function TeamImage({ teamNumber, yearLabel }: TeamImageProps) {
+export function TeamImage({ teamNumber, yearLabel, competitionType = 'FRC' }: TeamImageProps) {
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,8 +24,8 @@ export function TeamImage({ teamNumber, yearLabel }: TeamImageProps) {
         setLoading(true);
         setError(null);
         
-        // Fetch team images from API (this would need to be created or use existing TBA integration)
-        const response = await fetch(`/api/tba/team/${teamNumber}/media`);
+        // Fetch team images from unified API
+        const response = await fetch(`/api/team/${teamNumber}/media?competitionType=${competitionType}`);
         if (response.ok) {
           const imageUrls = await response.json();
           setImages(imageUrls);
@@ -44,7 +45,7 @@ export function TeamImage({ teamNumber, yearLabel }: TeamImageProps) {
     if (teamNumber) {
       fetchTeamImages();
     }
-  }, [teamNumber]);
+  }, [teamNumber, competitionType]);
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length);

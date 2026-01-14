@@ -153,9 +153,9 @@ export function getMatchDetails(matchKey: string): Promise<TbaMatch> {
 export function getTeamInfo(teamNumber: number): Promise<TbaTeam> {
   return getFromTba(`team/frc${teamNumber}`);
 }
-export async function getTeamMedia(teamNumber: number): Promise<string[]> {
+export async function getTeamMedia(teamNumber: number, year: number): Promise<string[]> {
   const resp = await getFromTba<TbaMedia[]>(
-    `team/frc${teamNumber}/media/${new Date().getFullYear()}`
+    `team/frc${teamNumber}/media/${year}`
   );
   const images: string[] = [];
   for (const item of resp) {

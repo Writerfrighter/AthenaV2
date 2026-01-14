@@ -1,9 +1,8 @@
 'use client';
 
-import { EPATable } from "@/components/epa-table"
-import { StackedEPAChart } from "@/components/stacked-epa-chart"
+import { EPATable } from "@/components/tables/epa-table"
+import { StackedEPAChart } from "@/components/charts/stacked-epa-chart"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import {
   Tabs,
   TabsContent,

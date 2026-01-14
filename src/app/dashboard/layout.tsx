@@ -1,5 +1,5 @@
 "use client";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppSidebar } from "@/components/navigation/app-sidebar";
 import { createContext, useContext, useState } from "react";
 import { AccountSettingsDialog } from "./account-settings";
 import { NotificationSettingsDialog } from "./notification-settings-dialog";
@@ -10,7 +10,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { ThemeSelector } from "@/components/theme-selector";
+import { ThemeSelector } from "@/components/settings/theme-selector";
 
 // Context to control account settings dialog
 const AccountSettingsContext = createContext<{ openAccountSettings: () => void } | undefined>(undefined);

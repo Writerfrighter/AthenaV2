@@ -13,13 +13,14 @@ export interface PitEntry {
   year: number;
   competitionType: CompetitionType;
   driveTrain: "Swerve" | "Mecanum" | "Tank" | "Other";
-  weight: number;
-  length: number;
-  width: number;
+  weight?: number;
+  length?: number;
+  width?: number;
   eventName?: string;
   eventCode?: string;
   userId?: string;
   gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>;
+  notes?: string;
   [extra: string]: unknown;
 }
 
@@ -59,13 +60,14 @@ export interface PitEntryRow {
   year: number;
   competitionType: string;
   driveTrain: string;
-  weight: number;
-  length: number;
-  width: number;
+  weight: number | null;
+  length: number | null;
+  width: number | null;
   eventName: string | null;
   eventCode: string | null;
   userId: string | null;
   gameSpecificData: string;
+  notes: string | null;
 }
 
 export interface MatchEntryRow {
@@ -120,8 +122,8 @@ export interface BlockAssignment {
 }
 
 export interface ScoutingBlockWithAssignments extends ScoutingBlock {
-  redScouts: (string | null)[]; // Array of 3 user IDs or null
-  blueScouts: (string | null)[]; // Array of 3 user IDs or null
+  redScouts: (string | null)[]; // Array of user IDs or null (2 for FTC, 3 for FRC)
+  blueScouts: (string | null)[]; // Array of user IDs or null (2 for FTC, 3 for FRC)
 }
 
 // ========== SCHEDULING DATABASE SERVICE TYPES ==========
@@ -174,7 +176,7 @@ export interface DatabaseService {
   deleteBlockAssignmentsByBlock(blockId: number): Promise<void>;
 
   // Scouting blocks with assignments (combined query)
-  getScoutingBlocksWithAssignments(eventCode: string, year: number): Promise<ScoutingBlockWithAssignments[]>;
+  getScoutingBlocksWithAssignments(eventCode: string, year: number, scoutsPerAlliance?: number): Promise<ScoutingBlockWithAssignments[]>;
 
   // User preferred partners
   updateUserPreferredPartners(userId: string, preferredPartners: string[]): Promise<void>;

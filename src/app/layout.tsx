@@ -4,7 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GameConfigProvider } from "@/hooks/use-game-config";
 import { EventProvider } from "@/hooks/use-event-config";
-import { ServiceWorkerManager } from "@/components/service-worker-manager";
+import { ServiceWorkerManager } from "@/components/sync/service-worker-manager";
 import { SessionProvider } from "@/components/session-provider";
 import { SonnerToaster } from "@/components/sonner-toaster";
 
