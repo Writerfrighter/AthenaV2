@@ -53,8 +53,8 @@ export default function Page() {
 
       {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="gap-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 -pb-1">
             <CardTitle className="text-sm font-medium">Teams Scouted</CardTitle>
             <Users className="h-4 w-4 text-primary" />
           </CardHeader>
@@ -66,8 +66,8 @@ export default function Page() {
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="gap-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 -pb-2">
             <CardTitle className="text-sm font-medium">Entries Recorded</CardTitle>
             <ClipboardList className="h-4 w-4 text-primary" />
           </CardHeader>
@@ -80,7 +80,7 @@ export default function Page() {
         </Card>
         
         {/* <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 -pb-2">
             <CardTitle className="text-sm font-medium">Data Quality</CardTitle>
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
@@ -92,8 +92,8 @@ export default function Page() {
           </CardContent>
         </Card> */}
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="gap-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 -pb-2">
             <CardTitle className="text-sm font-medium">Ranking</CardTitle>
             <Trophy className="h-4 w-4 text-primary" />
           </CardHeader>

@@ -98,7 +98,7 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
       {/* Event Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="pt-1">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Teams</p>
@@ -116,14 +116,11 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
         </Card>
 
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="pt-1">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Event</p>
                 <p className="text-sm font-semibold">{currentEvent.name}</p>
-                <Badge variant="outline" className="text-xs mt-1">
-                  {currentEvent.code}
-                </Badge>
               </div>
               <div className="p-2 bg-muted rounded-lg">
                 <Trophy className="h-5 w-5 text-muted-foreground" />
@@ -133,7 +130,7 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
         </Card>
 
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="pt-1">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Region</p>

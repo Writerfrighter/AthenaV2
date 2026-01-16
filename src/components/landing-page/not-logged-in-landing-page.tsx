@@ -14,7 +14,8 @@ import {
   Sparkles,
   ShieldCheck,
   Trophy,
-  Heart
+  Heart,
+  Calendar
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -46,6 +47,12 @@ export function NotLoggedInLandingPage() {
 
   const featureCards = [
     {
+      title: "Scheduling",
+      description: "Collect anywhere, sync later",
+      icon: Calendar,
+      targetId: "offline-capable"
+    },
+    {
       title: "Pit Scouting",
       description: "Robot capabilities & build notes",
       icon: Hammer,
@@ -62,12 +69,6 @@ export function NotLoggedInLandingPage() {
       description: "Alliance-ready reporting",
       icon: BarChart3,
       targetId: "analytics"
-    },
-    {
-      title: "Offline Capable",
-      description: "Collect anywhere, sync later",
-      icon: Wifi,
-      targetId: "offline-capable"
     }
   ]
 
@@ -154,8 +155,8 @@ export function NotLoggedInLandingPage() {
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link href="/signup">
-                  <Button size="lg" className="gap-2">
-                    <UserPlus className="h-4 w-4" />
+                  <Button size="xl" className="gap-2 text-lg">
+                    <UserPlus className="h-10 w-10" />
                     Get Started
                   </Button>
                 </Link>
@@ -177,9 +178,9 @@ export function NotLoggedInLandingPage() {
       <section id="mission" className="relative z-10 w-full py-16 sm:py-20 bg-primary/5">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <h2 className="text-3xl sm:text-4xl font-bold">Give your team the edge we built for ours.</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold">Stay on track from anywhere.</h2>
             <p className="text-lg text-muted-foreground">
-              Athena connects every match entry, every pit entry, and every strategy meeting so your team can move with certainty.
+              Athena connects every match entry, every pit entry, and every strategy meeting so your team can plan with certainty.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-12">
@@ -187,8 +188,10 @@ export function NotLoggedInLandingPage() {
               const Icon = item.icon
               return (
                 <div key={item.title} className="rounded-3xl border border-primary/15 bg-background/80 p-6 space-y-3">
-                  <Icon className="h-8 w-8 text-primary" />
-                  <h3 className="text-xl font-semibold">{item.title}</h3>
+                  <div className="flex justify-between">
+                    <h3 className="text-xl font-semibold">{item.title}</h3>
+                    <Icon className="h-7 w-7 text-primary" />
+                  </div>
                   <p className="text-sm text-muted-foreground">{item.description}</p>
                 </div>
               )
@@ -258,8 +261,8 @@ export function NotLoggedInLandingPage() {
       <section className="relative z-10 w-full py-16 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 max-w-3xl mx-auto mb-10">
-            <h2 className="text-3xl font-bold">Everything you need, ready when you need it.</h2>
-            <p className="text-lg text-muted-foreground">Dive deeper into any capability below—each button drops you right into the overview further down the page.</p>
+            <h2 className="text-3xl sm:text-4xl font-bold">Tools to match your workflow.</h2>
+            <p className="text-lg text-muted-foreground">Learn more about our features that help you plan your schedule, scout in the pits and during matches, and analyze your results.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featureCards.map((card) => {
@@ -271,12 +274,12 @@ export function NotLoggedInLandingPage() {
                   className="group text-left"
                 >
                   <div className="h-full rounded-2xl border border-primary/15 bg-background/80 hover:border-primary/40 transition-colors p-6 flex flex-col justify-between shadow-sm">
-                    <div>
-                      <Icon className="h-8 w-8 text-primary mb-4" />
+                    <div className="flex justify-between">
+                      
                       <h3 className="font-semibold text-xl mb-2">{card.title}</h3>
-                      <p className="text-sm text-muted-foreground">{card.description}</p>
+                      <Icon className="h-7 w-7 text-primary mb-4" />
                     </div>
-                    <div className="flex items-center text-sm font-medium text-primary gap-2 mt-4">
+                    <div className="flex items-center text-sm font-medium text-primary gap-2 -mt-1">
                       Explore
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </div>
@@ -288,7 +291,31 @@ export function NotLoggedInLandingPage() {
         </div>
       </section>
 
-      {/* Features Section 1 - Pit Scouting */}
+      {/* Features Section 1 - Scheduling */}
+      <section id="scheduling" className="relative z-10 w-full py-12 sm:py-16 bg-primary/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="relative">
+              <div className="aspect-square rounded-lg bg-background flex items-center justify-center overflow-hidden">
+                <Calendar className="h-32 w-32 text-primary/20" />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-6">Scheduling</h2>
+              <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+                Here's a super cool description of this feature that's yet to be written. You should use this cool feature. Here's a super cool description of this feature that's yet to be written. You should use this cool feature. 
+              </p>
+              <Link href="/login">
+                <Button variant="outline" size="lg" className="gap-2">
+                  GET STARTED <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section 2 - Pit Scouting */}
       <section id="pit-scouting" className="relative z-10 w-full py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -312,7 +339,7 @@ export function NotLoggedInLandingPage() {
         </div>
       </section>
 
-      {/* Features Section 2 - Match Scouting */}
+      {/* Features Section 3 - Match Scouting */}
       <section id="match-scouting" className="relative z-10 w-full py-12 sm:py-16 bg-primary/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -336,7 +363,7 @@ export function NotLoggedInLandingPage() {
         </div>
       </section>
 
-      {/* Features Section 3 - Analytics */}
+      {/* Features Section 4 - Analytics */}
       <section id="analytics" className="relative z-10 w-full py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -355,30 +382,6 @@ export function NotLoggedInLandingPage() {
               <div className="aspect-square rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
                 <BarChart3 className="h-32 w-32 text-primary/20" />
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section 4 - Offline Capable */}
-      <section id="offline-capable" className="relative z-10 w-full py-12 sm:py-16 bg-primary/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="relative">
-              <div className="aspect-square rounded-lg bg-background flex items-center justify-center overflow-hidden">
-                <Wifi className="h-32 w-32 text-primary/20" />
-              </div>
-            </div>
-            <div>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-6">Offline Capable</h2>
-              <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                Scout anywhere, anytime. Athena V2's offline-first architecture ensures you can collect data from the pits or bleachers without worrying about connectivity. Data syncs automatically when you're back online, so nothing is ever lost.
-              </p>
-              <Link href="/login">
-                <Button variant="outline" size="lg" className="gap-2">
-                  GET STARTED <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
             </div>
           </div>
         </div>

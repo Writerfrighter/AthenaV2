@@ -1125,7 +1125,7 @@ export default function SchedulePage() {
 
           {/* Summary Stats */}
           <div className="grid gap-4 md:grid-cols-5">
-            <Card>
+            <Card className="gap-1">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Shifts</CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -1134,7 +1134,7 @@ export default function SchedulePage() {
                 <div className="text-2xl font-bold">{blocks.length}</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="gap-1">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Assigned</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
@@ -1143,7 +1143,7 @@ export default function SchedulePage() {
                 <div className="text-2xl font-bold">{scheduleSummary.totalAssigned}</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="gap-1">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Unassigned</CardTitle>
                 <Clock className="h-4 w-4 text-muted-foreground" />
@@ -1152,7 +1152,7 @@ export default function SchedulePage() {
                 <div className="text-2xl font-bold">{scheduleSummary.unassigned}</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="gap-1">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Scouts</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
@@ -1161,7 +1161,7 @@ export default function SchedulePage() {
                 <div className="text-2xl font-bold">{scheduleSummary.activeAssignedCount}</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="gap-1">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Preferred Pairings</CardTitle>
                 <Handshake className="h-4 w-4 text-primary" />

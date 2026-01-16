@@ -105,10 +105,7 @@ export default function Page() {
         
         <div className="w-full max-w-md">
           <Card className="shadow-lg rounded-2xl backdrop-blur-sm">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full w-12 h-12 flex items-center justify-center shadow-sm">
-                <UserPlus className="h-6 w-6 text-primary" />
-              </div>
+            <CardHeader className="text-center mt-2">
               <CardTitle className="text-2xl font-semibold text-primary">Create Account</CardTitle>
               <CardDescription className="text-muted-foreground">
                 Join the TRC Athena Scouting platform
@@ -170,7 +167,7 @@ export default function Page() {
                 {/* Submit Button */}
                 <Button 
                   type="submit" 
-                  className="w-full" 
+                  className="w-full mt-6" 
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (

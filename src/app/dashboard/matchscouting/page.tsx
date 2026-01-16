@@ -198,7 +198,7 @@ export default function MatchScoutingPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium">Total Entries</CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
@@ -211,7 +211,7 @@ export default function MatchScoutingPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium">Unique Teams</CardTitle>
             <Badge variant="secondary" className="h-4 w-4 p-0" />
@@ -226,7 +226,7 @@ export default function MatchScoutingPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium">Matches Played</CardTitle>
             <Trophy className="h-4 w-4 text-muted-foreground" />
