@@ -691,10 +691,9 @@ export default function SchedulePage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">Step 1</Badge>
                 <CardTitle>Matches Per Shift</CardTitle>
               </div>
-              <CardDescription>
+              <CardDescription className="-mb-3">
                 Set how many qualification matches each scouting shift will cover.
               </CardDescription>
             </CardHeader>
@@ -722,7 +721,6 @@ export default function SchedulePage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">Step 2</Badge>
                 <CardTitle>Match Count</CardTitle>
               </div>
               <CardDescription>
@@ -822,7 +820,6 @@ export default function SchedulePage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">Step 3</Badge>
                 <CardTitle>Generate Shifts</CardTitle>
               </div>
               <CardDescription>

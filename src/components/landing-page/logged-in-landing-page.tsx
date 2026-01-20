@@ -84,7 +84,7 @@ export function LoggedInLandingPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+        <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="relative flex items-center justify-center">
               <Image
@@ -95,12 +95,12 @@ export function LoggedInLandingPage() {
                 className="rounded"
               />
             </div>
-            <span className="font-bold text-lg">Athena V2</span>
+            <span className="font-bold text-lg">Athena</span>
           </div>
           <div className="flex items-center gap-3">
             <OfflineStatusWidget showSyncButton className="hidden sm:flex" />
             <ModeToggle />
-            <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: '/login' })}>
+            <Button variant="outline" size="lg" onClick={() => signOut({ callbackUrl: '/login' })}>
               Logout
             </Button>
           </div>
@@ -111,7 +111,7 @@ export function LoggedInLandingPage() {
       <main className="relative z-10 flex-1 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           {/* Welcome Section */}
-          <section className="mb-12">
+          <section className="mb-10">
             <h1 className="text-4xl sm:text-5xl font-bold mb-2">
               Welcome, <span className="text-primary">{session?.user?.name || 'Scout'}</span>
             </h1>
@@ -121,20 +121,20 @@ export function LoggedInLandingPage() {
           </section>
 
           {/* Quick Actions Grid */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <Link href="/scout/pitscout">
               <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Hammer className="h-5 w-5 text-primary" />
-                    Pit Scouting
+                  <CardTitle className="flex justify-between gap-2">
+                      Pit Scouting
+                      <Hammer className="h-5 w-5 text-primary" />
                   </CardTitle>
                   <CardDescription>Robot capabilities & team data</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="-mt-2 -mb-2">
                   <Button variant="ghost" className="w-full group">
                     Start Scouting
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="h-4 w-4 ml-2 mt-1 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </CardContent>
               </Card>
@@ -143,13 +143,13 @@ export function LoggedInLandingPage() {
             <Link href="/scout/matchscout">
               <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-primary" />
+                  <CardTitle className="flex justify-between gap-2">
                     Match Scouting
+                    <Zap className="h-5 w-5 text-primary" />
                   </CardTitle>
                   <CardDescription>Live match data collection</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="-mt-2 -mb-2">
                   <Button variant="ghost" className="w-full group">
                     Scout Match
                     <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -161,13 +161,13 @@ export function LoggedInLandingPage() {
             <Link href="/dashboard">
               <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-primary" />
+                  <CardTitle className="flex justify-between gap-2">
                     Dashboard
+                    <BarChart3 className="h-5 w-5 text-primary" />
                   </CardTitle>
                   <CardDescription>Performance data & trends</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="-mt-2 -mb-2">
                   <Button variant="ghost" className="w-full group">
                     View Analytics
                     <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -177,9 +177,14 @@ export function LoggedInLandingPage() {
             </Link>
           </section>
 
+          {/* Event Info Card */}
+          <div className="mb-10">
+            <EventInfoCard />
+          </div>
+
           {/* Schedule & Event Section */}
-          <section className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+          <section className="">
+            <div className="">
               <h2 className="text-2xl font-bold mb-4">Your Schedule</h2>
               {isLoading ? (
                 <Card>
@@ -221,9 +226,7 @@ export function LoggedInLandingPage() {
                 </Card>
               )}
             </div>
-            <div className="space-y-6">
-              <EventInfoCard />
-            </div>
+
           </section>
         </div>
       </main>

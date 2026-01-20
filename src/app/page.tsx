@@ -3,7 +3,8 @@ import { LoggedInLandingPage } from '@/components/landing-page/logged-in-landing
 import { NotLoggedInLandingPage } from '@/components/landing-page/not-logged-in-landing-page'
 
 export default async function Page() {
-  const session = await auth()
+  // const session = await auth()
 
-  return session ? <LoggedInLandingPage /> : <NotLoggedInLandingPage />
+  // return session ? <LoggedInLandingPage /> : <NotLoggedInLandingPage />
+  return <LoggedInLandingPage></LoggedInLandingPage>
 }

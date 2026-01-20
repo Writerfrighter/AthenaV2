@@ -23,20 +23,16 @@ export function EventInfoCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 -mb-4">
           Event Information
-          <Badge variant="secondary">{selectedEvent.code}</Badge>
+          
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <div>
-            <strong>Event Name:</strong>
-            <p className="text-sm text-muted-foreground">{selectedEvent.name}</p>
-          </div>
-          <div>
-            <strong>Event Code:</strong>
-            <p className="text-sm text-muted-foreground">{selectedEvent.code}</p>
+          <div className="flex">
+            <p className="text-sm text-muted-foreground pr-4">{selectedEvent.name}</p>
+            <Badge variant="secondary">{selectedEvent.code}</Badge>
           </div>
         </div>
       </CardContent>
