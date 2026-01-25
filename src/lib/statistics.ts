@@ -492,14 +492,44 @@ export function computeScouterAccuracy(
     });
   });
 
+  // Add ridge regularization to improve numerical stability and handle underdetermined systems
+  // This adds a small value to the diagonal, ensuring the matrix is positive definite
+  const lambda = 0.01; // Regularization parameter (small to avoid over-penalizing)
+  for (let i = 0; i < n; i++) {
+    AtA[i][i] += lambda;
+  }
+
   const solution = solveLinearSystem(AtA, Atb);
 
   if (!solution) {
+    // Provide diagnostic information
+    const scouterMatchCounts = new Map<string, number>();
+    validMatches.forEach(m => {
+      if (m.userId) {
+        scouterMatchCounts.set(m.userId, (scouterMatchCounts.get(m.userId) || 0) + 1);
+      }
+    });
+    
+    // Check for isolated scouters (those who don't share matches with others)
+    const sharedMatches = new Set<number>();
+    allianceGroups.forEach((allianceMatches) => {
+      if (allianceMatches.length > 1) {
+        allianceMatches.forEach(m => sharedMatches.add(m.matchNumber));
+      }
+    });
+    
+    const diagnosticInfo = [
+      `Matrix is singular - cannot solve for ${n} scouters with ${m} equations`,
+      `Scouters: ${n}, Equations: ${m}, Matches: ${validMatches.length}`,
+      `Shared matches (with multiple scouters): ${sharedMatches.size}`,
+      'Try: (1) More matches with official results, (2) Ensure scouters scout same matches, (3) More overlap between scouters'
+    ];
+    
     return {
       scouters: [],
       overallMeanError: 0,
       convergenceAchieved: false,
-      message: 'Failed to solve linear system - matrix may be singular'
+      message: diagnosticInfo.join('\n')
     };
   }
 

@@ -10,6 +10,27 @@ const isOnline = (): boolean => {
   return typeof window !== 'undefined' ? navigator.onLine : true;
 };
 
+// Timeout for network requests (in milliseconds)
+const NETWORK_TIMEOUT = 8000; // 8 seconds
+
+// Helper to fetch with timeout
+const fetchWithTimeout = async (url: string, options: RequestInit, timeout: number = NETWORK_TIMEOUT): Promise<Response> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+};
+
 // Result type for create operations that may be queued
 export interface CreateResult {
   id?: number; // Server ID if synced immediately
@@ -48,15 +69,20 @@ export const pitApi = {
       return { queueId, isQueued: true };
     }
 
-    // If online, try to submit immediately
+    // If online, try to submit immediately with timeout
     try {
-      const response = await fetch(`${API_BASE}/pit`, {
+      const response = await fetchWithTimeout(`${API_BASE}/pit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entry)
       });
       
       if (!response.ok) {
+        // Handle duplicate entry (409 Conflict)
+        if (response.status === 409) {
+          const error = await response.json();
+          throw new Error(error.message || 'A pit scouting entry already exists for this team at this event');
+        }
         // If network error, queue the entry
         if (!response.status || response.status >= 500) {
           const queueId = await offlineQueueManager.queuePitEntry(entry);
@@ -68,8 +94,13 @@ export const pitApi = {
       const result = await response.json();
       return { id: result.id, isQueued: false };
     } catch (error) {
-      // On network error, queue the entry
-      if (error instanceof TypeError && error.message.includes('fetch')) {
+      // Re-throw user-friendly errors (duplicates should not be queued)
+      if (error instanceof Error && error.message.includes('already exists')) {
+        throw error;
+      }
+      // On network timeout or error, queue the entry
+      if (error instanceof TypeError || (error instanceof Error && error.name === 'AbortError')) {
+        console.log('Network slow or unavailable, queueing pit entry for later sync');
         const queueId = await offlineQueueManager.queuePitEntry(entry);
         return { queueId, isQueued: true };
       }
@@ -122,15 +153,20 @@ export const matchApi = {
       return { queueId, isQueued: true };
     }
 
-    // If online, try to submit immediately
+    // If online, try to submit immediately with timeout
     try {
-      const response = await fetch(`${API_BASE}/match`, {
+      const response = await fetchWithTimeout(`${API_BASE}/match`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entry)
       });
       
       if (!response.ok) {
+        // Handle duplicate entry (409 Conflict)
+        if (response.status === 409) {
+          const error = await response.json();
+          throw new Error(error.message || 'A match scouting entry already exists for this team in this match');
+        }
         // If network error, queue the entry
         if (!response.status || response.status >= 500) {
           const queueId = await offlineQueueManager.queueMatchEntry(entry);
@@ -142,8 +178,13 @@ export const matchApi = {
       const result = await response.json();
       return { id: result.id, isQueued: false };
     } catch (error) {
-      // On network error, queue the entry
-      if (error instanceof TypeError && error.message.includes('fetch')) {
+      // Re-throw user-friendly errors (duplicates should not be queued)
+      if (error instanceof Error && error.message.includes('already exists')) {
+        throw error;
+      }
+      // On network timeout or error, queue the entry
+      if (error instanceof TypeError || (error instanceof Error && error.name === 'AbortError')) {
+        console.log('Network slow or unavailable, queueing match entry for later sync');
         const queueId = await offlineQueueManager.queueMatchEntry(entry);
         return { queueId, isQueued: true };
       }

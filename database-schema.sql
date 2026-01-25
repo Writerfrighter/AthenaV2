@@ -31,7 +31,8 @@ CREATE TABLE pitEntries (
     notes NVARCHAR(MAX),
     created_at DATETIME DEFAULT GETDATE(),
     updated_at DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT uq_pit_entry UNIQUE (teamNumber, eventCode, year, competitionType)
 );
 
 -- Match scouting entries table
@@ -51,7 +52,8 @@ CREATE TABLE matchEntries (
     timestamp DATETIME2 NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
     updated_at DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT uq_match_entry UNIQUE (teamNumber, matchNumber, eventCode, year, competitionType)
 );
 
 -- Custom events table for events not available on The Blue Alliance

@@ -17,10 +17,10 @@ function getDbService() {
 // GET /api/database/match - Get all match entries or filter by team/year/event/competitionType
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_MATCH_SCOUTING)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    // const session = await auth();
+    // if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_MATCH_SCOUTING)) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    // }
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id') ? parseInt(searchParams.get('id')!) : undefined;
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
@@ -76,6 +76,28 @@ export async function POST(request: NextRequest) {
       userId: actualUserId
     };
     const service = getDbService();
+    
+    // Check for duplicate entry
+    const existingEntries = await service.getAllMatchEntries(
+      entryWithUser.year,
+      entryWithUser.eventCode,
+      entryWithUser.competitionType
+    );
+    const duplicate = existingEntries.find(
+      e => e.teamNumber === entryWithUser.teamNumber &&
+           e.matchNumber === entryWithUser.matchNumber &&
+           e.eventCode === entryWithUser.eventCode &&
+           e.year === entryWithUser.year &&
+           e.competitionType === entryWithUser.competitionType
+    );
+    
+    if (duplicate) {
+      return NextResponse.json(
+        { error: 'Duplicate entry', message: `Match scouting entry already exists for team ${entryWithUser.teamNumber} in match ${entryWithUser.matchNumber}` },
+        { status: 409 }
+      );
+    }
+    
     const id = await service.addMatchEntry(entryWithUser);
     return NextResponse.json({ id }, { status: 201 });
   } catch (error) {

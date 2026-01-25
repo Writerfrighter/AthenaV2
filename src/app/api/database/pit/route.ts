@@ -90,6 +90,27 @@ export async function POST(request: NextRequest) {
       userId: actualUserId
     };
     const service = getDbService();
+    
+    // Check for duplicate entry
+    const existingEntries = await service.getAllPitEntries(
+      entryWithUser.year,
+      entryWithUser.eventCode,
+      entryWithUser.competitionType
+    );
+    const duplicate = existingEntries.find(
+      e => e.teamNumber === entryWithUser.teamNumber &&
+           e.eventCode === entryWithUser.eventCode &&
+           e.year === entryWithUser.year &&
+           e.competitionType === entryWithUser.competitionType
+    );
+    
+    if (duplicate) {
+      return NextResponse.json(
+        { error: 'Duplicate entry', message: `Pit scouting entry already exists for team ${entryWithUser.teamNumber} at this event` },
+        { status: 409 }
+      );
+    }
+    
     const id = await service.addPitEntry(entryWithUser);
     return NextResponse.json({ id }, { status: 201 });
   } catch (error) {

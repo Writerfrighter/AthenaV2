@@ -141,7 +141,8 @@ export class AzureSqlDatabaseService implements DatabaseService {
         notes NVARCHAR(MAX),
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
-        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL,
+        CONSTRAINT uq_pit_entry UNIQUE (teamNumber, eventCode, year, competitionType)
       )
     `);
     
@@ -164,7 +165,8 @@ export class AzureSqlDatabaseService implements DatabaseService {
         timestamp DATETIME2 NOT NULL,
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
-        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL,
+        CONSTRAINT uq_match_entry UNIQUE (teamNumber, matchNumber, eventCode, year, competitionType)
       )
     `);
 
@@ -225,32 +227,53 @@ export class AzureSqlDatabaseService implements DatabaseService {
                      WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'preferredPartners')
       ALTER TABLE users ADD preferredPartners NVARCHAR(MAX)
     `);
+
+    // Add unique constraint to pitEntries if it doesn't exist
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = 'uq_pit_entry' AND type = 'UQ')
+      ALTER TABLE pitEntries ADD CONSTRAINT uq_pit_entry UNIQUE (teamNumber, eventCode, year, competitionType)
+    `);
+
+    // Add unique constraint to matchEntries if it doesn't exist
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = 'uq_match_entry' AND type = 'UQ')
+      ALTER TABLE matchEntries ADD CONSTRAINT uq_match_entry UNIQUE (teamNumber, matchNumber, eventCode, year, competitionType)
+    `);
   }
 
   // Pit scouting methods
   async addPitEntry(entry: Omit<PitEntry, 'id'>): Promise<number> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
-    const result = await pool.request()
-      .input('teamNumber', mssql.Int, entry.teamNumber)
-      .input('year', mssql.Int, entry.year)
-      .input('competitionType', mssql.NVarChar, entry.competitionType)
-      .input('driveTrain', mssql.NVarChar, entry.driveTrain)
-      .input('weight', mssql.Decimal(10, 2), entry.weight !== undefined ? entry.weight : null)
-      .input('length', mssql.Decimal(10, 2), entry.length !== undefined ? entry.length : null)
-      .input('width', mssql.Decimal(10, 2), entry.width !== undefined ? entry.width : null)
-      .input('eventName', mssql.NVarChar, entry.eventName)
-      .input('eventCode', mssql.NVarChar, entry.eventCode)
-      .input('userId', mssql.NVarChar, entry.userId || null)
-      .input('gameSpecificData', mssql.NVarChar, JSON.stringify(entry.gameSpecificData))
-      .input('notes', mssql.NVarChar, entry.notes || null)
-      .query(`
-        INSERT INTO pitEntries (teamNumber, year, competitionType, driveTrain, weight, length, width, eventName, eventCode, userId, gameSpecificData, notes)
-        OUTPUT INSERTED.id
-        VALUES (@teamNumber, @year, @competitionType, @driveTrain, @weight, @length, @width, @eventName, @eventCode, @userId, @gameSpecificData, @notes)
-      `);
+    
+    try {
+      const result = await pool.request()
+        .input('teamNumber', mssql.Int, entry.teamNumber)
+        .input('year', mssql.Int, entry.year)
+        .input('competitionType', mssql.NVarChar, entry.competitionType)
+        .input('driveTrain', mssql.NVarChar, entry.driveTrain)
+        .input('weight', mssql.Decimal(10, 2), entry.weight !== undefined ? entry.weight : null)
+        .input('length', mssql.Decimal(10, 2), entry.length !== undefined ? entry.length : null)
+        .input('width', mssql.Decimal(10, 2), entry.width !== undefined ? entry.width : null)
+        .input('eventName', mssql.NVarChar, entry.eventName)
+        .input('eventCode', mssql.NVarChar, entry.eventCode)
+        .input('userId', mssql.NVarChar, entry.userId || null)
+        .input('gameSpecificData', mssql.NVarChar, JSON.stringify(entry.gameSpecificData))
+        .input('notes', mssql.NVarChar, entry.notes || null)
+        .query(`
+          INSERT INTO pitEntries (teamNumber, year, competitionType, driveTrain, weight, length, width, eventName, eventCode, userId, gameSpecificData, notes)
+          OUTPUT INSERTED.id
+          VALUES (@teamNumber, @year, @competitionType, @driveTrain, @weight, @length, @width, @eventName, @eventCode, @userId, @gameSpecificData, @notes)
+        `);
 
-    return result.recordset[0].id;
+      return result.recordset[0].id;
+    } catch (error: any) {
+      // Check for unique constraint violation (SQL Server error code 2627)
+      if (error.number === 2627 || error.message?.includes('uq_pit_entry')) {
+        throw new Error(`Duplicate pit entry: Team ${entry.teamNumber} already has a pit scouting entry for this event`);
+      }
+      throw error;
+    }
   }
 
   async getPitEntry(teamNumber: number, year: number, competitionType?: CompetitionType): Promise<PitEntry | undefined> {
@@ -423,26 +446,35 @@ export class AzureSqlDatabaseService implements DatabaseService {
   async addMatchEntry(entry: Omit<MatchEntry, 'id'>): Promise<number> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
-    const result = await pool.request()
-      .input('matchNumber', mssql.Int, entry.matchNumber)
-      .input('teamNumber', mssql.Int, entry.teamNumber)
-      .input('year', mssql.Int, entry.year)
-      .input('competitionType', mssql.NVarChar, entry.competitionType)
-      .input('alliance', mssql.NVarChar, entry.alliance)
-      .input('alliancePosition', mssql.Int, entry.alliancePosition || null)
-      .input('eventName', mssql.NVarChar, entry.eventName)
-      .input('eventCode', mssql.NVarChar, entry.eventCode)
-      .input('userId', mssql.NVarChar, entry.userId || null)
-      .input('gameSpecificData', mssql.NVarChar, JSON.stringify(entry.gameSpecificData))
-      .input('notes', mssql.NVarChar, entry.notes)
-      .input('timestamp', mssql.DateTime2, entry.timestamp)
-      .query(`
-        INSERT INTO matchEntries (matchNumber, teamNumber, year, competitionType, alliance, alliancePosition, eventName, eventCode, userId, gameSpecificData, notes, timestamp)
-        OUTPUT INSERTED.id
-        VALUES (@matchNumber, @teamNumber, @year, @competitionType, @alliance, @alliancePosition, @eventName, @eventCode, @userId, @gameSpecificData, @notes, @timestamp)
-      `);
+    
+    try {
+      const result = await pool.request()
+        .input('matchNumber', mssql.Int, entry.matchNumber)
+        .input('teamNumber', mssql.Int, entry.teamNumber)
+        .input('year', mssql.Int, entry.year)
+        .input('competitionType', mssql.NVarChar, entry.competitionType)
+        .input('alliance', mssql.NVarChar, entry.alliance)
+        .input('alliancePosition', mssql.Int, entry.alliancePosition || null)
+        .input('eventName', mssql.NVarChar, entry.eventName)
+        .input('eventCode', mssql.NVarChar, entry.eventCode)
+        .input('userId', mssql.NVarChar, entry.userId || null)
+        .input('gameSpecificData', mssql.NVarChar, JSON.stringify(entry.gameSpecificData))
+        .input('notes', mssql.NVarChar, entry.notes)
+        .input('timestamp', mssql.DateTime2, entry.timestamp)
+        .query(`
+          INSERT INTO matchEntries (matchNumber, teamNumber, year, competitionType, alliance, alliancePosition, eventName, eventCode, userId, gameSpecificData, notes, timestamp)
+          OUTPUT INSERTED.id
+          VALUES (@matchNumber, @teamNumber, @year, @competitionType, @alliance, @alliancePosition, @eventName, @eventCode, @userId, @gameSpecificData, @notes, @timestamp)
+        `);
 
-    return result.recordset[0].id;
+      return result.recordset[0].id;
+    } catch (error: any) {
+      // Check for unique constraint violation (SQL Server error code 2627)
+      if (error.number === 2627 || error.message?.includes('uq_match_entry')) {
+        throw new Error(`Duplicate match entry: Team ${entry.teamNumber} already has an entry for match ${entry.matchNumber} at this event`);
+      }
+      throw error;
+    }
   }
 
   async getMatchEntries(teamNumber: number, year?: number, competitionType?: CompetitionType): Promise<MatchEntry[]> {
