@@ -1,5 +1,80 @@
 {
   "FRC": {
+    "2026": {
+      "competitionType": "FRC",
+      "gameName": "REBUILT",
+      "startPositions": ["Left Trench", "Left Bump", "Hub", "Right Bump", "Right Trench"],
+      "scoring": {
+        "autonomous": {
+          "fuel_scored": {
+            "label": "Fuel Scored (Auto)",
+            "points": 1,
+            "description": "Fuel scored during autonomous"
+          },
+          "climb": {
+            "label": "Tower L1 (Auto)",
+            "points": 15,
+            "description": "L1 climbed during autonomous",
+            "type": "boolean"
+          }
+        },
+        "teleop": {
+          "fuel_scored": {
+            "label": "Fuel Scored (Teleop)",
+            "points": 1,
+            "description": "Fuel scored during teleoperated"
+          },
+          "fuel_missed": {
+            "label": "Fuel Missed (Teleop)",
+            "points": 0,
+            "description": "Fuel missed during teleoperated"
+          },
+          "fuel_passed": {
+            "label": "Fuel Passed (Teleop)",
+            "points": 0,
+            "description": "Fuel passed during teleoperated"
+          },
+          "fuel_corraled": {
+            "label": "Fuel Corraled (Teleop)",
+            "points": 0,
+            "description": "Fuel put into the corral during teleoperated"
+          }
+        },
+        "endgame": {
+          "robot_broke_down": {
+            "label": "Robot Broke Down",
+            "description": "Robot stopped moving and/or had issues",
+            "type": "boolean"
+          },
+          "ending_robot_state": {
+            "label": "Ending Robot State",
+            "description": "Robot's final position during endgame",
+            "pointValues": {
+              "none": 0,
+              "L1": 10,
+              "L2": 20,
+              "L3": 30
+            }
+          }
+        },
+        "fouls": {
+          "fouls": {
+            "label": "Fouls",
+            "points": -3,
+            "description": "Minor penalties committed"
+          },
+          "tech_fouls": {
+            "label": "Tech Fouls",
+            "points": -10,
+            "description": "Technical fouls committed"
+          }
+        }
+      },
+      "pitScouting": {
+        // Pit scouting configuration for 2026 FRC game can be added here
+      }
+
+    }
     "2025": {
       "competitionType": "FRC",
       "gameName": "REEFSCAPE",
