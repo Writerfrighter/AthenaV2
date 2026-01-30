@@ -13,5 +13,11 @@ export type {
   ScoutingBlock,
   BlockAssignment,
   ScoutingBlockWithAssignments,
-  CompetitionType
+  CompetitionType,
+  Picklist,
+  PicklistEntry,
+  PicklistNote,
+  PicklistRow,
+  PicklistEntryRow,
+  PicklistNoteRow
 } from '@/lib/shared-types';

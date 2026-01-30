@@ -71,10 +71,9 @@
         }
       },
       "pitScouting": {
-        // Pit scouting configuration for 2026 FRC game can be added here
       }
 
-    }
+    },
     "2025": {
       "competitionType": "FRC",
       "gameName": "REEFSCAPE",
