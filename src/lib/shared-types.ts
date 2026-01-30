@@ -388,7 +388,7 @@ export interface DynamicPitData {
   width: string;
   hasAuto: boolean;
   notes: string;
-  gameSpecificData: Record<string, number | string | boolean>;
+  gameSpecificData: Record<string, number | string | boolean | string[]>;
 }
 
 // ========== TEAM LIST TYPES ==========

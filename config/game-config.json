@@ -77,36 +77,44 @@
             "type": "select",
             "options": ["Left Trench", "Left Bump", "Hub", "Right Bump", "Right Trench"]
           },
-          "autoLeave": {
-            "label": "L1 Climbing Capability During Auto",
+          "fuelScoredAuto": {
+            "label": "Auto Fuel Scored",
+            "type": "number"
+          },
+          "autoClimb": {
+            "label": "Auto L1 Climbing",
             "type": "boolean"
           },
           "autoRoutineCount": {
-            "label": "Number of Auto Routines",
+            "label": "Number of Auto Paths",
             "type": "number"
           }
         },
         "teleoperated": {
           "intakeType": {
             "label": "Intake Method",
-            "type": "select",
-            "options": ["Ground pickup", "Outpost", "Both", "Neither"]
+            "type": "multiselect",
+            "options": ["Ground pickup", "Outpost", "No Intake"]
+          },
+          "fuelScoredTeleopEstimate": {
+            "label": "Teleop Fuel Scored Estimate",
+            "type": "number"
           },
           "cycleTime": {
             "label": "Estimated Cycle Time (seconds)",
             "type": "number"
           },
-          "reliability": {
-            "label": "Robot Reliability",
+          "humanPlayerAccuracy": {
+            "label": "Human Player Accuracy",
             "type": "select",
-            "options": ["Very Reliable", "Mostly Reliable", "Somewhat Reliable", "Unreliable"]
+            "options": ["Very Reliable (90%+)", "Mostly Reliable (70-90%)", "Somewhat Reliable (40-70%)", "Unreliable (<40%)"]
           }
         },
         "endgame": {
           "climbCapability": {
             "label": "Climbing Capability",
             "type": "select",
-            "options": ["No climb", "Shallow cage only", "Deep cage only", "Both cages"]
+            "options": ["L1", "L2", "L3"]
           },
           "climbTime": {
             "label": "Average Climb Time (seconds)",
@@ -119,10 +127,6 @@
           }
         }
       }
-    }
-  },
-      }
-
     },
     "2025": {
       "competitionType": "FRC",

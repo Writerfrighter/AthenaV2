@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { pitApi } from '@/lib/api/database-client';
@@ -174,7 +175,7 @@ export function DynamicPitScoutForm() {
     }
   };
 
-  const handleGameSpecificChange = (field: string, value: number | string | boolean) => {
+  const handleGameSpecificChange = (field: string, value: number | string | boolean | string[]) => {
     setFormData((f) => ({ 
       ...f, 
       gameSpecificData: { ...f.gameSpecificData, [field]: value }
@@ -377,6 +378,22 @@ export function DynamicPitScoutForm() {
                 </SelectGroup>
               </SelectContent>
             </Select>
+          </div>
+        );
+      
+      case 'multiselect':
+        return (
+          <div key={field.name} className="space-y-2">
+            <Label htmlFor={field.name} className="text-base font-medium">
+              {field.label}
+            </Label>
+            <MultiSelect
+              options={field.options || []}
+              selected={Array.isArray(value) ? value : []}
+              onChange={(selected) => handleGameSpecificChange(field.name, selected)}
+              placeholder={`Select ${field.label.toLowerCase()}`}
+              className="w-full"
+            />
           </div>
         );
       
