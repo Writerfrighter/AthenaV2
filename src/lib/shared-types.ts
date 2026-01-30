@@ -126,6 +126,68 @@ export interface ScoutingBlockWithAssignments extends ScoutingBlock {
   blueScouts: (string | null)[]; // Array of user IDs or null (2 for FTC, 3 for FRC)
 }
 
+// ========== PICKLIST TYPES ==========
+
+export interface Picklist {
+  id?: number;
+  eventCode: string;
+  year: number;
+  competitionType: CompetitionType;
+  picklistType: 'pick1' | 'pick2' | 'main'; // pick1/pick2 for FRC, main for FTC
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+export interface PicklistEntry {
+  id?: number;
+  picklistId: number;
+  teamNumber: number;
+  rank: number; // Position in the picklist (1-indexed)
+  qualRanking?: number; // Initial qualification ranking from TBA/FIRST FTC
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+export interface PicklistNote {
+  id?: number;
+  picklistId: number;
+  teamNumber: number;
+  note: string;
+  created_by?: string;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+export interface PicklistRow {
+  id: number;
+  eventCode: string;
+  year: number;
+  competitionType: string;
+  picklistType: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface PicklistEntryRow {
+  id: number;
+  picklistId: number;
+  teamNumber: number;
+  rank: number;
+  qualRanking: number | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface PicklistNoteRow {
+  id: number;
+  picklistId: number;
+  teamNumber: number;
+  note: string;
+  created_by: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
 // ========== SCHEDULING DATABASE SERVICE TYPES ==========
 
 // ========== DATABASE SERVICE TYPES ==========
@@ -181,6 +243,30 @@ export interface DatabaseService {
   // User preferred partners
   updateUserPreferredPartners(userId: string, preferredPartners: string[]): Promise<void>;
   getUserPreferredPartners(userId: string): Promise<string[]>;
+
+  // Picklist methods
+  addPicklist(picklist: Omit<Picklist, 'id' | 'created_at' | 'updated_at'>): Promise<number>;
+  getPicklist(id: number): Promise<Picklist | undefined>;
+  getPicklistByEvent(eventCode: string, year: number, competitionType: CompetitionType, picklistType?: string): Promise<Picklist | undefined>;
+  getPicklistsByEvent(eventCode: string, year: number, competitionType: CompetitionType): Promise<Picklist[]>;
+  updatePicklist(id: number, updates: Partial<Picklist>): Promise<void>;
+  deletePicklist(id: number): Promise<void>;
+
+  // Picklist entries (team rankings within a picklist)
+  addPicklistEntry(entry: Omit<PicklistEntry, 'id' | 'created_at' | 'updated_at'>): Promise<number>;
+  getPicklistEntry(id: number): Promise<PicklistEntry | undefined>;
+  getPicklistEntries(picklistId: number): Promise<PicklistEntry[]>;
+  updatePicklistEntry(id: number, updates: Partial<PicklistEntry>): Promise<void>;
+  deletePicklistEntry(id: number): Promise<void>;
+  updatePicklistEntryRank(picklistId: number, teamNumber: number, rank: number): Promise<void>;
+  reorderPicklistEntries(picklistId: number, entries: Array<{teamNumber: number, rank: number}>): Promise<void>;
+
+  // Picklist notes (qualitative notes per team in a picklist)
+  addPicklistNote(note: Omit<PicklistNote, 'id' | 'created_at' | 'updated_at'>): Promise<number>;
+  getPicklistNote(id: number): Promise<PicklistNote | undefined>;
+  getPicklistNotes(picklistId: number, teamNumber?: number): Promise<PicklistNote[]>;
+  updatePicklistNote(id: number, updates: Partial<PicklistNote>): Promise<void>;
+  deletePicklistNote(id: number): Promise<void>;
 
   // Sync operations
   exportData(year?: number, competitionType?: CompetitionType): Promise<{pitEntries: PitEntry[], matchEntries: MatchEntry[]}>;

@@ -17,7 +17,7 @@ interface GameConfigContextType {
 const GameConfigContext = createContext<GameConfigContextType | undefined>(undefined);
 
 export function GameConfigProvider({ children }: { children: ReactNode }) {
-  const config = gameConfig as GameConfig;
+  const config = gameConfig as unknown as GameConfig;
   const [isInitialized, setIsInitialized] = useState(false);
   const [competitionType, setCompetitionTypeState] = useState<CompetitionType>('FRC');
   const [currentYear, setCurrentYear] = useState<number>(2025); // Default to current season

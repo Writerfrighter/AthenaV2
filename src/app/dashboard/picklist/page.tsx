@@ -1,178 +1,113 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ReactSortable } from "react-sortablejs";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableCell,
-  TableBody,
-} from "@/components/ui/table";
-import { GripVertical, Trophy, TrendingUp } from "lucide-react";
-import { usePicklistData } from "@/hooks/use-picklist-data";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trophy, TrendingUp, List } from "lucide-react";
+import { useEventConfig } from "@/hooks/use-event-config";
+import { useGameConfig } from "@/hooks/use-game-config";
+import { PicklistConfig } from "@/components/picklist/picklist-config";
+import { DraggablePicklist } from "@/components/picklist/draggable-picklist";
 
-export default function SortablePicklist() {
-  const { teams: picklistTeams, loading } = usePicklistData();
-  const [teams, setTeams] = useState(picklistTeams);
+export default function PicklistPage() {
+  const { selectedEvent } = useEventConfig();
+  const { currentYear, competitionType } = useGameConfig();
+  const [viewMode, setViewMode] = useState<'basic' | 'draggable'>('basic');
 
-  // Update local state when picklist data changes
-  useEffect(() => {
-    setTeams(picklistTeams);
-  }, [picklistTeams]);
+  // Show message if no event selected
+  if (!selectedEvent) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Team Picklist</h1>
+          <p className="text-muted-foreground">
+            Create and manage your alliance selection preferences with drag-and-drop ranking.
+          </p>
+        </div>
+
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center space-y-4">
+              <Trophy className="h-12 w-12 mx-auto text-muted-foreground" />
+              <div>
+                <h3 className="font-semibold text-lg">No Event Selected</h3>
+                <p className="text-muted-foreground">
+                  Please select an event from the event selector to view and manage picklists.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Team Picklist</h1>
-        <p className="text-muted-foreground">
-          Drag and drop teams to reorder your alliance selection preferences. Teams are ranked by Total EPA.
-        </p>
-      </div>
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Teams Listed</p>
-                <p className="text-2xl font-bold">{loading ? "..." : teams.length}</p>
-              </div>
-              <div className="p-2 bg-muted rounded-lg">
-                <TrendingUp className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Top Team EPA</p>
-                <p className="text-2xl font-bold">{loading ? "..." : teams.length > 0 ? Math.max(...teams.map(t => t.totalEPA)).toFixed(3) : "0"}</p>
-              </div>
-              <div className="p-2 bg-muted rounded-lg">
-                <Trophy className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Average EPA</p>
-                <p className="text-2xl font-bold">
-                  {loading ? "..." : teams.length > 0 ? (teams.reduce((sum, t) => sum + t.totalEPA, 0) / teams.length).toFixed(3) : "0"}
-                </p>
-              </div>
-              <div className="p-2 bg-muted rounded-lg">
-                <TrendingUp className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sortable Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Rankings</CardTitle>
-          <CardDescription>
-            Drag teams using the handle to reorder your preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8"></TableHead>
-                  <TableHead>Team</TableHead>
-                  <TableHead>Rank</TableHead>
-                  <TableHead className="text-center">Auto EPA</TableHead>
-                  <TableHead className="text-center">Teleop EPA</TableHead>
-                  <TableHead className="text-center">Endgame EPA</TableHead>
-                  <TableHead className="text-center font-semibold">Total EPA</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              {/* ReactSortable handles the sorting logic and updates state */}
-              <ReactSortable
-                tag="tbody"
-                list={teams}
-                setList={setTeams}
-                animation={200}
-                ghostClass="opacity-50"
-                handle=".drag-handle"
-              >
-                {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    Loading team data...
-                  </TableCell>
-                </TableRow>
-              ) : teams.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    No team data available
-                  </TableCell>
-                </TableRow>
-              ) : (
-                teams.map((team, index) => (
-                  <TableRow 
-                    key={team.id} 
-                    className="hover:bg-muted/50"
-                  >
-                    <TableCell>
-                      <GripVertical className="h-4 w-4 text-muted-foreground cursor-move drag-handle" />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <Badge 
-                            variant="outline" 
-                            className="font-mono"
-                          >
-                            {team.id}
-                          </Badge>
-                          {index < 3 && (
-                            <Badge variant="default">
-                              {index === 0 ? '1st' : index === 1 ? '2nd' : '3rd'}
-                            </Badge>
-                          )}
-                        </div>
-                        <span className="font-medium">{team.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        #{team.rank}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center font-mono">{team.autoEPA}</TableCell>
-                    <TableCell className="text-center font-mono">{team.teleopEPA}</TableCell>
-                    <TableCell className="text-center font-mono">{team.endgameEPA}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="default" className="font-mono">
-                        {team.totalEPA}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-              </ReactSortable>
-            </Table>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Team Picklist</h1>
+          <p className="text-muted-foreground">
+            {competitionType === 'FRC' 
+              ? 'Manage Pick 1 and Pick 2 lists with drag-and-drop ranking.'
+              : 'Create and manage your alliance selection preferences.'
+            }
+          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <Badge variant="outline">{selectedEvent.name}</Badge>
+            <Badge variant="secondary">{competitionType}</Badge>
+            <Badge>{currentYear}</Badge>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* View Mode Toggle (FRC only) */}
+        {competitionType === 'FRC' && (
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'basic' ? 'default' : 'outline'}
+              onClick={() => setViewMode('basic')}
+              size="sm"
+            >
+              <List className="h-4 w-4 mr-2" />
+              Standard View
+            </Button>
+            <Button
+              variant={viewMode === 'draggable' ? 'default' : 'outline'}
+              onClick={() => setViewMode('draggable')}
+              size="sm"
+            >
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Drag & Drop
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Content based on competition type and view mode */}
+      {competitionType === 'FRC' ? (
+        viewMode === 'draggable' ? (
+          <DraggablePicklist
+            eventCode={selectedEvent.code}
+            year={currentYear}
+            competitionType="FRC"
+          />
+        ) : (
+          <PicklistConfig
+            eventCode={selectedEvent.code}
+            year={currentYear}
+            competitionType="FRC"
+          />
+        )
+      ) : (
+        <PicklistConfig
+          eventCode={selectedEvent.code}
+          year={currentYear}
+          competitionType="FTC"
+        />
+      )}
     </div>
   );
 }
