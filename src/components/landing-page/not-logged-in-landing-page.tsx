@@ -345,7 +345,7 @@ export function NotLoggedInLandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="relative">
               <div className="aspect-square rounded-lg bg-background flex items-center justify-center overflow-hidden">
-                <Zap className="h-32 w-32 text-primary/20" />
+                <Image src="/assets/Tablets.jpg" width={600} height={600} alt="Students scouting using green scouting tablets."/>
               </div>
             </div>
             <div>
@@ -380,7 +380,7 @@ export function NotLoggedInLandingPage() {
             </div>
             <div className="order-1 lg:order-2 relative">
               <div className="aspect-square rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
-                <BarChart3 className="h-32 w-32 text-primary/20" />
+                <Image src="/assets/Strat.jpg" width={600} height={600} alt="Students looking over at a clipboard while strategizing."/>
               </div>
             </div>
           </div>
