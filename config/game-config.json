@@ -71,6 +71,53 @@
         }
       },
       "pitScouting": {
+        "autonomous": {
+          "startingPosition": {
+            "label": "Starting Position",
+            "type": "select",
+            "options": ["Left Trench", "Left Bump", "Hub", "Right Bump", "Right Trench"]
+          },
+          "autoLeave": {
+            "label": "L1 Climbing Capability During Auto",
+            "type": "boolean"
+          },
+          "autoRoutineCount": {
+            "label": "Number of Auto Routines",
+            "type": "number"
+          }
+        },
+        "teleoperated": {
+          "intakeType": {
+            "label": "Intake Method",
+            "type": "select",
+            "options": ["Ground pickup", "Outpost", "Both", "Neither"]
+          },
+          "cycleTime": {
+            "label": "Estimated Cycle Time (seconds)",
+            "type": "number"
+          },
+          "reliability": {
+            "label": "Robot Reliability",
+            "type": "select",
+            "options": ["Very Reliable", "Mostly Reliable", "Somewhat Reliable", "Unreliable"]
+          }
+        },
+        "endgame": {
+          "climbCapability": {
+            "label": "Climbing Capability",
+            "type": "select",
+            "options": ["No climb", "Shallow cage only", "Deep cage only", "Both cages"]
+          },
+          "climbTime": {
+            "label": "Average Climb Time (seconds)",
+            "type": "number"
+          },
+          "climbReliability": {
+            "label": "Climb Success Rate",
+            "type": "select",
+            "options": ["Very Reliable (90%+)", "Mostly Reliable (70-90%)", "Somewhat Reliable (40-70%)", "Unreliable (<40%)"]
+          }
+        }
       }
 
     },
