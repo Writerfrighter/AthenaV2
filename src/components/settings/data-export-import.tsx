@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Upload, FileText, FileSpreadsheet, Database, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useGameConfig } from '@/hooks/use-game-config';
 
 type ExportFormat = 'json' | 'csv' | 'xlsx';
 
 export function DataExportImportComponent() {
+  const { config, competitionType } = useGameConfig();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
@@ -18,6 +21,16 @@ export function DataExportImportComponent() {
   const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
   const [includePit, setIncludePit] = useState(true);
   const [includeMatch, setIncludeMatch] = useState(true);
+
+  // Get available years for the current competition type
+  const availableYears = useMemo(() => {
+    const years = Object.keys(config[competitionType] || {}).map(year => ({
+      year: parseInt(year),
+      gameName: config[competitionType][year].gameName
+    }));
+
+    return years.sort((a, b) => b.year - a.year);
+  }, [config, competitionType]);
 
   const handleExport = async (format: ExportFormat) => {
     // Validate selection before starting
@@ -43,6 +56,7 @@ export function DataExportImportComponent() {
         params.append('year', selectedYear.toString());
       }
       params.append('format', format);
+      params.append('competitionType', competitionType);
 
       // Ensure at least one type is selected
       const types: string[] = [];
@@ -62,10 +76,25 @@ export function DataExportImportComponent() {
 
       setExportProgress(95);
 
-      // Get filename from response headers or create default
-      const contentDisposition = response.headers.get('content-disposition');
-      let filename = `scouting-data${selectedYear ? `-${selectedYear}` : ''}.${format}`;
+      // Build descriptive filename
+      const yearInfo = selectedYear 
+        ? availableYears.find(y => y.year === selectedYear)
+        : null;
+      
+      const dataTypeStr = types.length === 2 
+        ? 'all-scouting' 
+        : types[0] === 'pit' 
+          ? 'pit-scouting' 
+          : 'match-scouting';
+      
+      const yearStr = yearInfo 
+        ? `${yearInfo.year}-${yearInfo.gameName.replace(/\s+/g, '-')}` 
+        : 'all-years';
+      
+      let filename = `${competitionType}-${yearStr}-${dataTypeStr}.${format}`;
 
+      // Check if server provided a different filename
+      const contentDisposition = response.headers.get('content-disposition');
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="(.+)"/);
         if (filenameMatch) {
@@ -175,9 +204,11 @@ export function DataExportImportComponent() {
             className="w-full p-2 border rounded-md"
           >
             <option value="">All Years</option>
-            <option value="2023">2023 (CHARGED UP)</option>
-            <option value="2024">2024 (CRESCENDO)</option>
-            <option value="2025">2025 (REEFSCAPE)</option>
+            {availableYears.map(({ year, gameName }) => (
+              <option key={year} value={year}>
+                {year} ({gameName})
+              </option>
+            ))}
           </select>
         </div>
 
@@ -192,27 +223,23 @@ export function DataExportImportComponent() {
               <Progress value={exportProgress} className="h-2" />
             </div>
           )}
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={includePit}
+                onCheckedChange={(checked) => setIncludePit(checked === true)}
+              />
+              Pit Scouting
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={includeMatch}
+                onCheckedChange={(checked) => setIncludeMatch(checked === true)}
+              />
+              Match Scouting
+            </label>
+          </div>
           <div className="flex gap-2 flex-wrap">
-            <div className="flex items-center gap-4 mr-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={includePit}
-                  onChange={(e) => setIncludePit(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                Pit Scouting
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={includeMatch}
-                  onChange={(e) => setIncludeMatch(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                Match Scouting
-              </label>
-            </div>
             <Button
               onClick={() => handleExport('json')}
               disabled={isExporting || (!includePit && !includeMatch)}

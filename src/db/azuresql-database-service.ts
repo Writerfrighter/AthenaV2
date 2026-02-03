@@ -293,18 +293,6 @@ export class AzureSqlDatabaseService implements DatabaseService {
                      WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'preferredPartners')
       ALTER TABLE users ADD preferredPartners NVARCHAR(MAX)
     `);
-
-    // Add unique constraint to pitEntries if it doesn't exist
-    await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = 'uq_pit_entry' AND type = 'UQ')
-      ALTER TABLE pitEntries ADD CONSTRAINT uq_pit_entry UNIQUE (teamNumber, eventCode, year, competitionType)
-    `);
-
-    // Add unique constraint to matchEntries if it doesn't exist
-    await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = 'uq_match_entry' AND type = 'UQ')
-      ALTER TABLE matchEntries ADD CONSTRAINT uq_match_entry UNIQUE (teamNumber, matchNumber, eventCode, year, competitionType)
-    `);
   }
 
   // Pit scouting methods

@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const format = searchParams.get('format') || 'json';
+    const competitionType = searchParams.get('competitionType') as 'FRC' | 'FTC' || undefined;
     // `types` can be a comma-separated list: 'pit', 'match', or omitted for all
     const typesParam = searchParams.get('types');
     const requestedTypes = typesParam
@@ -33,22 +34,48 @@ export async function GET(request: NextRequest) {
     const service = getDbService();
     let data = await service.exportData(year);
 
+    // Filter by competition type if specified
+    if (competitionType) {
+      data = {
+        pitEntries: data.pitEntries.filter(entry => entry.competitionType === competitionType),
+        matchEntries: data.matchEntries.filter(entry => entry.competitionType === competitionType)
+      };
+    }
+
     // Filter data based on requestedTypes parameter (supports comma-separated values)
     if (requestedTypes) {
       const includePit = requestedTypes.includes('pit');
       const includeMatch = requestedTypes.includes('match');
-      data = {
-        pitEntries: includePit ? data.pitEntries : [],
-        matchEntries: includeMatch ? data.matchEntries : []
-      };
+      
+      // For JSON format, completely omit deselected types
+      if (format === 'json') {
+        const filteredData: { pitEntries?: PitEntry[], matchEntries?: MatchEntry[] } = {};
+        if (includePit) filteredData.pitEntries = data.pitEntries;
+        if (includeMatch) filteredData.matchEntries = data.matchEntries;
+        data = filteredData as { pitEntries: PitEntry[], matchEntries: MatchEntry[] };
+      } else {
+        // For CSV/XLSX, keep empty arrays
+        data = {
+          pitEntries: includePit ? data.pitEntries : [],
+          matchEntries: includeMatch ? data.matchEntries : []
+        };
+      }
     }
+
+    // Build descriptive filename
+    const dataTypeStr = requestedTypes 
+      ? (requestedTypes.length === 2 ? 'all' : requestedTypes[0])
+      : 'all';
+    const yearStr = year ? year.toString() : 'all-years';
+    const compTypeStr = competitionType || 'all';
+    const baseFilename = `${compTypeStr}-${yearStr}-${dataTypeStr}-scouting`;
 
     if (format === 'csv') {
       const csvData = await convertToCSV(data);
       return new NextResponse(csvData, {
         headers: {
           'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="scouting-data${year ? `-${year}` : ''}.csv"`
+          'Content-Disposition': `attachment; filename="${baseFilename}.csv"`
         }
       });
     } else if (format === 'xlsx') {
@@ -56,12 +83,17 @@ export async function GET(request: NextRequest) {
       return new NextResponse(xlsxData, {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Content-Disposition': `attachment; filename="scouting-data${year ? `-${year}` : ''}.xlsx"`
+          'Content-Disposition': `attachment; filename="${baseFilename}.xlsx"`
         }
       });
     } else {
       // Default to JSON
-      return NextResponse.json(data);
+      return new NextResponse(JSON.stringify(data), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Disposition': `attachment; filename="${baseFilename}.json"`
+        }
+      });
     }
   } catch (error) {
     console.error('Error exporting data:', error);
