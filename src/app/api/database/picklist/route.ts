@@ -46,7 +46,23 @@ export async function GET(request: NextRequest) {
 
     const service = getDbService();
 
-    // Get all entries, filtered by competition type
+    // If picklistId is provided, retrieve the existing picklist with entries and notes
+    if (picklistId) {
+      const picklist = await service.getPicklist(parseInt(picklistId));
+      if (!picklist) {
+        return NextResponse.json({ error: 'Picklist not found' }, { status: 404 });
+      }
+
+      const entries = await service.getPicklistEntries(parseInt(picklistId));
+      
+      return NextResponse.json({
+        picklist,
+        entries,
+        success: true
+      });
+    }
+
+    // Otherwise, generate initial rankings from TBA qual rankings (FRC) or EPA data (FTC/fallback)
     const pitEntries = await service.getAllPitEntries(year, undefined, competitionType);
     const matchEntries = await service.getAllMatchEntries(year, undefined, competitionType);
 
@@ -58,7 +74,97 @@ export async function GET(request: NextRequest) {
       ? matchEntries.filter(entry => entry.eventCode === eventCode)
       : matchEntries;
 
-    // Calculate EPA and other metrics for each team
+    // Try to use TBA rankings for FRC events
+    if (eventCode && competitionType === 'FRC') {
+      try {
+        const tbaRankings = await getEventRankings(eventCode);
+        if (tbaRankings && Array.isArray(tbaRankings) && tbaRankings.length > 0) {
+          const rankingBlock = tbaRankings[0];
+          const rankingItems = rankingBlock?.rankings || [];
+
+          if (rankingItems.length > 0) {
+            // Build team data from TBA rankings, merge with local scouting data
+            const teamMap: Record<number, TeamPicklistData> = {};
+
+            rankingItems.forEach((item: any) => {
+              const teamNumber = parseInt(String(item.team_key).replace(/^frc/i, ''), 10);
+              teamMap[teamNumber] = {
+                teamNumber,
+                driveTrain: 'Unknown',
+                weight: undefined,
+                length: undefined,
+                width: undefined,
+                matchesPlayed: item.matches_played || 0,
+                totalEPA: 0,
+                autoEPA: 0,
+                teleopEPA: 0,
+                endgameEPA: 0
+              };
+            });
+
+            // Merge pit scouting data
+            filteredPitEntries.forEach(pit => {
+              if (teamMap[pit.teamNumber]) {
+                teamMap[pit.teamNumber].driveTrain = pit.driveTrain;
+                teamMap[pit.teamNumber].weight = pit.weight ?? undefined;
+                teamMap[pit.teamNumber].length = pit.length ?? undefined;
+                teamMap[pit.teamNumber].width = pit.width ?? undefined;
+              }
+            });
+
+            // Calculate EPA from local match entries when available
+            Object.keys(teamMap).forEach(teamKey => {
+              const teamNumber = parseInt(teamKey, 10);
+              const teamMatches = filteredMatchEntries.filter(m => m.teamNumber === teamNumber);
+              
+              if (teamMatches.length > 0 && year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()]) {
+                try {
+                  const yearConfig = gameConfig[competitionType][year.toString()];
+                  const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
+                  teamMap[teamNumber].autoEPA = epaBreakdown.auto;
+                  teamMap[teamNumber].teleopEPA = epaBreakdown.teleop;
+                  teamMap[teamNumber].endgameEPA = epaBreakdown.endgame;
+                  teamMap[teamNumber].totalEPA = epaBreakdown.totalEPA;
+                } catch (error) {
+                  console.error(`Error calculating EPA for team ${teamNumber}:`, error);
+                }
+              }
+            });
+
+            const picklistData = rankingItems.map((item: any, index: number) => {
+              const teamNumber = parseInt(String(item.team_key).replace(/^frc/i, ''), 10);
+              const td = teamMap[teamNumber] || {
+                teamNumber,
+                driveTrain: 'Unknown',
+                weight: undefined,
+                length: undefined,
+                width: undefined,
+                matchesPlayed: 0,
+                totalEPA: 0,
+                autoEPA: 0,
+                teleopEPA: 0,
+                endgameEPA: 0
+              };
+              return {
+                ...td,
+                rank: item.rank ?? index + 1
+              };
+            });
+
+            return NextResponse.json({
+              teams: picklistData,
+              totalTeams: picklistData.length,
+              source: 'tba',
+              lastUpdated: new Date().toISOString()
+            });
+          }
+        }
+      } catch (error) {
+        console.warn('TBA rankings unavailable, falling back to local EPA calculation:', error);
+      }
+    }
+
+    // Fallback: Calculate rankings from local scouting data using EPA
     const teamData: Record<number, TeamPicklistData> = {};
 
     // Process pit scouting data
@@ -155,6 +261,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       teams: picklistData,
       totalTeams: picklistData.length,
+      source: 'scouting',
       lastUpdated: new Date().toISOString()
     });
   } catch (error) {

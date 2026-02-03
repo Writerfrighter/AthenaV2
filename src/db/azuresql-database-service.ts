@@ -230,8 +230,19 @@ export class AzureSqlDatabaseService implements DatabaseService {
 
     // Add unique constraint to pitEntries if it doesn't exist
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = 'uq_pit_entry' AND type = 'UQ')
-      ALTER TABLE pitEntries ADD CONSTRAINT uq_pit_entry UNIQUE (teamNumber, eventCode, year, competitionType)
+      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='picklistEntries' AND xtype='U')
+      CREATE TABLE picklistEntries (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        picklistId INT NOT NULL,
+        teamNumber INT NOT NULL,
+        rankIndex INT NOT NULL,
+        source NVARCHAR(50),
+        notes NVARCHAR(MAX),
+        created_at DATETIME DEFAULT GETDATE(),
+        updated_at DATETIME DEFAULT GETDATE(),
+        FOREIGN KEY (picklistId) REFERENCES picklists(id) ON DELETE CASCADE,
+        UNIQUE(picklistId, teamNumber)
+      )
     `);
 
     // Add unique constraint to matchEntries if it doesn't exist
@@ -981,6 +992,341 @@ export class AzureSqlDatabaseService implements DatabaseService {
     await pool.request()
       .input('blockId', mssql.Int, blockId)
       .query('DELETE FROM blockAssignments WHERE blockId = @blockId');
+  }
+
+  // Picklist methods
+  async addPicklist(picklist: Omit<Picklist, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const p = picklist as any;
+    const result = await pool.request()
+      .input('eventCode', mssql.NVarChar, p.eventCode)
+      .input('year', mssql.Int, p.year)
+      .input('competitionType', mssql.NVarChar, p.competitionType)
+      .input('picklistType', mssql.NVarChar, p.picklistType || 'main')
+      .input('name', mssql.NVarChar, p.name || null)
+      .input('createdBy', mssql.NVarChar, p.createdBy || null)
+      .query(`
+        INSERT INTO picklists (eventCode, year, competitionType, picklistType, name, createdBy)
+        OUTPUT INSERTED.id
+        VALUES (@eventCode, @year, @competitionType, @picklistType, @name, @createdBy)
+      `);
+
+    return result.recordset[0].id;
+  }
+
+  async getPicklist(id: number): Promise<Picklist | undefined> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const result = await pool.request()
+      .input('id', mssql.Int, id)
+      .query('SELECT * FROM picklists WHERE id = @id');
+
+    if (result.recordset.length === 0) return undefined;
+    const row: any = result.recordset[0];
+    return ({
+      id: row.id,
+      eventCode: row.eventCode,
+      year: row.year,
+      competitionType: (row.competitionType || 'FRC') as CompetitionType,
+      picklistType: row.picklistType,
+      name: row.name || undefined,
+      createdBy: row.createdBy || undefined,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } as unknown) as Picklist;
+  }
+
+  async getPicklistByEvent(eventCode: string, year: number, competitionType?: CompetitionType, picklistType?: string): Promise<Picklist | undefined> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    let query = 'SELECT * FROM picklists WHERE eventCode = @eventCode AND year = @year';
+    let request = pool.request().input('eventCode', mssql.NVarChar, eventCode).input('year', mssql.Int, year);
+
+    if (competitionType) {
+      query += ' AND competitionType = @competitionType';
+      request = request.input('competitionType', mssql.NVarChar, competitionType);
+    }
+
+    if (picklistType) {
+      query += ' AND picklistType = @picklistType';
+      request = request.input('picklistType', mssql.NVarChar, picklistType);
+    }
+
+    query += ' ORDER BY id ASC';
+
+    const result = await request.query(query);
+    if (result.recordset.length === 0) return undefined;
+    const row: any = result.recordset[0];
+    return ({
+      id: row.id,
+      eventCode: row.eventCode,
+      year: row.year,
+      competitionType: (row.competitionType || 'FRC') as CompetitionType,
+      picklistType: row.picklistType,
+      name: row.name || undefined,
+      createdBy: row.createdBy || undefined,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } as unknown) as Picklist;
+  }
+
+  async getPicklistsByEvent(eventCode: string, year: number, competitionType?: CompetitionType): Promise<Picklist[]> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    let query = 'SELECT * FROM picklists WHERE eventCode = @eventCode AND year = @year';
+    let request = pool.request().input('eventCode', mssql.NVarChar, eventCode).input('year', mssql.Int, year);
+
+    if (competitionType) {
+      query += ' AND competitionType = @competitionType';
+      request = request.input('competitionType', mssql.NVarChar, competitionType);
+    }
+
+    query += ' ORDER BY picklistType, id';
+    const result = await request.query(query);
+    return result.recordset.map((row: any) => ({
+      id: row.id,
+      eventCode: row.eventCode,
+      year: row.year,
+      competitionType: (row.competitionType || 'FRC') as CompetitionType,
+      picklistType: row.picklistType,
+      name: row.name || undefined,
+      createdBy: row.createdBy || undefined,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } as unknown) as Picklist);
+  }
+
+  async updatePicklist(id: number, updates: Partial<Picklist>): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const setParts: string[] = [];
+    const request = pool.request().input('id', mssql.Int, id);
+
+    const u = updates as any;
+    if (u.name !== undefined) {
+      setParts.push('name = @name');
+      request.input('name', mssql.NVarChar, u.name);
+    }
+    if (u.picklistType !== undefined) {
+      setParts.push('picklistType = @picklistType');
+      request.input('picklistType', mssql.NVarChar, u.picklistType);
+    }
+
+    if (setParts.length === 0) return;
+
+    setParts.push('updated_at = GETDATE()');
+    const query = `UPDATE picklists SET ${setParts.join(', ')} WHERE id = @id`;
+    await request.query(query);
+  }
+
+  async deletePicklist(id: number): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    await pool.request().input('id', mssql.Int, id).query('DELETE FROM picklists WHERE id = @id');
+  }
+
+  // Picklist entries
+  async addPicklistEntry(entry: Omit<PicklistEntry, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const e = entry as any;
+    const result = await pool.request()
+      .input('picklistId', mssql.Int, e.picklistId)
+      .input('teamNumber', mssql.Int, e.teamNumber)
+      .input('rankIndex', mssql.Int, e.rankIndex)
+      .input('source', mssql.NVarChar, e.source || null)
+      .input('notes', mssql.NVarChar, e.notes || null)
+      .query(`
+        INSERT INTO picklistEntries (picklistId, teamNumber, rankIndex, source, notes)
+        OUTPUT INSERTED.id
+        VALUES (@picklistId, @teamNumber, @rankIndex, @source, @notes)
+      `);
+
+    return result.recordset[0].id;
+  }
+
+  async getPicklistEntry(id: number): Promise<PicklistEntry | undefined> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const result = await pool.request().input('id', mssql.Int, id).query('SELECT * FROM picklistEntries WHERE id = @id');
+    if (result.recordset.length === 0) return undefined;
+    const row: any = result.recordset[0];
+    return ({
+      id: row.id,
+      picklistId: row.picklistId,
+      teamNumber: row.teamNumber,
+      rankIndex: row.rankIndex,
+      source: row.source || undefined,
+      notes: row.notes || undefined,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } as unknown) as PicklistEntry;
+  }
+
+  async getPicklistEntries(picklistId: number): Promise<PicklistEntry[]> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const result = await pool.request().input('picklistId', mssql.Int, picklistId).query('SELECT * FROM picklistEntries WHERE picklistId = @picklistId ORDER BY rankIndex');
+    return result.recordset.map((row: any) => ({
+      id: row.id,
+      picklistId: row.picklistId,
+      teamNumber: row.teamNumber,
+      rankIndex: row.rankIndex,
+      source: row.source || undefined,
+      notes: row.notes || undefined,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } as unknown) as PicklistEntry);
+  }
+
+  async updatePicklistEntry(id: number, updates: Partial<PicklistEntry>): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const setParts: string[] = [];
+    const request = pool.request().input('id', mssql.Int, id);
+
+    const u = updates as any;
+    if (u.rankIndex !== undefined) {
+      setParts.push('rankIndex = @rankIndex');
+      request.input('rankIndex', mssql.Int, u.rankIndex);
+    }
+    if (u.notes !== undefined) {
+      setParts.push('notes = @notes');
+      request.input('notes', mssql.NVarChar, u.notes);
+    }
+    if (u.source !== undefined) {
+      setParts.push('source = @source');
+      request.input('source', mssql.NVarChar, u.source);
+    }
+
+    if (setParts.length === 0) return;
+
+    setParts.push('updated_at = GETDATE()');
+    const query = `UPDATE picklistEntries SET ${setParts.join(', ')} WHERE id = @id`;
+    await request.query(query);
+  }
+
+  async deletePicklistEntry(id: number): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    await pool.request().input('id', mssql.Int, id).query('DELETE FROM picklistEntries WHERE id = @id');
+  }
+
+  async updatePicklistEntryRank(picklistId: number, teamNumber: number, newRank: number): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+
+    // Update a single entry's rankIndex
+    await pool.request()
+      .input('picklistId', mssql.Int, picklistId)
+      .input('teamNumber', mssql.Int, teamNumber)
+      .input('newRank', mssql.Int, newRank)
+      .query('UPDATE picklistEntries SET rankIndex = @newRank, updated_at = GETDATE() WHERE picklistId = @picklistId AND teamNumber = @teamNumber');
+  }
+
+  async reorderPicklistEntries(picklistId: number, entries: { teamNumber: number; rank: number }[]): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const tx = await pool.transaction();
+    try {
+      await tx.begin();
+      for (const e of entries) {
+        await tx.request()
+          .input('picklistId', mssql.Int, picklistId)
+          .input('teamNumber', mssql.Int, e.teamNumber)
+          .input('rankIndex', mssql.Int, e.rank)
+          .query('UPDATE picklistEntries SET rankIndex = @rankIndex, updated_at = GETDATE() WHERE picklistId = @picklistId AND teamNumber = @teamNumber');
+      }
+      await tx.commit();
+    } catch (err) {
+      await tx.rollback();
+      throw err;
+    }
+  }
+
+  // Picklist notes
+  async addPicklistNote(note: Omit<PicklistNote, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const n = note as any;
+    const result = await pool.request()
+      .input('picklistId', mssql.Int, n.picklistId)
+      .input('teamNumber', mssql.Int, n.teamNumber)
+      .input('userId', mssql.NVarChar, n.userId || null)
+      .input('content', mssql.NVarChar, n.content || n.note || null)
+      .query(`
+        INSERT INTO picklistNotes (picklistId, teamNumber, userId, content)
+        OUTPUT INSERTED.id
+        VALUES (@picklistId, @teamNumber, @userId, @content)
+      `);
+
+    return result.recordset[0].id;
+  }
+
+  async getPicklistNote(id: number): Promise<PicklistNote | undefined> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const result = await pool.request().input('id', mssql.Int, id).query('SELECT * FROM picklistNotes WHERE id = @id');
+    if (result.recordset.length === 0) return undefined;
+    const row: any = result.recordset[0];
+    return ({
+      id: row.id,
+      picklistId: row.picklistId,
+      teamNumber: row.teamNumber,
+      userId: row.userId || undefined,
+      content: row.content || row.note || undefined,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } as unknown) as PicklistNote;
+  }
+
+  async getPicklistNotes(picklistId: number, teamNumber?: number): Promise<PicklistNote[]> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    let query = 'SELECT * FROM picklistNotes WHERE picklistId = @picklistId';
+    let request = pool.request().input('picklistId', mssql.Int, picklistId);
+    if (teamNumber !== undefined) {
+      query += ' AND teamNumber = @teamNumber';
+      request = request.input('teamNumber', mssql.Int, teamNumber);
+    }
+    query += ' ORDER BY created_at DESC';
+
+    const result = await request.query(query);
+    return result.recordset.map((row: any) => ({
+      id: row.id,
+      picklistId: row.picklistId,
+      teamNumber: row.teamNumber,
+      userId: row.userId || undefined,
+      content: row.content || row.note || undefined,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } as unknown) as PicklistNote);
+  }
+
+  async updatePicklistNote(id: number, updates: Partial<PicklistNote>): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const setParts: string[] = [];
+    const request = pool.request().input('id', mssql.Int, id);
+
+    const u = updates as any;
+    if (u.content !== undefined || u.note !== undefined) {
+      setParts.push('content = @content');
+      request.input('content', mssql.NVarChar, u.content ?? u.note);
+    }
+
+    if (setParts.length === 0) return;
+
+    setParts.push('updated_at = GETDATE()');
+    const query = `UPDATE picklistNotes SET ${setParts.join(', ')} WHERE id = @id`;
+    await request.query(query);
+  }
+
+  async deletePicklistNote(id: number): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    await pool.request().input('id', mssql.Int, id).query('DELETE FROM picklistNotes WHERE id = @id');
   }
 
   // Combined query for blocks with assignments
