@@ -45,7 +45,7 @@ export default function Page() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Highest EPA</p>
-                <p className="text-2xl font-bold">{loading ? "..." : stats.highestEPA}</p>
+                <p className="text-2xl font-bold">{loading ? "..." : (isNaN(stats.highestEPA) ? "N/A" : stats.highestEPA)}</p>
               </div>
               <div className="p-2 bg-muted rounded-lg">
                 <TrendingUp className="h-5 w-5 text-muted-foreground" />
@@ -59,7 +59,7 @@ export default function Page() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Average EPA</p>
-                <p className="text-2xl font-bold">{loading ? "..." : stats.averageEPA}</p>
+                <p className="text-2xl font-bold">{loading ? "..." : (isNaN(stats.averageEPA) ? "N/A" : stats.averageEPA)}</p>
               </div>
               <div className="p-2 bg-muted rounded-lg">
                 <BarChart3 className="h-5 w-5 text-muted-foreground" />

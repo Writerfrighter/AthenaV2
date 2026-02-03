@@ -51,8 +51,12 @@ export function useAnalysisStats() {
         // Transform API response to hook format
         const transformedStats: AnalysisStats = {
           teamsAnalyzed: apiStats.totalTeams,
-          highestEPA: parseFloat(Math.max(...apiStats.teamEPAData.map(team => team.totalEPA)).toFixed(3)),
-          averageEPA: parseFloat((apiStats.teamEPAData.reduce((sum, team) => sum + team.totalEPA, 0) / apiStats.teamEPAData.length).toFixed(3)),
+          highestEPA: apiStats.teamEPAData.length > 0 
+            ? parseFloat(Math.max(...apiStats.teamEPAData.map(team => team.totalEPA)).toFixed(3))
+            : 0,
+          averageEPA: apiStats.teamEPAData.length > 0
+            ? parseFloat((apiStats.teamEPAData.reduce((sum, team) => sum + team.totalEPA, 0) / apiStats.teamEPAData.length).toFixed(3))
+            : 0,
           dataPoints: apiStats.totalMatches,
           teamEPAData: apiStats.teamEPAData.map(team => ({
             team: team.teamNumber.toString(),
