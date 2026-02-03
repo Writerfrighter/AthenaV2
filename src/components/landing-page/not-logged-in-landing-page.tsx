@@ -123,13 +123,13 @@ export function NotLoggedInLandingPage() {
           <div className="flex items-center gap-3">
             {/* <ModeToggle /> */}
             <Link href="/signup">
-              <Button variant="outline" size="lg" className="hidden sm:inline-flex gap-1">
+              <Button variant="outline" size="lg" className="inline-flex gap-1">
                 {/* < className="h-5 w-5" /> */}
                 Sign up
               </Button>
             </Link>
             <Link href="/login">
-              <Button variant="default" size="lg" className="hidden sm:inline-flex gap-1">
+              <Button variant="default" size="lg" className="inline-flex gap-1">
                 {/* <LogIn className="h-5 w-5" /> */}
                 Log in
               </Button>
@@ -139,21 +139,23 @@ export function NotLoggedInLandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 w-full min-h-screen flex items-center py-12">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
+      <section className="relative z-10 w-full min-h-[35vh] sm:min-h-screen flex items-center py-2 sm:py-12 bg-[url(/assets/HeroCropped.jpg)] bg-cover bg-[position:left_center] sm:bg-center">
+        <div className="absolute inset-0 max-md:bg-black/50 lg:bg-linear-to-r lg:from-black/0 lg:to-black/60" />
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_420px] items-center">
-            <div className="space-y-8 text-left">
+          
+          <div className="grid gap-12 lg:grid-cols-[1fr_600px] items-center">   
+            <div/>
+            <div className="space-y-8 text-center lg:text-right">
               <div className="space-y-3">
-                {/* <Badge variant="outline" className="w-fit">Titan Robotics Club</Badge> */}
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white font-bold leading-tight">
                   A Modern Scouting Solution for FIRST.
                 </h1>
-                <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl">
+                <p className="text-lg sm:text-xl text-white max-w-2xl">
                   Athena provides a one platform for scouting, metrics, and alliance prep.
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 sm:justify-end items-center sm:items-start">
                 <Link href="/signup">
                   <Button size="xl" className="gap-2 text-lg">
                     <UserPlus className="h-10 w-10" />
@@ -165,9 +167,9 @@ export function NotLoggedInLandingPage() {
           </div>
 
           {/* Scroll Indicator */}
-          <div className={`flex justify-center mt-50 animate-bounce transition-opacity duration-300 ${hasScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+          <div className={`flex justify-center mt-20 sm:mt-50 animate-bounce transition-opacity duration-300 ${hasScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">Why choose Athena?</p>
+              <p className="text-sm text-white mb-2">Why choose Athena?</p>
               <ChevronDown className="h-6 w-6 text-primary mx-auto" />
             </div>
           </div>
