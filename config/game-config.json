@@ -3,13 +3,15 @@
     "2026": {
       "competitionType": "FRC",
       "gameName": "REBUILT",
+      "default_increment": 1,
       "startPositions": ["Left Trench", "Left Bump", "Hub", "Right Bump", "Right Trench"],
       "scoring": {
         "autonomous": {
           "fuel_scored": {
             "label": "Fuel Scored (Auto) x5",
             "points": 1,
-            "description": "Fuel scored during autonomous"
+            "description": "Fuel scored during autonomous",
+            "increment": 5
           },
           "climb": {
             "label": "Tower L1 (Auto)",
@@ -22,7 +24,8 @@
           "fuel_scored": {
             "label": "Fuel Scored (Teleop) x5",
             "points": 1,
-            "description": "Fuel scored during teleoperated"
+            "description": "Fuel scored during teleoperated",
+            "increment": 5
           },
           "fuel_missed": {
             "label": "Fuel Missed (Teleop)",
@@ -132,6 +135,7 @@
     "2025": {
       "competitionType": "FRC",
       "gameName": "REEFSCAPE",
+      "default_increment": 1,
       "startPositions": ["Left", "Center Left", "Center Right", "Right"],
       "scoring": {
       "autonomous": {
@@ -304,6 +308,7 @@
     "2026": {
       "competitionType": "FTC",
       "gameName": "DECODE",
+      "default_increment": 1,
       "startPositions": ["Far Zone", "Goal"],
       "scoring": {
         "autonomous": {

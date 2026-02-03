@@ -175,9 +175,11 @@ export function DynamicMatchScoutForm() {
 
   const handleNumberChange = (section: string, field: string, increment: boolean) => {
     const currentValue = (formData[section as keyof DynamicMatchData] as Record<string, number | string | boolean>)[field] as number || 0;
-    // Increment by 5 for fuel-related fields
-    const isFuelField = field.startsWith('fuel_');
-    const incrementAmount = isFuelField ? 5 : 1;
+    // Check for field-specific increment override, then fall back to default_increment
+    const fieldConfig = (gameConfig as any)?.scoring?.[section]?.[field];
+    const fieldIncrement = fieldConfig?.increment;
+    const defaultIncrement = (gameConfig as any)?.default_increment ?? 1;
+    const incrementAmount = fieldIncrement ?? defaultIncrement;
     const newValue = Math.max(0, currentValue + (increment ? incrementAmount : -incrementAmount));
     handleInputChange(section, field, newValue);
   };
