@@ -35,7 +35,7 @@ export default function Page() {
             Welcome back! Here&apos;s your scouting overview for the current event.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="gap-2 grid grid-cols-1 sm:flex sm:justify-between">
           {selectedEvent && (
             <>
               <Badge variant="outline" className="flex items-center gap-1">

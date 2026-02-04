@@ -111,7 +111,7 @@ export function LoggedInLandingPage() {
       <main className="relative z-10 flex-1 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           {/* Welcome Section */}
-          <section className="mb-10">
+          <section className="mb-8">
             <h1 className="text-4xl sm:text-5xl font-bold mb-2">
               Welcome, <span className="text-primary">{session?.user?.name || 'Scout'}</span>
             </h1>
@@ -121,58 +121,46 @@ export function LoggedInLandingPage() {
           </section>
 
           {/* Quick Actions Grid */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6 mb-6">
             <Link href="/scout/pitscout">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <Card className="hover:shadow-lg transition-shadow h-full">
                 <CardHeader>
                   <CardTitle className="flex justify-between gap-2">
-                      Pit Scouting
-                      <Hammer className="h-5 w-5 text-primary" />
+                      <div className="flex justify-start gap-6 items-center">
+                        <Hammer className="h-5 w-5 text-primary" />
+                        Pit Scouting
+                      </div>
+                      <ArrowRight className="h-5 w-5 ml-2 mt-1 group-hover:translate-x-1 transition-transform" />
                   </CardTitle>
-                  <CardDescription>Robot capabilities & team data</CardDescription>
                 </CardHeader>
-                <CardContent className="-mt-2 -mb-2">
-                  <Button variant="ghost" className="w-full group">
-                    Start Scouting
-                    <ArrowRight className="h-4 w-4 ml-2 mt-1 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </CardContent>
               </Card>
             </Link>
 
             <Link href="/scout/matchscout">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <Card className="hover:shadow-lg transition-shadow h-full">
                 <CardHeader>
                   <CardTitle className="flex justify-between gap-2">
-                    Match Scouting
-                    <Zap className="h-5 w-5 text-primary" />
+                      <div className="flex justify-start gap-6 items-center">
+                        <Zap className="h-5 w-5 text-primary" />
+                        Match Scouting
+                      </div>
+                      <ArrowRight className="h-5 w-5 ml-2 mt-1 group-hover:translate-x-1 transition-transform" />
                   </CardTitle>
-                  <CardDescription>Live match data collection</CardDescription>
                 </CardHeader>
-                <CardContent className="-mt-2 -mb-2">
-                  <Button variant="ghost" className="w-full group">
-                    Scout Match
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </CardContent>
               </Card>
             </Link>
 
             <Link href="/dashboard">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <Card className="hover:shadow-lg transition-shadow h-full">
                 <CardHeader>
                   <CardTitle className="flex justify-between gap-2">
-                    Dashboard
-                    <BarChart3 className="h-5 w-5 text-primary" />
+                      <div className="flex justify-start gap-6 items-center">
+                        <BarChart3 className="h-5 w-5 text-primary" />
+                        Dashboard
+                      </div>
+                      <ArrowRight className="h-5 w-5 ml-2 mt-1 group-hover:translate-x-1 transition-transform" />
                   </CardTitle>
-                  <CardDescription>Performance data & trends</CardDescription>
                 </CardHeader>
-                <CardContent className="-mt-2 -mb-2">
-                  <Button variant="ghost" className="w-full group">
-                    View Analytics
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </CardContent>
               </Card>
             </Link>
           </section>
