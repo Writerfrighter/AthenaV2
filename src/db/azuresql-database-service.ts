@@ -1,21 +1,6 @@
 import { DatabaseService } from './database-service';
-import {
-  PitEntry,
-  MatchEntry,
-  CustomEvent,
-  AzureSqlConfig,
-  PitEntryRow,
-  MatchEntryRow,
-  CustomEventRow,
-  CompetitionType,
-  // Picklist types
-  Picklist,
-  PicklistRow,
-  PicklistEntry,
-  PicklistEntryRow,
-  PicklistNote,
-  PicklistNoteRow,
-} from './types';
+import { PitEntry, MatchEntry, CustomEvent, AzureSqlConfig, PitEntryRow, MatchEntryRow, CustomEventRow, CompetitionType } from './types';
+import { Picklist, PicklistEntry, PicklistNote, PicklistRow, PicklistEntryRow, PicklistNoteRow } from '@/lib/shared-types';
 
 export class AzureSqlDatabaseService implements DatabaseService {
   private pool: import('mssql').ConnectionPool | null = null;
@@ -237,6 +222,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
       )
     `);
 
+    // Add preferredPartners column to users table if it doesn't exist
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+                     WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'preferredPartners')
+      ALTER TABLE users ADD preferredPartners NVARCHAR(MAX)
+    `);
+
     // Create picklists table
     await pool.request().query(`
       IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='picklists' AND xtype='U')
@@ -245,12 +237,12 @@ export class AzureSqlDatabaseService implements DatabaseService {
         eventCode NVARCHAR(50) NOT NULL,
         year INT NOT NULL,
         competitionType NVARCHAR(10) DEFAULT 'FRC' NOT NULL,
-        picklistType NVARCHAR(50) DEFAULT 'main' NOT NULL,
+        picklistType NVARCHAR(20) DEFAULT 'main' NOT NULL,
         name NVARCHAR(255),
         createdBy NVARCHAR(255),
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
-        UNIQUE(eventCode, year, competitionType, picklistType)
+        CONSTRAINT uq_picklist UNIQUE (eventCode, year, competitionType, picklistType)
       )
     `);
 
@@ -261,13 +253,14 @@ export class AzureSqlDatabaseService implements DatabaseService {
         id INT IDENTITY(1,1) PRIMARY KEY,
         picklistId INT NOT NULL,
         teamNumber INT NOT NULL,
-        rankIndex INT NOT NULL,
+        rank INT NOT NULL,
+        qualRanking INT,
         source NVARCHAR(50),
         notes NVARCHAR(MAX),
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
         FOREIGN KEY (picklistId) REFERENCES picklists(id) ON DELETE CASCADE,
-        UNIQUE(picklistId, teamNumber)
+        CONSTRAINT uq_picklist_team UNIQUE (picklistId, teamNumber)
       )
     `);
 
@@ -278,20 +271,14 @@ export class AzureSqlDatabaseService implements DatabaseService {
         id INT IDENTITY(1,1) PRIMARY KEY,
         picklistId INT NOT NULL,
         teamNumber INT NOT NULL,
-        userId NVARCHAR(255) NULL,
-        content NVARCHAR(MAX) NOT NULL,
+        note NVARCHAR(MAX),
+        content NVARCHAR(MAX),
+        userId NVARCHAR(255),
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
         FOREIGN KEY (picklistId) REFERENCES picklists(id) ON DELETE CASCADE,
         FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
       )
-    `);
-
-    // Add preferredPartners column to users table if it doesn't exist
-    await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
-                     WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'preferredPartners')
-      ALTER TABLE users ADD preferredPartners NVARCHAR(MAX)
     `);
   }
 
@@ -1177,13 +1164,14 @@ export class AzureSqlDatabaseService implements DatabaseService {
     const result = await pool.request()
       .input('picklistId', mssql.Int, e.picklistId)
       .input('teamNumber', mssql.Int, e.teamNumber)
-      .input('rankIndex', mssql.Int, e.rankIndex)
+      .input('rank', mssql.Int, e.rank)
+      .input('qualRanking', mssql.Int, e.qualRanking || null)
       .input('source', mssql.NVarChar, e.source || null)
       .input('notes', mssql.NVarChar, e.notes || null)
       .query(`
-        INSERT INTO picklistEntries (picklistId, teamNumber, rankIndex, source, notes)
+        INSERT INTO picklistEntries (picklistId, teamNumber, rank, qualRanking, source, notes)
         OUTPUT INSERTED.id
-        VALUES (@picklistId, @teamNumber, @rankIndex, @source, @notes)
+        VALUES (@picklistId, @teamNumber, @rank, @qualRanking, @source, @notes)
       `);
 
     return result.recordset[0].id;
@@ -1199,7 +1187,8 @@ export class AzureSqlDatabaseService implements DatabaseService {
       id: row.id,
       picklistId: row.picklistId,
       teamNumber: row.teamNumber,
-      rankIndex: row.rankIndex,
+      rank: row.rank,
+      qualRanking: row.qualRanking || undefined,
       source: row.source || undefined,
       notes: row.notes || undefined,
       created_at: row.created_at,
@@ -1210,12 +1199,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
   async getPicklistEntries(picklistId: number): Promise<PicklistEntry[]> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
-    const result = await pool.request().input('picklistId', mssql.Int, picklistId).query('SELECT * FROM picklistEntries WHERE picklistId = @picklistId ORDER BY rankIndex');
+    const result = await pool.request().input('picklistId', mssql.Int, picklistId).query('SELECT * FROM picklistEntries WHERE picklistId = @picklistId ORDER BY rank');
     return result.recordset.map((row: any) => ({
       id: row.id,
       picklistId: row.picklistId,
       teamNumber: row.teamNumber,
-      rankIndex: row.rankIndex,
+      rank: row.rank,
+      qualRanking: row.qualRanking || undefined,
       source: row.source || undefined,
       notes: row.notes || undefined,
       created_at: row.created_at,
@@ -1230,9 +1220,9 @@ export class AzureSqlDatabaseService implements DatabaseService {
     const request = pool.request().input('id', mssql.Int, id);
 
     const u = updates as any;
-    if (u.rankIndex !== undefined) {
-      setParts.push('rankIndex = @rankIndex');
-      request.input('rankIndex', mssql.Int, u.rankIndex);
+    if (u.rank !== undefined) {
+      setParts.push('rank = @rank');
+      request.input('rank', mssql.Int, u.rank);
     }
     if (u.notes !== undefined) {
       setParts.push('notes = @notes');
@@ -1260,12 +1250,12 @@ export class AzureSqlDatabaseService implements DatabaseService {
     const pool = await this.getPool();
     const mssql = await import('mssql');
 
-    // Update a single entry's rankIndex
+    // Update a single entry's rank
     await pool.request()
       .input('picklistId', mssql.Int, picklistId)
       .input('teamNumber', mssql.Int, teamNumber)
       .input('newRank', mssql.Int, newRank)
-      .query('UPDATE picklistEntries SET rankIndex = @newRank, updated_at = GETDATE() WHERE picklistId = @picklistId AND teamNumber = @teamNumber');
+      .query('UPDATE picklistEntries SET rank = @newRank, updated_at = GETDATE() WHERE picklistId = @picklistId AND teamNumber = @teamNumber');
   }
 
   async reorderPicklistEntries(picklistId: number, entries: { teamNumber: number; rank: number }[]): Promise<void> {
@@ -1278,8 +1268,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
         await tx.request()
           .input('picklistId', mssql.Int, picklistId)
           .input('teamNumber', mssql.Int, e.teamNumber)
-          .input('rankIndex', mssql.Int, e.rank)
-          .query('UPDATE picklistEntries SET rankIndex = @rankIndex, updated_at = GETDATE() WHERE picklistId = @picklistId AND teamNumber = @teamNumber');
+          .input('rank', mssql.Int, e.rank)
+          .query(`
+            IF EXISTS (SELECT 1 FROM picklistEntries WHERE picklistId = @picklistId AND teamNumber = @teamNumber)
+              UPDATE picklistEntries SET rank = @rank, updated_at = GETDATE() WHERE picklistId = @picklistId AND teamNumber = @teamNumber
+            ELSE
+              INSERT INTO picklistEntries (picklistId, teamNumber, rank) VALUES (@picklistId, @teamNumber, @rank)
+          `);
       }
       await tx.commit();
     } catch (err) {

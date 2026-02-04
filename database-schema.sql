@@ -109,4 +109,47 @@ CREATE INDEX idx_pit_entries_competition ON pitEntries(competitionType, year);
 CREATE INDEX idx_match_entries_competition ON matchEntries(competitionType, year);
 CREATE INDEX idx_custom_events_competition ON customEvents(competitionType, year);
 
+-- Picklists table for alliance selection
+CREATE TABLE picklists (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    eventCode NVARCHAR(50) NOT NULL,
+    year INT NOT NULL,
+    competitionType NVARCHAR(10) DEFAULT 'FRC' NOT NULL,
+    picklistType NVARCHAR(20) DEFAULT 'main' NOT NULL, -- 'main', 'pick1', 'pick2'
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    CONSTRAINT uq_picklist UNIQUE (eventCode, year, competitionType, picklistType)
+);
+
+-- Picklist entries for team rankings
+CREATE TABLE picklistEntries (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    picklistId INT NOT NULL,
+    teamNumber INT NOT NULL,
+    rank INT NOT NULL, -- Position in the picklist (1 = highest priority)
+    qualRanking INT, -- Original qualification ranking from TBA/FIRST
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (picklistId) REFERENCES picklists(id) ON DELETE CASCADE,
+    CONSTRAINT uq_picklist_team UNIQUE (picklistId, teamNumber)
+);
+
+-- Picklist notes for teams
+CREATE TABLE picklistNotes (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    picklistId INT NOT NULL,
+    teamNumber INT NOT NULL,
+    note NVARCHAR(MAX),
+    userId NVARCHAR(255), -- User who created the note
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (picklistId) REFERENCES picklists(id) ON DELETE CASCADE,
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Create indexes for picklist tables
+CREATE INDEX idx_picklist_event ON picklists(eventCode, year, competitionType);
+CREATE INDEX idx_picklist_entries_picklist ON picklistEntries(picklistId);
+CREATE INDEX idx_picklist_entries_rank ON picklistEntries(picklistId, rank);
+CREATE INDEX idx_picklist_notes_picklist ON picklistNotes(picklistId, teamNumber);
 
