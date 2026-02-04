@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -64,6 +64,34 @@ interface ReefscapeData {
 export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
   const [searchNote, setSearchNote] = useState("");
   const { teamData, loading, error } = useTeamData(teamNumber);
+  const [averageScore, setAverageScore] = useState<number>(0);
+  const [loadingAvgScore, setLoadingAvgScore] = useState(false);
+
+  // Fetch average score from The Blue Alliance
+  useEffect(() => {
+    async function fetchAverageScore() {
+      if (!teamData?.year || !teamData?.eventCode) return;
+      
+      setLoadingAvgScore(true);
+      try {
+        const response = await fetch(
+          `/api/team/${teamNumber}/average-score?year=${teamData.year}&eventCode=${teamData.eventCode}&competitionType=FRC`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          setAverageScore(data.averageScore || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching average score from TBA:', error);
+      } finally {
+        setLoadingAvgScore(false);
+      }
+    }
+
+    fetchAverageScore();
+  }, [teamNumber, teamData?.year, teamData?.eventCode]);
+
   // Calculate REEFSCAPE specific statistics using the SQL data
   const calculateReefscapeStats = (): ReefscapeData | null => {
     if (!teamData?.matchEntries || teamData.matchEntries.length === 0) return null;
@@ -96,7 +124,7 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
     const count = matchEntries.length;
 
     return {
-      avg_total: teamData.epa?.totalEPA || 0,
+      avg_total: averageScore, // Use average score from TBA instead of EPA
       epa: teamData.epa?.totalEPA || 0,
       avg_auto_coral: parseFloat(((totals.auto_l1 + totals.auto_l2 + totals.auto_l3 + totals.auto_l4) / count).toFixed(1)),
       avg_auto_algae: parseFloat(((totals.auto_processor + totals.auto_net) / count).toFixed(1)),

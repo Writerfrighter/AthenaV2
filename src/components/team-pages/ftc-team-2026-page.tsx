@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -59,6 +59,33 @@ interface DecodeData {
 export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
   const [searchNote, setSearchNote] = useState("");
   const { teamData, loading, error } = useTeamData(teamNumber);
+  const [averageScore, setAverageScore] = useState<number>(0);
+  const [loadingAvgScore, setLoadingAvgScore] = useState(false);
+
+  // Fetch average score from FIRST Events API
+  useEffect(() => {
+    async function fetchAverageScore() {
+      if (!teamData?.year || !teamData?.eventCode) return;
+      
+      setLoadingAvgScore(true);
+      try {
+        const response = await fetch(
+          `/api/team/${teamNumber}/average-score?year=${teamData.year}&eventCode=${teamData.eventCode}&competitionType=FTC`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          setAverageScore(data.averageScore || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching average score from FIRST Events API:', error);
+      } finally {
+        setLoadingAvgScore(false);
+      }
+    }
+
+    fetchAverageScore();
+  }, [teamNumber, teamData?.year, teamData?.eventCode]);
 
   // Calculate DECODE specific statistics using the SQL data
   const calculateDecodeStats = (): DecodeData | null => {
@@ -97,7 +124,7 @@ export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
     const teleopPatterns = parseFloat((totals.teleop_patterns / count).toFixed(1));
 
     return {
-      avg_total: teamData.epa?.totalEPA || 0,
+      avg_total: averageScore, // Use average score from FIRST Events API instead of EPA
       epa: teamData.epa?.totalEPA || 0,
       avg_auto_artifacts: autoArtifactsClassified + autoArtifactsOverflow,
       avg_auto_patterns: autoPatterns,
