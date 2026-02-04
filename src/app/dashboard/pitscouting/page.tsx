@@ -37,7 +37,7 @@ export default function PitScoutingPage() {
       const params = new URLSearchParams();
       params.append('year', currentYear.toString());
       params.append('format', format);
-      params.append('dataType', 'pit'); // Only export pit data
+      params.append('types', 'pit'); // Only export pit data
       if (selectedEvent?.code) {
         params.append('eventCode', selectedEvent.code);
       }

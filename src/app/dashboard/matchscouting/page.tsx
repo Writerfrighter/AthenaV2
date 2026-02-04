@@ -37,7 +37,7 @@ export default function MatchScoutingPage() {
       const params = new URLSearchParams();
       params.append('year', currentYear.toString());
       params.append('format', format);
-      params.append('dataType', 'match'); // Only export match data
+      params.append('types', 'match'); // Only export match data
       if (selectedEvent?.code) {
         params.append('eventCode', selectedEvent.code);
       }
