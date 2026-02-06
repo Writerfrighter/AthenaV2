@@ -143,24 +143,49 @@ export function usePicklist(options: UsePicklistOptions) {
 
       try {
         setIsSaving(true);
+        
+        // Deduplicate entries - keep the first occurrence of each team
+        const seenTeams = new Set<number>();
+        const deduplicatedEntries = newEntries.filter(entry => {
+          if (seenTeams.has(entry.teamNumber)) {
+            console.warn(`Duplicate team ${entry.teamNumber} detected and removed from picklist`);
+            return false;
+          }
+          seenTeams.add(entry.teamNumber);
+          return true;
+        });
+        
+        // Recalculate ranks after deduplication
+        const reindexedEntries = deduplicatedEntries.map((entry, idx) => ({
+          teamNumber: entry.teamNumber,
+          rank: idx + 1
+        }));
+        
         const response = await fetch('/api/database/picklist', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             picklistId: picklist.id,
-            entries: newEntries
+            entries: reindexedEntries
           })
         });
 
         if (!response.ok) throw new Error('Failed to update picklist order');
 
-        // Update local state
-        const updatedEntries = entries.map(entry => {
-          const newEntry = newEntries.find(e => e.teamNumber === entry.teamNumber);
-          return newEntry ? { ...entry, rank: newEntry.rank } : entry;
+        // Completely rebuild the entries array from newEntries to trigger React update
+        const updatedEntries: PicklistEntry[] = reindexedEntries.map(newEntry => {
+          const existingEntry = entries.find(e => e.teamNumber === newEntry.teamNumber);
+          return {
+            id: existingEntry?.id || 0,
+            picklistId: picklist.id!,
+            teamNumber: newEntry.teamNumber,
+            rank: newEntry.rank,
+            qualRanking: existingEntry?.qualRanking,
+            created_at: existingEntry?.created_at ? (typeof existingEntry.created_at === 'string' ? new Date(existingEntry.created_at) : existingEntry.created_at) : new Date(),
+            updated_at: new Date()
+          };
         });
         setEntries(updatedEntries.sort((a, b) => a.rank - b.rank));
-        toast.success('Picklist order updated');
       } catch (error) {
         console.error('Error updating picklist order:', error);
         toast.error('Failed to update picklist order');
@@ -170,6 +195,33 @@ export function usePicklist(options: UsePicklistOptions) {
       }
     },
     [picklist?.id, entries]
+  );
+
+  // Reset/delete picklist
+  const resetPicklist = useCallback(
+    async () => {
+      if (!picklist?.id) return;
+
+      try {
+        setIsSaving(true);
+        const response = await fetch(`/api/database/picklist?picklistId=${picklist.id}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Failed to delete picklist');
+
+        setPicklist(null);
+        setEntries([]);
+        toast.success('Picklist reset successfully');
+      } catch (error) {
+        console.error('Error resetting picklist:', error);
+        toast.error('Failed to reset picklist');
+        throw error;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [picklist?.id]
   );
 
   // Add a note for a team

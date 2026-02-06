@@ -238,12 +238,23 @@ export class AzureSqlDatabaseService implements DatabaseService {
         year INT NOT NULL,
         competitionType NVARCHAR(10) DEFAULT 'FRC' NOT NULL,
         picklistType NVARCHAR(20) DEFAULT 'main' NOT NULL,
-        name NVARCHAR(255),
-        createdBy NVARCHAR(255),
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
         CONSTRAINT uq_picklist UNIQUE (eventCode, year, competitionType, picklistType)
       )
+    `);
+
+    // Add optional columns to picklists if they don't exist
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+                     WHERE TABLE_NAME = 'picklists' AND COLUMN_NAME = 'name')
+      ALTER TABLE picklists ADD name NVARCHAR(255)
+    `);
+
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+                     WHERE TABLE_NAME = 'picklists' AND COLUMN_NAME = 'createdBy')
+      ALTER TABLE picklists ADD createdBy NVARCHAR(255)
     `);
 
     // Create picklistEntries table
