@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { databaseManager } from '@/db/database-manager';
-import { DatabaseService, CompetitionType, Picklist, PicklistEntry, PicklistNote } from '@/db/types';
+import { DatabaseService, CompetitionType } from '@/db/types';
 import { auth } from '@/lib/auth/config';
 import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 import { calculateEPA } from '@/lib/statistics';
@@ -33,7 +33,7 @@ interface TeamPicklistData {
   endgameEPA: number;
 }
 
-// GET /api/database/picklist - Get ranked team list for picklist or retrieve existing picklist
+// GET /api/database/picklist - Get ranked team list for picklist
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -41,11 +41,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     const { searchParams } = new URL(request.url);
+    const picklistId = searchParams.get('picklistId');
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const eventCode = searchParams.get('eventCode');
     const competitionType = (searchParams.get('competitionType') as CompetitionType) || 'FRC';
-    const picklistId = searchParams.get('picklistId');
-    const picklistType = searchParams.get('picklistType');
+    const picklistType = searchParams.get('picklistType') || 'main';
 
     const service = getDbService();
 
@@ -63,6 +63,24 @@ export async function GET(request: NextRequest) {
         entries,
         success: true
       });
+    }
+
+    // Check if there's an existing picklist for this event/year/type combination
+    if (eventCode && year && picklistType) {
+      try {
+        const existing = await service.getPicklistByEvent(eventCode, year, competitionType, picklistType);
+        if (existing && existing.id) {
+          const entries = await service.getPicklistEntries(existing.id);
+          return NextResponse.json({
+            picklist: existing,
+            entries,
+            success: true
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching existing picklist by event:', error);
+        // Continue to generate rankings if no existing picklist found
+      }
     }
 
     // Otherwise, generate initial rankings from TBA qual rankings (FRC) or EPA data (FTC/fallback)
@@ -284,11 +302,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { eventCode, year, competitionType, picklistType, entries } = body;
 
-    if (!eventCode || !year || !competitionType || !picklistType) {
-      return NextResponse.json(
-        { error: 'Missing required fields: eventCode, year, competitionType, picklistType' },
-        { status: 400 }
-      );
+    if (!eventCode || !year || !competitionType) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const service = getDbService();
@@ -298,11 +313,11 @@ export async function POST(request: NextRequest) {
       eventCode,
       year,
       competitionType,
-      picklistType
+      picklistType: picklistType || 'main'
     });
 
     // Add entries if provided
-    if (entries && Array.isArray(entries)) {
+    if (entries && Array.isArray(entries) && entries.length > 0) {
       for (const entry of entries) {
         await service.addPicklistEntry({
           picklistId,
@@ -314,13 +329,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
+      success: true,
       id: picklistId,
-      eventCode,
-      year,
-      competitionType,
-      picklistType,
-      entriesCount: entries?.length || 0,
-      success: true
+      message: 'Picklist created successfully'
     });
   } catch (error) {
     console.error('Error creating picklist:', error);
@@ -328,7 +339,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT /api/database/picklist - Update picklist entries order or reorder
+// PUT /api/database/picklist - Update picklist entry order
 export async function PUT(request: NextRequest) {
   try {
     const session = await auth();
@@ -340,25 +351,21 @@ export async function PUT(request: NextRequest) {
     const { picklistId, entries } = body;
 
     if (!picklistId || !entries || !Array.isArray(entries)) {
-      return NextResponse.json(
-        { error: 'Missing required fields: picklistId, entries (array)' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const service = getDbService();
 
-    // Reorder entries
-    await service.reorderPicklistEntries(picklistId, entries);
+    // Update the order of entries
+    await service.reorderPicklistEntries(parseInt(picklistId), entries);
 
     return NextResponse.json({
-      picklistId,
-      entriesUpdated: entries.length,
-      success: true
+      success: true,
+      message: 'Picklist order updated successfully'
     });
   } catch (error) {
-    console.error('Error updating picklist:', error);
-    return NextResponse.json({ error: 'Failed to update picklist' }, { status: 500 });
+    console.error('Error updating picklist order:', error);
+    return NextResponse.json({ error: 'Failed to update picklist order' }, { status: 500 });
   }
 }
 
@@ -374,22 +381,18 @@ export async function DELETE(request: NextRequest) {
     const picklistId = searchParams.get('picklistId');
 
     if (!picklistId) {
-      return NextResponse.json(
-        { error: 'Missing required parameter: picklistId' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing picklistId' }, { status: 400 });
     }
 
     const service = getDbService();
     await service.deletePicklist(parseInt(picklistId));
 
     return NextResponse.json({
-      picklistId,
-      success: true
+      success: true,
+      message: 'Picklist deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting picklist:', error);
     return NextResponse.json({ error: 'Failed to delete picklist' }, { status: 500 });
   }
 }
-

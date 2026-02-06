@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGameConfig, useCurrentGameConfig } from '@/hooks/use-game-config';
@@ -12,7 +12,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Award, AlertTriangle, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Zap, Award, AlertTriangle, CheckCircle, Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { matchApi } from '@/lib/api/database-client';
 import { ScoutSelector } from '@/components/scout-selector';
@@ -52,6 +53,21 @@ export function DynamicMatchScoutForm() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  
+  // Tabs state for swipeable interface
+  const [activeTab, setActiveTab] = useState("auto");
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  
+  const tabs = [
+    { id: "auto", label: "Auto", icon: <Zap className="h-4 w-4" /> },
+    { id: "teleop", label: "Teleop", icon: <Award className="h-4 w-4" /> },
+    { id: "endgame", label: "Endgame", icon: <AlertTriangle className="h-4 w-4" /> },
+  ];
 
   // Fetch entry for editing
   useEffect(() => {
@@ -175,11 +191,9 @@ export function DynamicMatchScoutForm() {
 
   const handleNumberChange = (section: string, field: string, increment: boolean) => {
     const currentValue = (formData[section as keyof DynamicMatchData] as Record<string, number | string | boolean>)[field] as number || 0;
-    // Check for field-specific increment override, then fall back to default_increment
-    const fieldConfig = (gameConfig as any)?.scoring?.[section]?.[field];
-    const fieldIncrement = fieldConfig?.increment;
-    const defaultIncrement = (gameConfig as any)?.default_increment ?? 1;
-    const incrementAmount = fieldIncrement ?? defaultIncrement;
+    // Increment by 5 for fuel-related fields
+    const isFuelField = field.startsWith('fuel_');
+    const incrementAmount = isFuelField ? 5 : 1;
     const newValue = Math.max(0, currentValue + (increment ? incrementAmount : -incrementAmount));
     handleInputChange(section, field, newValue);
   };
@@ -310,9 +324,137 @@ export function DynamicMatchScoutForm() {
     }
   };
 
+  // Swipe handlers with animation
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
+    setIsTransitioning(false);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!contentRef.current) return;
+    
+    touchEndX.current = e.touches[0].clientX;
+    const diff = touchStartX.current - touchEndX.current;
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+    
+    // Prevent swiping beyond boundaries
+    if ((currentIndex === 0 && diff < 0) || (currentIndex === tabs.length - 1 && diff > 0)) {
+      // Allow a small rubber band effect at boundaries
+      setSwipeOffset(diff * 0.1);
+    } else {
+      // Normal swipe
+      setSwipeOffset(diff);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    const swipeThreshold = 75;
+    const diff = touchStartX.current - touchEndX.current;
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+
+    if (Math.abs(diff) > swipeThreshold) {
+      if (diff > 0 && currentIndex < tabs.length - 1) {
+        // Swipe left - go to next tab
+        setSwipeDirection('left');
+        setIsTransitioning(true);
+        setActiveTab(tabs[currentIndex + 1].id);
+      } else if (diff < 0 && currentIndex > 0) {
+        // Swipe right - go to previous tab
+        setSwipeDirection('right');
+        setIsTransitioning(true);
+        setActiveTab(tabs[currentIndex - 1].id);
+      } else {
+        // Swipe didn't reach threshold or at boundary - snap back
+        setIsTransitioning(true);
+      }
+    } else {
+      // Swipe didn't reach threshold - snap back
+      setIsTransitioning(true);
+    }
+
+    // Reset swipe offset immediately
+    setSwipeOffset(0);
+    
+    // Clear transition state after animation completes
+    setTimeout(() => {
+      setIsTransitioning(false);
+      setSwipeDirection(null);
+    }, 300);
+
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  };
+
+  const goToNextTab = () => {
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+    if (currentIndex < tabs.length - 1) {
+      setSwipeDirection('left');
+      setIsTransitioning(true);
+      setActiveTab(tabs[currentIndex + 1].id);
+      setTimeout(() => {
+        setIsTransitioning(false);
+        setSwipeDirection(null);
+      }, 300);
+    }
+  };
+
+  const goToPreviousTab = () => {
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+    if (currentIndex > 0) {
+      setSwipeDirection('right');
+      setIsTransitioning(true);
+      setActiveTab(tabs[currentIndex - 1].id);
+      setTimeout(() => {
+        setIsTransitioning(false);
+        setSwipeDirection(null);
+      }, 300);
+    }
+  };
+
   return (
     <>
       <style>{hideSpinnersStyle}</style>
+      <style>{`
+        .swipe-container {
+          transform: translateX(${-swipeOffset}px);
+          transition: ${isTransitioning ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'};
+          will-change: transform;
+        }
+        
+        .tab-content-wrapper {
+          overflow-x: hidden;
+          position: relative;
+        }
+        
+        @keyframes slideInFromRight {
+          from {
+            opacity: 0.5;
+            transform: translateX(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes slideInFromLeft {
+          from {
+            opacity: 0.5;
+            transform: translateX(-100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        ${swipeDirection ? `
+          .tab-slide-animation[data-state="active"] {
+            animation: ${swipeDirection === 'left' ? 'slideInFromRight' : 'slideInFromLeft'} 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+        ` : ''}
+      `}</style>
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <div className="text-center">
           <Badge variant="outline" className="text-lg px-4 py-2">
@@ -337,85 +479,160 @@ export function DynamicMatchScoutForm() {
           />
         )}
 
-        <MatchInfoSection
-          formData={formData}
-          competitionType={competitionType}
-          eventTeamNumbers={eventTeamNumbers}
-          teamsLoading={teamsLoading}
-          onBasicInputChange={handleBasicInputChange}
-          onAllianceChange={handleAllianceChange}
-          scheduleLoading={scheduleLoading}
-          hasScheduleData={hasScheduleData}
-          getTeamForPosition={getTeamForPosition}
-          isMatchFromScoutingSchedule={isMatchFromScoutingSchedule}
-          isAllianceFromScoutingSchedule={isAllianceFromScoutingSchedule}
-          assignmentLoading={assignmentLoading}
-        />
+        <Tabs 
+          value={activeTab} 
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4">
+            <TabsList className="w-full grid grid-cols-3 h-auto">
+              {tabs.map((tab) => (
+                <TabsTrigger 
+                  key={tab.id} 
+                  value={tab.id}
+                  className="flex flex-col gap-1 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {tab.icon}
+                  <span className="text-xs">{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
-        {gameConfig?.scoring?.autonomous && (
-          <ScoringSection
-            title="Autonomous Period"
-            description="Performance during the autonomous period"
-            icon={<Zap className="h-5 w-5" />}
-            section="autonomous"
-            scoringConfig={gameConfig.scoring.autonomous}
-            formData={formData}
-            gameConfig={gameConfig}
-            showStartPosition={true}
-            onInputChange={handleInputChange}
-            onNumberChange={handleNumberChange}
-          />
-        )}
+          <div className="tab-content-wrapper">
+            <div
+              ref={contentRef}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className="swipe-container relative touch-pan-y"
+            >
+              <TabsContent value="auto" className="space-y-6 mt-0 tab-slide-animation">
+              <MatchInfoSection
+                formData={formData}
+                competitionType={competitionType}
+                eventTeamNumbers={eventTeamNumbers}
+                teamsLoading={teamsLoading}
+                onBasicInputChange={handleBasicInputChange}
+                onAllianceChange={handleAllianceChange}
+                scheduleLoading={scheduleLoading}
+                hasScheduleData={hasScheduleData}
+                getTeamForPosition={getTeamForPosition}
+                isMatchFromScoutingSchedule={isMatchFromScoutingSchedule}
+                isAllianceFromScoutingSchedule={isAllianceFromScoutingSchedule}
+                assignmentLoading={assignmentLoading}
+              />
+              
+              {gameConfig?.scoring?.autonomous && (
+                <ScoringSection
+                  title="Autonomous Period"
+                  description="Performance during the autonomous period"
+                  icon={<Zap className="h-5 w-5" />}
+                  section="autonomous"
+                  scoringConfig={gameConfig.scoring.autonomous}
+                  formData={formData}
+                  gameConfig={gameConfig}
+                  showStartPosition={true}
+                  onInputChange={handleInputChange}
+                  onNumberChange={handleNumberChange}
+                />
+              )}
+            </TabsContent>
 
-        {gameConfig?.scoring?.teleop && (
-          <ScoringSection
-            title="Teleop Period"
-            description="Driver-controlled period performance"
-            icon={<Award className="h-5 w-5" />}
-            section="teleop"
-            scoringConfig={gameConfig.scoring.teleop}
-            formData={formData}
-            onInputChange={handleInputChange}
-            onNumberChange={handleNumberChange}
-          />
-        )}
+            <TabsContent value="teleop" className="space-y-6 mt-0 tab-slide-animation">
+              {gameConfig?.scoring?.teleop && (
+                <ScoringSection
+                  title="Teleop Period"
+                  description="Driver-controlled period performance"
+                  icon={<Award className="h-5 w-5" />}
+                  section="teleop"
+                  scoringConfig={gameConfig.scoring.teleop}
+                  formData={formData}
+                  onInputChange={handleInputChange}
+                  onNumberChange={handleNumberChange}
+                />
+              )}
+            </TabsContent>
 
-        {gameConfig?.scoring?.endgame && (
-          <ScoringSection
-            title="Endgame"
-            icon={<AlertTriangle className="h-5 w-5" />}
-            section="endgame"
-            scoringConfig={gameConfig.scoring.endgame}
-            formData={formData}
-            onInputChange={handleInputChange}
-            onNumberChange={handleNumberChange}
-          />
-        )}
+            <TabsContent value="endgame" className="space-y-6 mt-0 tab-slide-animation">
+              {gameConfig?.scoring?.endgame && (
+                <ScoringSection
+                  title="Endgame"
+                  icon={<AlertTriangle className="h-5 w-5" />}
+                  section="endgame"
+                  scoringConfig={gameConfig.scoring.endgame}
+                  formData={formData}
+                  onInputChange={handleInputChange}
+                  onNumberChange={handleNumberChange}
+                />
+              )}
+              
+              {gameConfig?.scoring?.fouls && (
+                <ScoringSection
+                  title="Fouls & Penalties"
+                  description="Track penalties and fouls committed"
+                  icon={<AlertTriangle className="h-5 w-5" />}
+                  section="fouls"
+                  scoringConfig={gameConfig.scoring.fouls}
+                  formData={formData}
+                  onInputChange={handleInputChange}
+                  onNumberChange={handleNumberChange}
+                />
+              )}
+              
+              <Card className="border rounded-xl shadow-sm">
+                <CardContent className="pt-6 space-y-2">
+                  <label className="text-sm font-medium text-primary/90">Additional Notes</label>
+                  <Textarea
+                    placeholder="Any additional observations about this match..."
+                    value={formData.notes}
+                    onChange={(e) => handleBasicInputChange('notes', e.target.value)}
+                    className="focus:border-green-500 min-h-[200px]"
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </div>
+          </div>
 
-        {gameConfig?.scoring?.fouls && (
-          <ScoringSection
-            title="Fouls & Penalties"
-            description="Track penalties and fouls committed"
-            icon={<AlertTriangle className="h-5 w-5" />}
-            section="fouls"
-            scoringConfig={gameConfig.scoring.fouls}
-            formData={formData}
-            onInputChange={handleInputChange}
-            onNumberChange={handleNumberChange}
-          />
-        )}
+          {/* Navigation buttons */}
+          <div className="flex justify-between items-center pt-4">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={goToPreviousTab}
+              disabled={activeTab === tabs[0].id}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
 
-        <Card className="border rounded-xl shadow-sm">
-          <CardContent className="pt-6 space-y-2">
-            <label className="text-sm font-medium text-primary/90">Additional Notes</label>
-            <Textarea
-              placeholder="Any additional observations about this match..."
-              value={formData.notes}
-              onChange={(e) => handleBasicInputChange('notes', e.target.value)}
-              className="focus:border-green-500"
-            />
-          </CardContent>
-        </Card>
+            <div className="flex gap-1">
+              {tabs.map((tab, index) => (
+                <div
+                  key={tab.id}
+                  className={`h-2 w-2 rounded-full transition-all ${
+                    activeTab === tab.id 
+                      ? 'bg-primary w-6' 
+                      : 'bg-muted-foreground/30'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={goToNextTab}
+              disabled={activeTab === tabs[tabs.length - 1].id}
+              className="flex items-center gap-2"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </Tabs>
 
         <Card className="border rounded-xl shadow-sm">
           <CardContent className="pt-6">
