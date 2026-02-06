@@ -84,7 +84,7 @@ export function LoggedInLandingPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b relative">
-        <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="relative flex items-center justify-center">
               <Image
@@ -190,7 +190,7 @@ export function LoggedInLandingPage() {
                 <div className="space-y-3">
                   {upcomingMatches.map((match: MatchItem, idx: number) => (
                     <Card key={idx}>
-                      <CardContent className="pt-6 flex items-center justify-between">
+                      <CardContent className="flex items-center justify-between">
                         <div>
                           <p className="font-semibold">Match {match.matchNumber}</p>
                           <p className="text-sm text-muted-foreground">

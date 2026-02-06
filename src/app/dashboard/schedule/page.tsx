@@ -742,22 +742,6 @@ export default function SchedulePage() {
               )}
 
               <div className="flex flex-wrap items-end gap-4">
-                {/* Current match count */}
-                <div className="space-y-2">
-                  <Label>Match Count</Label>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={matchCount > 0 ? "default" : "secondary"} className="text-sm px-3 py-1">
-                      {matchCount > 0 ? matchCount : 'Not Set'}
-                    </Badge>
-                    {isApiMatchCountAvailable && apiMatchCount === matchCount && (
-                      <Badge variant="outline" className="text-xs text-green-600 border-green-600">From API</Badge>
-                    )}
-                    {isApiMatchCountAvailable && apiMatchCount !== matchCount && (
-                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-600">Needs Update</Badge>
-                    )}
-                  </div>
-                </div>
-
                 {/* API match count display (when available and different) */}
                 {isApiMatchCountAvailable && apiMatchCount !== matchCount && (
                   <div className="space-y-2">
@@ -770,34 +754,32 @@ export default function SchedulePage() {
                   </div>
                 )}
 
-                {/* Manual input - only show when API data is NOT available */}
-                {!isApiMatchCountAvailable && (
-                  <div className="space-y-2">
-                    <Label htmlFor="manual-match-count">Set Manually</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="manual-match-count"
-                        type="number"
-                        min="1"
-                        max="200"
-                        placeholder="e.g. 80"
-                        value={manualMatchInput}
-                        onChange={(e) => setManualMatchInput(e.target.value)}
-                        className="w-24"
-                      />
-                      <Button variant="outline" size="sm" onClick={handleSetManualMatchCount} disabled={!manualMatchInput}>
-                        Set
-                      </Button>
-                    </div>
+                {/* Manual input */}                
+                <div className="space-y-3">
+                  <Label htmlFor="manual-match-count">Set Manually</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="manual-match-count"
+                      type="number"
+                      min="1"
+                      max="200"
+                      placeholder="e.g. 80"
+                      value={manualMatchInput}
+                      onChange={(e) => setManualMatchInput(e.target.value)}
+                      className="w-24"
+                    />
+                    <Button variant="outline" onClick={handleSetManualMatchCount} disabled={!manualMatchInput}>
+                      Set
+                    </Button>
                   </div>
-                )}
+                </div>
+                
 
                 {/* Sync from API */}
-                <div className="space-y-2">
+                <div className="space-y-3 ml-6">
                   <Label>Sync from API</Label>
                   <Button 
                     variant={isApiMatchCountAvailable && apiMatchCount !== matchCount ? "default" : "outline"} 
-                    size="sm" 
                     onClick={handleSyncMatchCount} 
                     disabled={isSyncingMatchCount}
                   >
@@ -806,13 +788,29 @@ export default function SchedulePage() {
                   </Button>
                 </div>
               </div>
-
-              {matchCount > 0 && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <ChevronRight className="h-4 w-4" />
-                  <span>{matchCount} matches ÷ {blockSize} per shift = <strong>{calculatedBlocks} shifts</strong></span>
+              
+              <div className="pt-3">
+                {/* Current match count */}
+                <div className="flex gap-4 items-center">
+                  <Label>Match Count</Label>
+                  <div className="flex items-center gap-2">
+                    <div>{matchCount > 0 ? matchCount : 'Not Set'}</div>
+                    {isApiMatchCountAvailable && apiMatchCount === matchCount && (
+                      <Badge variant="outline" className="text-xs text-green-600 border-green-600 ml-4 mt-1">From API</Badge>
+                    )}
+                    {isApiMatchCountAvailable && apiMatchCount !== matchCount && (
+                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-600 ml-4 mt-1">Needs Update</Badge>
+                    )}
+                  </div>
                 </div>
-              )}
+
+                {matchCount > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                    <ChevronRight className="h-4 w-4" />
+                    <span>{matchCount} matches ÷ {blockSize} per shift = <strong>{calculatedBlocks} shifts</strong></span>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
