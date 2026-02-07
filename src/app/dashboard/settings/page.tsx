@@ -92,8 +92,10 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h4 className="font-medium">Supported Games</h4>
+                <p className="text-sm text-muted-foreground">FRC 2026 (REBUILT)</p>
                 <p className="text-sm text-muted-foreground">FRC 2025 (REEFSCAPE)</p>
                 <p className="text-sm text-muted-foreground">FTC 2026 (DECODE)</p>
+                
               </div>
             </CardContent>
           </Card>

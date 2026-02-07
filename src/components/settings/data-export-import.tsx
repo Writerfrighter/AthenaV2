@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Upload, FileText, FileSpreadsheet, Database, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGameConfig } from '@/hooks/use-game-config';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type ExportFormat = 'json' | 'csv' | 'xlsx';
 
@@ -197,19 +198,22 @@ export function DataExportImportComponent() {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <label htmlFor="year-select" className="text-sm font-medium">Filter by Year (optional)</label>
-          <select
-            id="year-select"
-            value={selectedYear || ''}
-            onChange={(e) => setSelectedYear(e.target.value ? parseInt(e.target.value) : undefined)}
-            className="w-full p-2 border rounded-md"
+          <Select
+            value={selectedYear ? selectedYear.toString() : ''}
+            onValueChange={(value) => setSelectedYear(value ? parseInt(value) : undefined)}
           >
-            <option value="">All Years</option>
-            {availableYears.map(({ year, gameName }) => (
-              <option key={year} value={year}>
-                {year} ({gameName})
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full p-2 border rounded-md">
+              <SelectValue placeholder="All Years" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {availableYears.map(({ year, gameName }) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year} ({gameName})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">

@@ -289,14 +289,14 @@ export function EventSwitcher() {
   if (isLoading) {
     return (
       <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            size="lg"
-            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            disabled
-          >
-            <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-              <CalendarDays color="black" size={20} />
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              disabled
+            >
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
+              <CalendarDays className="text-black dark:text-white" size={20} />
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">Loading events...</span>
@@ -317,7 +317,7 @@ export function EventSwitcher() {
             disabled
           >
             <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-              <CalendarDays color="black" size={20} />
+              <CalendarDays className="text-black dark:text-white" size={20} />
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium text-red-500">Error loading events</span>
@@ -343,8 +343,7 @@ export function EventSwitcher() {
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <CalendarDays color="black" size={20} />
-
+                  <CalendarDays className="text-black dark:text-white" size={20} />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{selectedEvent.name}</span>
