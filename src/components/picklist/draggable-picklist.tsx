@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { ReactSortable, ItemInterface } from 'react-sortablejs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +15,7 @@ import { ChevronDown, ChevronRight, Plus, GripVertical, Trash2, Save } from 'luc
 import { CompetitionType, PicklistEntry } from '@/lib/shared-types';
 import { usePicklist } from '@/hooks/use-picklist';
 import { useEventTeams } from '@/hooks/use-event-teams';
+import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog';
 import { toast } from 'sonner';
 
 interface DraggablePicklistProps {
@@ -23,10 +25,16 @@ interface DraggablePicklistProps {
   ownTeamNumber?: number;
 }
 
-interface TeamRankingData {
+interface TeamEPAData {
+  totalEPA: number;
+  autoEPA: number;
+  teleopEPA: number;
+  endgameEPA: number;
+}
+
+interface SortableTeamItem extends ItemInterface {
+  id: string;
   teamNumber: number;
-  rank: number;
-  qualRanking?: number;
 }
 
 export function DraggablePicklist({ 
@@ -35,15 +43,19 @@ export function DraggablePicklist({
   competitionType,
   ownTeamNumber = 492 
 }: DraggablePicklistProps) {
-  const [draggedTeam, setDraggedTeam] = useState<number | null>(null);
-  const [dragSource, setDragSource] = useState<'pick1' | 'pick2' | 'unlisted' | null>(null);
   const [expandedTeams, setExpandedTeams] = useState<Set<number>>(new Set());
   const [teamNotes, setTeamNotes] = useState<Record<number, string>>({});
-  const [rankingData, setRankingData] = useState<Map<number, TeamRankingData>>(new Map());
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [qualRankings, setQualRankings] = useState<Map<number, number>>(new Map());
+  const [epaData, setEpaData] = useState<Map<number, TeamEPAData>>(new Map());
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [localPick1Order, setLocalPick1Order] = useState<PicklistEntry[]>([]);
-  const [localPick2Order, setLocalPick2Order] = useState<PicklistEntry[]>([]);
+  const [localPick1Order, setLocalPick1Order] = useState<SortableTeamItem[]>([]);
+  const [localPick2Order, setLocalPick2Order] = useState<SortableTeamItem[]>([]);
+  const [localUnlisted, setLocalUnlisted] = useState<SortableTeamItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const noteSaveTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
+  const notesLoadedRef = useRef(false);
+  const syncingRef = useRef(false);
 
   // Get all event teams
   const { teams: allEventTeams = [] } = useEventTeams();
@@ -63,18 +75,80 @@ export function DraggablePicklist({
     picklistType: 'pick2'
   });
 
+  // Helper to convert PicklistEntry[] to SortableTeamItem[]
+  const toSortableItems = useCallback((entries: PicklistEntry[]): SortableTeamItem[] => {
+    return entries.map(e => ({
+      id: String(e.teamNumber),
+      teamNumber: e.teamNumber,
+    }));
+  }, []);
+
   // Sync local state with picklist entries (but not during save)
   useEffect(() => {
-    if (!isSaving) {
-      setLocalPick1Order(pick1.entries);
-      setLocalPick2Order(pick2.entries);
+    if (!isSaving && !syncingRef.current) {
+      setLocalPick1Order(toSortableItems(pick1.entries));
+      setLocalPick2Order(toSortableItems(pick2.entries));
       setHasUnsavedChanges(false);
     }
-  }, [pick1.entries, pick2.entries, isSaving]);
+  }, [pick1.entries, pick2.entries, isSaving, toSortableItems]);
 
-  // Fetch ranking data from API when event/year changes
+  // Compute unlisted teams whenever picks or event teams change
   useEffect(() => {
-    const fetchRankings = async () => {
+    const pick1TeamNumbers = new Set(localPick1Order.map(e => e.teamNumber));
+    const pick2TeamNumbers = new Set(localPick2Order.map(e => e.teamNumber));
+    
+    const unlisted = allEventTeams
+      .filter(team => 
+        team.teamNumber !== ownTeamNumber &&
+        !pick1TeamNumbers.has(team.teamNumber) &&
+        !pick2TeamNumbers.has(team.teamNumber)
+      )
+      .map(team => ({
+        id: String(team.teamNumber),
+        teamNumber: team.teamNumber,
+        qualRanking: qualRankings.get(team.teamNumber) ?? 999,
+      }))
+      .sort((a, b) => a.qualRanking - b.qualRanking);
+    
+    setLocalUnlisted(unlisted);
+  }, [allEventTeams, localPick1Order, localPick2Order, ownTeamNumber, qualRankings]);
+
+  // Fetch qualification rankings from dedicated TBA endpoint (always returns real qual rankings)
+  useEffect(() => {
+    const fetchQualRankings = async () => {
+      try {
+        const params = new URLSearchParams({
+          eventCode,
+          competitionType,
+          year: year.toString(),
+        });
+        const response = await fetch(`/api/event/rankings?${params}`);
+        if (response.ok) {
+          const data = await response.json();
+          const qualMap = new Map<number, number>();
+          // TBA returns [{ rankings: [{ team_key, rank, ... }] }]
+          const rankingBlock = Array.isArray(data) ? data[0] : data;
+          const rankingItems = rankingBlock?.rankings || [];
+          rankingItems.forEach((item: any) => {
+            const teamNumber = parseInt(String(item.team_key).replace(/^frc/i, ''), 10);
+            if (!isNaN(teamNumber)) {
+              qualMap.set(teamNumber, item.rank);
+            }
+          });
+          if (qualMap.size > 0) {
+            setQualRankings(qualMap);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching qual rankings:', error);
+      }
+    };
+    fetchQualRankings();
+  }, [eventCode, year, competitionType]);
+
+  // Fetch EPA data from picklist API (uses local scouting data)
+  useEffect(() => {
+    const fetchEpaData = async () => {
       try {
         const params = new URLSearchParams({
           eventCode,
@@ -84,52 +158,97 @@ export function DraggablePicklist({
         const response = await fetch(`/api/database/picklist?${params}`);
         if (response.ok) {
           const data = await response.json();
-          const rankMap = new Map<number, TeamRankingData>();
+          const epaMap = new Map<number, TeamEPAData>();
           if (data.teams && Array.isArray(data.teams)) {
             data.teams.forEach((team: any) => {
-              rankMap.set(team.teamNumber, {
-                teamNumber: team.teamNumber,
-                rank: team.rank,
-                qualRanking: team.rank
+              epaMap.set(team.teamNumber, {
+                totalEPA: team.totalEPA ?? 0,
+                autoEPA: team.autoEPA ?? 0,
+                teleopEPA: team.teleopEPA ?? 0,
+                endgameEPA: team.endgameEPA ?? 0,
               });
             });
           }
-          setRankingData(rankMap);
+          if (epaMap.size > 0) {
+            setEpaData(epaMap);
+          }
         }
       } catch (error) {
-        console.error('Error fetching rankings:', error);
+        console.error('Error fetching EPA data:', error);
       }
     };
-    fetchRankings();
+    fetchEpaData();
   }, [eventCode, year, competitionType]);
 
-  // Calculate unlisted teams (all event teams minus pick1, pick2, and own team)
-  const unlistedTeams = useMemo(() => {
-    const pick1TeamNumbers = new Set(localPick1Order.map(e => e.teamNumber));
-    const pick2TeamNumbers = new Set(localPick2Order.map(e => e.teamNumber));
-    
-    return allEventTeams
-      .filter(team => 
-        team.teamNumber !== ownTeamNumber &&
-        !pick1TeamNumbers.has(team.teamNumber) &&
-        !pick2TeamNumbers.has(team.teamNumber)
-      )
-      .map((team, idx) => {
-        const rankInfo = rankingData.get(team.teamNumber);
-        return {
-          teamNumber: team.teamNumber,
-          rank: idx + 1,
-          qualRanking: rankInfo?.qualRanking
-        };
-      });
-  }, [allEventTeams, localPick1Order, localPick2Order, ownTeamNumber, rankingData]);
+  // Load notes from database when picklists are ready
+  useEffect(() => {
+    if (notesLoadedRef.current) return;
+    const picklistId = pick1.picklist?.id || pick2.picklist?.id;
+    if (!picklistId) return;
+
+    const loadNotes = async () => {
+      try {
+        const loaded: Record<number, string> = {};
+        if (pick1.picklist?.id) {
+          const res = await fetch(`/api/database/picklist/notes?picklistId=${pick1.picklist.id}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.notes && Array.isArray(data.notes)) {
+              data.notes.forEach((n: any) => {
+                const content = n.note || n.content || '';
+                if (content) loaded[n.teamNumber] = content;
+              });
+            }
+          }
+        }
+        if (pick2.picklist?.id) {
+          const res = await fetch(`/api/database/picklist/notes?picklistId=${pick2.picklist.id}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.notes && Array.isArray(data.notes)) {
+              data.notes.forEach((n: any) => {
+                const content = n.note || n.content || '';
+                if (content) loaded[n.teamNumber] = content;
+              });
+            }
+          }
+        }
+        setTeamNotes(prev => ({ ...prev, ...loaded }));
+        notesLoadedRef.current = true;
+      } catch (error) {
+        console.error('Error loading notes:', error);
+      }
+    };
+    loadNotes();
+  }, [pick1.picklist?.id, pick2.picklist?.id]);
+
+  // Compute EPA min/max for gradient scaling
+  const epaRange = useMemo(() => {
+    const allValues = Array.from(epaData.values()).map(e => e.totalEPA);
+    if (allValues.length === 0) return { min: 0, max: 1 };
+    return { min: Math.min(...allValues), max: Math.max(...allValues) };
+  }, [epaData]);
+
+  const getEpaColor = useCallback((value: number) => {
+    const { min, max } = epaRange;
+    if (max === min) return 'hsl(60, 70%, 45%)';
+    const t = Math.max(0, Math.min(1, (value - min) / (max - min)));
+    const hue = Math.round(t * 120);
+    return `hsl(${hue}, 75%, 40%)`;
+  }, [epaRange]);
+
+  const getEpaBgColor = useCallback((value: number) => {
+    const { min, max } = epaRange;
+    if (max === min) return 'hsla(60, 70%, 45%, 0.12)';
+    const t = Math.max(0, Math.min(1, (value - min) / (max - min)));
+    const hue = Math.round(t * 120);
+    return `hsla(${hue}, 75%, 45%, 0.12)`;
+  }, [epaRange]);
 
   // Initialize picklists if needed
   const initializePicklists = useCallback(async () => {
     if (pick1.picklist || pick2.picklist) return;
-
     try {
-      // Start with empty pick1 and pick2
       await pick1.createPicklist([]);
       await pick2.createPicklist([]);
       toast.success('Picklists initialized - drag teams from Unlisted');
@@ -139,7 +258,7 @@ export function DraggablePicklist({
     }
   }, [pick1, pick2]);
 
-  // Calculate total unique teams in picklists (excluding team 492)
+  // Calculate total unique teams in picklists
   const totalPicklistTeams = useMemo(() => {
     const allPicklistTeams = new Set<number>();
     localPick1Order.forEach(e => allPicklistTeams.add(e.teamNumber));
@@ -149,67 +268,77 @@ export function DraggablePicklist({
 
   const totalEventTeams = allEventTeams.filter(t => t.teamNumber !== ownTeamNumber).length;
   
-  // Detect mismatches: either wrong total count or duplicates within picklists
   const actualPicklistCount = localPick1Order.length + localPick2Order.length;
   const hasDiscrepancy = (
-    totalPicklistTeams + unlistedTeams.length !== totalEventTeams || // Total mismatch
-    totalPicklistTeams !== actualPicklistCount // Duplicates exist
+    totalPicklistTeams + localUnlisted.length !== totalEventTeams ||
+    totalPicklistTeams !== actualPicklistCount
   );
+
+  // Auto-save note to database with debounce
+  const saveNoteToDb = useCallback((teamNumber: number, noteText: string) => {
+    const picklistId = localPick1Order.find(e => e.teamNumber === teamNumber)
+      ? pick1.picklist?.id
+      : localPick2Order.find(e => e.teamNumber === teamNumber)
+        ? pick2.picklist?.id
+        : pick1.picklist?.id;
+
+    if (!picklistId) return;
+
+    if (noteSaveTimersRef.current[teamNumber]) {
+      clearTimeout(noteSaveTimersRef.current[teamNumber]);
+    }
+
+    noteSaveTimersRef.current[teamNumber] = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/database/picklist/notes?picklistId=${picklistId}&teamNumber=${teamNumber}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.notes && data.notes.length > 0) {
+            if (noteText.trim()) {
+              await fetch('/api/database/picklist/notes', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ noteId: data.notes[0].id, note: noteText })
+              });
+            } else {
+              await fetch(`/api/database/picklist/notes?noteId=${data.notes[0].id}`, { method: 'DELETE' });
+            }
+          } else if (noteText.trim()) {
+            await fetch('/api/database/picklist/notes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ picklistId, teamNumber, note: noteText })
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error saving note:', error);
+      }
+    }, 1000);
+  }, [localPick1Order, localPick2Order, pick1.picklist?.id, pick2.picklist?.id]);
+
+  const handleNoteChange = useCallback((teamNumber: number, value: string) => {
+    setTeamNotes(prev => ({ ...prev, [teamNumber]: value }));
+    saveNoteToDb(teamNumber, value);
+  }, [saveNoteToDb]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
-      // Deduplicate local state before saving
-      const deduplicatePick1 = () => {
-        const seen = new Set<number>();
-        return localPick1Order.filter(e => {
-          if (seen.has(e.teamNumber)) {
-            console.warn(`Removing duplicate team ${e.teamNumber} from Pick 1 before save`);
-            return false;
-          }
-          seen.add(e.teamNumber);
-          return true;
-        });
-      };
-
-      const deduplicatePick2 = () => {
-        const seen = new Set<number>();
-        return localPick2Order.filter(e => {
-          if (seen.has(e.teamNumber)) {
-            console.warn(`Removing duplicate team ${e.teamNumber} from Pick 2 before save`);
-            return false;
-          }
-          seen.add(e.teamNumber);
-          return true;
-        });
-      };
-
-      const dedupedPick1 = deduplicatePick1();
-      const dedupedPick2 = deduplicatePick2();
-
-      // Update local state with deduplicated data
-      setLocalPick1Order(dedupedPick1.map((e, idx) => ({ ...e, rank: idx + 1 })));
-      setLocalPick2Order(dedupedPick2.map((e, idx) => ({ ...e, rank: idx + 1 })));
-
-      // Save pick1
-      const pick1Data = dedupedPick1.map((e, idx) => ({
+      const pick1Data = localPick1Order.map((e, idx) => ({
         teamNumber: e.teamNumber,
         rank: idx + 1
       }));
-      
-      // Save pick2
-      const pick2Data = dedupedPick2.map((e, idx) => ({
+      const pick2Data = localPick2Order.map((e, idx) => ({
         teamNumber: e.teamNumber,
         rank: idx + 1
       }));
 
-      // Wait for both saves to complete
       await Promise.all([
         pick1.updatePicklistOrder(pick1Data),
         pick2.updatePicklistOrder(pick2Data)
       ]);
 
-      // Refetch to ensure we have the latest data from server
       await Promise.all([
         pick1.fetchExistingPicklist(),
         pick2.fetchExistingPicklist()
@@ -225,200 +354,152 @@ export function DraggablePicklist({
     }
   }, [localPick1Order, localPick2Order, pick1, pick2]);
 
-  const handleReset = useCallback(async () => {
-    if (!confirm('Are you sure you want to reset the picklist? This will delete all current picks and start fresh.')) {
-      return;
-    }
+  const confirmReset = useCallback(async () => {
     try {
       await pick1.deletePicklist();
       await pick2.deletePicklist();
       setLocalPick1Order([]);
       setLocalPick2Order([]);
       setHasUnsavedChanges(false);
+      notesLoadedRef.current = false;
+      setShowResetDialog(false);
       toast.success('Picklists reset - click Initialize to start fresh');
     } catch (error) {
       console.error('Failed to reset picklists:', error);
+      setShowResetDialog(false);
     }
   }, [pick1, pick2]);
 
   const toggleTeamExpanded = (teamNumber: number) => {
     setExpandedTeams(prev => {
       const next = new Set(prev);
-      if (next.has(teamNumber)) {
-        next.delete(teamNumber);
-      } else {
-        next.add(teamNumber);
-      }
+      if (next.has(teamNumber)) next.delete(teamNumber);
+      else next.add(teamNumber);
       return next;
     });
   };
 
-  const handleDragStart = (teamNumber: number, source: 'pick1' | 'pick2' | 'unlisted') => {
-    setDraggedTeam(teamNumber);
-    setDragSource(source);
-  };
+  // ── SortableJS handlers ──
+  const handlePick1Change = useCallback((newState: SortableTeamItem[]) => {
+    syncingRef.current = true;
+    setLocalPick1Order(newState);
+    setHasUnsavedChanges(true);
+    setTimeout(() => { syncingRef.current = false; }, 0);
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
+  const handlePick2Change = useCallback((newState: SortableTeamItem[]) => {
+    syncingRef.current = true;
+    setLocalPick2Order(newState);
+    setHasUnsavedChanges(true);
+    setTimeout(() => { syncingRef.current = false; }, 0);
+  }, []);
 
-  const handleDrop = useCallback(
-    (target: 'pick1' | 'pick2' | 'unlisted') => {
-      if (!draggedTeam || !dragSource) return;
-      if (dragSource === target) {
-        setDraggedTeam(null);
-        setDragSource(null);
-        return;
-      }
+  const handleUnlistedChange = useCallback((newState: SortableTeamItem[]) => {
+    syncingRef.current = true;
+    setLocalUnlisted(newState);
+    setHasUnsavedChanges(true);
+    setTimeout(() => { syncingRef.current = false; }, 0);
+  }, []);
 
-      // Handle drops to unlisted (just remove from source)
-      if (target === 'unlisted') {
-        if (dragSource === 'pick1') {
-          const updatedEntries = localPick1Order
-            .filter(e => e.teamNumber !== draggedTeam)
-            .map((e, idx) => ({ ...e, rank: idx + 1 }));
-          setLocalPick1Order(updatedEntries);
-        } else if (dragSource === 'pick2') {
-          const updatedEntries = localPick2Order
-            .filter(e => e.teamNumber !== draggedTeam)
-            .map((e, idx) => ({ ...e, rank: idx + 1 }));
-          setLocalPick2Order(updatedEntries);
-        }
-        setHasUnsavedChanges(true);
-        setDraggedTeam(null);
-        setDragSource(null);
-        return;
-      }
-
-      // Handle drops to pick1 or pick2
-      // Find the team being moved
-      let movedTeam: PicklistEntry | undefined;
-      if (dragSource === 'pick1') {
-        movedTeam = localPick1Order.find(e => e.teamNumber === draggedTeam);
-      } else if (dragSource === 'pick2') {
-        movedTeam = localPick2Order.find(e => e.teamNumber === draggedTeam);
-      }
-
-      // Create the team entry to add if coming from unlisted
-      const teamToAdd = movedTeam || {
-        teamNumber: draggedTeam,
-        picklistId: target === 'pick1' ? pick1.picklist?.id || 0 : pick2.picklist?.id || 0
-      } as PicklistEntry;
-
-      // Start with current state
-      let newPick1 = [...localPick1Order];
-      let newPick2 = [...localPick2Order];
-
-      // Remove from source list first
-      if (dragSource === 'pick1') {
-        newPick1 = localPick1Order.filter(e => e.teamNumber !== draggedTeam);
-      } else if (dragSource === 'pick2') {
-        newPick2 = localPick2Order.filter(e => e.teamNumber !== draggedTeam);
-      }
-
-      // Add to target list (no need to filter first since we know it's not there after removing from source)
-      if (target === 'pick1') {
-        newPick1 = [...newPick1, teamToAdd];
-      } else {
-        newPick2 = [...newPick2, teamToAdd];
-      }
-
-      // Recalculate ranks
-      newPick1 = newPick1.map((e, idx) => ({ ...e, rank: idx + 1 }));
-      newPick2 = newPick2.map((e, idx) => ({ ...e, rank: idx + 1 }));
-
-      // Update state
-      setLocalPick1Order(newPick1);
-      setLocalPick2Order(newPick2);
-
-      setHasUnsavedChanges(true);
-      setDraggedTeam(null);
-      setDragSource(null);
-    },
-    [draggedTeam, dragSource, localPick1Order, localPick2Order, pick1.picklist?.id, pick2.picklist?.id]
-  );
-
+  // ── Team card renderer ──
   const renderTeamCard = (
-    teamNumber: number, 
-    rank: number | null, 
-    source: 'pick1' | 'pick2' | 'unlisted',
-    qualRanking?: number
+    teamNumber: number,
+    rank: number | null,
   ) => {
     const isExpanded = expandedTeams.has(teamNumber);
-    const isDragging = draggedTeam === teamNumber;
+    const qualRank = qualRankings.get(teamNumber);
+    const epa = epaData.get(teamNumber);
 
     return (
-      <Collapsible
-        key={teamNumber}
-        open={isExpanded}
-        onOpenChange={() => toggleTeamExpanded(teamNumber)}
-      >
-        <div
-          className={`border rounded-lg transition-all ${
-            isDragging
-              ? 'opacity-50 bg-muted'
-              : ''
-          }`}
+      <div key={teamNumber} data-id={String(teamNumber)}>
+        <Collapsible
+          open={isExpanded}
+          onOpenChange={() => toggleTeamExpanded(teamNumber)}
         >
-          <CollapsibleTrigger asChild>
-            <div className="flex items-center gap-2 p-3 w-full cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleTeamExpanded(teamNumber);
-              }}
-            >
-              <div
-                draggable
-                onDragStart={(e) => {
-                  e.stopPropagation();
-                  handleDragStart(teamNumber, source);
-                }}
-                className="cursor-move hover:bg-accent rounded p-1 flex-shrink-0"
-              >
+          <div className="border rounded-lg transition-all">
+            <div className="flex items-center gap-2 p-3 w-full">
+              <div className="sortable-handle cursor-grab active:cursor-grabbing hover:bg-accent rounded p-1 flex-shrink-0">
                 <GripVertical className="h-4 w-4" />
               </div>
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4 flex-shrink-0" />
-              ) : (
-                <ChevronRight className="h-4 w-4 flex-shrink-0" />
-              )}
-              {rank !== null && (
-                <div className="flex-shrink-0 font-bold text-lg">
-                  #{rank}
-                </div>
-              )}
-              <div className="flex-grow font-semibold text-lg">{teamNumber}</div>
-              {qualRanking && (
-                <Badge variant="outline" className="flex-shrink-0">
-                  Qual: {qualRanking}
-                </Badge>
-              )}
-            </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="px-3 pb-3 space-y-2 border-t pt-3 bg-background">
-              <div className="text-sm font-medium">Notes:</div>
-              <Textarea
-                value={teamNotes[teamNumber] || ''}
-                onChange={(e) => setTeamNotes(prev => ({
-                  ...prev,
-                  [teamNumber]: e.target.value
-                }))}
-                placeholder="Add notes about this team..."
-                className="min-h-20"
-                onClick={(e) => e.stopPropagation()}
-              />
-              <div className="text-xs text-muted-foreground">
-                Qual Rank: {qualRanking || 'N/A'}
+              <CollapsibleTrigger asChild>
+                <button className="flex items-center gap-2 flex-grow min-w-0 cursor-pointer">
+                  {isExpanded
+                    ? <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                    : <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                  }
+                  {rank !== null && (
+                    <div className="flex-shrink-0 font-bold text-lg w-8">#{rank}</div>
+                  )}
+                  <div className="flex-grow font-semibold text-lg text-left">{teamNumber}</div>
+                </button>
+              </CollapsibleTrigger>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {epa && (
+                  <div
+                    className="px-2 py-0.5 rounded-md text-xs font-bold"
+                    style={{
+                      color: getEpaColor(epa.totalEPA),
+                      backgroundColor: getEpaBgColor(epa.totalEPA),
+                    }}
+                    title={`Auto: ${epa.autoEPA.toFixed(1)} | Teleop: ${epa.teleopEPA.toFixed(1)} | Endgame: ${epa.endgameEPA.toFixed(1)}`}
+                  >
+                    EPA {epa.totalEPA.toFixed(1)}
+                  </div>
+                )}
+                {qualRank !== undefined && (
+                  <Badge variant="outline" className="flex-shrink-0 text-xs">
+                    Q{qualRank}
+                  </Badge>
+                )}
               </div>
             </div>
-          </CollapsibleContent>
-        </div>
-      </Collapsible>
+
+            <CollapsibleContent>
+              <div className="px-3 pb-3 space-y-3 border-t pt-3 bg-background">
+                {epa && (
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-md border p-2">
+                      <div className="text-xs text-muted-foreground">Auto</div>
+                      <div className="text-sm font-bold" style={{ color: getEpaColor(epa.autoEPA) }}>
+                        {epa.autoEPA.toFixed(1)}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-2">
+                      <div className="text-xs text-muted-foreground">Teleop</div>
+                      <div className="text-sm font-bold" style={{ color: getEpaColor(epa.teleopEPA) }}>
+                        {epa.teleopEPA.toFixed(1)}
+                      </div>
+                    </div>
+                    <div className="rounded-md border p-2">
+                      <div className="text-xs text-muted-foreground">Endgame</div>
+                      <div className="text-sm font-bold" style={{ color: getEpaColor(epa.endgameEPA) }}>
+                        {epa.endgameEPA.toFixed(1)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <div className="text-sm font-medium mb-1">Notes:</div>
+                  <Textarea
+                    value={teamNotes[teamNumber] || ''}
+                    onChange={(e) => handleNoteChange(teamNumber, e.target.value)}
+                    placeholder="Add notes about this team..."
+                    className="min-h-20"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Auto-saves after you stop typing
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
+      </div>
     );
   };
 
+  // ── Loading state ──
   if (pick1.isLoading || pick2.isLoading) {
     return (
       <Card>
@@ -431,6 +512,13 @@ export function DraggablePicklist({
 
   const showInitialize = !pick1.picklist || !pick2.picklist;
 
+  const sortableGroupOptions = {
+    name: 'picklist',
+    pull: true as const,
+    put: true as const,
+  };
+
+  // ── Render ──
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -439,7 +527,7 @@ export function DraggablePicklist({
             {competitionType === 'FRC' ? 'FRC' : 'FTC'} Picklist - {eventCode}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {totalPicklistTeams + unlistedTeams.length} / {totalEventTeams} teams (excluding #{ownTeamNumber})
+            {totalPicklistTeams + localUnlisted.length} / {totalEventTeams} teams (excluding #{ownTeamNumber})
             {hasDiscrepancy && (
               <span className="text-destructive ml-2">⚠ Team count mismatch detected</span>
             )}
@@ -461,12 +549,10 @@ export function DraggablePicklist({
                 <Save className="mr-2 h-4 w-4" />
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
-              {hasDiscrepancy && (
-                <Button variant="destructive" onClick={handleReset}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Reset Picklist
-                </Button>
-              )}
+              <Button variant="destructive" onClick={() => setShowResetDialog(true)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Reset Picklist
+              </Button>
             </>
           )}
         </div>
@@ -482,19 +568,23 @@ export function DraggablePicklist({
                 <Badge variant="default">{localPick1Order.length} teams</Badge>
               </div>
             </CardHeader>
-            <CardContent
-              onDragOver={handleDragOver}
-              onDrop={() => handleDrop('pick1')}
-              className="min-h-96 space-y-2 border-2 border-dashed border-transparent hover:border-primary rounded-lg p-4 transition-colors"
-            >
-              {localPick1Order.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  Drag teams here
-                </div>
-              ) : (
-                localPick1Order
-                  .sort((a, b) => a.rank - b.rank)
-                  .map((entry) => renderTeamCard(entry.teamNumber, entry.rank, 'pick1', entry.qualRanking))
+            <CardContent className="min-h-96 space-y-2 p-4">
+              <ReactSortable
+                list={localPick1Order}
+                setList={handlePick1Change}
+                group={sortableGroupOptions}
+                animation={200}
+                handle=".sortable-handle"
+                filter="textarea,button,input"
+                preventOnFilter={false}
+                ghostClass="opacity-30"
+                dragClass="shadow-lg"
+                className="space-y-2 min-h-48"
+              >
+                {localPick1Order.map((item, idx) => renderTeamCard(item.teamNumber, idx + 1))}
+              </ReactSortable>
+              {localPick1Order.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">Drag teams here</div>
               )}
             </CardContent>
           </Card>
@@ -508,19 +598,23 @@ export function DraggablePicklist({
                   <Badge variant="secondary">{localPick2Order.length} teams</Badge>
                 </div>
               </CardHeader>
-              <CardContent
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop('pick2')}
-                className="min-h-96 space-y-2 border-2 border-dashed border-transparent hover:border-secondary rounded-lg p-4 transition-colors"
-              >
-                {localPick2Order.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    Drag teams here
-                  </div>
-                ) : (
-                  localPick2Order
-                    .sort((a, b) => a.rank - b.rank)
-                    .map((entry) => renderTeamCard(entry.teamNumber, entry.rank, 'pick2', entry.qualRanking))
+              <CardContent className="min-h-96 space-y-2 p-4">
+                <ReactSortable
+                  list={localPick2Order}
+                  setList={handlePick2Change}
+                  group={sortableGroupOptions}
+                  animation={200}
+                  handle=".sortable-handle"
+                  filter="textarea,button,input"
+                  preventOnFilter={false}
+                  ghostClass="opacity-30"
+                  dragClass="shadow-lg"
+                  className="space-y-2 min-h-48"
+                >
+                  {localPick2Order.map((item, idx) => renderTeamCard(item.teamNumber, idx + 1))}
+                </ReactSortable>
+                {localPick2Order.length === 0 && (
+                  <div className="text-center py-12 text-muted-foreground">Drag teams here</div>
                 )}
               </CardContent>
             </Card>
@@ -531,20 +625,27 @@ export function DraggablePicklist({
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Unlisted</CardTitle>
-                <Badge variant="outline">{unlistedTeams.length} teams</Badge>
+                <Badge variant="outline">{localUnlisted.length} teams</Badge>
               </div>
             </CardHeader>
-            <CardContent
-              onDragOver={handleDragOver}
-              onDrop={() => handleDrop('unlisted')}
-              className="min-h-96 space-y-2 border-2 border-dashed border-transparent hover:border-muted rounded-lg p-4 transition-colors"
-            >
-              {unlistedTeams.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  All teams assigned
-                </div>
-              ) : (
-                unlistedTeams.map((team) => renderTeamCard(team.teamNumber, null, 'unlisted', team.qualRanking))
+            <CardContent className="min-h-96 space-y-2 p-4">
+              <ReactSortable
+                list={localUnlisted}
+                setList={handleUnlistedChange}
+                group={sortableGroupOptions}
+                animation={200}
+                handle=".sortable-handle"
+                filter="textarea,button,input"
+                preventOnFilter={false}
+                ghostClass="opacity-30"
+                dragClass="shadow-lg"
+                sort={false}
+                className="space-y-2 min-h-48"
+              >
+                {localUnlisted.map((item) => renderTeamCard(item.teamNumber, null))}
+              </ReactSortable>
+              {localUnlisted.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">All teams assigned</div>
               )}
             </CardContent>
           </Card>
@@ -556,6 +657,16 @@ export function DraggablePicklist({
           You have unsaved changes
         </div>
       )}
+      
+      <DeleteConfirmationDialog
+        open={showResetDialog}
+        onOpenChange={setShowResetDialog}
+        onConfirm={confirmReset}
+        title="Reset Picklist"
+        description="Are you sure you want to reset the picklist? This will delete all current picks and start fresh."
+        confirmButtonText="Reset"
+        loadingText="Resetting..."
+      />
     </div>
   );
 }

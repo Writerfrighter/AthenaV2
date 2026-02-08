@@ -1275,6 +1275,25 @@ export class AzureSqlDatabaseService implements DatabaseService {
     const tx = await pool.transaction();
     try {
       await tx.begin();
+
+      // First, delete all entries for this picklist that are NOT in the new list.
+      // This fixes the bug where moving a team between picklists left a ghost entry behind.
+      if (entries.length > 0) {
+        const teamNumbers = entries.map(e => e.teamNumber);
+        const placeholders = teamNumbers.map((_, i) => `@keep${i}`).join(', ');
+        const deleteReq = tx.request().input('picklistId', mssql.Int, picklistId);
+        teamNumbers.forEach((tn, i) => deleteReq.input(`keep${i}`, mssql.Int, tn));
+        await deleteReq.query(
+          `DELETE FROM picklistEntries WHERE picklistId = @picklistId AND teamNumber NOT IN (${placeholders})`
+        );
+      } else {
+        // If empty list, delete all entries for this picklist
+        await tx.request()
+          .input('picklistId', mssql.Int, picklistId)
+          .query('DELETE FROM picklistEntries WHERE picklistId = @picklistId');
+      }
+
+      // Then upsert the entries that should be present
       for (const e of entries) {
         await tx.request()
           .input('picklistId', mssql.Int, picklistId)

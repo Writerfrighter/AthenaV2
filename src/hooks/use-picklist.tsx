@@ -120,11 +120,9 @@ export function usePicklist(options: UsePicklistOptions) {
           picklistType: options.picklistType || 'main'
         });
         setEntries(picklistEntries as PicklistEntry[]);
-        toast.success('Picklist created successfully');
         return data.id;
       } catch (error) {
         console.error('Error creating picklist:', error);
-        toast.error('Failed to create picklist');
         throw error;
       } finally {
         setIsSaving(false);
@@ -144,36 +142,19 @@ export function usePicklist(options: UsePicklistOptions) {
       try {
         setIsSaving(true);
         
-        // Deduplicate entries - keep the first occurrence of each team
-        const seenTeams = new Set<number>();
-        const deduplicatedEntries = newEntries.filter(entry => {
-          if (seenTeams.has(entry.teamNumber)) {
-            console.warn(`Duplicate team ${entry.teamNumber} detected and removed from picklist`);
-            return false;
-          }
-          seenTeams.add(entry.teamNumber);
-          return true;
-        });
-        
-        // Recalculate ranks after deduplication
-        const reindexedEntries = deduplicatedEntries.map((entry, idx) => ({
-          teamNumber: entry.teamNumber,
-          rank: idx + 1
-        }));
-        
         const response = await fetch('/api/database/picklist', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             picklistId: picklist.id,
-            entries: reindexedEntries
+            entries: newEntries
           })
         });
 
         if (!response.ok) throw new Error('Failed to update picklist order');
 
-        // Completely rebuild the entries array from newEntries to trigger React update
-        const updatedEntries: PicklistEntry[] = reindexedEntries.map(newEntry => {
+        // Rebuild the entries array to trigger React update
+        const updatedEntries: PicklistEntry[] = newEntries.map(newEntry => {
           const existingEntry = entries.find(e => e.teamNumber === newEntry.teamNumber);
           return {
             id: existingEntry?.id || 0,
@@ -353,10 +334,8 @@ export function usePicklist(options: UsePicklistOptions) {
       setPicklist(null);
       setEntries([]);
       setNotes(new Map());
-      toast.success('Picklist deleted');
     } catch (error) {
       console.error('Error deleting picklist:', error);
-      toast.error('Failed to delete picklist');
       throw error;
     } finally {
       setIsSaving(false);
