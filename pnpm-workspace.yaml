@@ -3,6 +3,7 @@ ignoredBuiltDependencies:
   - esbuild
 
 onlyBuiltDependencies:
+  - '@swc/core'
   - '@tailwindcss/oxide'
   - sharp
   - unrs-resolver

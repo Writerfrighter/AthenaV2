@@ -1,8 +1,5 @@
 import type { NextConfig } from 'next';
-// @ts-ignore
-import withSerwistInit from '@serwist/next';
-
-const isProd = process.env.NODE_ENV === 'production';
+import { withSerwist } from '@serwist/turbopack';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -74,19 +71,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-const pwaConfig = {
-  swSrc: "src/sw.ts",
-  swDest: "public/sw.js",
-  additionalPrecacheEntries: [
-    { url: '/dashboard', revision: null },
-    { url: '/scout/matchscout', revision: null },
-    { url: '/scout/pitscout', revision: null },
-    { url: '/login', revision: null },
-    { url: '/signup', revision: null },
-  ],
-  disable: !isProd,
-};
-
-export default withSerwistInit(pwaConfig)(nextConfig);
-
-// Prevent build manifest issues: always exclude app-build-manifest.json from serwist precache
+export default withSerwist(nextConfig);

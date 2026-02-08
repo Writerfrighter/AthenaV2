@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { defaultCache } from "@serwist/next/worker";
+import { defaultCache } from "@serwist/turbopack/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { Serwist } from "serwist";
 
@@ -51,7 +51,7 @@ async function syncOfflineData() {
   
   try {
     // Import the queue manager in the service worker context
-    const { offlineQueueManager } = await import('./lib/offline-queue-manager');
+    const { offlineQueueManager } = await import('../lib/offline-queue-manager');
     const result = await offlineQueueManager.syncPendingEntries();
     
     console.log('[Service Worker] Sync completed:', result);
@@ -106,7 +106,7 @@ async function retryFailedEntries() {
   console.log('[Service Worker] Retrying failed entries...');
   
   try {
-    const { offlineQueueManager } = await import('./lib/offline-queue-manager');
+    const { offlineQueueManager } = await import('../lib/offline-queue-manager');
     const result = await offlineQueueManager.retryFailedEntries();
     
     console.log('[Service Worker] Retry completed:', result);
