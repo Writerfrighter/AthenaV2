@@ -1,13 +1,13 @@
 import { createSerwistRoute } from "@serwist/turbopack";
 
 export const { GET } = createSerwistRoute({
-  swSrc: "app/sw.ts",
+  swSrc: "src/app/sw.ts",
   useNativeEsbuild: true,
   additionalPrecacheEntries: [
-    { url: '/dashboard', revision: null },
-    { url: '/scout/matchscout', revision: null },
-    { url: '/scout/pitscout', revision: null },
-    { url: '/login', revision: null },
-    { url: '/signup', revision: null },
+    { url: '/dashboard', revision: Date.now().toString() },
+    { url: '/scout/matchscout', revision: Date.now().toString() },
+    { url: '/scout/pitscout', revision: Date.now().toString() },
+    { url: '/login', revision: Date.now().toString() },
+    { url: '/signup', revision: Date.now().toString() },
   ],
 });

@@ -17,7 +17,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         try {
           // Call the API route for authentication
-          const baseUrl = process.env.NEXTAUTH_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+          const baseUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
           const response = await fetch(`${baseUrl}/api/auth/authorize`, {
             method: 'POST',
             headers: {
@@ -54,17 +54,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     })
   ],
+  basePath: '/api/auth',
   trustHost: true,
   cookies: {
     sessionToken: {
-      name: 'next-auth.session-token',
+      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
       options: {
-        // Only set domain for production, not for localhost
-        ...(process.env.NODE_ENV === 'production' && { domain: 'trcscouting.com' }),
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        // Only use secure cookies in production (HTTPS)
         secure: process.env.NODE_ENV === 'production'
       }
     }
@@ -78,7 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async jwt({ token, user }: { token: any; user: any }) {
+    async jwt({ token, user, trigger }: { token: any; user: any; trigger?: string }) {
       if (user) {
         token.username = user.username
         token.role = user.role
@@ -93,6 +91,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.role = token.role
       }
       return session
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
     }
   }
 })

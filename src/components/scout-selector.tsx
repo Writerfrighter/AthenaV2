@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { indexedDBService } from '@/lib/indexeddb-service';
 
 interface ScoutUser {
   id: string;
@@ -41,25 +42,54 @@ export function ScoutSelector({ selectedScoutId, onScoutChange, currentUserId, c
 
   const fetchScouts = async () => {
     try {
-      const response = await fetch('/api/users');
-      if (!response.ok) {
-        throw new Error('Failed to fetch scouts');
+      // Try to get cached scout list first (offline-first approach)
+      const cachedData = await indexedDBService.getCachedScoutList();
+      
+      if (cachedData && cachedData.scouts.length > 0) {
+        // Use cached data immediately
+        setScouts(cachedData.scouts);
+        if (!selectedScoutId && cachedData.scouts.length > 0) {
+          onScoutChange(cachedData.scouts[0].id);
+        }
+        setLoading(false);
       }
-      const data = await response.json();
-      
-      // Filter to only show scout, lead_scout, and admin roles (people who can scout)
-      const scoutUsers = (data.users || []).filter((user: ScoutUser) => 
-        ['scout', 'lead_scout', 'admin'].includes(user.role)
-      );
-      
-      setScouts(scoutUsers);
 
-      // Auto-select first scout if none selected
-      if (!selectedScoutId && scoutUsers.length > 0) {
-        onScoutChange(scoutUsers[0].id);
+      // Try to fetch fresh data from API (update cache if online)
+      try {
+        const response = await fetch('/api/users');
+        if (!response.ok) {
+          throw new Error('Failed to fetch scouts');
+        }
+        const data = await response.json();
+        
+        // Filter to only show scout, lead_scout, and admin roles (people who can scout)
+        const scoutUsers = (data.users || []).filter((user: ScoutUser) => 
+          ['scout', 'lead_scout', 'admin'].includes(user.role)
+        );
+        
+        // Cache the fresh data for offline use
+        await indexedDBService.cacheScoutList(scoutUsers);
+        
+        // Update UI with fresh data
+        setScouts(scoutUsers);
+
+        // Auto-select first scout if none selected
+        if (!selectedScoutId && scoutUsers.length > 0) {
+          onScoutChange(scoutUsers[0].id);
+        }
+      } catch (fetchError) {
+        // If we have cached data, we already set it above
+        // If we don't have cached data and fetch failed, show error
+        if (!cachedData || cachedData.scouts.length === 0) {
+          console.error('Error fetching scouts:', fetchError);
+          toast.error('Failed to load scout list. Please check your connection.');
+        } else {
+          // Silently use cached data when offline
+          console.log('Using cached scout list (offline)');
+        }
       }
     } catch (error) {
-      console.error('Error fetching scouts:', error);
+      console.error('Error loading scouts:', error);
       toast.error('Failed to load scout list');
     } finally {
       setLoading(false);

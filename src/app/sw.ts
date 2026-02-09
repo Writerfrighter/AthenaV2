@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { defaultCache } from "@serwist/turbopack/worker";
+import { defaultCache, PAGES_CACHE_NAME } from "@serwist/turbopack/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist } from "serwist";
+import { Serwist, NetworkFirst, ExpirationPlugin } from "serwist";
 
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
@@ -18,12 +18,127 @@ declare const self: WorkerGlobalScope & typeof globalThis & {
   clients: any;
 };
 
+// Offline fallback page HTML served when navigation fails offline
+const OFFLINE_FALLBACK_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - TRC Scouting</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #0a0a0a; color: #fafafa; }
+    .container { text-align: center; padding: 2rem; }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    p { color: #a1a1aa; margin-bottom: 1.5rem; }
+    button { padding: 0.5rem 1.5rem; background: #22c55e; color: #fff; border: none; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; }
+    button:hover { background: #16a34a; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>You're Offline</h1>
+    <p>This page hasn't been cached yet. Connect to the internet and try again.</p>
+    <button onclick="location.reload()">Retry</button>
+  </div>
+</body>
+</html>`;
+
+// Custom runtime caching rules for scouting-specific routes, merged with defaults
+const appRuntimeCaching = [
+  // Scouting pages — aggressive caching with short network timeout for offline use
+  {
+    matcher: ({ request, url: { pathname }, sameOrigin }: { request: Request; url: URL; sameOrigin: boolean }) =>
+      sameOrigin && /^\/scout\/(matchscout|pitscout)(\/|$|\?)/.test(pathname) && request.mode === "navigate",
+    handler: new NetworkFirst({
+      cacheName: "scouting-pages",
+      networkTimeoutSeconds: 3,
+      plugins: [
+        new ExpirationPlugin({
+          maxEntries: 10,
+          maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
+        }),
+      ],
+    }),
+  },
+  // Dashboard — cache for offline access
+  {
+    matcher: ({ request, url: { pathname }, sameOrigin }: { request: Request; url: URL; sameOrigin: boolean }) =>
+      sameOrigin && pathname === "/dashboard" && request.mode === "navigate",
+    handler: new NetworkFirst({
+      cacheName: "dashboard-page",
+      networkTimeoutSeconds: 3,
+      plugins: [
+        new ExpirationPlugin({
+          maxEntries: 5,
+          maxAgeSeconds: 7 * 24 * 60 * 60,
+        }),
+      ],
+    }),
+  },
+  // Event teams API — needed offline for scouting form dropdowns
+  {
+    matcher: ({ url: { pathname }, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
+      sameOrigin && /^\/api\/events\/[^/]+\/teams/.test(pathname),
+    handler: new NetworkFirst({
+      cacheName: "event-teams-api",
+      networkTimeoutSeconds: 5,
+      plugins: [
+        new ExpirationPlugin({
+          maxEntries: 20,
+          maxAgeSeconds: 24 * 60 * 60,
+        }),
+      ],
+    }),
+  },
+  // Event schedule API — needed offline for team auto-assign
+  {
+    matcher: ({ url: { pathname }, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
+      sameOrigin && pathname.startsWith("/api/event/schedule"),
+    handler: new NetworkFirst({
+      cacheName: "event-schedule-api",
+      networkTimeoutSeconds: 5,
+      plugins: [
+        new ExpirationPlugin({
+          maxEntries: 20,
+          maxAgeSeconds: 24 * 60 * 60,
+        }),
+      ],
+    }),
+  },
+  // Spread the default cache rules after our custom ones so ours take priority
+  ...defaultCache,
+];
+
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
-  navigationPreload: true,
-  runtimeCaching: defaultCache,
+  navigationPreload: false, // Disabled — navigation preload bypasses cache and breaks offline
+  runtimeCaching: appRuntimeCaching,
+  fallbacks: {
+    entries: [
+      {
+        url: "/~offline",
+        matcher({ request }) {
+          return request.destination === "document";
+        },
+      },
+    ],
+  },
+});
+
+// Cache the offline fallback on install so it's always available
+self.addEventListener("install", (event: any) => {
+  event.waitUntil(
+    caches.open("offline-fallback").then((cache) =>
+      cache.put(
+        new Request("/~offline"),
+        new Response(OFFLINE_FALLBACK_HTML, {
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        })
+      )
+    )
+  );
 });
 
 serwist.addEventListeners();

@@ -10,7 +10,8 @@ import type {
   SyncStatus,
   CachedEventTeams,
   CachedEventList,
-  CachedTeamInfo
+  CachedTeamInfo,
+  CachedScoutList
 } from '@/lib/offline-types';
 import { DB_NAME, DB_VERSION, STORES } from '@/lib/offline-types';
 import type { PitEntry, MatchEntry } from '@/lib/shared-types';
@@ -70,6 +71,12 @@ class IndexedDBService {
         if (!db.objectStoreNames.contains(STORES.EVENT_LIST)) {
           const eventListStore = db.createObjectStore(STORES.EVENT_LIST, { keyPath: ['teamNumber', 'competitionType', 'year'] });
           eventListStore.createIndex('cachedAt', 'cachedAt');
+        }
+
+        // Create scout list cache store for tablet offline support
+        if (!db.objectStoreNames.contains(STORES.SCOUT_LIST)) {
+          const scoutListStore = db.createObjectStore(STORES.SCOUT_LIST, { keyPath: 'id' });
+          scoutListStore.createIndex('cachedAt', 'cachedAt');
         }
       };
     });
@@ -462,6 +469,53 @@ class IndexedDBService {
         resolve(result || null);
       };
       request.onerror = () => reject(new Error('Failed to get cached event list'));
+    });
+  }
+
+  // ============================================
+  // Scout List Cache (for tablet offline support)
+  // ============================================
+
+  // Cache scout list for offline access
+  async cacheScoutList(
+    scouts: Array<{
+      id: string;
+      name: string;
+      username: string;
+      role: string;
+    }>
+  ): Promise<void> {
+    const db = await this.ensureDb();
+
+    const cachedData: CachedScoutList = {
+      scouts,
+      cachedAt: new Date()
+    };
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORES.SCOUT_LIST], 'readwrite');
+      const store = transaction.objectStore(STORES.SCOUT_LIST);
+      const request = store.put({ ...cachedData, id: 'scout_list' });
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(new Error('Failed to cache scout list'));
+    });
+  }
+
+  // Get cached scout list
+  async getCachedScoutList(): Promise<CachedScoutList | null> {
+    const db = await this.ensureDb();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORES.SCOUT_LIST], 'readonly');
+      const store = transaction.objectStore(STORES.SCOUT_LIST);
+      const request = store.get('scout_list');
+
+      request.onsuccess = () => {
+        const result = request.result;
+        resolve(result || null);
+      };
+      request.onerror = () => reject(new Error('Failed to get cached scout list'));
     });
   }
 

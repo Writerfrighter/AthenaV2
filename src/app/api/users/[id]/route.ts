@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { databaseManager } from '@/db/database-manager'
 import { auth } from '@/lib/auth/config'
-import { hasPermission, hasAnyPermission, PERMISSIONS } from '@/lib/auth/roles'
+import { hasPermission, hasAnyPermission, PERMISSIONS, ROLES } from '@/lib/auth/roles'
 
 interface RouteParams {
   params: Promise<{
@@ -102,7 +102,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Validate role if provided
     if (role) {
-      const validRoles = ['admin', 'lead_scout', 'scout', 'viewer', 'external']
+      const validRoles = Object.values(ROLES)
       if (!validRoles.includes(role)) {
         return NextResponse.json(
           { error: 'Invalid role specified' },

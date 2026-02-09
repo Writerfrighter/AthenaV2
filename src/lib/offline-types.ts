@@ -84,8 +84,19 @@ export interface CachedEventList {
   cachedAt: Date;
 }
 
+// Cached scout list for tablet accounts
+export interface CachedScoutList {
+  scouts: Array<{
+    id: string;
+    name: string;
+    username: string;
+    role: string;
+  }>;
+  cachedAt: Date;
+}
+
 // IndexedDB schema version - increment when adding new stores
-export const DB_VERSION = 2;
+export const DB_VERSION = 3;
 export const DB_NAME = 'athena-offline-cache';
 
 // Store names
@@ -94,5 +105,6 @@ export const STORES = {
   SYNC_LOG: 'sync_log',
   CONFIG: 'config',
   EVENT_TEAMS: 'event_teams',
-  EVENT_LIST: 'event_list'
+  EVENT_LIST: 'event_list',
+  SCOUT_LIST: 'scout_list'
 } as const;
