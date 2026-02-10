@@ -421,10 +421,34 @@ export function DraggablePicklist({
     setTimeout(() => { syncingRef.current = false; }, 0);
   }, []);
 
+  type PickListType = '1stPick' | '2ndPick' | "Unlisted"
+
+  const moveTeam = useCallback((
+    teamNumber: number,
+    from: PickListType,
+    to: PickListType
+  ) => {
+    const remove = (list: SortableTeamItem[]) =>
+      list.filter(t => t.teamNumber !== teamNumber);
+
+    const team: SortableTeamItem = { id: String(teamNumber), teamNumber };
+
+    if (from === '1stPick') setLocalPick1Order(l => remove(l));
+    if (from === '2ndPick') setLocalPick2Order(l => remove(l));
+    if (from === 'Unlisted') setLocalUnlisted(l => remove(l));
+
+    if (to === '1stPick') setLocalPick1Order(l => [...l, team]);
+    if (to === '2ndPick') setLocalPick2Order(l => [...l, team]);
+    if (to === 'Unlisted') setLocalUnlisted(l => [...l, team]);
+
+    setHasUnsavedChanges(true);
+  }, []);
+
   // ── Team card renderer ──
   const renderTeamCard = (
     teamNumber: number,
     rank: number | null,
+    listType: PickListType
   ) => {
     const isExpanded = expandedTeams.has(teamNumber);
     const qualRank = qualRankings.get(teamNumber);
@@ -441,18 +465,10 @@ export function DraggablePicklist({
               <div className="sortable-handle cursor-grab active:cursor-grabbing hover:bg-accent rounded p-1 flex-shrink-0">
                 <GripVertical className="h-4 w-4" />
               </div>
-              <CollapsibleTrigger asChild>
-                <button className="flex items-center gap-2 flex-grow min-w-0 cursor-pointer">
-                  {isExpanded
-                    ? <ChevronDown className="h-4 w-4 flex-shrink-0" />
-                    : <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                  }
-                  {rank !== null && (
-                    <div className="flex-shrink-0 font-bold text-lg w-8">#{rank}</div>
-                  )}
-                  <div className="flex-grow font-semibold text-lg text-left">{teamNumber}</div>
-                </button>
-              </CollapsibleTrigger>
+              {rank !== null && (
+                <div className="flex-shrink-0 font-bold text-lg w-8">#{rank}</div>
+              )}
+              <div className="flex-grow font-semibold text-lg text-left">{teamNumber}</div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 {epa && (
                   <div
@@ -468,10 +484,19 @@ export function DraggablePicklist({
                 )}
                 {qualRank !== undefined && (
                   <Badge variant="outline" className="flex-shrink-0 text-xs">
-                    Q{qualRank}
+                    R{qualRank}
                   </Badge>
                 )}
+                <CollapsibleTrigger asChild>
+                  <button className="flex items-center gap-2 flex-grow min-w-0 cursor-pointer">
+                    {isExpanded
+                      ? <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                      : <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                    }
+                  </button>
+                </CollapsibleTrigger>
               </div>
+
             </div>
 
             <CollapsibleContent>
@@ -510,6 +535,17 @@ export function DraggablePicklist({
                   <div className="text-xs text-muted-foreground mt-1">
                     Auto-saves after you stop typing
                   </div>
+                  <div className="flex justify-start mt-4 gap-2">
+                    {listType !== '1stPick' && (
+                      <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "1stPick")}>Send to 1st Pick</Button>
+                    )}
+                    {listType !== '2ndPick' && (
+                      <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "2ndPick")}>Send to 2nd Pick</Button>
+                    )}
+                    {listType !== 'Unlisted' && (
+                      <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "Unlisted")}>Send to Unlisted</Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </CollapsibleContent>
@@ -541,7 +577,7 @@ export function DraggablePicklist({
   // ── Render ──
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="sm:flex sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold">
             {competitionType === 'FRC' ? 'FRC' : 'FTC'} Picklist - {eventCode}
@@ -553,7 +589,7 @@ export function DraggablePicklist({
             )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-4 sm:mt-0">
           {showInitialize ? (
             <Button onClick={initializePicklists}>
               <Plus className="mr-2 h-4 w-4" />
@@ -583,12 +619,12 @@ export function DraggablePicklist({
           {/* Pick 1 List */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Pick 1</CardTitle>
-                <Badge variant="default">{localPick1Order.length} teams</Badge>
+              <div className="flex items-center justify-between -mb-8">
+                <CardTitle>1st Pick</CardTitle>
+                <Badge variant="outline">{localPick1Order.length} teams</Badge>
               </div>
             </CardHeader>
-            <CardContent className="min-h-96 space-y-2 p-4">
+            <CardContent className="sm:min-h-96 space-y-2 p-4">
               <ReactSortable
                 list={localPick1Order}
                 setList={handlePick1Change}
@@ -599,9 +635,9 @@ export function DraggablePicklist({
                 preventOnFilter={false}
                 ghostClass="opacity-30"
                 dragClass="shadow-lg"
-                className="space-y-2 min-h-48"
+                className="space-y-2 sm:min-h-48"
               >
-                {localPick1Order.map((item, idx) => renderTeamCard(item.teamNumber, idx + 1))}
+                {localPick1Order.map((item, idx) => renderTeamCard(item.teamNumber, idx + 1, '1stPick'))}
               </ReactSortable>
               {localPick1Order.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">Drag teams here</div>
@@ -613,12 +649,12 @@ export function DraggablePicklist({
           {competitionType === 'FRC' && (
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Pick 2</CardTitle>
-                  <Badge variant="secondary">{localPick2Order.length} teams</Badge>
+                <div className="flex items-center justify-between -mb-8">
+                  <CardTitle>2nd Pick</CardTitle>
+                  <Badge variant="outline">{localPick2Order.length} teams</Badge>
                 </div>
               </CardHeader>
-              <CardContent className="min-h-96 space-y-2 p-4">
+              <CardContent className="sm:min-h-96 space-y-2 p-4">
                 <ReactSortable
                   list={localPick2Order}
                   setList={handlePick2Change}
@@ -629,9 +665,9 @@ export function DraggablePicklist({
                   preventOnFilter={false}
                   ghostClass="opacity-30"
                   dragClass="shadow-lg"
-                  className="space-y-2 min-h-48"
+                  className="space-y-2 sm:min-h-48"
                 >
-                  {localPick2Order.map((item, idx) => renderTeamCard(item.teamNumber, idx + 1))}
+                  {localPick2Order.map((item, idx) => renderTeamCard(item.teamNumber, idx + 1, '2ndPick'))}
                 </ReactSortable>
                 {localPick2Order.length === 0 && (
                   <div className="text-center py-12 text-muted-foreground">Drag teams here</div>
@@ -643,12 +679,12 @@ export function DraggablePicklist({
           {/* Unlisted Teams */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between -mb-8">
                 <CardTitle>Unlisted</CardTitle>
                 <Badge variant="outline">{localUnlisted.length} teams</Badge>
               </div>
             </CardHeader>
-            <CardContent className="min-h-96 space-y-2 p-4">
+            <CardContent className="sm:min-h-96 space-y-2 p-4">
               <ReactSortable
                 list={localUnlisted}
                 setList={handleUnlistedChange}
@@ -658,11 +694,11 @@ export function DraggablePicklist({
                 filter="textarea,button,input"
                 preventOnFilter={false}
                 ghostClass="opacity-30"
-                dragClass="shadow-lg"
+                dragClass="shadow-lg"x
                 sort={false}
                 className="space-y-2 min-h-48"
               >
-                {localUnlisted.map((item) => renderTeamCard(item.teamNumber, null))}
+                {localUnlisted.map((item) => renderTeamCard(item.teamNumber, null, 'Unlisted'))}
               </ReactSortable>
               {localUnlisted.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">All teams assigned</div>

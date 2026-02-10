@@ -46,14 +46,12 @@ export default function PicklistPage() {
         <h1 className="text-3xl font-bold tracking-tight">Team Picklist</h1>
         <p className="text-muted-foreground">
           {competitionType === 'FRC' 
-            ? 'Drag and drop teams between Pick 1, Pick 2, and Unlisted.'
+            ? 'Drag and drop teams between 1st Pick, 2nd Pick, and Unlisted.'
             : 'Create and manage your alliance selection preferences.'
           }
         </p>
         <div className="flex items-center gap-2 mt-2">
           <Badge variant="outline">{selectedEvent.name}</Badge>
-          <Badge variant="secondary">{competitionType}</Badge>
-          <Badge>{currentYear}</Badge>
         </div>
       </div>
 

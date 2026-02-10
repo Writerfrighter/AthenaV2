@@ -208,7 +208,7 @@ export function LoggedInLandingPage() {
                 </div>
               ) : (
                 <Card>
-                  <CardContent className="pt-6">
+                  <CardContent>
                     <p className="text-muted-foreground">No upcoming matches</p>
                   </CardContent>
                 </Card>
