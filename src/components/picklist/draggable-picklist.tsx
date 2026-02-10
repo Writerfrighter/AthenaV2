@@ -56,6 +56,10 @@ export function DraggablePicklist({
   const noteSaveTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
   const notesLoadedRef = useRef(false);
   const syncingRef = useRef(false);
+  const pick1IdRef = useRef<number | undefined>(undefined);
+  const pick2IdRef = useRef<number | undefined>(undefined);
+  const localPick1Ref = useRef<SortableTeamItem[]>([]);
+  const localPick2Ref = useRef<SortableTeamItem[]>([]);
 
   // Get all event teams
   const { teams: allEventTeams = [] } = useEventTeams();
@@ -74,6 +78,12 @@ export function DraggablePicklist({
     competitionType,
     picklistType: 'pick2'
   });
+
+  // Keep refs in sync for use in debounced autosave (avoids stale closures)
+  useEffect(() => { pick1IdRef.current = pick1.picklist?.id; }, [pick1.picklist?.id]);
+  useEffect(() => { pick2IdRef.current = pick2.picklist?.id; }, [pick2.picklist?.id]);
+  useEffect(() => { localPick1Ref.current = localPick1Order; }, [localPick1Order]);
+  useEffect(() => { localPick2Ref.current = localPick2Order; }, [localPick2Order]);
 
   // Helper to convert PicklistEntry[] to SortableTeamItem[]
   const toSortableItems = useCallback((entries: PicklistEntry[]): SortableTeamItem[] => {
@@ -274,53 +284,63 @@ export function DraggablePicklist({
     totalPicklistTeams !== actualPicklistCount
   );
 
+  // Resolve which picklistId a team belongs to (pick1, pick2, or fallback)
+  const resolvePicklistId = useCallback((teamNumber: number): number | undefined => {
+    if (localPick1Ref.current.some(e => e.teamNumber === teamNumber)) {
+      return pick1IdRef.current;
+    }
+    if (localPick2Ref.current.some(e => e.teamNumber === teamNumber)) {
+      return pick2IdRef.current;
+    }
+    // Unlisted teams: use whichever picklist exists
+    return pick1IdRef.current ?? pick2IdRef.current;
+  }, []);
+
   // Auto-save note to database with debounce
-  const saveNoteToDb = useCallback((teamNumber: number, noteText: string) => {
-    const picklistId = localPick1Order.find(e => e.teamNumber === teamNumber)
-      ? pick1.picklist?.id
-      : localPick2Order.find(e => e.teamNumber === teamNumber)
-        ? pick2.picklist?.id
-        : pick1.picklist?.id;
+  // Uses refs so the debounced timer always reads the latest values
+  const handleNoteChange = useCallback((teamNumber: number, value: string) => {
+    setTeamNotes(prev => ({ ...prev, [teamNumber]: value }));
 
-    if (!picklistId) return;
-
+    // Clear any pending save for this team
     if (noteSaveTimersRef.current[teamNumber]) {
       clearTimeout(noteSaveTimersRef.current[teamNumber]);
     }
 
     noteSaveTimersRef.current[teamNumber] = setTimeout(async () => {
+      // Resolve picklistId at fire time from refs (always fresh)
+      const picklistId = resolvePicklistId(teamNumber);
+      if (!picklistId) {
+        console.warn('Cannot save note: no picklist ID available for team', teamNumber);
+        return;
+      }
+
       try {
-        const res = await fetch(`/api/database/picklist/notes?picklistId=${picklistId}&teamNumber=${teamNumber}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.notes && data.notes.length > 0) {
-            if (noteText.trim()) {
-              await fetch('/api/database/picklist/notes', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ noteId: data.notes[0].id, note: noteText })
-              });
-            } else {
-              await fetch(`/api/database/picklist/notes?noteId=${data.notes[0].id}`, { method: 'DELETE' });
-            }
-          } else if (noteText.trim()) {
-            await fetch('/api/database/picklist/notes', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ picklistId, teamNumber, note: noteText })
-            });
+        if (value.trim()) {
+          const res = await fetch('/api/database/picklist/notes', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ picklistId, teamNumber, note: value })
+          });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            console.error('Failed to save note:', res.status, errData);
+            toast.error('Failed to save note');
+          }
+        } else {
+          const res = await fetch(
+            `/api/database/picklist/notes?picklistId=${picklistId}&teamNumber=${teamNumber}`,
+            { method: 'DELETE' }
+          );
+          if (!res.ok) {
+            console.error('Failed to delete note:', res.status);
           }
         }
       } catch (error) {
         console.error('Error saving note:', error);
+        toast.error('Failed to save note');
       }
-    }, 1000);
-  }, [localPick1Order, localPick2Order, pick1.picklist?.id, pick2.picklist?.id]);
-
-  const handleNoteChange = useCallback((teamNumber: number, value: string) => {
-    setTeamNotes(prev => ({ ...prev, [teamNumber]: value }));
-    saveNoteToDb(teamNumber, value);
-  }, [saveNoteToDb]);
+    }, 800);
+  }, [resolvePicklistId]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
