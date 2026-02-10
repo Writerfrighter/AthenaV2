@@ -283,12 +283,9 @@ export class AzureSqlDatabaseService implements DatabaseService {
         picklistId INT NOT NULL,
         teamNumber INT NOT NULL,
         note NVARCHAR(MAX),
-        content NVARCHAR(MAX),
-        userId NVARCHAR(255),
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
-        FOREIGN KEY (picklistId) REFERENCES picklists(id) ON DELETE CASCADE,
-        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
+        FOREIGN KEY (picklistId) REFERENCES picklists(id) ON DELETE CASCADE
       )
     `);
   }
@@ -1321,12 +1318,11 @@ export class AzureSqlDatabaseService implements DatabaseService {
     const result = await pool.request()
       .input('picklistId', mssql.Int, n.picklistId)
       .input('teamNumber', mssql.Int, n.teamNumber)
-      .input('userId', mssql.NVarChar, n.userId || null)
-      .input('content', mssql.NVarChar, n.content || n.note || null)
+      .input('note', mssql.NVarChar, n.note || n.content || null)
       .query(`
-        INSERT INTO picklistNotes (picklistId, teamNumber, userId, content)
+        INSERT INTO picklistNotes (picklistId, teamNumber, note)
         OUTPUT INSERTED.id
-        VALUES (@picklistId, @teamNumber, @userId, @content)
+        VALUES (@picklistId, @teamNumber, @note)
       `);
 
     return result.recordset[0].id;
@@ -1342,8 +1338,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
       id: row.id,
       picklistId: row.picklistId,
       teamNumber: row.teamNumber,
-      userId: row.userId || undefined,
-      content: row.content || row.note || undefined,
+      note: row.note || '',
       created_at: row.created_at,
       updated_at: row.updated_at,
     } as unknown) as PicklistNote;
@@ -1365,8 +1360,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
       id: row.id,
       picklistId: row.picklistId,
       teamNumber: row.teamNumber,
-      userId: row.userId || undefined,
-      content: row.content || row.note || undefined,
+      note: row.note || '',
       created_at: row.created_at,
       updated_at: row.updated_at,
     } as unknown) as PicklistNote);
@@ -1379,9 +1373,9 @@ export class AzureSqlDatabaseService implements DatabaseService {
     const request = pool.request().input('id', mssql.Int, id);
 
     const u = updates as any;
-    if (u.content !== undefined || u.note !== undefined) {
-      setParts.push('content = @content');
-      request.input('content', mssql.NVarChar, u.content ?? u.note);
+    if (u.note !== undefined || u.content !== undefined) {
+      setParts.push('note = @note');
+      request.input('note', mssql.NVarChar, u.note ?? u.content);
     }
 
     if (setParts.length === 0) return;

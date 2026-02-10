@@ -70,8 +70,7 @@ export async function POST(request: NextRequest) {
     const noteId = await service.addPicklistNote({
       picklistId,
       teamNumber,
-      note,
-      created_by: session.user.id
+      note
     });
 
     return NextResponse.json({
@@ -79,7 +78,6 @@ export async function POST(request: NextRequest) {
       picklistId,
       teamNumber,
       note,
-      created_by: session.user.id,
       created_at: new Date().toISOString(),
       success: true
     });
@@ -98,23 +96,46 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { noteId, note } = body;
+    const { noteId, note, picklistId, teamNumber } = body;
 
-    if (!noteId || !note) {
+    if (!note) {
       return NextResponse.json(
-        { error: 'Missing required fields: noteId, note' },
+        { error: 'Missing required field: note' },
         { status: 400 }
       );
     }
 
     const service = getDbService();
-    await service.updatePicklistNote(noteId, { note });
 
-    return NextResponse.json({
-      noteId,
-      updated: true,
-      success: true
-    });
+    // If explicit noteId provided, update that note
+    if (noteId) {
+      await service.updatePicklistNote(noteId, { note });
+      return NextResponse.json({ noteId, updated: true, success: true });
+    }
+
+    // Otherwise, if picklistId + teamNumber provided, try to upsert (update first existing note, else create)
+    if (picklistId && teamNumber) {
+      const pid = Number(picklistId);
+      const tnum = Number(teamNumber);
+      const existing = await service.getPicklistNotes(pid, tnum);
+      if (existing && existing.length > 0 && typeof existing[0].id === 'number') {
+        const idToUpdate = existing[0].id;
+        await service.updatePicklistNote(idToUpdate, { note });
+        return NextResponse.json({ noteId: idToUpdate, updated: true, success: true });
+      }
+
+      const createdId = await service.addPicklistNote({
+        picklistId: pid,
+        teamNumber: tnum,
+        note
+      });
+      return NextResponse.json({ id: createdId, created: true, success: true });
+    }
+
+    return NextResponse.json(
+      { error: 'Missing required fields: noteId or (picklistId and teamNumber)' },
+      { status: 400 }
+    );
   } catch (error) {
     console.error('Error updating picklist note:', error);
     return NextResponse.json({ error: 'Failed to update picklist note' }, { status: 500 });
@@ -131,22 +152,34 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const noteId = searchParams.get('noteId');
-
-    if (!noteId) {
-      return NextResponse.json(
-        { error: 'Missing required parameter: noteId' },
-        { status: 400 }
-      );
-    }
+    const picklistId = searchParams.get('picklistId');
+    const teamNumber = searchParams.get('teamNumber');
 
     const service = getDbService();
-    await service.deletePicklistNote(parseInt(noteId));
 
-    return NextResponse.json({
-      noteId,
-      deleted: true,
-      success: true
-    });
+    // Delete by explicit noteId
+    if (noteId) {
+      await service.deletePicklistNote(parseInt(noteId));
+      return NextResponse.json({ noteId, deleted: true, success: true });
+    }
+
+    // Or delete all notes for a picklistId + teamNumber
+    if (picklistId && teamNumber) {
+      const pid = parseInt(picklistId);
+      const tnum = parseInt(teamNumber);
+      const existing = await service.getPicklistNotes(pid, tnum);
+      for (const n of existing) {
+        if (typeof n.id === 'number') {
+          await service.deletePicklistNote(n.id);
+        }
+      }
+      return NextResponse.json({ picklistId: pid, teamNumber: tnum, deleted: true, success: true });
+    }
+
+    return NextResponse.json(
+      { error: 'Missing required parameter: noteId or (picklistId and teamNumber)' },
+      { status: 400 }
+    );
   } catch (error) {
     console.error('Error deleting picklist note:', error);
     return NextResponse.json({ error: 'Failed to delete picklist note' }, { status: 500 });
