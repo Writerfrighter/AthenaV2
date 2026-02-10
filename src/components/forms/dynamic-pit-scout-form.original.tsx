@@ -20,6 +20,7 @@ import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { pitApi } from '@/lib/api/database-client';
 import { ScoutSelector } from '@/components/scout-selector';
+import { FieldDrawingCanvas } from '@/components/forms/field-drawing-canvas';
 import type { DynamicPitData, PitEntry } from '@/lib/shared-types';
 
 export function DynamicPitScoutForm() {
@@ -623,6 +624,24 @@ export function DynamicPitScoutForm() {
                           })
                         )}
                       </div>
+                      {/* Field Drawing Canvas for Autonomous Path */}
+                      <div className="mt-6">
+                        <FieldDrawingCanvas
+                          initialData={formData.gameSpecificData['autonomous_pathDrawing'] as string || ''}
+                          onChange={(dataUrl) => handleGameSpecificChange('autonomous_pathDrawing', dataUrl)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Autonomous path drawing when no autonomous fields configured */}
+                  {(!gameConfig.pitScouting.autonomous || Object.keys(gameConfig.pitScouting.autonomous).length === 0) && formData.hasAuto && (
+                    <div className="border-b pb-4">
+                      <h3 className="text-lg font-semibold mb-4">Autonomous Path</h3>
+                      <FieldDrawingCanvas
+                        initialData={formData.gameSpecificData['autonomous_pathDrawing'] as string || ''}
+                        onChange={(dataUrl) => handleGameSpecificChange('autonomous_pathDrawing', dataUrl)}
+                      />
                     </div>
                   )}
 

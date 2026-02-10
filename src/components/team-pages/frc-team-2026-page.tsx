@@ -18,6 +18,11 @@ import {
   PieChart,
   Pie,
   Cell,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
 } from 'recharts';
 import {
   ChartConfig,
@@ -210,6 +215,52 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
     { name: 'L2', value: rebuiltData.endgame_l2_rate },
     { name: 'L3', value: rebuiltData.endgame_l3_rate },
   ] : [];
+
+  // Radar chart data – normalize key stats to 0-100 scale for a "robot strength" overview
+  const radarData = rebuiltData ? [
+    {
+      stat: 'Auto Fuel',
+      value: Math.min(rebuiltData.auto_fuel_scored * 10, 100), // scale: 10 fuel → 100
+      fullMark: 100,
+    },
+    {
+      stat: 'Auto Climb',
+      value: rebuiltData.auto_climb_rate,
+      fullMark: 100,
+    },
+    {
+      stat: 'Teleop Fuel',
+      value: Math.min(rebuiltData.teleop_fuel_scored * 5, 100), // scale: 20 fuel → 100
+      fullMark: 100,
+    },
+    {
+      stat: 'Accuracy',
+      value: rebuiltData.teleop_fuel_accuracy,
+      fullMark: 100,
+    },
+    {
+      stat: 'Climb Level',
+      value: Math.min(
+        (rebuiltData.endgame_l1_rate * 0.33 +
+          rebuiltData.endgame_l2_rate * 0.66 +
+          rebuiltData.endgame_l3_rate * 1.0),
+        100
+      ),
+      fullMark: 100,
+    },
+    {
+      stat: 'Reliability',
+      value: Math.max(100 - rebuiltData.endgame_breakdown_rate, 0),
+      fullMark: 100,
+    },
+  ] : [];
+
+  const radarChartConfig = {
+    value: {
+      label: "Strength",
+      color: "hsl(var(--chart-1))",
+    },
+  } satisfies ChartConfig;
 
   // Extract actual notes from team data
   const extractTeamNotes = (): string[] => {
@@ -514,6 +565,34 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Robot Strength Radar */}
+      <Card className="flex flex-col">
+        <CardHeader className="items-center pb-0">
+          <CardTitle>Robot Strength Overview</CardTitle>
+          <CardDescription>Key performance dimensions normalized to 0-100 scale</CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 pb-4">
+          <ChartContainer
+            config={radarChartConfig}
+            className="mx-auto aspect-square max-h-[350px]"
+          >
+            <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="80%">
+              <PolarGrid />
+              <PolarAngleAxis dataKey="stat" tick={{ fontSize: 12 }} />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <Radar
+                name="Strength"
+                dataKey="value"
+                stroke="var(--color-value)"
+                fill="var(--color-value)"
+                fillOpacity={0.3}
+              />
+            </RadarChart>
+          </ChartContainer>
+        </CardContent>
+      </Card>
 
       {/* Endgame & Reliability */}
       <div className="grid lg:grid-cols-2 gap-6">
