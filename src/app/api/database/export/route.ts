@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
     const format = searchParams.get('format') || 'json';
     const competitionType = searchParams.get('competitionType') as 'FRC' | 'FTC' || undefined;
+    const eventCode = searchParams.get('eventCode') || undefined;
     // `types` can be a comma-separated list: 'pit', 'match', or omitted for all
     const typesParam = searchParams.get('types');
     const requestedTypes = typesParam
@@ -39,6 +40,14 @@ export async function GET(request: NextRequest) {
       data = {
         pitEntries: data.pitEntries.filter(entry => entry.competitionType === competitionType),
         matchEntries: data.matchEntries.filter(entry => entry.competitionType === competitionType)
+      };
+    }
+
+    // Filter by event code if specified
+    if (eventCode) {
+      data = {
+        pitEntries: data.pitEntries.filter(entry => entry.eventCode === eventCode),
+        matchEntries: data.matchEntries.filter(entry => entry.eventCode === eventCode)
       };
     }
 
@@ -68,7 +77,8 @@ export async function GET(request: NextRequest) {
       : 'all';
     const yearStr = year ? year.toString() : 'all-years';
     const compTypeStr = competitionType || 'all';
-    const baseFilename = `${compTypeStr}-${yearStr}-${dataTypeStr}-scouting`;
+    const eventStr = eventCode ? `-${eventCode}` : '';
+    const baseFilename = `${compTypeStr}-${yearStr}-${dataTypeStr}-scouting${eventStr}`;
 
     if (format === 'csv') {
       const csvData = await convertToCSV(data);
