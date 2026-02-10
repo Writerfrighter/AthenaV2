@@ -17,7 +17,12 @@ import {
   CartesianGrid,
   Tooltip,
   PieChart,
-  Pie
+  Pie,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
 } from 'recharts';
 import {
   ChartConfig,
