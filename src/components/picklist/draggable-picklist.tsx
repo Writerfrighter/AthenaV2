@@ -694,7 +694,7 @@ export function DraggablePicklist({
                 filter="textarea,button,input"
                 preventOnFilter={false}
                 ghostClass="opacity-30"
-                dragClass="shadow-lg"x
+                dragClass="shadow-lg"
                 sort={false}
                 className="space-y-2 min-h-48"
               >

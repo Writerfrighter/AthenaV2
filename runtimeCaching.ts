@@ -2,6 +2,18 @@
 // Use serializable handler strings ('NetworkFirst' / 'CacheFirst') so serwist can embed
 // these rules into the generated service worker.
 module.exports = [
+  // Auth session — cache so offline relaunches preserve the logged-in session
+  {
+    urlPattern: /^\/api\/auth\/session$/,
+    handler: 'NetworkFirst',
+    options: {
+      cacheName: 'auth-session',
+      networkTimeoutSeconds: 3,
+      expiration: { maxEntries: 1, maxAgeSeconds: 30 * 24 * 60 * 60 }, // 30 days — matches JWT maxAge
+      cacheableResponse: { statuses: [0, 200] },
+    },
+  },
+
   // Cache JS/CSS/Next.js static assets
   {
     urlPattern: /^\/_next\/static\//,

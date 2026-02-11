@@ -41,6 +41,8 @@ export function OfflinePrecache({ className }: { className?: string }) {
 
   const buildRoutes = useCallback((): PrecacheRoute[] => {
     const routes: PrecacheRoute[] = [
+      // Auth session — must be cached so offline relaunches stay logged in
+      { label: 'Auth Session', url: '/api/auth/session', type: 'api' },
       // Pages that should be cached for offline
       { label: 'Dashboard', url: '/dashboard', type: 'page' },
       { label: 'Match Scout', url: '/scout/matchscout', type: 'page' },

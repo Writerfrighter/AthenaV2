@@ -45,6 +45,21 @@ const OFFLINE_FALLBACK_HTML = `<!DOCTYPE html>
 
 // Custom runtime caching rules for scouting-specific routes, merged with defaults
 const appRuntimeCaching = [
+  // Auth session endpoint — cache so offline relaunches preserve the logged-in session
+  {
+    matcher: ({ url: { pathname }, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
+      sameOrigin && pathname === "/api/auth/session",
+    handler: new NetworkFirst({
+      cacheName: "auth-session",
+      networkTimeoutSeconds: 3,
+      plugins: [
+        new ExpirationPlugin({
+          maxEntries: 1,
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days — matches JWT maxAge
+        }),
+      ],
+    }),
+  },
   // Scouting pages — aggressive caching with short network timeout for offline use
   {
     matcher: ({ request, url: { pathname }, sameOrigin }: { request: Request; url: URL; sameOrigin: boolean }) =>
