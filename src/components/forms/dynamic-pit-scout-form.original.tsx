@@ -629,6 +629,13 @@ export function DynamicPitScoutForm() {
                         <FieldDrawingCanvas
                           initialData={formData.gameSpecificData['autonomous_pathDrawing'] as string || ''}
                           onChange={(dataUrl) => handleGameSpecificChange('autonomous_pathDrawing', dataUrl)}
+                          initialMarkers={(() => {
+                            try {
+                              const raw = formData.gameSpecificData['autonomous_pathMarkers'];
+                              return typeof raw === 'string' && raw ? JSON.parse(raw) : [];
+                            } catch { return []; }
+                          })()}
+                          onMarkersChange={(markers) => handleGameSpecificChange('autonomous_pathMarkers', JSON.stringify(markers))}
                         />
                       </div>
                     </div>
@@ -641,6 +648,13 @@ export function DynamicPitScoutForm() {
                       <FieldDrawingCanvas
                         initialData={formData.gameSpecificData['autonomous_pathDrawing'] as string || ''}
                         onChange={(dataUrl) => handleGameSpecificChange('autonomous_pathDrawing', dataUrl)}
+                        initialMarkers={(() => {
+                          try {
+                            const raw = formData.gameSpecificData['autonomous_pathMarkers'];
+                            return typeof raw === 'string' && raw ? JSON.parse(raw) : [];
+                          } catch { return []; }
+                        })()}
+                        onMarkersChange={(markers) => handleGameSpecificChange('autonomous_pathMarkers', JSON.stringify(markers))}
                       />
                     </div>
                   )}

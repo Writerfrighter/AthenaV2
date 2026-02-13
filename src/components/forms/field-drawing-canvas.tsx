@@ -2,16 +2,47 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
-import { Pencil, Eraser, Undo2, Trash2 } from 'lucide-react';
+import { Pencil, Eraser, Undo2, Trash2, Target, Fuel, X, MapPin, ArrowUpFromLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// ── Marker types ──
+
+type MarkerType = 'shooting' | 'fuel-pickup' | 'starting-position' | 'climb';
+
+interface Marker {
+  id: string;
+  type: MarkerType;
+  /** Normalised 0-1 position on the field */
+  x: number;
+  y: number;
+  /** Global placement order (1-based) */
+  order: number;
+}
+
+const MARKER_DEFS: Record<MarkerType, { label: string; color: string }> = {
+  'starting-position': { label: 'Start',       color: '#22c55e' },
+  'shooting':          { label: 'Shooting',     color: '#ef4444' },
+  'fuel-pickup':       { label: 'Fuel Pickup',  color: '#f59e0b' },
+  'climb':             { label: 'Climb',        color: '#8b5cf6' },
+};
+
+const MARKER_ICONS: Record<MarkerType, React.ComponentType<{ className?: string }>> = {
+  'starting-position': MapPin,
+  'shooting':          Target,
+  'fuel-pickup':       Fuel,
+  'climb':             ArrowUpFromLine,
+};
 
 interface FieldDrawingCanvasProps {
   /** Initial drawing data as a base64 data URL */
   initialData?: string;
   /** Callback when drawing changes, returns base64 data URL of the drawing */
   onChange?: (dataUrl: string) => void;
+  /** Callback when markers change */
+  onMarkersChange?: (markers: Marker[]) => void;
+  /** Initial markers */
+  initialMarkers?: Marker[];
   /** Image source for the field background */
   fieldImageSrc?: string;
   /** CSS class for the container */
@@ -77,6 +108,8 @@ function pointHitsStroke(
 export function FieldDrawingCanvas({
   initialData,
   onChange,
+  onMarkersChange,
+  initialMarkers,
   fieldImageSrc = '/assets/Rebuilt Field .png',
   className,
 }: FieldDrawingCanvasProps) {
@@ -84,8 +117,8 @@ export function FieldDrawingCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState<Tool>('pen');
-  const [penColor, setPenColor] = useState('#ff0000');
-  const [brushSize, setBrushSize] = useState(3);
+  const penColor = '#000000';
+  const brushSize = 3;
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const currentStrokeRef = useRef<Stroke | null>(null);
   // Track which stroke indices are highlighted for removal while eraser is held
@@ -94,15 +127,21 @@ export function FieldDrawingCanvas({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const initialDataLoadedRef = useRef(false);
+  // Track the endpoint of the last completed stroke for marker placement
+  const lastStrokeEndRef = useRef<Point>({ x: 0.5, y: 0.5 });
 
-  const colors = [
-    '#ff0000', // Red
-    '#0000ff', // Blue
-    '#00cc00', // Green
-    '#ffaa00', // Orange
-    '#ffffff', // White
-    '#000000', // Black
-  ];
+  // ── Markers state ──
+  const [markers, setMarkers] = useState<Marker[]>(initialMarkers ?? []);
+  const draggingMarkerRef = useRef<{ id: string; offsetX: number; offsetY: number } | null>(null);
+  const initialMarkersLoadedRef = useRef(false);
+
+  // Sync initial markers once
+  useEffect(() => {
+    if (initialMarkers && !initialMarkersLoadedRef.current) {
+      setMarkers(initialMarkers);
+      initialMarkersLoadedRef.current = true;
+    }
+  }, [initialMarkers]);
 
   // Load the background image
   useEffect(() => {
@@ -179,8 +218,10 @@ export function FieldDrawingCanvas({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
+    // Clear canvas and fill with white background
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw background image
     if (bgImageRef.current) {
@@ -359,6 +400,8 @@ export function FieldDrawingCanvas({
     setIsDrawing(false);
 
     if (completedStroke && completedStroke.points.length >= 2) {
+      // Track the last point for marker spawn position
+      lastStrokeEndRef.current = completedStroke.points[completedStroke.points.length - 1];
       const newStrokes = [...strokes, completedStroke];
       setStrokes(newStrokes);
       emitChange(newStrokes);
@@ -378,16 +421,102 @@ export function FieldDrawingCanvas({
     setStrokes([]);
     currentStrokeRef.current = null;
     eraserHitsRef.current = new Set();
+    setMarkers([]);
     if (onChange) {
       onChange('');
     }
+    if (onMarkersChange) {
+      onMarkersChange([]);
+    }
+  };
+
+  // ── Marker helpers ──
+
+  const addMarker = (type: MarkerType) => {
+    // Enforce single-use for starting-position and climb
+    if (type === 'starting-position' && markers.some((m) => m.type === 'starting-position')) return;
+    if (type === 'climb' && markers.some((m) => m.type === 'climb')) return;
+
+    const nextOrder = markers.length + 1;
+    const spawnPos = lastStrokeEndRef.current;
+    const newMarker: Marker = {
+      id: `${type}-${Date.now()}-${nextOrder}`,
+      type,
+      x: spawnPos.x,
+      y: spawnPos.y,
+      order: nextOrder,
+    };
+    const updated = [...markers, newMarker];
+    setMarkers(updated);
+    onMarkersChange?.(updated);
+  };
+
+  const removeMarker = (id: string) => {
+    // Remove the marker and re-number remaining markers to keep order contiguous
+    const filtered = markers.filter((m) => m.id !== id);
+    const updated = filtered.map((m, idx) => ({ ...m, order: idx + 1 }));
+    setMarkers(updated);
+    onMarkersChange?.(updated);
+  };
+
+  const handleMarkerPointerDown = (
+    e: React.PointerEvent<HTMLDivElement>,
+    marker: Marker,
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    draggingMarkerRef.current = {
+      id: marker.id,
+      offsetX: e.clientX - rect.left - rect.width / 2,
+      offsetY: e.clientY - rect.top - rect.height / 2,
+    };
+    el.setPointerCapture(e.pointerId);
+  };
+
+  const handleMarkerPointerMove = (
+    e: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    if (!draggingMarkerRef.current) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+
+    const dragId = draggingMarkerRef.current.id;
+    const x = (e.clientX - draggingMarkerRef.current.offsetX - rect.left) / rect.width;
+    const y = (e.clientY - draggingMarkerRef.current.offsetY - rect.top) / rect.height;
+
+    const clampedX = Math.max(0, Math.min(1, x));
+    const clampedY = Math.max(0, Math.min(1, y));
+
+    setMarkers((prev) =>
+      prev.map((m) =>
+        m.id === dragId
+          ? { ...m, x: clampedX, y: clampedY }
+          : m,
+      ),
+    );
+  };
+
+  const handleMarkerPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingMarkerRef.current) return;
+    e.stopPropagation();
+    draggingMarkerRef.current = null;
+    // Emit the latest markers after drag ends
+    setMarkers((prev) => {
+      onMarkersChange?.(prev);
+      return prev;
+    });
   };
 
   return (
     <div className={cn('space-y-3', className)}>
       <Label className="text-base font-medium">Autonomous Path Drawing</Label>
       <p className="text-sm text-muted-foreground">
-        Draw the robot&apos;s autonomous path on the field. Use the pen to draw and the eraser to remove entire strokes.
+        Draw the robot&apos;s autonomous path on the field. Drag markers onto the field to indicate shooting and fuel pickup positions.
       </p>
 
       {/* Toolbar */}
@@ -417,46 +546,8 @@ export function FieldDrawingCanvas({
         {/* Separator */}
         <div className="h-6 w-px bg-border" />
 
-        {/* Color Palette (only shown for pen) */}
-        {tool === 'pen' && (
-          <div className="flex items-center gap-1">
-            {colors.map((color) => (
-              <button
-                key={color}
-                type="button"
-                className={cn(
-                  'w-6 h-6 rounded-full border-2 transition-transform',
-                  penColor === color ? 'border-foreground scale-110' : 'border-muted-foreground/30 hover:scale-105'
-                )}
-                style={{ backgroundColor: color }}
-                onClick={() => setPenColor(color)}
-                title={color}
-              />
-            ))}
-          </div>
-        )}
-
         {tool === 'eraser' && (
           <p className="text-xs text-muted-foreground">Drag over a stroke to remove it</p>
-        )}
-
-        {/* Separator */}
-        {tool === 'pen' && <div className="h-6 w-px bg-border" />}
-
-        {/* Brush Size (pen only) */}
-        {tool === 'pen' && (
-          <div className="flex items-center gap-2 min-w-[120px]">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Size:</span>
-            <Slider
-              value={[brushSize]}
-              onValueChange={([val]) => setBrushSize(val)}
-              min={1}
-              max={20}
-              step={1}
-              className="w-20"
-            />
-            <span className="text-xs text-muted-foreground w-4">{brushSize}</span>
-          </div>
         )}
 
         {/* Separator */}
@@ -479,7 +570,7 @@ export function FieldDrawingCanvas({
             variant="outline"
             size="sm"
             onClick={handleClear}
-            disabled={strokes.length === 0}
+            disabled={strokes.length === 0 && markers.length === 0}
             title="Clear All"
           >
             <Trash2 className="h-4 w-4" />
@@ -487,10 +578,62 @@ export function FieldDrawingCanvas({
         </div>
       </div>
 
-      {/* Canvas */}
+      {/* Marker Buttons */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-muted-foreground">Add markers:</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => addMarker('starting-position')}
+          disabled={markers.some((m) => m.type === 'starting-position')}
+          className="gap-1.5"
+        >
+          <MapPin className="h-4 w-4 text-green-500" />
+          Start
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => addMarker('shooting')}
+          className="gap-1.5"
+        >
+          <Target className="h-4 w-4 text-red-500" />
+          Shooting
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => addMarker('fuel-pickup')}
+          className="gap-1.5"
+        >
+          <Fuel className="h-4 w-4 text-amber-500" />
+          Fuel Pickup
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => addMarker('climb')}
+          disabled={markers.some((m) => m.type === 'climb')}
+          className="gap-1.5"
+        >
+          <ArrowUpFromLine className="h-4 w-4 text-violet-500" />
+          Climb
+        </Button>
+        {markers.length > 0 && (
+          <span className="text-xs text-muted-foreground ml-1">
+            ({markers.length} marker{markers.length !== 1 ? 's' : ''} placed — drag to reposition)
+          </span>
+        )}
+      </div>
+
+      {/* Canvas + Markers */}
       <div
         ref={containerRef}
-        className="relative w-full border rounded-lg overflow-hidden bg-muted/30 touch-none"
+        className="relative w-full border rounded-lg overflow-hidden bg-white touch-none select-none"
       >
         <canvas
           ref={canvasRef}
@@ -512,6 +655,60 @@ export function FieldDrawingCanvas({
           onTouchEnd={stopDrawing}
           onTouchCancel={stopDrawing}
         />
+
+        {/* Draggable Markers */}
+        {markers.map((marker) => {
+          const def = MARKER_DEFS[marker.type];
+          const MarkerIcon = MARKER_ICONS[marker.type];
+          const markerNumber = marker.order;
+          return (
+            <div
+              key={marker.id}
+              className="absolute pointer-events-auto group"
+              style={{
+                left: `${marker.x * 100}%`,
+                top: `${marker.y * 100}%`,
+                transform: 'translate(-50%, -50%)',
+                zIndex: 10,
+                touchAction: 'none',
+              }}
+              onPointerDown={(e) => handleMarkerPointerDown(e, marker)}
+              onPointerMove={handleMarkerPointerMove}
+              onPointerUp={handleMarkerPointerUp}
+            >
+              {/* Circle marker with icon and number badge */}
+              <div
+                className="relative w-9 h-9 rounded-full flex items-center justify-center text-white shadow-lg cursor-grab active:cursor-grabbing border-2 border-white/60"
+                style={{ backgroundColor: def.color }}
+                title={`${def.label} #${markerNumber}`}
+              >
+                <MarkerIcon className="h-4 w-4" />
+                {/* Number badge */}
+                <span
+                  className="absolute -bottom-1.5 -left-1.5 w-5 h-5 rounded-full bg-white text-[10px] font-bold flex items-center justify-center shadow-sm border"
+                  style={{ color: def.color, borderColor: def.color }}
+                >
+                  {markerNumber}
+                </span>
+                {/* Remove button – appears on hover */}
+                <button
+                  type="button"
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeMarker(marker.id);
+                  }}
+                  title={`Remove ${def.label} #${markerNumber}`}
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
