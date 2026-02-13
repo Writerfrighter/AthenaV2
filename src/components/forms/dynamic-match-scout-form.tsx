@@ -581,13 +581,13 @@ export function DynamicMatchScoutForm() {
               )}
               
               <Card className="border rounded-xl shadow-sm">
-                <CardContent className="pt-6 space-y-2">
-                  <label className="text-sm font-medium text-primary/90">Additional Notes</label>
+                <CardContent className="space-y-2">
+                  <label className="font-medium text-primary/90 font-semibold">Additional Notes</label>
                   <Textarea
                     placeholder="Any additional observations about this match..."
                     value={formData.notes}
                     onChange={(e) => handleBasicInputChange('notes', e.target.value)}
-                    className="focus:border-green-500 min-h-[200px]"
+                    className="focus:border-green-500 min-h-[200px] mt-2"
                   />
                 </CardContent>
               </Card>
@@ -634,8 +634,8 @@ export function DynamicMatchScoutForm() {
           </div>
         </Tabs>
 
-        <Card className="border rounded-xl shadow-sm">
-          <CardContent className="pt-6">
+        <Card className="border rounded-xl shadow-sm sm:py-4">
+          <CardContent className="">
             <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
               <div className="text-sm text-muted-foreground">
                 {isEditMode ? 'Update the entry and return to dashboard' : 'Data saves locally and syncs automatically'}
@@ -646,7 +646,7 @@ export function DynamicMatchScoutForm() {
                     <Button 
                       variant="outline" 
                       onClick={() => router.push('/dashboard/matchscouting')}
-                      className="h-14"
+                      className="h-4"
                       size="lg"
                     >
                       Cancel
@@ -654,7 +654,7 @@ export function DynamicMatchScoutForm() {
                     <Button 
                       onClick={handleSubmit}
                       disabled={isSubmitting}
-                      className="min-w-[140px] h-14 bg-green-600 hover:bg-green-700 text-base"
+                      className="min-w-[140px] h-10 bg-green-600 hover:bg-green-700 text-base"
                       size="lg"
                     >
                       {isSubmitting ? "Updating..." : (
@@ -670,7 +670,7 @@ export function DynamicMatchScoutForm() {
                     <Button 
                       variant="outline" 
                       onClick={() => setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData)}
-                      className="hover:bg-green-50 h-14"
+                      className="hover:bg-green-50 h-10"
                       size="lg"
                     >
                       Clear Form
@@ -678,7 +678,7 @@ export function DynamicMatchScoutForm() {
                     <Button 
                       onClick={handleSubmit}
                       disabled={isSubmitting}
-                      className="min-w-[140px] h-14 bg-green-600 hover:bg-green-700 text-base"
+                      className="min-w-[140px] h-10 bg-green-600 hover:bg-green-700 text-base"
                       size="lg"
                     >
                       {isSubmitting ? "Saving..." : (

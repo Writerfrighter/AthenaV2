@@ -90,7 +90,7 @@ export function MatchInfoSection({
           Match Information
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <CardContent className="grid grid-cols-1 gap-4 sm:flex sm:justify-start sm:gap-10">
         <div className="space-y-2">
           <div className="flex items-center gap-2 h-5">
             <Label htmlFor="matchNumber">Match Number</Label>

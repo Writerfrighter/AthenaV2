@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Funnel } from "lucide-react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -183,14 +184,14 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
 
   return (
     <div className="w-full">
-      <div className="flex items-center pb-2">
+      <div className="flex items-center pb-2 justify-end-safe">
         <Input
           placeholder="Filter teams..."
           value={(table.getColumn("teamNumber")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("teamNumber")?.setFilterValue(event.target.value)
           }
-          className="max-w-sm h-9"
+          className="max-w-36 h-9"
         />
       </div>
       <div className="rounded-md border">
@@ -221,7 +222,7 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="pl-4">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
