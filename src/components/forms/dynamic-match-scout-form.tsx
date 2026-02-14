@@ -19,6 +19,7 @@ import { matchApi } from '@/lib/api/database-client';
 import { ScoutSelector } from '@/components/scout-selector';
 import { MatchInfoSection } from '@/components/forms/match-info-section';
 import { ScoringSection } from '@/components/forms/scoring-section';
+import { FormSubmitButtons } from '@/components/forms/form-submit-buttons';
 import { defaultData, hideSpinnersStyle, initializeFormData } from '@/components/forms/match-form-utils';
 import type { DynamicMatchData, MatchEntry } from '@/lib/shared-types';
 
@@ -634,66 +635,15 @@ export function DynamicMatchScoutForm() {
           </div>
         </Tabs>
 
-        <Card className="border rounded-xl shadow-sm sm:py-4">
-          <CardContent className="">
-            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
-              <div className="text-sm text-muted-foreground">
-                {isEditMode ? 'Update the entry and return to dashboard' : 'Data saves locally and syncs automatically'}
-              </div>
-              <div className="flex flex-col md:flex-row gap-3">
-                {isEditMode ? (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => router.push('/dashboard/matchscouting')}
-                      className="h-4"
-                      size="lg"
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleSubmit}
-                      disabled={isSubmitting}
-                      className="min-w-[140px] h-10 bg-green-600 hover:bg-green-700 text-base"
-                      size="lg"
-                    >
-                      {isSubmitting ? "Updating..." : (
-                        <>
-                          <CheckCircle className="mr-2 h-5 w-5" />
-                          Update Entry
-                        </>
-                      )}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData)}
-                      className="hover:bg-green-50 h-10"
-                      size="lg"
-                    >
-                      Clear Form
-                    </Button>
-                    <Button 
-                      onClick={handleSubmit}
-                      disabled={isSubmitting}
-                      className="min-w-[140px] h-10 bg-green-600 hover:bg-green-700 text-base"
-                      size="lg"
-                    >
-                      {isSubmitting ? "Saving..." : (
-                        <>
-                          <CheckCircle className="mr-2 h-5 w-5" />
-                          Save Data
-                        </>
-                      )}
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <FormSubmitButtons
+          isEditMode={isEditMode}
+          isSubmitting={isSubmitting}
+          onCancel={() => router.push('/dashboard/matchscouting')}
+          onClear={() => setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData)}
+          onSubmit={handleSubmit}
+          submitText="Save Data"
+          updateText="Update Entry"
+        />
       </div>
     </>
   );

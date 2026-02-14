@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { pitApi } from '@/lib/api/database-client';
 import { ScoutSelector } from '@/components/scout-selector';
 import { FieldDrawingCanvas } from '@/components/forms/field-drawing-canvas';
+import { FormSubmitButtons } from '@/components/forms/form-submit-buttons';
 import type { DynamicPitData, PitEntry } from '@/lib/shared-types';
 
 export function DynamicPitScoutForm() {
@@ -38,6 +39,7 @@ export function DynamicPitScoutForm() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Function to initialize form data with all pit scouting fields
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -187,9 +189,7 @@ export function DynamicPitScoutForm() {
     setFormData((f) => ({ ...f, hasAuto: checked }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     // For tablet accounts, ensure a scout is selected
     if (session?.user?.role === 'tablet' && !selectedScoutId && !isEditMode) {
       toast.error("Please select which scout you're entering data for");
@@ -216,6 +216,8 @@ export function DynamicPitScoutForm() {
         // Continue with submission even if check fails
       }
     }
+
+    setIsSubmitting(true);
 
     try {
       if (isEditMode && editingEntryId) {
@@ -253,6 +255,8 @@ export function DynamicPitScoutForm() {
           icon: <CheckCircle className="h-4 w-4" />
         });
 
+        setIsSubmitting(false);
+
         // Navigate back to dashboard
         router.push('/dashboard/pitscouting');
       } else {
@@ -289,6 +293,8 @@ export function DynamicPitScoutForm() {
             icon: <CheckCircle className="h-4 w-4" />
           });
         }
+
+        setIsSubmitting(false);
         
         // Reset form
         setFormData(gameConfig ? initializePitFormData(gameConfig) : {
@@ -316,6 +322,7 @@ export function DynamicPitScoutForm() {
         description: error instanceof Error ? error.message : "Unknown error",
         icon: <AlertCircle className="h-4 w-4" />
       });
+      setIsSubmitting(false);
     }
   };
 
@@ -434,7 +441,7 @@ export function DynamicPitScoutForm() {
       {/* Main Form */}
       <Card className="shadow-sm">
         <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="space-y-8">
             {/* Team Information */}
             <div className="space-y-6">
               <div className="border-b pb-4">
@@ -710,43 +717,30 @@ export function DynamicPitScoutForm() {
                 />
               </div>
 
-              {/* Submit Button */}
-              <div className="pt-4">
-                {isEditMode ? (
-                  <div className="flex flex-col md:flex-row gap-3">
-                    <Button 
-                      type="button"
-                      variant="outline"
-                      onClick={() => router.push('/dashboard/pitscouting')}
-                      size="lg" 
-                      className="flex-1 h-12 text-base"
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      size="lg" 
-                      className="flex-1 h-12 text-base"
-                    >
-                      <CheckCircle className="mr-2 h-5 w-5" />
-                      Update Entry
-                    </Button>
-                  </div>
-                ) : (
-                  <Button 
-                    type="submit" 
-                    size="lg" 
-                    className="w-full h-12 text-base"
-                  >
-                    <CheckCircle className="mr-2 h-5 w-5" />
-                    Save Scouting Data
-                  </Button>
-                )}
-              </div>
             </div>
-          </form>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Submit Buttons */}
+      <FormSubmitButtons
+        isEditMode={isEditMode}
+        isSubmitting={isSubmitting}
+        onCancel={() => router.push('/dashboard/pitscouting')}
+        onClear={() => setFormData(gameConfig ? initializePitFormData(gameConfig) : {
+          team: 0,
+          drivetrain: '',
+          weight: '',
+          length: '',
+          width: '',
+          hasAuto: false,
+          notes: '',
+          gameSpecificData: {}
+        })}
+        onSubmit={handleSubmit}
+        submitText="Save Scouting Data"
+        updateText="Update Entry"
+      />
     </div>
   );
 }
