@@ -30,16 +30,38 @@ export function useServiceWorker() {
 
     setState(prev => ({ ...prev, isSupported: true }));
 
+    const NEW_SW_URL = '/serwist/sw.js';
+
+    // Unregister any service workers that are NOT the new /serwist/sw.js route.
+    // This handles migration from the old /sw.js (or any other stale SW).
+    const unregisterOldServiceWorkers = async () => {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          const swUrl = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL;
+          if (swUrl && !swUrl.endsWith(NEW_SW_URL)) {
+            console.log('Unregistering old service worker:', swUrl);
+            await reg.unregister();
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to unregister old service workers:', err);
+      }
+    };
+
     const registerServiceWorker = async () => {
       try {
+        // Unregister any stale service workers first
+        await unregisterOldServiceWorkers();
+
         // Check the service worker file exists and returns 200 before attempting to register.
         // This prevents registering a stale or missing sw.js that would precache missing files.
-        const swResp = await fetch('/serwist/sw.js', { method: 'GET', cache: 'no-store' });
+        const swResp = await fetch(NEW_SW_URL, { method: 'GET', cache: 'no-store' });
         if (!swResp.ok) {
-          throw new Error(`/serwist/sw.js not available (status=${swResp.status})`);
+          throw new Error(`${NEW_SW_URL} not available (status=${swResp.status})`);
         }
 
-        const registration = await navigator.serviceWorker.register('/serwist/sw.js', { scope: '/' });
+        const registration = await navigator.serviceWorker.register(NEW_SW_URL, { scope: '/' });
         
         setState(prev => ({
           ...prev,
