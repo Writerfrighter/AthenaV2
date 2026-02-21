@@ -1,254 +1,413 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { useSelectedEvent } from '@/hooks/use-event-config';
 import { useGameConfig } from '@/hooks/use-game-config';
+import { indexedDBService } from '@/lib/indexeddb-service';
+import {
+  buildSteps,
+  SCOUT_STEPS,
+  FULL_CACHE_STEPS,
+  runEventCache,
+  type CacheStep,
+  type CacheStepId,
+} from '@/lib/event-cache-manager';
+import type { EventCacheStatus } from '@/lib/offline-types';
 import {
   Download,
+  HardDriveDownload,
   CheckCircle,
   AlertCircle,
   WifiOff,
   Loader2,
+  Trash2,
+  Database,
+  FileText,
+  ClipboardList,
+  Users,
+  Calendar,
+  Shield,
+  Layout,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface PrecacheRoute {
-  label: string;
-  url: string;
-  /** 'page' routes are fetched as navigations; 'api' routes as regular fetches */
-  type: 'page' | 'api';
+type CacheMode = 'scout' | 'full';
+
+function stepIcon(id: CacheStepId) {
+  switch (id) {
+    case 'session': return Shield;
+    case 'pages': return Layout;
+    case 'teams': return Users;
+    case 'schedule': return Calendar;
+    case 'scoutSchedule': return ClipboardList;
+    case 'pitEntries': return FileText;
+    case 'matchEntries': return Database;
+  }
 }
 
-type RouteStatus = 'pending' | 'loading' | 'success' | 'error';
+function StepRow({ step }: { step: CacheStep }) {
+  const Icon = stepIcon(step.id);
 
-interface PrecacheResult {
-  route: PrecacheRoute;
-  status: RouteStatus;
-  error?: string;
+  return (
+    <div className="flex items-center gap-3 text-sm py-1.5 px-3 rounded-md bg-muted/40">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+      <span className="truncate flex-1">{step.label}</span>
+      {step.status === 'pending' && (
+        <span className="text-muted-foreground text-xs shrink-0">Waiting</span>
+      )}
+      {step.status === 'loading' && (
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
+      )}
+      {step.status === 'success' && (
+        <div className="flex items-center gap-1.5 shrink-0">
+          {step.detail && (
+            <span className="text-xs text-muted-foreground">{step.detail}</span>
+          )}
+          <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+        </div>
+      )}
+      {step.status === 'error' && (
+        <div className="flex items-center gap-1.5 text-destructive shrink-0">
+          <span className="text-xs">{step.error || 'Failed'}</span>
+          <AlertCircle className="h-3.5 w-3.5" />
+        </div>
+      )}
+      {step.status === 'skipped' && (
+        <span className="text-muted-foreground text-xs shrink-0">Skipped</span>
+      )}
+    </div>
+  );
+}
+
+function formatTimeSince(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - new Date(date).getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDays = Math.floor(diffHr / 24);
+  return `${diffDays}d ago`;
 }
 
 export function OfflinePrecache({ className }: { className?: string }) {
   const selectedEvent = useSelectedEvent();
   const { competitionType, currentYear } = useGameConfig();
 
+  const [mode, setMode] = useState<CacheMode>('scout');
   const [isCaching, setIsCaching] = useState(false);
-  const [results, setResults] = useState<PrecacheResult[]>([]);
+  const [steps, setSteps] = useState<CacheStep[]>([]);
   const [progress, setProgress] = useState(0);
+  const [cacheStatus, setCacheStatus] = useState<EventCacheStatus | null>(null);
+  const [isClearing, setIsClearing] = useState(false);
 
-  const buildRoutes = useCallback((): PrecacheRoute[] => {
-    const routes: PrecacheRoute[] = [
-      // Auth session — must be cached so offline relaunches stay logged in
-      { label: 'Auth Session', url: '/api/auth/session', type: 'api' },
-      // Pages that should be cached for offline
-      { label: 'Dashboard', url: '/dashboard', type: 'page' },
-      { label: 'Match Scout', url: '/scout/matchscout', type: 'page' },
-      { label: 'Pit Scout', url: '/scout/pitscout', type: 'page' },
-      { label: 'Login', url: '/login', type: 'page' },
-    ];
+  const hasEvent = !!selectedEvent?.code;
 
-    // API routes that depend on the selected event
-    if (selectedEvent?.code) {
-      routes.push(
-        {
-          label: `Event Teams (${selectedEvent.code})`,
-          url: `/api/events/${selectedEvent.code}/teams?competitionType=${competitionType}&year=${currentYear}`,
-          type: 'api',
-        },
-        {
-          label: `Match Schedule (${selectedEvent.code})`,
-          url: `/api/event/schedule?eventCode=${selectedEvent.code}&competitionType=${competitionType}&season=${currentYear}`,
-          type: 'api',
-        },
-        {
-          label: `Scouting Schedule (${selectedEvent.code})`,
-          url: `/api/schedule/blocks?eventCode=${selectedEvent.code}&year=${currentYear}&competitionType=${competitionType}`,
-          type: 'api',
-        },
-      );
+  // Load existing cache status for the selected event
+  useEffect(() => {
+    if (!selectedEvent?.code) {
+      setCacheStatus(null);
+      return;
     }
+    indexedDBService
+      .getEventCacheStatus(selectedEvent.code)
+      .then(setCacheStatus)
+      .catch(() => setCacheStatus(null));
+  }, [selectedEvent?.code]);
 
-    return routes;
-  }, [selectedEvent, competitionType, currentYear]);
+  const currentStepIds = mode === 'full' ? FULL_CACHE_STEPS : SCOUT_STEPS;
 
-  const handlePrecache = async () => {
+  const handleStepUpdate = useCallback(
+    (stepId: CacheStepId, update: Partial<CacheStep>) => {
+      setSteps(prev =>
+        prev.map(s => (s.id === stepId ? { ...s, ...update } : s))
+      );
+    },
+    []
+  );
+
+  const handleCache = async () => {
     if (!navigator.onLine) {
-      toast.error('You must be online to precache routes');
+      toast.error('You must be online to cache data');
       return;
     }
 
-    const routes = buildRoutes();
-    setIsCaching(true);
-    setProgress(0);
-    setResults(routes.map(route => ({ route, status: 'pending' })));
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (let i = 0; i < routes.length; i++) {
-      const route = routes[i];
-
-      // Mark current route as loading
-      setResults(prev =>
-        prev.map((r, idx) => (idx === i ? { ...r, status: 'loading' } : r))
-      );
-
-      try {
-        // Fetch the route so the service worker's runtime cache picks it up
-        const response = await fetch(route.url, {
-          cache: 'no-cache', // Force a fresh network request so the SW caches the latest
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        // Consume the body so the response fully completes
-        await response.text();
-
-        setResults(prev =>
-          prev.map((r, idx) => (idx === i ? { ...r, status: 'success' } : r))
-        );
-        successCount++;
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        setResults(prev =>
-          prev.map((r, idx) =>
-            idx === i ? { ...r, status: 'error', error: errorMsg } : r
-          )
-        );
-        errorCount++;
-      }
-
-      setProgress(Math.round(((i + 1) / routes.length) * 100));
+    if (!selectedEvent?.code) {
+      toast.error('Select an event first');
+      return;
     }
 
-    setIsCaching(false);
+    const stepList = buildSteps(currentStepIds);
+    setSteps(stepList);
+    setIsCaching(true);
+    setProgress(0);
 
-    if (errorCount === 0) {
-      toast.success('All routes cached for offline use', {
-        description: `${successCount} routes cached successfully`,
-        icon: <CheckCircle className="h-4 w-4" />,
+    // Track progress via step updates
+    let completedCount = 0;
+    const totalSteps = stepList.length;
+
+    const trackingUpdate = (stepId: CacheStepId, update: Partial<CacheStep>) => {
+      handleStepUpdate(stepId, update);
+      if (update.status === 'success' || update.status === 'error' || update.status === 'skipped') {
+        completedCount++;
+        setProgress(Math.round((completedCount / totalSteps) * 100));
+      }
+    };
+
+    try {
+      const result = await runEventCache(mode, {
+        eventCode: selectedEvent.code,
+        eventName: selectedEvent.name || selectedEvent.code,
+        competitionType,
+        year: currentYear,
+        onStepUpdate: trackingUpdate,
       });
-    } else {
-      toast.warning('Some routes failed to cache', {
-        description: `${successCount} succeeded, ${errorCount} failed`,
-        icon: <AlertCircle className="h-4 w-4" />,
-      });
+
+      setProgress(100);
+
+      if (result.success) {
+        toast.success(
+          mode === 'full'
+            ? 'Full event data cached for offline use'
+            : 'Scout mode data cached for offline use',
+          {
+            description: mode === 'full'
+              ? `${result.pitEntryCount} pit + ${result.matchEntryCount} match entries saved`
+              : `${result.teamCount} teams + schedules cached`,
+          }
+        );
+      } else {
+        toast.warning('Some items failed to cache', {
+          description: 'Check the status below for details',
+        });
+      }
+
+      // Refresh cache status
+      if (mode === 'full') {
+        const status = await indexedDBService.getEventCacheStatus(selectedEvent.code);
+        setCacheStatus(status);
+      }
+    } catch {
+      toast.error('Caching failed unexpectedly');
+    } finally {
+      setIsCaching(false);
     }
   };
 
-  const routes = buildRoutes();
-  const hasEvent = !!selectedEvent?.code;
-  const completedCount = results.filter(r => r.status === 'success').length;
-  const erroredCount = results.filter(r => r.status === 'error').length;
+  const handleClearCache = async () => {
+    if (!selectedEvent?.code) return;
+
+    setIsClearing(true);
+    try {
+      await indexedDBService.clearEventCache(selectedEvent.code);
+      setCacheStatus(null);
+      setSteps([]);
+      setProgress(0);
+      toast.success('Event cache cleared');
+    } catch {
+      toast.error('Failed to clear cache');
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  const successCount = steps.filter(s => s.status === 'success').length;
+  const errorCount = steps.filter(s => s.status === 'error').length;
 
   return (
     <Card className={className}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Download className="h-5 w-5" />
-          Offline Precache
+          Offline Caching
         </CardTitle>
         <CardDescription>
-          Pre-download pages and data so the app works offline at competitions.
-          Select an event first for event-specific data.
+          Download data for offline use at competitions. Choose between lightweight
+          scouting mode or a full event cache with all scouting data.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Event status */}
-        <div className="flex items-center gap-2 text-sm">
-          {hasEvent ? (
-            <>
-              <Badge variant="outline" className="text-primary border-primary">
-                {selectedEvent?.name}
-              </Badge>
-              <span className="text-muted-foreground">
-                ({routes.length} routes to cache)
-              </span>
-            </>
-          ) : (
-            <span className="text-muted-foreground">
-              No event selected — only core pages will be cached ({routes.length} routes)
-            </span>
-          )}
-        </div>
 
-        {/* Progress bar */}
-        {(isCaching || results.length > 0) && (
-          <div className="space-y-2">
-            <Progress value={progress} className="h-2" />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{isCaching ? 'Caching...' : 'Complete'}</span>
-              <span>
-                {completedCount} / {routes.length} done
-                {erroredCount > 0 && ` (${erroredCount} failed)`}
-              </span>
-            </div>
+      <CardContent className="space-y-5">
+        {/* Event status */}
+        {hasEvent ? (
+          <div className="flex items-center gap-2 text-sm">
+            <Badge variant="outline" className="text-primary border-primary">
+              {selectedEvent?.name}
+            </Badge>
+            {cacheStatus && (
+              <Badge variant="secondary" className="text-xs">
+                Last cached {formatTimeSince(cacheStatus.cachedAt)}
+              </Badge>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            Select an event from the sidebar to enable caching.
           </div>
         )}
 
-        {/* Route list */}
-        {results.length > 0 && (
-          <div className="space-y-1.5 max-h-48 overflow-y-auto">
-            {results.map((result, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between text-sm py-1 px-2 rounded-md bg-muted/40"
-              >
-                <span className="truncate mr-2">{result.route.label}</span>
-                {result.status === 'pending' && (
-                  <span className="text-muted-foreground text-xs">Pending</span>
-                )}
-                {result.status === 'loading' && (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                )}
-                {result.status === 'success' && (
-                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-                )}
-                {result.status === 'error' && (
-                  <span className="flex items-center gap-1 text-destructive text-xs">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    {result.error}
-                  </span>
-                )}
+        {/* Mode selector */}
+        {hasEvent && (
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => !isCaching && setMode('scout')}
+              disabled={isCaching}
+              className={`relative rounded-lg border-2 p-4 text-left transition-all ${
+                mode === 'scout'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted hover:border-muted-foreground/30'
+              } ${isCaching ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <div className="flex items-center gap-2 font-medium text-sm">
+                <Download className="h-4 w-4" />
+                Scout Mode
               </div>
-            ))}
+              <p className="mt-1 text-xs text-muted-foreground">
+                Pages, teams &amp; schedules. Enough to scout matches offline.
+              </p>
+              {mode === 'scout' && (
+                <div className="absolute right-2 top-2">
+                  <div className="h-2 w-2 rounded-full bg-primary" />
+                </div>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => !isCaching && setMode('full')}
+              disabled={isCaching}
+              className={`relative rounded-lg border-2 p-4 text-left transition-all ${
+                mode === 'full'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted hover:border-muted-foreground/30'
+              } ${isCaching ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <div className="flex items-center gap-2 font-medium text-sm">
+                <HardDriveDownload className="h-4 w-4" />
+                Full Event Cache
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Everything above + all pit &amp; match scouting entries for analysis.
+              </p>
+              {mode === 'full' && (
+                <div className="absolute right-2 top-2">
+                  <div className="h-2 w-2 rounded-full bg-primary" />
+                </div>
+              )}
+            </button>
           </div>
+        )}
+
+        {/* Existing cache info */}
+        {cacheStatus && (
+          <>
+            <Separator />
+            <div className="rounded-md border p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Cached Event Data</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearCache}
+                  disabled={isClearing || isCaching}
+                  className="h-7 text-xs text-destructive hover:text-destructive"
+                >
+                  {isClearing ? (
+                    <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Trash2 className="mr-1.5 h-3 w-3" />
+                  )}
+                  Clear
+                </Button>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-3 w-3" />
+                  {cacheStatus.teamCount} teams
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <FileText className="h-3 w-3" />
+                  {cacheStatus.pitEntryCount} pit entries
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Database className="h-3 w-3" />
+                  {cacheStatus.matchEntryCount} match entries
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Progress */}
+        {(isCaching || steps.length > 0) && (
+          <>
+            <Separator />
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Progress value={progress} className="h-2" />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{isCaching ? 'Downloading...' : 'Complete'}</span>
+                  <span>
+                    {successCount}/{steps.length} done
+                    {errorCount > 0 && ` · ${errorCount} failed`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Step list */}
+              <div className="space-y-1 max-h-52 overflow-y-auto">
+                {steps.map(step => (
+                  <StepRow key={step.id} step={step} />
+                ))}
+              </div>
+            </div>
+          </>
         )}
 
         {/* Action button */}
-        <Button
-          onClick={handlePrecache}
-          disabled={isCaching || !navigator.onLine}
-          className="w-full"
-        >
-          {isCaching ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Caching Routes...
-            </>
-          ) : !navigator.onLine ? (
-            <>
-              <WifiOff className="mr-2 h-4 w-4" />
-              Offline — Cannot Precache
-            </>
-          ) : results.length > 0 && erroredCount === 0 && completedCount === routes.length ? (
-            <>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              All Cached — Re-cache
-            </>
-          ) : (
-            <>
-              <Download className="mr-2 h-4 w-4" />
-              Cache for Offline Use
-            </>
-          )}
-        </Button>
+        {hasEvent && (
+          <Button
+            onClick={handleCache}
+            disabled={isCaching || !navigator.onLine}
+            className="w-full"
+            size="lg"
+          >
+            {isCaching ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Caching {mode === 'full' ? 'Event Data' : 'Scout Data'}...
+              </>
+            ) : !navigator.onLine ? (
+              <>
+                <WifiOff className="mr-2 h-4 w-4" />
+                Offline — Connect to Cache
+              </>
+            ) : steps.length > 0 && errorCount === 0 && successCount === steps.length ? (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Cached — Re-download
+              </>
+            ) : mode === 'full' ? (
+              <>
+                <HardDriveDownload className="mr-2 h-4 w-4" />
+                Cache Full Event Data
+              </>
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                Cache for Scouting
+              </>
+            )}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
