@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, AlertCircle, Database, Trophy, Download, ChevronDown } from "lucide-react";
+import { Plus, AlertCircle, Database, Trophy, Download, ChevronDown, WifiOff } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialo
 import { MatchEntry } from "@/lib/shared-types";
 import { useGameConfig } from "@/hooks/use-game-config";
 import { useEventConfig } from "@/hooks/use-event-config";
+import { indexedDBService } from "@/lib/indexeddb-service";
 
 export default function MatchScoutingPage() {
   const [matchEntries, setMatchEntries] = useState<MatchEntry[]>([]);
@@ -27,6 +28,7 @@ export default function MatchScoutingPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isOfflineData, setIsOfflineData] = useState(false);
 
   const { currentYear, competitionType } = useGameConfig();
   const { selectedEvent } = useEventConfig();
@@ -78,13 +80,28 @@ export default function MatchScoutingPage() {
     }
   };
 
-  // Fetch match entries
+  // Fetch match entries — try API first, fall back to IndexedDB cache
   const fetchMatchEntries = async () => {
     try {
       setLoading(true);
       setError(null);
+      setIsOfflineData(false);
 
       const eventCode = selectedEvent?.code;
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+      // If offline, go straight to IndexedDB
+      if (!isOnline && eventCode) {
+        const cached = await indexedDBService.getCachedMatchEntries(eventCode);
+        if (cached && cached.entries.length > 0) {
+          setMatchEntries(cached.entries);
+          setIsOfflineData(true);
+          return;
+        }
+        setError('Offline — no cached match scouting data available. Use the pre-cache feature in Settings while online.');
+        return;
+      }
+
       const params = new URLSearchParams();
       if (eventCode) params.append('eventCode', eventCode);
       params.append('competitionType', competitionType);
@@ -99,6 +116,23 @@ export default function MatchScoutingPage() {
       setMatchEntries(data);
     } catch (err) {
       console.error('Error fetching match entries:', err);
+
+      // Fallback to IndexedDB cache on network error
+      const eventCode = selectedEvent?.code;
+      if (eventCode) {
+        try {
+          const cached = await indexedDBService.getCachedMatchEntries(eventCode);
+          if (cached && cached.entries.length > 0) {
+            setMatchEntries(cached.entries);
+            setIsOfflineData(true);
+            toast.info('Showing cached match scouting data (offline)');
+            return;
+          }
+        } catch (cacheErr) {
+          console.warn('Failed to read cached match entries:', cacheErr);
+        }
+      }
+
       setError('Failed to load match scouting data');
     } finally {
       setLoading(false);
@@ -162,11 +196,19 @@ export default function MatchScoutingPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Match Scouting</h1>
-          <p className="text-muted-foreground">
-            View and manage match scouting data for teams
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Match Scouting</h1>
+            <p className="text-muted-foreground">
+              View and manage match scouting data for teams
+            </p>
+          </div>
+          {isOfflineData && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <WifiOff className="h-3 w-3" />
+              Cached Data
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>

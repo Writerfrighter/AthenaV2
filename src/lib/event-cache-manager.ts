@@ -78,12 +78,25 @@ async function fetchAndCache(url: string, options?: RequestInit): Promise<Respon
   return response;
 }
 
+/**
+ * Single cache name that the SW's catch-all app-page handler uses.
+ * Must stay in sync with APP_PAGES_CACHE in sw.ts.
+ */
+const APP_PAGES_CACHE = 'app-pages';
+
 /** Cache auth session so offline reloads stay logged in */
 async function cacheSession(opts: CacheOptions): Promise<void> {
   opts.onStepUpdate('session', { status: 'loading', detail: 'Caching auth session...' });
   try {
-    const res = await fetchAndCache('/api/auth/session');
-    await res.text(); // consume body so SW caches it
+    const res = await fetch('/api/auth/session', {
+      credentials: 'include',
+      cache: 'no-cache',
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Write directly to the SW's auth-session cache so offline reloads
+    // return the authenticated session without relying on SW interception.
+    const cache = await caches.open('auth-session');
+    await cache.put(new Request('/api/auth/session'), res.clone());
     opts.onStepUpdate('session', { status: 'success', detail: 'Session cached' });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
@@ -92,17 +105,31 @@ async function cacheSession(opts: CacheOptions): Promise<void> {
   }
 }
 
-/** Cache pages for offline navigation */
+/** Pages to pre-cache for offline use. All go into APP_PAGES_CACHE. */
+const OFFLINE_PAGES = [
+  '/',
+  '/dashboard',
+  '/dashboard/settings',
+  '/scout/matchscout',
+  '/scout/pitscout',
+];
+
+/** Cache pages for offline navigation.
+ *  Writes directly into the same Cache API store the SW uses (APP_PAGES_CACHE)
+ *  so that offline navigations are served the *authenticated* HTML.
+ */
 async function cachePages(opts: CacheOptions): Promise<void> {
   opts.onStepUpdate('pages', { status: 'loading', detail: 'Caching app pages...' });
-  const pages = ['/dashboard', '/scout/matchscout', '/scout/pitscout', '/login'];
+  const cache = await caches.open(APP_PAGES_CACHE);
   let cached = 0;
 
-  for (const page of pages) {
+  for (const url of OFFLINE_PAGES) {
     try {
-      const res = await fetchAndCache(page);
-      await res.text();
-      cached++;
+      const res = await fetch(url, { credentials: 'include', cache: 'no-cache' });
+      if (res.ok) {
+        await cache.put(url, res.clone());
+        cached++;
+      }
     } catch {
       // Non-critical — continue with other pages
     }
@@ -115,7 +142,7 @@ async function cachePages(opts: CacheOptions): Promise<void> {
 
   opts.onStepUpdate('pages', {
     status: 'success',
-    detail: `${cached}/${pages.length} pages cached`,
+    detail: `${cached}/${OFFLINE_PAGES.length} pages cached`,
   });
 }
 

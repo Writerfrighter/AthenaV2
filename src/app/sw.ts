@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { defaultCache, PAGES_CACHE_NAME } from "@serwist/turbopack/worker";
+import { defaultCache } from "@serwist/turbopack/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { Serwist, NetworkFirst, ExpirationPlugin } from "serwist";
 
@@ -43,15 +43,21 @@ const OFFLINE_FALLBACK_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
+// The single cache name used by all app-page runtime caching.
+// Both the SW handler and the OfflinePrecache component use this name so
+// that programmatic writes from the page context are readable by the SW.
+const APP_PAGES_CACHE = "app-pages";
+
 // Custom runtime caching rules for scouting-specific routes, merged with defaults
 const appRuntimeCaching = [
-  // Auth session endpoint — cache so offline relaunches preserve the logged-in session
+  // Auth session endpoint — cache so offline relaunches preserve the logged-in session.
+  // Short timeout so the cached session is returned quickly when offline.
   {
     matcher: ({ url: { pathname }, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
       sameOrigin && pathname === "/api/auth/session",
     handler: new NetworkFirst({
       cacheName: "auth-session",
-      networkTimeoutSeconds: 3,
+      networkTimeoutSeconds: 1,
       plugins: [
         new ExpirationPlugin({
           maxEntries: 1,
@@ -60,32 +66,24 @@ const appRuntimeCaching = [
       ],
     }),
   },
-  // Scouting pages — aggressive caching with short network timeout for offline use
+  // ── App pages (catch-all for every same-origin HTML page) ──────────
+  // Covers /, /dashboard, /dashboard/*, /scout/*, /login, /signup, etc.
+  // No request.mode / request.destination gate so that both real
+  // navigations AND programmatic fetch() calls from OfflinePrecache
+  // populate the same cache.
   {
-    matcher: ({ request, url: { pathname }, sameOrigin }: { request: Request; url: URL; sameOrigin: boolean }) =>
-      sameOrigin && /^\/scout\/(matchscout|pitscout)(\/|$|\?)/.test(pathname) && request.mode === "navigate",
+    matcher: ({ url: { pathname }, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
+      sameOrigin &&
+      !pathname.startsWith("/api/") &&
+      !pathname.startsWith("/_next/") &&
+      !pathname.startsWith("/serwist/"),
     handler: new NetworkFirst({
-      cacheName: "scouting-pages",
+      cacheName: APP_PAGES_CACHE,
       networkTimeoutSeconds: 3,
       plugins: [
         new ExpirationPlugin({
-          maxEntries: 10,
+          maxEntries: 50,
           maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
-        }),
-      ],
-    }),
-  },
-  // Dashboard — cache for offline access
-  {
-    matcher: ({ request, url: { pathname }, sameOrigin }: { request: Request; url: URL; sameOrigin: boolean }) =>
-      sameOrigin && pathname === "/dashboard" && request.mode === "navigate",
-    handler: new NetworkFirst({
-      cacheName: "dashboard-page",
-      networkTimeoutSeconds: 3,
-      plugins: [
-        new ExpirationPlugin({
-          maxEntries: 5,
-          maxAgeSeconds: 7 * 24 * 60 * 60,
         }),
       ],
     }),

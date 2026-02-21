@@ -39,7 +39,7 @@ export function useServiceWorker() {
           throw new Error(`/serwist/sw.js not available (status=${swResp.status})`);
         }
 
-        const registration = await navigator.serviceWorker.register('/serwist/sw.js');
+        const registration = await navigator.serviceWorker.register('/serwist/sw.js', { scope: '/' });
         
         setState(prev => ({
           ...prev,
