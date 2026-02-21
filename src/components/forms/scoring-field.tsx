@@ -17,6 +17,10 @@ interface ScoringFieldProps {
   onNumberChange: (section: string, field: string, increment: boolean) => void;
 }
 
+function isFuelField(fieldKey: string): boolean {
+  return fieldKey.startsWith('fuel_');
+}
+
 export function ScoringField({
   section,
   fieldKey,
@@ -92,6 +96,57 @@ export function ScoringField({
     case 'number':
     default:
       const numValue = Number(currentValue) || 0;
+
+      if (isFuelField(fieldKey)) {
+        const fuelDecrements = [10, 5, 1];
+        const fuelIncrements = [1, 5, 10];
+        const handleFuelChange = (amount: number) => {
+          const newValue = Math.max(0, numValue + amount);
+          onValueChange(section, fieldKey, newValue);
+        };
+
+        return (
+          <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+            <Label className="text-sm font-medium">{fieldConfig.label}</Label>
+            <div className="flex items-center gap-1 w-full">
+              {fuelDecrements.map((inc) => (
+                <Button
+                  key={`sub-${inc}`}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleFuelChange(-inc)}
+                  className="h-14 min-w-0 flex-1 px-1 text-sm font-semibold"
+                >
+                  -{inc}
+                </Button>
+              ))}
+              <Input
+                type="number"
+                min={0}
+                value={numValue}
+                onChange={e => onValueChange(section, fieldKey, Math.max(0, Number(e.target.value)))}
+                className="hide-spinners w-28 flex-shrink-0 text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-primary/20"
+                style={{height: '3.5rem'}}
+              />
+              {fuelIncrements.map((inc) => (
+                <Button
+                  key={`add-${inc}`}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleFuelChange(inc)}
+                  className="h-14 min-w-0 flex-1 px-1 text-sm font-semibold"
+                >
+                  +{inc}
+                </Button>
+              ))}
+            </div>
+            <div className="text-xs text-center text-muted-foreground">
+              {fieldConfig.points || 0} points each
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="space-y-2">
           <Label className="text-sm font-medium">{fieldConfig.label}</Label>

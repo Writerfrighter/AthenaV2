@@ -192,10 +192,7 @@ export function DynamicMatchScoutForm() {
 
   const handleNumberChange = (section: string, field: string, increment: boolean) => {
     const currentValue = (formData[section as keyof DynamicMatchData] as Record<string, number | string | boolean>)[field] as number || 0;
-    // Increment by 5 for fuel-related fields
-    const isFuelField = field.startsWith('fuel_');
-    const incrementAmount = isFuelField ? 5 : 1;
-    const newValue = Math.max(0, currentValue + (increment ? incrementAmount : -incrementAmount));
+    const newValue = Math.max(0, currentValue + (increment ? 1 : -1));
     handleInputChange(section, field, newValue);
   };
 

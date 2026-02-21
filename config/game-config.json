@@ -7,7 +7,7 @@
       "scoring": {
         "autonomous": {
           "fuel_scored": {
-            "label": "Fuel Scored (Auto) x5",
+            "label": "Fuel Scored (Auto)",
             "points": 1,
             "description": "Fuel scored during autonomous"
           },
@@ -20,7 +20,7 @@
         },
         "teleop": {
           "fuel_scored": {
-            "label": "Fuel Scored (Teleop) x5",
+            "label": "Fuel Scored (Teleop)",
             "points": 1,
             "description": "Fuel scored during teleoperated"
           },
