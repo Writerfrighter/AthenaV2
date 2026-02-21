@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import gameConfig from '../../config/game-config.json';
+import gameConfig from '../../config/game-config-loader';
 import type { YearConfig, GameConfig, CompetitionType } from '@/lib/shared-types';
 
 interface GameConfigContextType {

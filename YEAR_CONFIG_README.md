@@ -2,20 +2,34 @@
 
 ## Overview
 
-AthenaV2 now supports year-based configuration for FRC games without requiring database migrations or major code changes. Simply update the JSON configuration file to switch between different game years.
+AthenaV2 supports year-based configuration for FRC and FTC games without requiring database migrations or major code changes. Each year's configuration is stored in a separate JSON file for better organization and maintainability.
 
-## Configuration
+## Configuration Structure
 
-### Game Configuration File
-The main configuration is stored in `config/game-config.json`. This file contains:
+### Directory Layout
 
-- **currentYear**: The default year when the app loads
-- **years**: Object containing configuration for each FRC season
+```
+config/
+├── years/
+│   ├── FRC-2026.json    # Individual year configurations
+│   ├── FRC-2025.json
+│   ├── FTC-2026.json
+│   └── README.md        # Detailed documentation
+└── game-config-loader.ts # Assembles all year configs
+```
+
+### Game Configuration Files
+
+Each year has its own configuration file in `config/years/` named `{COMPETITION_TYPE}-{YEAR}.json`. The loader (`game-config-loader.ts`) automatically assembles them into a unified structure.
 
 ### Adding a New Year
 
-1. Open `config/game-config.json`
-2. Add a new year entry following this structure:
+1. Create a new file in `config/years/` (e.g., `FRC-2027.json`)
+2. Use the template structure (see `config/years/README.md` for details)
+3. Register the year in `config/game-config-loader.ts`
+4. Run `pnpm build` to validate
+
+Example year configuration structure:
 
 ```json
 "2026": {

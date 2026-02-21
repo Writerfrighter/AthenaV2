@@ -1,0 +1,127 @@
+{
+  "competitionType": "FTC",
+  "gameName": "DECODE",
+  "startPositions": ["Far Zone", "Goal"],
+  "scoring": {
+    "autonomous": {
+      "leave": {
+        "label": "Leave Starting Zone",
+        "points": 3,
+        "description": "Robot leaves starting zone during autonomous",
+        "type": "boolean"
+      },
+      "artifacts_classified": {
+        "label": "Artifacts Classified",
+        "points": 3,
+        "description": "Artifacts classified during autonomous"
+      },
+      "artifacts_overflow": {
+        "label": "Artifacts in Overflowed",
+        "points": 1,
+        "description": "Artifacts placed overflowed during autonomous"
+      },
+      "patterns": {
+        "label": "Patterns Completed",
+        "points": 2,
+        "description": "Patterns completed at the end of autonomous"
+      }
+    },
+    "teleop": {
+      "artifacts_classified": {
+        "label": "Artifacts Classified",
+        "points": 3,
+        "description": "Artifacts classified during teleop"
+      },
+      "artifacts_overflow": {
+        "label": "Artifacts Overflowed",
+        "points": 1,
+        "description": "Artifacts placed overflowed during teleop"
+      },
+      "artifacts_depot": {
+        "label": "Artifacts in Depot",
+        "points": 1,
+        "description": "Artifacts placed in depot during teleop"
+      },
+      "patterns": {
+        "label": "Patterns Completed",
+        "points": 2,
+        "description": "Patterns completed at the end of teleop"
+      }
+    },
+    "endgame": {
+      "ending_based_state": {
+        "label": "",
+        "description": "Robot's final base state during endgame",
+        "pointValues": {
+          "none": 0,
+          "partial": 5,
+          "full": 10
+        }
+      }
+    },
+    "fouls": {
+      "minor_penalties": {
+        "label": "Minor Penalties",
+        "points": -5,
+        "description": "Minor penalties committed"
+      },
+      "major_penalties": {
+        "label": "Major Penalties",
+        "points": -15,
+        "description": "Major penalties committed"
+      }
+    }
+  },
+  "pitScouting": {
+    "autonomous": {
+      "autoLeave": {
+        "label": "Leave Starting Zone",
+        "type": "boolean"
+      },
+      "autoArtifactsClassified": {
+        "label": "Auto Artifacts Classification",
+        "type": "number"
+      },
+      "autoPatterns": {
+        "label": "Auto Patterns Completed",
+        "type": "number"
+      },
+      "autoRoutineCount": {
+        "label": "Number of Auto Routines",
+        "type": "number"
+      }
+    },
+    "teleoperated": {
+      "artifactIntake": {
+        "label": "Artifact Intake Method",
+        "type": "select",
+        "options": ["Ground pickup", "Human player", "Both", "Neither"]
+      },
+      "shootingReliability": {
+        "label": "Shooting Reliability",
+        "type": "select",
+        "options": ["Consistent", "Mostly Reliable", "Occasional", "None"]
+      },
+      "shootingLocations": {
+        "label": "Shooting Locations",
+        "type": "select",
+        "options": ["Far Zone only", "Goal only", "Both", "Neither"]
+      },
+      "canSort": {
+        "label": "Can Sort Artifacts",
+        "type": "boolean"
+      },
+      "cycleTime": {
+        "label": "Estimated Cycle Time (seconds)",
+        "type": "number"
+      }
+    },
+    "endgame": {
+      "baseCapability": {
+        "label": "Base Parking Capability",
+        "type": "select",
+        "options": ["Full base", "Partial base", "No base capability"]
+      }
+    }
+  }
+}

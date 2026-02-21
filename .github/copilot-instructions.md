@@ -18,11 +18,11 @@ AthenaV2 is a modern scouting and analytics platform for FIRST Robotics Competit
 ## Key Patterns & Conventions
 
 ### 1. Dynamic Configuration-Driven Forms
-Forms are generated from `config/game-config.json` based on selected FRC game year. Each year defines scoring categories (autonomous/teleop/endgame) with point values and field types.
+Forms are generated from year-specific configs in `config/years/` based on selected FRC/FTC game year. Each year defines scoring categories (autonomous/teleop/endgame) with point values and field types.
 
 **Example**: Match scouting forms automatically adapt to game rules:
 ```typescript
-// From config/game-config.json
+// From config/years/FRC-2025.json
 "autonomous": {
   "leave": {
     "label": "Leave Starting Zone",
@@ -103,10 +103,11 @@ pnpm build
 ```
 
 ### Adding New Game Year
-1. Add year config to `config/game-config.json`
-2. Update year selector in `year-selector.tsx`
-3. Test dynamic forms render correctly
-4. Update database schema if needed (rare)
+1. Create year config in `config/years/` (e.g., `FRC-2027.json`)
+2. Register in `config/game-config-loader.ts`
+3. Update year selector in `year-selector.tsx`
+4. Test dynamic forms render correctly
+5. Update database schema if needed (rare)
 
 ### Database Operations
 1. Set environment variables for chosen provider
@@ -115,7 +116,7 @@ pnpm build
 4. Test sync functionality with `syncToCloud()`/`syncFromCloud()`
 
 ### Form Development
-1. Define fields in `config/game-config.json`
+1. Define fields in appropriate year config file (`config/years/`)
 2. Use `dynamic-match-scout-form.tsx` or `dynamic-pit-scout-form.tsx` as templates
 3. Implement validation in form component
 4. Test with real game data
