@@ -11,6 +11,7 @@ export type CacheStepId =
   | 'teams'
   | 'schedule'
   | 'scoutSchedule'
+  | 'scoutList'
   | 'pitEntries'
   | 'matchEntries';
 
@@ -29,6 +30,7 @@ export const SCOUT_STEPS: CacheStepId[] = [
   'teams',
   'schedule',
   'scoutSchedule',
+  'scoutList',
 ];
 
 // Additional steps for full event cache
@@ -45,6 +47,7 @@ function buildStepLabel(id: CacheStepId): string {
     case 'teams': return 'Event Teams';
     case 'schedule': return 'Match Schedule';
     case 'scoutSchedule': return 'Scouting Schedule';
+    case 'scoutList': return 'Scout List';
     case 'pitEntries': return 'Pit Scouting Data';
     case 'matchEntries': return 'Match Scouting Data';
   }
@@ -63,6 +66,7 @@ interface CacheOptions {
   eventName: string;
   competitionType: string;
   year: number;
+  userRole?: string;
   onStepUpdate: (stepId: CacheStepId, update: Partial<CacheStep>) => void;
 }
 
@@ -196,6 +200,27 @@ async function cacheScoutSchedule(opts: CacheOptions): Promise<void> {
   }
 }
 
+/** Download and cache the scout / user list for tablet offline support */
+async function cacheScoutList(opts: CacheOptions): Promise<void> {
+  opts.onStepUpdate('scoutList', { status: 'loading', detail: 'Downloading scout list...' });
+  try {
+    const res = await fetchAndCache('/api/users');
+    const data = await res.json();
+    const scoutUsers = (data.users || []).filter(
+      (user: { role: string }) => ['scout', 'lead_scout', 'admin'].includes(user.role)
+    );
+    await indexedDBService.cacheScoutList(scoutUsers);
+    opts.onStepUpdate('scoutList', {
+      status: 'success',
+      detail: `${scoutUsers.length} scouts cached`,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    opts.onStepUpdate('scoutList', { status: 'error', error: msg });
+    // Non-critical — continue
+  }
+}
+
 /** Download and cache all pit entries for the event into IndexedDB */
 async function cachePitEntries(opts: CacheOptions): Promise<number> {
   opts.onStepUpdate('pitEntries', { status: 'loading', detail: 'Downloading pit scouting data...' });
@@ -293,6 +318,16 @@ export async function runEventCache(
 
   if (stepIds.includes('scoutSchedule')) {
     await cacheScoutSchedule(opts);
+  }
+
+  // Scout list (only for tablet/admin accounts that can access /api/users)
+  if (stepIds.includes('scoutList')) {
+    const canAccessUsers = opts.userRole === 'tablet' || opts.userRole === 'admin';
+    if (canAccessUsers) {
+      await cacheScoutList(opts);
+    } else {
+      opts.onStepUpdate('scoutList', { status: 'skipped', detail: 'Not needed for your role' });
+    }
   }
 
   // Full cache mode: pit & match entries

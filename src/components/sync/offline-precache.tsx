@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +46,7 @@ function stepIcon(id: CacheStepId) {
     case 'teams': return Users;
     case 'schedule': return Calendar;
     case 'scoutSchedule': return ClipboardList;
+    case 'scoutList': return Users;
     case 'pitEntries': return FileText;
     case 'matchEntries': return Database;
   }
@@ -97,6 +99,7 @@ function formatTimeSince(date: Date): string {
 }
 
 export function OfflinePrecache({ className }: { className?: string }) {
+  const { data: session } = useSession();
   const selectedEvent = useSelectedEvent();
   const { competitionType, currentYear } = useGameConfig();
 
@@ -166,6 +169,7 @@ export function OfflinePrecache({ className }: { className?: string }) {
         eventName: selectedEvent.name || selectedEvent.code,
         competitionType,
         year: currentYear,
+        userRole: session?.user?.role || undefined,
         onStepUpdate: trackingUpdate,
       });
 
