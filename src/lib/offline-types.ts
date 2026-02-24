@@ -95,8 +95,41 @@ export interface CachedScoutList {
   cachedAt: Date;
 }
 
+// ============================================
+// Event Data Cache types (full offline mode)
+// ============================================
+
+// Metadata about what is cached for each event
+export interface EventCacheStatus {
+  eventCode: string;
+  eventName: string;
+  competitionType: string;
+  year: number;
+  cachedAt: Date;
+  pitEntryCount: number;
+  matchEntryCount: number;
+  teamCount: number;
+  schedulesCached: boolean;
+  pagesCached: boolean;
+  sessionCached: boolean;
+}
+
+// Cached pit entries for an event (stored in bulk)
+export interface CachedPitEntries {
+  eventCode: string;
+  entries: PitEntry[];
+  cachedAt: Date;
+}
+
+// Cached match entries for an event (stored in bulk)
+export interface CachedMatchEntries {
+  eventCode: string;
+  entries: MatchEntry[];
+  cachedAt: Date;
+}
+
 // IndexedDB schema version - increment when adding new stores
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;
 export const DB_NAME = 'athena-offline-cache';
 
 // Store names
@@ -106,5 +139,8 @@ export const STORES = {
   CONFIG: 'config',
   EVENT_TEAMS: 'event_teams',
   EVENT_LIST: 'event_list',
-  SCOUT_LIST: 'scout_list'
+  SCOUT_LIST: 'scout_list',
+  CACHED_PIT_ENTRIES: 'cached_pit_entries',
+  CACHED_MATCH_ENTRIES: 'cached_match_entries',
+  EVENT_CACHE_STATUS: 'event_cache_status',
 } as const;

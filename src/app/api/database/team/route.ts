@@ -4,10 +4,7 @@ import { DatabaseService, MatchEntry, CompetitionType } from '@/db/types';
 import { auth } from '@/lib/auth/config';
 import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 import { calculateEPA, calculateTeamStats } from '@/lib/statistics';
-import gameConfigRaw from '../../../../../config/game-config.json';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const gameConfig = gameConfigRaw as any;
+import gameConfig from '../../../../../config/game-config-loader';
 
 // Initialize database service
 let dbService: DatabaseService;

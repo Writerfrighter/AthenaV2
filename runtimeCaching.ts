@@ -25,12 +25,13 @@ module.exports = [
     },
   },
 
-  // Offline support for scouting pages (more permissive regex to match trailing slash / query)
+  // All app pages — catch-all for any same-origin HTML page.
+  // Excludes /api, /_next, and /serwist so those use their own handlers.
   {
-    urlPattern: /^\/scout\/(?:matchscout|pitscout)(?:\/|$|\?)/,
+    urlPattern: /^\/(?!api\/|_next\/|serwist\/)/,
     handler: 'NetworkFirst',
     options: {
-      cacheName: 'scouting-pages',
+      cacheName: 'app-pages',
       networkTimeoutSeconds: 3,
       cacheableResponse: { statuses: [0, 200] },
     },

@@ -10,6 +10,7 @@ import {
   Home,
   Settings,
   CalendarClock,
+  Swords,
 } from "lucide-react";
 
 import { NavMain } from "@/components/navigation/nav-main";
@@ -69,6 +70,11 @@ const data = {
       title: "Schedule",
       url: "/dashboard/schedule",
       icon: CalendarClock
+    },
+    {
+      title: "Matchup",
+      url: "/dashboard/matchup",
+      icon: Swords
     },
     {
       title: "Settings",

@@ -1,0 +1,170 @@
+{
+  "competitionType": "FRC",
+  "gameName": "REEFSCAPE",
+  "startPositions": ["Left", "Center Left", "Center Right", "Right"],
+  "scoring": {
+    "autonomous": {
+      "leave": {
+        "label": "Leave Starting Zone",
+        "points": 3,
+        "description": "Robot leaves starting zone during autonomous",
+        "type": "boolean"
+      },
+      "L1_coral": {
+        "label": "L1 Coral (Auto)",
+        "points": 3,
+        "description": "Coral scored in trough (L1) during autonomous"
+      },
+      "L2_coral": {
+        "label": "L2 Coral (Auto)",
+        "points": 4,
+        "description": "Coral scored on L2 branch during autonomous"
+      },
+      "L3_coral": {
+        "label": "L3 Coral (Auto)",
+        "points": 6,
+        "description": "Coral scored on L3 branch during autonomous"
+      },
+      "L4_coral": {
+        "label": "L4 Coral (Auto)",
+        "points": 7,
+        "description": "Coral scored on L4 branch during autonomous"
+      },
+      "processor_algae": {
+        "label": "Processor Algae (Auto)",
+        "points": 6,
+        "description": "Algae scored in processor during autonomous"
+      },
+      "net_algae": {
+        "label": "Net Algae (Auto)",
+        "points": 4,
+        "description": "Algae scored in net during autonomous"
+      }
+    },
+    "teleop": {
+      "L1_coral": {
+        "label": "L1 Coral (Teleop)",
+        "points": 2,
+        "description": "Coral scored in trough (L1) during teleoperated"
+      },
+      "L2_coral": {
+        "label": "L2 Coral (Teleop)",
+        "points": 3,
+        "description": "Coral scored on L2 branch during teleoperated"
+      },
+      "L3_coral": {
+        "label": "L3 Coral (Teleop)",
+        "points": 4,
+        "description": "Coral scored on L3 branch during teleoperated"
+      },
+      "L4_coral": {
+        "label": "L4 Coral (Teleop)",
+        "points": 5,
+        "description": "Coral scored on L4 branch during teleoperated"
+      },
+      "processor_algae": {
+        "label": "Processor Algae (Teleop)",
+        "points": 6,
+        "description": "Algae scored in processor during teleoperated"
+      },
+      "net_algae": {
+        "label": "Net Algae (Teleop)",
+        "points": 4,
+        "description": "Algae scored in net during teleoperated"
+      }
+    },
+    "endgame": {
+      "ending_robot_state": {
+        "label": "Ending Robot State",
+        "description": "Robot's final position during endgame",
+        "pointValues": {
+          "none": 0,
+          "park": 3,
+          "shallow": 6,
+          "deep": 12
+        }
+      }
+    },
+    "fouls": {
+      "fouls": {
+        "label": "Fouls",
+        "points": -2,
+        "description": "Minor penalties committed"
+      },
+      "tech_fouls": {
+        "label": "Tech Fouls",
+        "points": -5,
+        "description": "Technical fouls committed"
+      }
+    }
+  },
+  "pitScouting": {
+    "autonomous": {
+      "startingPosition": {
+        "label": "Starting Position",
+        "type": "select",
+        "options": ["Left Barge", "Center Barge", "Right Barge"]
+      },
+      "autoLeave": {
+        "label": "Leave Starting Zone",
+        "type": "boolean"
+      },
+      "autoCoralLevels": {
+        "label": "Auto Coral Scoring Levels",
+        "type": "select",
+        "options": ["L1 only", "L1-L2", "L1-L3", "L1-L4", "None"]
+      },
+      "autoAlgaeScoring": {
+        "label": "Auto Algae Scoring",
+        "type": "select",
+        "options": ["Net only", "Processor only", "Both", "Neither"]
+      },
+      "autoRoutineCount": {
+        "label": "Number of Auto Routines",
+        "type": "number"
+      }
+    },
+    "teleoperated": {
+      "intakeType": {
+        "label": "Intake Method",
+        "type": "select",
+        "options": ["Ground pickup", "Human player", "Both", "Neither"]
+      },
+      "coralCapability": {
+        "label": "Coral Scoring Capability",
+        "type": "select",
+        "options": ["L1 only", "L1-L2", "L1-L3", "L1-L4", "L2-L4", "None"]
+      },
+      "algaeCapability": {
+        "label": "Algae Scoring Capability",
+        "type": "select",
+        "options": ["Net only", "Processor only", "Both", "Neither"]
+      },
+      "cycleTime": {
+        "label": "Estimated Cycle Time (seconds)",
+        "type": "number"
+      },
+      "reliability": {
+        "label": "Robot Reliability",
+        "type": "select",
+        "options": ["Very Reliable", "Mostly Reliable", "Somewhat Reliable", "Unreliable"]
+      }
+    },
+    "endgame": {
+      "climbCapability": {
+        "label": "Climbing Capability",
+        "type": "select",
+        "options": ["No climb", "Shallow cage only", "Deep cage only", "Both cages"]
+      },
+      "climbTime": {
+        "label": "Average Climb Time (seconds)",
+        "type": "number"
+      },
+      "climbReliability": {
+        "label": "Climb Success Rate",
+        "type": "select",
+        "options": ["Very Reliable (90%+)", "Mostly Reliable (70-90%)", "Somewhat Reliable (40-70%)", "Unreliable (<40%)"]
+      }
+    }
+  }
+}

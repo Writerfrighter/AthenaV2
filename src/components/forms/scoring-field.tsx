@@ -17,10 +17,6 @@ interface ScoringFieldProps {
   onNumberChange: (section: string, field: string, increment: boolean) => void;
 }
 
-function isFuelField(fieldKey: string): boolean {
-  return fieldKey.startsWith('fuel_');
-}
-
 export function ScoringField({
   section,
   fieldKey,
@@ -97,10 +93,11 @@ export function ScoringField({
     default:
       const numValue = Number(currentValue) || 0;
 
-      if (isFuelField(fieldKey)) {
-        const fuelDecrements = [10, 5, 1];
-        const fuelIncrements = [1, 5, 10];
-        const handleFuelChange = (amount: number) => {
+      // Check if this field has custom increments configured
+      if (fieldConfig.increments && Array.isArray(fieldConfig.increments) && fieldConfig.increments.length > 0) {
+        const increments = fieldConfig.increments;
+        const decrements = [...increments].reverse();
+        const handleIncrementChange = (amount: number) => {
           const newValue = Math.max(0, numValue + amount);
           onValueChange(section, fieldKey, newValue);
         };
@@ -109,12 +106,12 @@ export function ScoringField({
           <div className="space-y-2 sm:col-span-2 lg:col-span-3">
             <Label className="text-sm font-medium">{fieldConfig.label}</Label>
             <div className="flex items-center gap-1 w-full">
-              {fuelDecrements.map((inc) => (
+              {decrements.map((inc) => (
                 <Button
                   key={`sub-${inc}`}
                   variant="outline"
                   size="sm"
-                  onClick={() => handleFuelChange(-inc)}
+                  onClick={() => handleIncrementChange(-inc)}
                   className="h-14 min-w-0 flex-1 px-1 text-sm font-semibold"
                 >
                   -{inc}
@@ -128,12 +125,12 @@ export function ScoringField({
                 className="hide-spinners w-28 flex-shrink-0 text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-primary/20"
                 style={{height: '3.5rem'}}
               />
-              {fuelIncrements.map((inc) => (
+              {increments.map((inc) => (
                 <Button
                   key={`add-${inc}`}
                   variant="outline"
                   size="sm"
-                  onClick={() => handleFuelChange(inc)}
+                  onClick={() => handleIncrementChange(inc)}
                   className="h-14 min-w-0 flex-1 px-1 text-sm font-semibold"
                 >
                   +{inc}

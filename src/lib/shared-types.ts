@@ -307,6 +307,9 @@ export interface ScoringDefinition {
   pointValues?: Record<string, number>;
   // Explicit type definition for form rendering
   type?: 'boolean' | 'select' | 'number';
+  // Optional increments array for number fields to show quick increment buttons
+  // Example: increments: [1, 5, 10] will show +1, +5, +10 and -1, -5, -10 buttons
+  increments?: number[];
 }
 
 export interface YearConfig {
