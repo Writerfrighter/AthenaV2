@@ -137,7 +137,7 @@ export default function Page() {
                 >
                   {isSubmitting ? (
                     <>
-                      <Users className="mr-2 h-4 w-4 animate-spin" />
+                      <UserRound className="mr-2 h-4 w-4 animate-spin" />
                       Logging In...
                     </>
                   ) : (

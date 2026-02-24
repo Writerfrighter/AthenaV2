@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Calendar, Clock, Users, Handshake, Loader2, AlertCircle, RefreshCw, ChevronRight, ChevronDown, RotateCcw } from "lucide-react"
+import { Calendar, Clock, Users, Handshake, Loader2, AlertCircle, RefreshCw, ChevronRight, ChevronDown, RotateCcw, UserRound } from "lucide-react"
 import { useScheduleData } from '@/hooks/use-schedule-data'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -850,7 +850,7 @@ export default function SchedulePage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CardTitle className="flex items-center gap-2">
-                          <Users className="h-5 w-5" />
+                          <UserRound className="h-5 w-5" />
                           Select Active Scouts
                         </CardTitle>
                         <Badge variant="secondary" className="text-xs">

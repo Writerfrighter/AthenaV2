@@ -184,14 +184,14 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
 
   return (
     <div className="w-full">
-      <div className="flex items-center pb-2 justify-end-safe">
+      <div className="flex items-center pb-2">
         <Input
           placeholder="Filter teams..."
           value={(table.getColumn("teamNumber")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("teamNumber")?.setFilterValue(event.target.value)
           }
-          className="max-w-36 h-9"
+          className="max-w-sm"
         />
       </div>
       <div className="rounded-md border">

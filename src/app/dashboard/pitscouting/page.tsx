@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, AlertCircle, Database, Download, Filter, ChevronDown, WifiOff } from "lucide-react";
+import { Plus, AlertCircle, Database, Download, Filter, ChevronDown, WifiOff, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -256,7 +256,7 @@ export default function PitScoutingPage() {
         <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium">Unique Teams</CardTitle>
-            <Badge variant="secondary" className="h-4 w-4 p-0" />
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">

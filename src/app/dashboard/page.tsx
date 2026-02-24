@@ -55,7 +55,7 @@ export default function Page() {
         <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 -pb-1">
             <CardTitle className="text-sm font-medium">Teams Scouted</CardTitle>
-            <Users className="h-4 w-4 text-primary" />
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{loading ? "..." : stats.teamsScouted}</div>
@@ -68,7 +68,7 @@ export default function Page() {
         <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 -pb-2">
             <CardTitle className="text-sm font-medium">Entries Recorded</CardTitle>
-            <ClipboardList className="h-4 w-4 text-primary" />
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{loading ? "..." : stats.matchesRecorded}</div>
@@ -94,7 +94,7 @@ export default function Page() {
         <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 -pb-2">
             <CardTitle className="text-sm font-medium">Ranking</CardTitle>
-            <Trophy className="h-4 w-4 text-primary" />
+            <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{loading ? "..." : `#${stats.ranking}`}</div>

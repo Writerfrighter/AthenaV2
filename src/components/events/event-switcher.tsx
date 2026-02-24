@@ -391,7 +391,7 @@ export function EventSwitcher() {
                 <div key={event.name} className="relative">
                   <DropdownMenuItem
                     onClick={() => setSelectedEvent(event)}
-                    className="gap-2 p-2 pr-16"
+                    className={`gap-2 p-2 pr-16 ${event.name==selectedEvent.name && 'bg-sidebar-accent'}`}
                   >
                     {event.name}
                     {/* <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut> */}
