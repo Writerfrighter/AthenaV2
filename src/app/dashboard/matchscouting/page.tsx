@@ -27,6 +27,7 @@ export default function MatchScoutingPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<number | null>(null);
+  const [entriesToDelete, setEntriesToDelete] = useState<number[]>([]);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [isOfflineData, setIsOfflineData] = useState(false);
 
@@ -151,31 +152,51 @@ export default function MatchScoutingPage() {
   // Handle delete
   const handleDelete = (id: number) => {
     setEntryToDelete(id);
+    setEntriesToDelete([]);
+    setDeleteDialogOpen(true);
+  };
+
+  // Handle bulk delete
+  const handleDeleteSelected = (ids: number[]) => {
+    setEntriesToDelete(ids);
+    setEntryToDelete(null);
     setDeleteDialogOpen(true);
   };
 
   // Confirm delete
   const confirmDelete = async () => {
-    if (!entryToDelete) return;
+    const idsToDelete = entryToDelete ? [entryToDelete] : entriesToDelete;
+    if (idsToDelete.length === 0) return;
 
     setDeleteLoading(true);
     try {
-      const response = await fetch(`/api/database/match?id=${entryToDelete}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete match entry');
+      let failedCount = 0;
+      for (const id of idsToDelete) {
+        const response = await fetch(`/api/database/match?id=${id}`, {
+          method: 'DELETE',
+        });
+        if (!response.ok) {
+          failedCount++;
+        }
       }
 
       // Refresh data
       await fetchMatchEntries();
-      toast.success('Match entry deleted successfully');
+      
+      if (failedCount > 0) {
+        toast.warning(`Deleted ${idsToDelete.length - failedCount} of ${idsToDelete.length} entries. ${failedCount} failed.`);
+      } else if (idsToDelete.length === 1) {
+        toast.success('Match entry deleted successfully');
+      } else {
+        toast.success(`${idsToDelete.length} match entries deleted successfully`);
+      }
+      
       setDeleteDialogOpen(false);
       setEntryToDelete(null);
+      setEntriesToDelete([]);
     } catch (err) {
-      console.error('Error deleting match entry:', err);
-      toast.error('Failed to delete match entry');
+      console.error('Error deleting match entries:', err);
+      toast.error('Failed to delete match entries');
     } finally {
       setDeleteLoading(false);
     }
@@ -304,6 +325,7 @@ export default function MatchScoutingPage() {
               data={matchEntries}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onDeleteSelected={handleDeleteSelected}
             />
           )}
         </CardContent>
@@ -314,8 +336,11 @@ export default function MatchScoutingPage() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onConfirm={confirmDelete}
-        title="Delete Match Entry"
-        description="Are you sure you want to delete this match scouting entry? This action cannot be undone."
+        title={entriesToDelete.length > 1 ? `Delete ${entriesToDelete.length} Match Entries` : "Delete Match Entry"}
+        description={entriesToDelete.length > 1 
+          ? `Are you sure you want to delete ${entriesToDelete.length} match scouting entries? This action cannot be undone.`
+          : "Are you sure you want to delete this match scouting entry? This action cannot be undone."
+        }
         loading={deleteLoading}
       />
     </div>

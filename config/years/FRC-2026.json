@@ -10,6 +10,18 @@
         "description": "Fuel scored during autonomous",
         "increments": [1, 5, 10]
       },
+      "fuel_missed": {
+        "label": "Fuel Missed (Auto)",
+        "points": 0,
+        "description": "Fuel missed during autonomous",
+        "increments": [1, 5, 10]
+      },
+      "fuel_shuttled": {
+        "label": "Fuel Shuttled (Auto)",
+        "points": 0,
+        "description": "Fuel shuttled during autonomous",
+        "increments": [1, 5, 10]
+      },
       "climb": {
         "label": "Tower L1 (Auto)",
         "points": 15,
@@ -30,10 +42,10 @@
         "description": "Fuel missed during teleoperated",
         "increments": [1, 5, 10]
       },
-      "fuel_passed": {
-        "label": "Fuel Passed (Teleop)",
+      "fuel_shuttled": {
+        "label": "Fuel Shuttled (Teleop)",
         "points": 0,
-        "description": "Fuel passed during teleoperated",
+        "description": "Fuel shuttled during teleoperated",
         "increments": [1, 5, 10]
       },
       "fuel_corraled": {
@@ -57,6 +69,16 @@
           "L1": 10,
           "L2": 20,
           "L3": 30
+        }
+      },
+      "robot_playstyle": {
+        "label": "Robot Playstyle",
+        "description": "General playstyle of the robot",
+        "type": "select",
+        "pointValues": {
+          "defensive": 0,
+          "balanced": 0,
+          "offensive": 0
         }
       }
     },

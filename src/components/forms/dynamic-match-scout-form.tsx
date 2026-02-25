@@ -311,6 +311,7 @@ export function DynamicMatchScoutForm() {
         newFormData.alliancePosition = formData.alliancePosition;
         newFormData.matchNumber = Number(formData.matchNumber) + 1;
         setFormData(newFormData);
+        setActiveTab("auto");
       }
     } catch (error) {
       toast.error("Failed to save data", {
@@ -636,7 +637,16 @@ export function DynamicMatchScoutForm() {
           isEditMode={isEditMode}
           isSubmitting={isSubmitting}
           onCancel={() => router.push('/dashboard/matchscouting')}
-          onClear={() => setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData)}
+          onClear={() => {
+            const freshData = gameConfig ? initializeFormData(gameConfig) : defaultData;
+            setFormData(prev => ({
+              ...freshData,
+              matchNumber: prev.matchNumber,
+              teamNumber: prev.teamNumber,
+              alliance: prev.alliance,
+              alliancePosition: prev.alliancePosition,
+            }));
+          }}
           onSubmit={handleSubmit}
           submitText="Save Data"
           updateText="Update Entry"

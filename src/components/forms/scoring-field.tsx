@@ -52,9 +52,11 @@ export function ScoringField({
               )}
             </Button>
           </div>
-          <div className="text-xs text-center text-muted-foreground">
-            {fieldConfig.points || 0} points
-          </div>
+          {fieldConfig.points ? (
+            <div className="text-xs text-center text-muted-foreground">
+              {fieldConfig.points} points
+            </div>
+          ) : null}
         </div>
       );
       
@@ -76,16 +78,20 @@ export function ScoringField({
                   <SelectItem key={option} value={option} className="text-base py-3">
                     <div className="flex justify-between items-center w-full">
                       <span className="font-medium">{option.charAt(0).toUpperCase() + option.slice(1)}</span>
-                      <span className="text-muted-foreground ml-4 text-sm">({String(points)} pts)</span>
+                      {Number(points) !== 0 && (
+                        <span className="text-muted-foreground ml-4 text-sm">({String(points)} pts)</span>
+                      )}
                     </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="text-xs text-center text-muted-foreground">
-            Points vary by selection
-          </div>
+          {Object.values(fieldConfig.pointValues || {}).some(p => Number(p) !== 0) && (
+            <div className="text-xs text-center text-muted-foreground">
+              Points vary by selection
+            </div>
+          )}
         </div>
       );
       
@@ -137,9 +143,11 @@ export function ScoringField({
                 </Button>
               ))}
             </div>
-            <div className="text-xs text-center text-muted-foreground">
-              {fieldConfig.points || 0} points each
-            </div>
+            {fieldConfig.points ? (
+              <div className="text-xs text-center text-muted-foreground">
+                {fieldConfig.points} points each
+              </div>
+            ) : null}
           </div>
         );
       }
@@ -175,9 +183,11 @@ export function ScoringField({
               <Plus className="h-5 w-5" />
             </Button>
           </div>
-          <div className="text-xs text-center text-muted-foreground">
-            {fieldConfig.points || 0} points each
-          </div>
+          {fieldConfig.points ? (
+            <div className="text-xs text-center text-muted-foreground">
+              {fieldConfig.points} points each
+            </div>
+          ) : null}
         </div>
       );
   }

@@ -27,6 +27,7 @@ export default function PitScoutingPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<number | null>(null);
+  const [entriesToDelete, setEntriesToDelete] = useState<number[]>([]);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [isOfflineData, setIsOfflineData] = useState(false);
 
@@ -151,31 +152,51 @@ export default function PitScoutingPage() {
   // Handle delete
   const handleDelete = (id: number) => {
     setEntryToDelete(id);
+    setEntriesToDelete([]);
+    setDeleteDialogOpen(true);
+  };
+
+  // Handle bulk delete
+  const handleDeleteSelected = (ids: number[]) => {
+    setEntriesToDelete(ids);
+    setEntryToDelete(null);
     setDeleteDialogOpen(true);
   };
 
   // Confirm delete
   const confirmDelete = async () => {
-    if (!entryToDelete) return;
+    const idsToDelete = entryToDelete ? [entryToDelete] : entriesToDelete;
+    if (idsToDelete.length === 0) return;
 
     setDeleteLoading(true);
     try {
-      const response = await fetch(`/api/database/pit?id=${entryToDelete}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete pit entry');
+      let failedCount = 0;
+      for (const id of idsToDelete) {
+        const response = await fetch(`/api/database/pit?id=${id}`, {
+          method: 'DELETE',
+        });
+        if (!response.ok) {
+          failedCount++;
+        }
       }
 
       // Refresh data
       await fetchPitEntries();
-      toast.success('Pit entry deleted successfully');
+      
+      if (failedCount > 0) {
+        toast.warning(`Deleted ${idsToDelete.length - failedCount} of ${idsToDelete.length} entries. ${failedCount} failed.`);
+      } else if (idsToDelete.length === 1) {
+        toast.success('Pit entry deleted successfully');
+      } else {
+        toast.success(`${idsToDelete.length} pit entries deleted successfully`);
+      }
+      
       setDeleteDialogOpen(false);
       setEntryToDelete(null);
+      setEntriesToDelete([]);
     } catch (err) {
-      console.error('Error deleting pit entry:', err);
-      toast.error('Failed to delete pit entry');
+      console.error('Error deleting pit entries:', err);
+      toast.error('Failed to delete pit entries');
     } finally {
       setDeleteLoading(false);
     }
@@ -302,6 +323,7 @@ export default function PitScoutingPage() {
               data={pitEntries}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onDeleteSelected={handleDeleteSelected}
             />
           )}
         </CardContent>
@@ -312,8 +334,11 @@ export default function PitScoutingPage() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onConfirm={confirmDelete}
-        title="Delete Pit Entry"
-        description="Are you sure you want to delete this pit scouting entry? This action cannot be undone."
+        title={entriesToDelete.length > 1 ? `Delete ${entriesToDelete.length} Pit Entries` : "Delete Pit Entry"}
+        description={entriesToDelete.length > 1
+          ? `Are you sure you want to delete ${entriesToDelete.length} pit scouting entries? This action cannot be undone.`
+          : "Are you sure you want to delete this pit scouting entry? This action cannot be undone."
+        }
         loading={deleteLoading}
       />
     </div>

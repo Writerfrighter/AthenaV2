@@ -15,6 +15,7 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, Edit, Trash2, MoreHorizontal } from "lucide-react";
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -37,10 +38,46 @@ interface PitScoutingTableProps {
   data: PitEntry[];
   onEdit: (entry: PitEntry) => void;
   onDelete: (id: number) => void;
+  onDeleteSelected?: (ids: number[]) => void;
 }
 
-export function PitScoutingTable({ data, onEdit, onDelete }: PitScoutingTableProps) {
+export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: PitScoutingTableProps) {
+  const [rowSelection, setRowSelection] = React.useState({});
+
+  // Expose selected IDs
+  const selectedIds = React.useMemo(() => {
+    return Object.keys(rowSelection)
+      .filter(key => rowSelection[key as keyof typeof rowSelection])
+      .map(key => {
+        const row = data[parseInt(key)];
+        return row?.id;
+      })
+      .filter((id): id is number => id !== undefined && id !== null);
+  }, [rowSelection, data]);
+
   const columns: ColumnDef<PitEntry>[] = [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "teamNumber",
     header: ({ column }) => (
@@ -137,7 +174,6 @@ export function PitScoutingTable({ data, onEdit, onDelete }: PitScoutingTablePro
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
     data,
@@ -160,7 +196,7 @@ export function PitScoutingTable({ data, onEdit, onDelete }: PitScoutingTablePro
 
   return (
     <div className="w-full">
-      <div className="flex items-center pb-2">
+      <div className="flex items-center pb-2 gap-2">
         <Input
           placeholder="Filter teams..."
           value={(table.getColumn("teamNumber")?.getFilterValue() as string) ?? ""}
@@ -169,6 +205,16 @@ export function PitScoutingTable({ data, onEdit, onDelete }: PitScoutingTablePro
           }
           className="max-w-sm"
         />
+        {selectedIds.length > 0 && onDeleteSelected && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => onDeleteSelected(selectedIds)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete {selectedIds.length} selected
+          </Button>
+        )}
       </div>
       <div className="rounded-md border">
         <Table>
