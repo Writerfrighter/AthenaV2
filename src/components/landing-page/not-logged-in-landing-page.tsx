@@ -139,14 +139,14 @@ export function NotLoggedInLandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 w-full min-h-[35vh] sm:min-h-screen flex items-center py-2 sm:py-12 bg-[url(/assets/HeroCropped.jpg)] bg-cover bg-[position:left_center] sm:bg-center">
+      <section className="relative z-10 w-full max-h-[70vh] sm:max-h-[100vh] flex items-center py-2 sm:py-12 bg-[url(/assets/HeroCropped.jpg)] bg-cover bg-[position:left_center] sm:bg-center">
         <div className="absolute inset-0 max-md:bg-black/50 lg:bg-linear-to-r lg:from-black/0 lg:to-black/60" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           
           <div className="grid gap-12 lg:grid-cols-[1fr_600px] items-center">   
             <div/>
-            <div className="space-y-8 text-center lg:text-right">
+            <div className="mx-4 sm:mx-0 space-y-8 text-center lg:text-right">
               <div className="space-y-3">
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl text-white font-bold leading-tight">
                   A Modern Scouting Solution for FIRST.
