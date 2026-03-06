@@ -109,10 +109,6 @@
       "autoClimb": {
         "label": "Auto L1 Climbing",
         "type": "boolean"
-      },
-      "autoRoutineCount": {
-        "label": "Number of Auto Paths",
-        "type": "number"
       }
     },
     "teleoperated": {

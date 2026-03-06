@@ -111,6 +111,30 @@ export function useScoutingAssignment() {
     ) || null;
   };
 
+  /**
+   * Get the recommended next assignment based on the last submitted match.
+   * Finds the assignment block that covers `lastSubmittedMatch + 1`.
+   * If no block covers it, falls back to the next block whose start is > lastSubmittedMatch,
+   * then falls back to the first assignment.
+   */
+  const getNextAssignment = (lastSubmittedMatch: number): ScoutingAssignment | null => {
+    if (userAssignments.length === 0) return null;
+    const nextMatch = lastSubmittedMatch + 1;
+
+    // 1. Exact block that covers the next match
+    const covering = userAssignments.find(
+      a => nextMatch >= a.startMatch && nextMatch <= a.endMatch
+    );
+    if (covering) return covering;
+
+    // 2. Next block that starts after the submitted match
+    const upcoming = userAssignments.find(a => a.startMatch > lastSubmittedMatch);
+    if (upcoming) return upcoming;
+
+    // 3. Fall back to the very first assignment
+    return firstAssignment;
+  };
+
   // Check if user has any scouting assignments
   const hasAssignments = userAssignments.length > 0;
 
@@ -131,6 +155,7 @@ export function useScoutingAssignment() {
     recommendedStartMatch,
     recommendedAlliance,
     recommendedPosition,
-    getAssignmentForMatch
+    getAssignmentForMatch,
+    getNextAssignment
   };
 }

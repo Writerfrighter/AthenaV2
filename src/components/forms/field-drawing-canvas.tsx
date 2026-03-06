@@ -8,10 +8,10 @@ import { Pencil, Eraser, Undo2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FieldDrawingCanvasProps {
-  /** Initial drawing data as a base64 data URL */
+  /** Initial drawing data as a JSON string of Stroke[] */
   initialData?: string;
-  /** Callback when drawing changes, returns base64 data URL of the drawing */
-  onChange?: (dataUrl: string) => void;
+  /** Callback when drawing changes, returns JSON string of Stroke[] */
+  onChange?: (strokeJson: string) => void;
   /** Image source for the field background */
   fieldImageSrc?: string;
   /** CSS class for the container */
@@ -73,6 +73,8 @@ function pointHitsStroke(
   }
   return false;
 }
+
+export type { Stroke };
 
 export function FieldDrawingCanvas({
   initialData,
@@ -207,25 +209,22 @@ export function FieldDrawingCanvas({
     }
   }, [canvasSize, redrawCanvas]);
 
-  // Load initial data
+  // Load initial data from stroke JSON
   useEffect(() => {
     if (!initialData || !imageLoaded || initialDataLoadedRef.current) return;
     if (canvasSize.width === 0 || canvasSize.height === 0) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const img = new Image();
-    img.onload = () => {
-      if (bgImageRef.current) {
-        ctx.drawImage(bgImageRef.current, 0, 0, canvas.width, canvas.height);
+    try {
+      const parsed = JSON.parse(initialData) as Stroke[];
+      if (Array.isArray(parsed)) {
+        setStrokes(parsed);
+        initialDataLoadedRef.current = true;
       }
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    } catch {
+      // If it's not valid JSON (e.g. legacy base64 data), ignore it
+      console.warn('Failed to parse initial drawing data as stroke JSON');
       initialDataLoadedRef.current = true;
-    };
-    img.src = initialData;
+    }
   }, [initialData, imageLoaded, canvasSize]);
 
   // ── Coordinate helpers ──
@@ -257,26 +256,13 @@ export function FieldDrawingCanvas({
   const emitChange = useCallback(
     (currentStrokes: Stroke[]) => {
       if (!onChange) return;
-      requestAnimationFrame(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        if (currentStrokes.length === 0) {
-          onChange('');
-          return;
-        }
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (tempCtx) {
-          for (const stroke of currentStrokes) {
-            drawStrokeOnCtx(tempCtx, stroke, canvas.width, canvas.height);
-          }
-          onChange(tempCanvas.toDataURL('image/png'));
-        }
-      });
+      if (currentStrokes.length === 0) {
+        onChange('');
+        return;
+      }
+      onChange(JSON.stringify(currentStrokes));
     },
-    [onChange, drawStrokeOnCtx],
+    [onChange],
   );
 
   // ── Pointer event handlers ──

@@ -139,12 +139,20 @@ export class AzureSqlDatabaseService implements DatabaseService {
         eventCode NVARCHAR(50),
         userId NVARCHAR(255),
         gameSpecificData NVARCHAR(MAX),
+        autoDrawing NVARCHAR(MAX),
         notes NVARCHAR(MAX),
         created_at DATETIME DEFAULT GETDATE(),
         updated_at DATETIME DEFAULT GETDATE(),
         FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL,
         CONSTRAINT uq_pit_entry UNIQUE (teamNumber, eventCode, year, competitionType)
       )
+    `);
+
+    // Add autoDrawing column to pitEntries table if it doesn't exist
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+                     WHERE TABLE_NAME = 'pitEntries' AND COLUMN_NAME = 'autoDrawing')
+      ALTER TABLE pitEntries ADD autoDrawing NVARCHAR(MAX)
     `);
     
     // Create matchEntries table
@@ -308,11 +316,12 @@ export class AzureSqlDatabaseService implements DatabaseService {
         .input('eventCode', mssql.NVarChar, entry.eventCode)
         .input('userId', mssql.NVarChar, entry.userId || null)
         .input('gameSpecificData', mssql.NVarChar, JSON.stringify(entry.gameSpecificData))
+        .input('autoDrawing', mssql.NVarChar, entry.autoDrawing || null)
         .input('notes', mssql.NVarChar, entry.notes || null)
         .query(`
-          INSERT INTO pitEntries (teamNumber, year, competitionType, driveTrain, weight, length, width, eventName, eventCode, userId, gameSpecificData, notes)
+          INSERT INTO pitEntries (teamNumber, year, competitionType, driveTrain, weight, length, width, eventName, eventCode, userId, gameSpecificData, autoDrawing, notes)
           OUTPUT INSERTED.id
-          VALUES (@teamNumber, @year, @competitionType, @driveTrain, @weight, @length, @width, @eventName, @eventCode, @userId, @gameSpecificData, @notes)
+          VALUES (@teamNumber, @year, @competitionType, @driveTrain, @weight, @length, @width, @eventName, @eventCode, @userId, @gameSpecificData, @autoDrawing, @notes)
         `);
 
       return result.recordset[0].id;
@@ -358,6 +367,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
       eventCode: row.eventCode || undefined,
       userId: row.userId || undefined,
       gameSpecificData: JSON.parse(row.gameSpecificData),
+      autoDrawing: row.autoDrawing || undefined,
       notes: row.notes || undefined,
     };
   }
@@ -405,6 +415,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
         eventCode: pitRow.eventCode || undefined,
         userId: pitRow.userId || undefined,
         gameSpecificData: JSON.parse(pitRow.gameSpecificData),
+        autoDrawing: pitRow.autoDrawing || undefined,
         notes: pitRow.notes || undefined,
       };
     });

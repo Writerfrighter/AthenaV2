@@ -125,6 +125,34 @@ export const initializeFormData = (gameConfig: any): DynamicMatchData => {
   return data;
 };
 
+// --- Persistent last-submitted match per event ---
+
+const LAST_MATCH_KEY_PREFIX = 'athena-last-match';
+
+/** Build a localStorage key scoped to the event. */
+const lastMatchKey = (eventCode: string) => `${LAST_MATCH_KEY_PREFIX}-${eventCode}`;
+
+/** Read the last submitted match number for the given event (0 if none). */
+export const getLastSubmittedMatch = (eventCode: string): number => {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = localStorage.getItem(lastMatchKey(eventCode));
+    return raw ? parseInt(raw, 10) || 0 : 0;
+  } catch {
+    return 0;
+  }
+};
+
+/** Persist the last submitted match number for the given event. */
+export const setLastSubmittedMatch = (eventCode: string, matchNumber: number): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(lastMatchKey(eventCode), String(matchNumber));
+  } catch {
+    // localStorage full or unavailable – silently ignore
+  }
+};
+
 // Determine field type based on configuration structure
 export const getFieldType = (fieldConfig: any) => {
   // First check if type is explicitly defined

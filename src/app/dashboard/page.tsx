@@ -182,7 +182,7 @@ export default function Page() {
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Data Completeness</span>
+                <span>Data Totality</span>
                 <span>{loading ? "..." : `${(stats.dataQuality ?? 0).toFixed(2)}%`}</span>
               </div>
               <Progress value={loading ? 0 : (stats.dataQuality ?? 0)} className="h-2" />

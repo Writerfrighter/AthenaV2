@@ -20,6 +20,7 @@ export interface PitEntry {
   eventCode?: string;
   userId?: string;
   gameSpecificData: Record<string, number | string | boolean | Record<string, number | string | boolean>>;
+  autoDrawing?: string;
   notes?: string;
   [extra: string]: unknown;
 }
@@ -67,6 +68,7 @@ export interface PitEntryRow {
   eventCode: string | null;
   userId: string | null;
   gameSpecificData: string;
+  autoDrawing: string | null;
   notes: string | null;
 }
 
@@ -476,6 +478,7 @@ export interface DynamicPitData {
   length: string;
   width: string;
   hasAuto: boolean;
+  autoDrawing: string;
   notes: string;
   gameSpecificData: Record<string, number | string | boolean | string[]>;
 }

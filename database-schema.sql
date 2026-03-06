@@ -28,6 +28,7 @@ CREATE TABLE pitEntries (
     eventCode NVARCHAR(50),
     userId NVARCHAR(255), -- User who created this entry
     gameSpecificData NVARCHAR(MAX), -- JSON object with game-specific pit scouting data
+    autoDrawing NVARCHAR(MAX), -- Base64 PNG data URL of autonomous path drawing
     notes NVARCHAR(MAX),
     created_at DATETIME DEFAULT GETDATE(),
     updated_at DATETIME DEFAULT GETDATE(),

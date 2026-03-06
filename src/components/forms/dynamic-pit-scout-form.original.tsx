@@ -49,6 +49,7 @@ export function DynamicPitScoutForm() {
       length: '',
       width: '',
       hasAuto: false,
+      autoDrawing: '',
       notes: '',
       gameSpecificData: {}
     };
@@ -88,6 +89,7 @@ export function DynamicPitScoutForm() {
       length: '',
       width: '',
       hasAuto: false,
+      autoDrawing: '',
       notes: '',
       gameSpecificData: {}
     }
@@ -123,6 +125,7 @@ export function DynamicPitScoutForm() {
           length: entry.length !== null && entry.length !== undefined ? String(entry.length) : '',
           width: entry.width !== null && entry.width !== undefined ? String(entry.width) : '',
           hasAuto,
+          autoDrawing: entry.autoDrawing || '',
           notes: typeof entry.notes === 'string' ? entry.notes : '',
           gameSpecificData: gameData as Record<string, number | string | boolean>
         };
@@ -237,6 +240,7 @@ export function DynamicPitScoutForm() {
             eventName: selectedEvent?.name || 'Unknown Event',
             eventCode: selectedEvent?.code || 'Unknown Code',
             notes: formData.notes || '',
+            autoDrawing: formData.autoDrawing || '',
             gameSpecificData: {
               hasAuto: formData.hasAuto,
               ...formData.gameSpecificData
@@ -268,6 +272,7 @@ export function DynamicPitScoutForm() {
           eventName: selectedEvent?.name || 'Unknown Event',
           eventCode: selectedEvent?.code || 'Unknown Code',
           notes: formData.notes || '',
+          autoDrawing: formData.autoDrawing || '',
           gameSpecificData: {
             hasAuto: formData.hasAuto,
             ...formData.gameSpecificData
@@ -298,6 +303,7 @@ export function DynamicPitScoutForm() {
           length: '',
           width: '',
           hasAuto: false,
+          autoDrawing: '',
           notes: '',
           gameSpecificData: {}
         });
@@ -627,8 +633,8 @@ export function DynamicPitScoutForm() {
                       {/* Field Drawing Canvas for Autonomous Path */}
                       <div className="mt-6">
                         <FieldDrawingCanvas
-                          initialData={formData.gameSpecificData['autonomous_pathDrawing'] as string || ''}
-                          onChange={(dataUrl) => handleGameSpecificChange('autonomous_pathDrawing', dataUrl)}
+                          initialData={formData.autoDrawing}
+                          onChange={(strokeJson) => setFormData(f => ({ ...f, autoDrawing: strokeJson }))}
                         />
                       </div>
                     </div>
@@ -639,8 +645,8 @@ export function DynamicPitScoutForm() {
                     <div className="border-b pb-4">
                       <h3 className="text-lg font-semibold mb-4">Autonomous Path</h3>
                       <FieldDrawingCanvas
-                        initialData={formData.gameSpecificData['autonomous_pathDrawing'] as string || ''}
-                        onChange={(dataUrl) => handleGameSpecificChange('autonomous_pathDrawing', dataUrl)}
+                        initialData={formData.autoDrawing}
+                        onChange={(strokeJson) => setFormData(f => ({ ...f, autoDrawing: strokeJson }))}
                       />
                     </div>
                   )}

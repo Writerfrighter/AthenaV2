@@ -20,7 +20,7 @@ import { ScoutSelector } from '@/components/scout-selector';
 import { MatchInfoSection } from '@/components/forms/match-info-section';
 import { ScoringSection } from '@/components/forms/scoring-section';
 import { FormSubmitButtons } from '@/components/forms/form-submit-buttons';
-import { defaultData, hideSpinnersStyle, initializeFormData } from '@/components/forms/match-form-utils';
+import { defaultData, hideSpinnersStyle, initializeFormData, getLastSubmittedMatch, setLastSubmittedMatch } from '@/components/forms/match-form-utils';
 import type { DynamicMatchData, MatchEntry } from '@/lib/shared-types';
 
 export function DynamicMatchScoutForm() {
@@ -43,7 +43,9 @@ export function DynamicMatchScoutForm() {
     hasAssignments,
     recommendedStartMatch,
     recommendedAlliance,
-    recommendedPosition
+    recommendedPosition,
+    getAssignmentForMatch,
+    getNextAssignment
   } = useScoutingAssignment();
   const [formData, setFormData] = useState<DynamicMatchData>(() => 
     gameConfig ? initializeFormData(gameConfig) : defaultData
@@ -133,24 +135,55 @@ export function DynamicMatchScoutForm() {
     }
   }, [gameConfig, isEditMode]);
 
-  // Apply initial scouting assignment (match number, alliance, position) on first load
+  // Apply initial scouting assignment on first load, using persistent last-submitted match
   useEffect(() => {
     // Skip if already applied, in edit mode, or assignment data not yet loaded
     if (hasAppliedInitialAssignment || isEditMode || assignmentLoading) return;
-    
+
     // Only apply if we have scouting assignments
     if (!hasAssignments) return;
 
-    // Apply the recommended values from the scouting schedule
-    setFormData(prev => ({
-      ...prev,
-      matchNumber: recommendedStartMatch || prev.matchNumber,
-      alliance: recommendedAlliance || prev.alliance,
-      alliancePosition: recommendedPosition || prev.alliancePosition
-    }));
-    
+    const eventCode = selectedEvent?.code;
+    const lastSubmitted = eventCode ? getLastSubmittedMatch(eventCode) : 0;
+
+    if (lastSubmitted > 0) {
+      // We have a previously submitted match – advance from it
+      const nextAssignment = getNextAssignment(lastSubmitted);
+      const nextMatch = lastSubmitted + 1;
+
+      if (nextAssignment) {
+        // If the next match falls within the assignment block, use it;
+        // otherwise jump to the block's start match.
+        const resolvedMatch =
+          nextMatch >= nextAssignment.startMatch && nextMatch <= nextAssignment.endMatch
+            ? nextMatch
+            : nextAssignment.startMatch;
+
+        setFormData(prev => ({
+          ...prev,
+          matchNumber: resolvedMatch,
+          alliance: nextAssignment.alliance,
+          alliancePosition: nextAssignment.position
+        }));
+      } else {
+        // No assignment covers the next match – just bump the number
+        setFormData(prev => ({
+          ...prev,
+          matchNumber: nextMatch
+        }));
+      }
+    } else {
+      // No history – fall back to the first assignment (original behaviour)
+      setFormData(prev => ({
+        ...prev,
+        matchNumber: recommendedStartMatch || prev.matchNumber,
+        alliance: recommendedAlliance || prev.alliance,
+        alliancePosition: recommendedPosition || prev.alliancePosition
+      }));
+    }
+
     setHasAppliedInitialAssignment(true);
-  }, [hasAssignments, recommendedStartMatch, recommendedAlliance, recommendedPosition, assignmentLoading, isEditMode, hasAppliedInitialAssignment]);
+  }, [hasAssignments, recommendedStartMatch, recommendedAlliance, recommendedPosition, assignmentLoading, isEditMode, hasAppliedInitialAssignment, selectedEvent?.code, getNextAssignment]);
 
   // Determine if current values match the scouting schedule assignment
   const isMatchFromScoutingSchedule = hasAppliedInitialAssignment && 
@@ -305,11 +338,28 @@ export function DynamicMatchScoutForm() {
           });
         }
         
-        // Keep alliance position and increment match number when resetting form
+        // Persist last submitted match number for this event
+        const submittedMatch = Number(formData.matchNumber);
+        if (selectedEvent?.code) {
+          setLastSubmittedMatch(selectedEvent.code, submittedMatch);
+        }
+
+        // Compute next match + assignment from scouting schedule
+        const nextMatch = submittedMatch + 1;
+        const nextAssignment = hasAssignments ? getAssignmentForMatch(nextMatch) : null;
+
         const newFormData = gameConfig ? initializeFormData(gameConfig) : defaultData;
-        newFormData.alliance = formData.alliance;
-        newFormData.alliancePosition = formData.alliancePosition;
-        newFormData.matchNumber = Number(formData.matchNumber) + 1;
+        newFormData.matchNumber = nextMatch;
+
+        if (nextAssignment) {
+          newFormData.alliance = nextAssignment.alliance;
+          newFormData.alliancePosition = nextAssignment.position;
+        } else {
+          // Keep current alliance/position when there's no assignment for the next match
+          newFormData.alliance = formData.alliance;
+          newFormData.alliancePosition = formData.alliancePosition;
+        }
+
         setFormData(newFormData);
         setActiveTab("auto");
       }
