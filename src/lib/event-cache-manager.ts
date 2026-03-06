@@ -3,7 +3,7 @@
 
 import { indexedDBService } from '@/lib/indexeddb-service';
 import type { EventCacheStatus } from '@/lib/offline-types';
-import type { PitEntry, MatchEntry } from '@/lib/shared-types';
+import type { PitEntry, MatchEntry, AnalysisData } from '@/lib/shared-types';
 
 export type CacheStepId =
   | 'session'
@@ -13,7 +13,8 @@ export type CacheStepId =
   | 'scoutSchedule'
   | 'scoutList'
   | 'pitEntries'
-  | 'matchEntries';
+  | 'matchEntries'
+  | 'analysisData';
 
 export interface CacheStep {
   id: CacheStepId;
@@ -38,6 +39,7 @@ export const FULL_CACHE_STEPS: CacheStepId[] = [
   ...SCOUT_STEPS,
   'pitEntries',
   'matchEntries',
+  'analysisData',
 ];
 
 function buildStepLabel(id: CacheStepId): string {
@@ -50,6 +52,7 @@ function buildStepLabel(id: CacheStepId): string {
     case 'scoutList': return 'Scout List';
     case 'pitEntries': return 'Pit Scouting Data';
     case 'matchEntries': return 'Match Scouting Data';
+    case 'analysisData': return 'Analysis Data';
   }
 }
 
@@ -267,6 +270,27 @@ async function cacheMatchEntries(opts: CacheOptions): Promise<number> {
   }
 }
 
+/** Download and cache analysis (EPA) data for the event into IndexedDB */
+async function cacheAnalysisData(opts: CacheOptions): Promise<void> {
+  opts.onStepUpdate('analysisData', { status: 'loading', detail: 'Downloading analysis data...' });
+  try {
+    const url = `/api/database/analysis?eventCode=${opts.eventCode}&year=${opts.year}&competitionType=${opts.competitionType}`;
+    const res = await fetchAndCache(url);
+    const data: AnalysisData = await res.json();
+
+    await indexedDBService.cacheAnalysisData(opts.eventCode, data);
+
+    opts.onStepUpdate('analysisData', {
+      status: 'success',
+      detail: `${data.totalTeams} teams analysed`,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    opts.onStepUpdate('analysisData', { status: 'error', error: msg });
+    // Non-critical — continue
+  }
+}
+
 export interface CacheResult {
   success: boolean;
   stepResults: CacheStep[];
@@ -346,6 +370,10 @@ export async function runEventCache(
       } catch {
         hasError = true;
       }
+    }
+
+    if (stepIds.includes('analysisData')) {
+      await cacheAnalysisData(opts);
     }
 
     // Save cache status metadata

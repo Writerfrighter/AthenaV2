@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Search, Trophy, Target, Activity, BarChart, MapPin } from 'lucide-react';
+import { ExternalLink, Search, Trophy, Target, Activity, BarChart, MapPin, AlertTriangle, Wrench } from 'lucide-react';
 import TeamInfo from '@/components/team-pages-common/TeamInfo';
 import TeamImage from '@/components/team-pages-common/TeamImage';
 import TeamNotes from '@/components/team-pages-common/TeamNotes';
@@ -38,7 +38,9 @@ interface ReefscapeData {
   avg_auto_algae: number;
   avg_teleop_coral: number;
   avg_teleop_algae: number;
-  endgame_state: string;
+
+  // Auto leave rate
+  auto_leave_rate: number;
 
   // Detailed autonomous breakdown
   auto_trough: number;
@@ -47,8 +49,6 @@ interface ReefscapeData {
   auto_l4: number;
   auto_net: number;
   auto_processor: number;
-  auto_missed_coral: number;
-  auto_missed_algae: number;
 
   // Detailed teleop breakdown
   teleop_trough: number;
@@ -57,8 +57,16 @@ interface ReefscapeData {
   teleop_l4: number;
   teleop_net: number;
   teleop_processor: number;
-  teleop_missed_coral: number;
-  teleop_missed_algae: number;
+
+  // Endgame distribution
+  endgame_none_rate: number;
+  endgame_park_rate: number;
+  endgame_shallow_rate: number;
+  endgame_deep_rate: number;
+
+  // Fouls
+  avg_fouls: number;
+  avg_tech_fouls: number;
 }
 
 export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
@@ -97,17 +105,22 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
     if (!teamData?.matchEntries || teamData.matchEntries.length === 0) return null;
 
     const matchEntries = teamData.matchEntries;
+    const count = matchEntries.length;
+
     const totals = matchEntries.reduce((acc, match) => {
-      const auto = match.gameSpecificData?.autonomous as Record<string, number> | undefined || {};
+      const auto = match.gameSpecificData?.autonomous as Record<string, number | boolean> | undefined || {};
       const teleop = match.gameSpecificData?.teleop as Record<string, number> | undefined || {};
+      const endgame = match.gameSpecificData?.endgame as Record<string, string> | undefined || {};
+      const fouls = match.gameSpecificData?.fouls as Record<string, number> | undefined || {};
 
       return {
-        auto_l1: acc.auto_l1 + (auto.L1_coral || 0),
-        auto_l2: acc.auto_l2 + (auto.L2_coral || 0),
-        auto_l3: acc.auto_l3 + (auto.L3_coral || 0),
-        auto_l4: acc.auto_l4 + (auto.L4_coral || 0),
-        auto_net: acc.auto_net + (auto.net_algae || 0),
-        auto_processor: acc.auto_processor + (auto.processor_algae || 0),
+        auto_leave: acc.auto_leave + (auto.leave ? 1 : 0),
+        auto_l1: acc.auto_l1 + (Number(auto.L1_coral) || 0),
+        auto_l2: acc.auto_l2 + (Number(auto.L2_coral) || 0),
+        auto_l3: acc.auto_l3 + (Number(auto.L3_coral) || 0),
+        auto_l4: acc.auto_l4 + (Number(auto.L4_coral) || 0),
+        auto_net: acc.auto_net + (Number(auto.net_algae) || 0),
+        auto_processor: acc.auto_processor + (Number(auto.processor_algae) || 0),
 
         teleop_l1: acc.teleop_l1 + (teleop.L1_coral || 0),
         teleop_l2: acc.teleop_l2 + (teleop.L2_coral || 0),
@@ -115,22 +128,31 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
         teleop_l4: acc.teleop_l4 + (teleop.L4_coral || 0),
         teleop_net: acc.teleop_net + (teleop.net_algae || 0),
         teleop_processor: acc.teleop_processor + (teleop.processor_algae || 0),
+
+        endgame_none: acc.endgame_none + (!endgame.ending_robot_state || endgame.ending_robot_state === 'none' ? 1 : 0),
+        endgame_park: acc.endgame_park + (endgame.ending_robot_state === 'park' ? 1 : 0),
+        endgame_shallow: acc.endgame_shallow + (endgame.ending_robot_state === 'shallow' ? 1 : 0),
+        endgame_deep: acc.endgame_deep + (endgame.ending_robot_state === 'deep' ? 1 : 0),
+
+        fouls: acc.fouls + (fouls.fouls || 0),
+        tech_fouls: acc.tech_fouls + (fouls.tech_fouls || 0),
       };
     }, {
+      auto_leave: 0,
       auto_l1: 0, auto_l2: 0, auto_l3: 0, auto_l4: 0, auto_net: 0, auto_processor: 0,
-      teleop_l1: 0, teleop_l2: 0, teleop_l3: 0, teleop_l4: 0, teleop_net: 0, teleop_processor: 0
+      teleop_l1: 0, teleop_l2: 0, teleop_l3: 0, teleop_l4: 0, teleop_net: 0, teleop_processor: 0,
+      endgame_none: 0, endgame_park: 0, endgame_shallow: 0, endgame_deep: 0,
+      fouls: 0, tech_fouls: 0,
     });
-    // console.log(totals);
-    const count = matchEntries.length;
 
     return {
-      avg_total: averageScore, // Use average score from TBA instead of EPA
+      avg_total: averageScore,
       epa: teamData.epa?.totalEPA || 0,
+      auto_leave_rate: parseFloat(((totals.auto_leave / count) * 100).toFixed(1)),
       avg_auto_coral: parseFloat(((totals.auto_l1 + totals.auto_l2 + totals.auto_l3 + totals.auto_l4) / count).toFixed(1)),
       avg_auto_algae: parseFloat(((totals.auto_processor + totals.auto_net) / count).toFixed(1)),
       avg_teleop_coral: parseFloat(((totals.teleop_l1 + totals.teleop_l2 + totals.teleop_l3 + totals.teleop_l4) / count).toFixed(1)),
       avg_teleop_algae: parseFloat(((totals.teleop_processor + totals.teleop_net) / count).toFixed(1)),
-      endgame_state: "Deep Climbing", // This would come from endgame data
 
       auto_trough: parseFloat((totals.auto_l1 / count).toFixed(1)),
       auto_l2: parseFloat((totals.auto_l2 / count).toFixed(1)),
@@ -138,8 +160,6 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
       auto_l4: parseFloat((totals.auto_l4 / count).toFixed(1)),
       auto_net: parseFloat((totals.auto_net / count).toFixed(1)),
       auto_processor: parseFloat((totals.auto_processor / count).toFixed(1)),
-      auto_missed_coral: 0, // Not tracked in current schema
-      auto_missed_algae: 0, // Not tracked in current schema
 
       teleop_trough: parseFloat((totals.teleop_l1 / count).toFixed(1)),
       teleop_l2: parseFloat((totals.teleop_l2 / count).toFixed(1)),
@@ -147,8 +167,14 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
       teleop_l4: parseFloat((totals.teleop_l4 / count).toFixed(1)),
       teleop_net: parseFloat((totals.teleop_net / count).toFixed(1)),
       teleop_processor: parseFloat((totals.teleop_processor / count).toFixed(1)),
-      teleop_missed_coral: 0, // Not tracked in current schema
-      teleop_missed_algae: 0, // Not tracked in current schema
+
+      endgame_none_rate: parseFloat(((totals.endgame_none / count) * 100).toFixed(1)),
+      endgame_park_rate: parseFloat(((totals.endgame_park / count) * 100).toFixed(1)),
+      endgame_shallow_rate: parseFloat(((totals.endgame_shallow / count) * 100).toFixed(1)),
+      endgame_deep_rate: parseFloat(((totals.endgame_deep / count) * 100).toFixed(1)),
+
+      avg_fouls: parseFloat((totals.fouls / count).toFixed(1)),
+      avg_tech_fouls: parseFloat((totals.tech_fouls / count).toFixed(1)),
     };
   };
 
@@ -170,6 +196,7 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
     { name: 'Auto Algae', value: reefscapeData.avg_auto_algae * 5, fill: '#4ecdc4' },
     { name: 'Tele Coral', value: reefscapeData.avg_teleop_coral * 3, fill: '#ff9999' },
     { name: 'Tele Algae', value: reefscapeData.avg_teleop_algae * 5, fill: '#7fdddd' },
+    { name: 'Endgame', value: (reefscapeData.endgame_park_rate / 100) * 3 + (reefscapeData.endgame_shallow_rate / 100) * 6 + (reefscapeData.endgame_deep_rate / 100) * 12, fill: '#a78bfa' },
   ] : [];
 
   // Transform for shadcn chart
@@ -198,6 +225,10 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
     "Teleop Algae": {
       label: "Teleop Algae: ",
       color: "#7fdddd",
+    },
+    "Endgame": {
+      label: "Endgame: ",
+      color: "#a78bfa",
     },
   } satisfies ChartConfig;
 
@@ -344,6 +375,7 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
               {reefscapeData ? (isNaN(reefscapeData.avg_auto_coral) ? 0 : reefscapeData.avg_auto_coral).toFixed(1) : 0}
             </div>
             <p className="text-xs text-muted-foreground">Average autonomous coral</p>
+            <p className="text-xs text-muted-foreground mt-1">Leave rate: {reefscapeData?.auto_leave_rate ?? 0}%</p>
           </CardContent>
         </Card>
 
@@ -498,6 +530,211 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
           </CardContent>
         </Card>
       </div>
+
+  {/* Endgame & Reliability */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Endgame Climb Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Endgame Climb Distribution</CardTitle>
+            <CardDescription>Percentage of matches at each endgame state</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-4 gap-4">
+              <div>
+                <h4 className="font-semibold mb-2">None</h4>
+                <Badge variant="secondary">{reefscapeData?.endgame_none_rate.toFixed(1) || 0}%</Badge>
+                <p className="text-xs text-muted-foreground mt-1">0 pts</p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">Park</h4>
+                <Badge variant="secondary">{reefscapeData?.endgame_park_rate.toFixed(1) || 0}%</Badge>
+                <p className="text-xs text-muted-foreground mt-1">3 pts</p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">Shallow Cage</h4>
+                <Badge variant="secondary">{reefscapeData?.endgame_shallow_rate.toFixed(1) || 0}%</Badge>
+                <p className="text-xs text-muted-foreground mt-1">6 pts</p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">Deep Cage</h4>
+                <Badge variant={reefscapeData && reefscapeData.endgame_deep_rate > 50 ? 'default' : 'secondary'}>
+                  {reefscapeData?.endgame_deep_rate.toFixed(1) || 0}%
+                </Badge>
+                <p className="text-xs text-muted-foreground mt-1">12 pts</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Reliability & Fouls */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Reliability & Penalties</CardTitle>
+            <CardDescription>Penalty averages per match</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Avg Fouls per Match</span>
+                <Badge variant="secondary">{reefscapeData?.avg_fouls.toFixed(1) || 0}</Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Avg Tech Fouls per Match</span>
+                <Badge variant={reefscapeData && reefscapeData.avg_tech_fouls > 0.5 ? 'destructive' : 'secondary'}>
+                  {reefscapeData?.avg_tech_fouls.toFixed(1) || 0}
+                </Badge>
+              </div>
+              <div className="pt-2 border-t">
+                <div className="flex justify-between items-center font-semibold">
+                  <span className="text-sm">Est. Penalty Points</span>
+                  <Badge variant="secondary">
+                    {reefscapeData
+                      ? ((reefscapeData.avg_fouls * -2) + (reefscapeData.avg_tech_fouls * -5)).toFixed(1)
+                      : 0} pts
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Pit Scouting Report */}
+      {teamData?.pitEntry?.gameSpecificData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              Pit Scouting Report
+            </CardTitle>
+            <CardDescription>Robot capabilities reported during pit scouting</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Autonomous Capabilities */}
+              <div>
+                <h4 className="font-semibold mb-3">Autonomous</h4>
+                <div className="space-y-2">
+                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).autonomous && (() => {
+                    const autoData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).autonomous;
+                    return (
+                      <>
+                        {autoData.startingPosition && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Starting Position</span>
+                            <Badge variant="outline" className="text-xs">{String(autoData.startingPosition)}</Badge>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Leaves Zone</span>
+                          <Badge variant={autoData.autoLeave ? 'default' : 'secondary'} className="text-xs">
+                            {autoData.autoLeave ? 'Yes' : 'No'}
+                          </Badge>
+                        </div>
+                        {autoData.autoCoralLevels && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Coral Levels</span>
+                            <Badge variant="outline" className="text-xs">{String(autoData.autoCoralLevels)}</Badge>
+                          </div>
+                        )}
+                        {autoData.autoAlgaeScoring && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Algae Scoring</span>
+                            <Badge variant="outline" className="text-xs">{String(autoData.autoAlgaeScoring)}</Badge>
+                          </div>
+                        )}
+                        {autoData.autoRoutineCount != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Auto Routines</span>
+                            <Badge variant="secondary" className="text-xs">{String(autoData.autoRoutineCount)}</Badge>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Teleop Capabilities */}
+              <div>
+                <h4 className="font-semibold mb-3">Teleoperated</h4>
+                <div className="space-y-2">
+                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).teleoperated && (() => {
+                    const teleopData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).teleoperated;
+                    return (
+                      <>
+                        {teleopData.intakeType && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Intake Method</span>
+                            <Badge variant="outline" className="text-xs">{String(teleopData.intakeType)}</Badge>
+                          </div>
+                        )}
+                        {teleopData.coralCapability && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Coral Capability</span>
+                            <Badge variant="outline" className="text-xs">{String(teleopData.coralCapability)}</Badge>
+                          </div>
+                        )}
+                        {teleopData.algaeCapability && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Algae Capability</span>
+                            <Badge variant="outline" className="text-xs">{String(teleopData.algaeCapability)}</Badge>
+                          </div>
+                        )}
+                        {teleopData.cycleTime != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Cycle Time</span>
+                            <Badge variant="secondary" className="text-xs">{String(teleopData.cycleTime)}s</Badge>
+                          </div>
+                        )}
+                        {teleopData.reliability && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Reliability</span>
+                            <Badge variant="outline" className="text-xs">{String(teleopData.reliability)}</Badge>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Endgame Capabilities */}
+              <div>
+                <h4 className="font-semibold mb-3">Endgame</h4>
+                <div className="space-y-2">
+                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).endgame && (() => {
+                    const endData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).endgame;
+                    return (
+                      <>
+                        {endData.climbCapability && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Climb Capability</span>
+                            <Badge variant="outline" className="text-xs">{String(endData.climbCapability)}</Badge>
+                          </div>
+                        )}
+                        {endData.climbTime != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Climb Time</span>
+                            <Badge variant="secondary" className="text-xs">{String(endData.climbTime)}s</Badge>
+                          </div>
+                        )}
+                        {endData.climbReliability && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Climb Reliability</span>
+                            <Badge variant="outline" className="text-xs">{String(endData.climbReliability)}</Badge>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
   {/* Scouting Notes */}
   <TeamNotes notes={teamNotes} searchNote={searchNote} setSearchNote={setSearchNote} />

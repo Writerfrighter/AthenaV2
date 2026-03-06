@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Trophy, Target, Activity, BarChart, Flame, AlertTriangle } from 'lucide-react';
+import { ExternalLink, Trophy, Target, Activity, BarChart, Flame, AlertTriangle, Wrench } from 'lucide-react';
 import TeamInfo from '@/components/team-pages-common/TeamInfo';
 import TeamImage from '@/components/team-pages-common/TeamImage';
 import TeamNotes from '@/components/team-pages-common/TeamNotes';
@@ -37,6 +37,8 @@ interface RebuiltData {
 
   // Autonomous
   auto_fuel_scored: number;
+  auto_fuel_missed: number;
+  auto_fuel_shuttled: number;
   auto_climb_rate: number; // percentage of matches with auto L1 climb
 
   // Teleop
@@ -44,6 +46,7 @@ interface RebuiltData {
   teleop_fuel_missed: number;
   teleop_fuel_passed: number;
   teleop_fuel_corraled: number;
+  teleop_fuel_shuttled: number;
   teleop_fuel_accuracy: number; // scored / (scored + missed) percentage
 
   // Endgame
@@ -52,6 +55,9 @@ interface RebuiltData {
   endgame_l1_rate: number;
   endgame_l2_rate: number;
   endgame_l3_rate: number;
+  playstyle_defensive_rate: number;
+  playstyle_balanced_rate: number;
+  playstyle_offensive_rate: number;
 
   // Fouls
   avg_fouls: number;
@@ -104,12 +110,15 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
 
       return {
         auto_fuel_scored: acc.auto_fuel_scored + (auto.fuel_scored || 0),
+        auto_fuel_missed: acc.auto_fuel_missed + (auto.fuel_missed || 0),
+        auto_fuel_shuttled: acc.auto_fuel_shuttled + (auto.fuel_shuttled || 0),
         auto_climb: acc.auto_climb + (auto.climb ? 1 : 0),
 
         teleop_fuel_scored: acc.teleop_fuel_scored + (teleop.fuel_scored || 0),
         teleop_fuel_missed: acc.teleop_fuel_missed + (teleop.fuel_missed || 0),
         teleop_fuel_passed: acc.teleop_fuel_passed + (teleop.fuel_passed || 0),
         teleop_fuel_corraled: acc.teleop_fuel_corraled + (teleop.fuel_corraled || 0),
+        teleop_fuel_shuttled: acc.teleop_fuel_shuttled + (teleop.fuel_shuttled || 0),
 
         endgame_broke_down: acc.endgame_broke_down + (endgame.robot_broke_down ? 1 : 0),
         endgame_none: acc.endgame_none + (endgame.ending_robot_state === 'none' || !endgame.ending_robot_state ? 1 : 0),
@@ -117,13 +126,18 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
         endgame_l2: acc.endgame_l2 + (endgame.ending_robot_state === 'L2' ? 1 : 0),
         endgame_l3: acc.endgame_l3 + (endgame.ending_robot_state === 'L3' ? 1 : 0),
 
+        playstyle_defensive: acc.playstyle_defensive + (endgame.robot_playstyle === 'defensive' ? 1 : 0),
+        playstyle_balanced: acc.playstyle_balanced + (endgame.robot_playstyle === 'balanced' ? 1 : 0),
+        playstyle_offensive: acc.playstyle_offensive + (endgame.robot_playstyle === 'offensive' ? 1 : 0),
+
         fouls: acc.fouls + (fouls.fouls || 0),
         tech_fouls: acc.tech_fouls + (fouls.tech_fouls || 0),
       };
     }, {
-      auto_fuel_scored: 0, auto_climb: 0,
-      teleop_fuel_scored: 0, teleop_fuel_missed: 0, teleop_fuel_passed: 0, teleop_fuel_corraled: 0,
+      auto_fuel_scored: 0, auto_fuel_missed: 0, auto_fuel_shuttled: 0, auto_climb: 0,
+      teleop_fuel_scored: 0, teleop_fuel_missed: 0, teleop_fuel_passed: 0, teleop_fuel_corraled: 0, teleop_fuel_shuttled: 0,
       endgame_broke_down: 0, endgame_none: 0, endgame_l1: 0, endgame_l2: 0, endgame_l3: 0,
+      playstyle_defensive: 0, playstyle_balanced: 0, playstyle_offensive: 0,
       fouls: 0, tech_fouls: 0,
     });
 
@@ -134,12 +148,15 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
       epa: teamData.epa?.totalEPA || 0,
 
       auto_fuel_scored: parseFloat((totals.auto_fuel_scored / count).toFixed(1)),
+      auto_fuel_missed: parseFloat((totals.auto_fuel_missed / count).toFixed(1)),
+      auto_fuel_shuttled: parseFloat((totals.auto_fuel_shuttled / count).toFixed(1)),
       auto_climb_rate: parseFloat(((totals.auto_climb / count) * 100).toFixed(1)),
 
       teleop_fuel_scored: parseFloat((totals.teleop_fuel_scored / count).toFixed(1)),
       teleop_fuel_missed: parseFloat((totals.teleop_fuel_missed / count).toFixed(1)),
       teleop_fuel_passed: parseFloat((totals.teleop_fuel_passed / count).toFixed(1)),
       teleop_fuel_corraled: parseFloat((totals.teleop_fuel_corraled / count).toFixed(1)),
+      teleop_fuel_shuttled: parseFloat((totals.teleop_fuel_shuttled / count).toFixed(1)),
       teleop_fuel_accuracy: totalFuelShots > 0
         ? parseFloat(((totals.teleop_fuel_scored / totalFuelShots) * 100).toFixed(1))
         : 0,
@@ -149,6 +166,9 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
       endgame_l1_rate: parseFloat(((totals.endgame_l1 / count) * 100).toFixed(1)),
       endgame_l2_rate: parseFloat(((totals.endgame_l2 / count) * 100).toFixed(1)),
       endgame_l3_rate: parseFloat(((totals.endgame_l3 / count) * 100).toFixed(1)),
+      playstyle_defensive_rate: parseFloat(((totals.playstyle_defensive / count) * 100).toFixed(1)),
+      playstyle_balanced_rate: parseFloat(((totals.playstyle_balanced / count) * 100).toFixed(1)),
+      playstyle_offensive_rate: parseFloat(((totals.playstyle_offensive / count) * 100).toFixed(1)),
 
       avg_fouls: parseFloat((totals.fouls / count).toFixed(1)),
       avg_tech_fouls: parseFloat((totals.tech_fouls / count).toFixed(1)),
@@ -159,11 +179,14 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
 
   // Chart data for fuel scoring breakdown
   const fuelBreakdownData = rebuiltData ? [
-    { name: 'Auto Fuel', value: rebuiltData.auto_fuel_scored, fill: '#f97316' },
+    { name: 'Auto Scored', value: rebuiltData.auto_fuel_scored, fill: '#f97316' },
+    { name: 'Auto Missed', value: rebuiltData.auto_fuel_missed, fill: '#fdba74' },
+    { name: 'Auto Shuttled', value: rebuiltData.auto_fuel_shuttled, fill: '#fde68a' },
     { name: 'Teleop Scored', value: rebuiltData.teleop_fuel_scored, fill: '#ef4444' },
     { name: 'Teleop Missed', value: rebuiltData.teleop_fuel_missed, fill: '#94a3b8' },
     { name: 'Teleop Passed', value: rebuiltData.teleop_fuel_passed, fill: '#3b82f6' },
     { name: 'Teleop Corraled', value: rebuiltData.teleop_fuel_corraled, fill: '#22c55e' },
+    { name: 'Teleop Shuttled', value: rebuiltData.teleop_fuel_shuttled, fill: '#a3e635' },
   ] : [];
 
   // Point breakdown pie chart
@@ -392,6 +415,14 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
                 <span className="font-medium">{rebuiltData?.auto_fuel_scored.toFixed(1) || 0}</span>
               </div>
               <div className="flex justify-between items-center">
+                <span className="text-sm">Avg Fuel Missed</span>
+                <span className="font-medium">{rebuiltData?.auto_fuel_missed.toFixed(1) || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Avg Fuel Shuttled</span>
+                <span className="font-medium">{rebuiltData?.auto_fuel_shuttled.toFixed(1) || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
                 <span className="text-sm">Auto L1 Climb Rate</span>
                 <Badge variant="secondary">{rebuiltData?.auto_climb_rate.toFixed(1) || 0}%</Badge>
               </div>
@@ -433,6 +464,10 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
               <div className="flex justify-between items-center">
                 <span className="text-sm">Fuel Corraled</span>
                 <span className="font-medium">{rebuiltData?.teleop_fuel_corraled.toFixed(1) || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Fuel Shuttled</span>
+                <span className="font-medium">{rebuiltData?.teleop_fuel_shuttled.toFixed(1) || 0}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm">Accuracy</span>
@@ -661,6 +696,156 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Playstyle Distribution */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Robot Playstyle</CardTitle>
+          <CardDescription>Scouted playstyle distribution across matches</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <h4 className="font-semibold mb-2">Defensive</h4>
+              <div className="text-2xl font-bold">{rebuiltData?.playstyle_defensive_rate.toFixed(1) || 0}%</div>
+            </div>
+            <div className="text-center">
+              <h4 className="font-semibold mb-2">Balanced</h4>
+              <div className="text-2xl font-bold">{rebuiltData?.playstyle_balanced_rate.toFixed(1) || 0}%</div>
+            </div>
+            <div className="text-center">
+              <h4 className="font-semibold mb-2">Offensive</h4>
+              <div className="text-2xl font-bold">{rebuiltData?.playstyle_offensive_rate.toFixed(1) || 0}%</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pit Scouting Report */}
+      {teamData?.pitEntry?.gameSpecificData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              Pit Scouting Report
+            </CardTitle>
+            <CardDescription>Robot capabilities reported during pit scouting</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Autonomous Capabilities */}
+              <div>
+                <h4 className="font-semibold mb-3">Autonomous</h4>
+                <div className="space-y-2">
+                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).autonomous && (() => {
+                    const autoData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).autonomous;
+                    return (
+                      <>
+                        {autoData.startingPosition && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Starting Position</span>
+                            <Badge variant="outline" className="text-xs">{String(autoData.startingPosition)}</Badge>
+                          </div>
+                        )}
+                        {autoData.fuelScoredAuto != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Auto Fuel Scored</span>
+                            <Badge variant="secondary" className="text-xs">{String(autoData.fuelScoredAuto)}</Badge>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Auto L1 Climb</span>
+                          <Badge variant={autoData.autoClimb ? 'default' : 'secondary'} className="text-xs">
+                            {autoData.autoClimb ? 'Yes' : 'No'}
+                          </Badge>
+                        </div>
+                        {autoData.autoRoutineCount != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Auto Paths</span>
+                            <Badge variant="secondary" className="text-xs">{String(autoData.autoRoutineCount)}</Badge>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Teleop Capabilities */}
+              <div>
+                <h4 className="font-semibold mb-3">Teleoperated</h4>
+                <div className="space-y-2">
+                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).teleoperated && (() => {
+                    const teleopData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).teleoperated;
+                    return (
+                      <>
+                        {teleopData.intakeType && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Intake Method</span>
+                            <Badge variant="outline" className="text-xs">
+                              {Array.isArray(teleopData.intakeType) ? (teleopData.intakeType as string[]).join(', ') : String(teleopData.intakeType)}
+                            </Badge>
+                          </div>
+                        )}
+                        {teleopData.fuelScoredTeleopEstimate != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Fuel Estimate</span>
+                            <Badge variant="secondary" className="text-xs">{String(teleopData.fuelScoredTeleopEstimate)}</Badge>
+                          </div>
+                        )}
+                        {teleopData.cycleTime != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Cycle Time</span>
+                            <Badge variant="secondary" className="text-xs">{String(teleopData.cycleTime)}s</Badge>
+                          </div>
+                        )}
+                        {teleopData.humanPlayerAccuracy && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">HP Accuracy</span>
+                            <Badge variant="outline" className="text-xs">{String(teleopData.humanPlayerAccuracy)}</Badge>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Endgame Capabilities */}
+              <div>
+                <h4 className="font-semibold mb-3">Endgame</h4>
+                <div className="space-y-2">
+                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).endgame && (() => {
+                    const endData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).endgame;
+                    return (
+                      <>
+                        {endData.climbCapability && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Climb Capability</span>
+                            <Badge variant="outline" className="text-xs">{String(endData.climbCapability)}</Badge>
+                          </div>
+                        )}
+                        {endData.climbTime != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Climb Time</span>
+                            <Badge variant="secondary" className="text-xs">{String(endData.climbTime)}s</Badge>
+                          </div>
+                        )}
+                        {endData.climbReliability && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Climb Reliability</span>
+                            <Badge variant="outline" className="text-xs">{String(endData.climbReliability)}</Badge>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Scouting Notes */}
       <TeamNotes notes={teamNotes} searchNote={searchNote} setSearchNote={setSearchNote} />

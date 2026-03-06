@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Package, Puzzle, ArrowUp } from 'lucide-react';
+import { Package, Puzzle, ArrowUp, AlertTriangle } from 'lucide-react';
 import { useTeamData } from '@/hooks/use-team-data';
 import Link from 'next/link';
 import type { MatchupCardProps } from './matchup-alliance-panel';
@@ -13,11 +13,17 @@ interface DecodeMatchupData {
   auto_artifacts_classified: number;
   auto_artifacts_overflow: number;
   auto_patterns: number;
+  auto_leave_rate: number;
   teleop_artifacts_classified: number;
   teleop_artifacts_overflow: number;
   teleop_artifacts_depot: number;
   teleop_patterns: number;
   endgame_state: string;
+  endgame_none_rate: number;
+  endgame_partial_rate: number;
+  endgame_full_rate: number;
+  avg_minor_penalties: number;
+  avg_major_penalties: number;
 }
 
 export function FTCMatchupCard2026({ teamNumber, alliance }: MatchupCardProps) {
@@ -33,21 +39,32 @@ export function FTCMatchupCard2026({ teamNumber, alliance }: MatchupCardProps) {
 
     const totals = entries.reduce(
       (acc, match) => {
-        const auto = (match.gameSpecificData?.autonomous as Record<string, number>) || {};
+        const auto = (match.gameSpecificData?.autonomous as Record<string, number | boolean>) || {};
         const teleop = (match.gameSpecificData?.teleop as Record<string, number>) || {};
+        const endgame = (match.gameSpecificData?.endgame as Record<string, string>) || {};
+        const fouls = (match.gameSpecificData?.fouls as Record<string, number>) || {};
+        const egState = endgame.ending_based_state || endgame.ending_robot_state || 'none';
         return {
-          auto_artifacts_classified: acc.auto_artifacts_classified + (auto.artifacts_classified || 0),
-          auto_artifacts_overflow: acc.auto_artifacts_overflow + (auto.artifacts_overflow || 0),
-          auto_patterns: acc.auto_patterns + (auto.patterns || 0),
+          auto_artifacts_classified: acc.auto_artifacts_classified + (Number(auto.artifacts_classified) || 0),
+          auto_artifacts_overflow: acc.auto_artifacts_overflow + (Number(auto.artifacts_overflow) || 0),
+          auto_patterns: acc.auto_patterns + (Number(auto.patterns) || 0),
+          auto_leave: acc.auto_leave + (auto.leave ? 1 : 0),
           teleop_artifacts_classified: acc.teleop_artifacts_classified + (teleop.artifacts_classified || 0),
           teleop_artifacts_overflow: acc.teleop_artifacts_overflow + (teleop.artifacts_overflow || 0),
           teleop_artifacts_depot: acc.teleop_artifacts_depot + (teleop.artifacts_depot || 0),
           teleop_patterns: acc.teleop_patterns + (teleop.patterns || 0),
+          endgame_none: acc.endgame_none + (egState === 'none' ? 1 : 0),
+          endgame_partial: acc.endgame_partial + (egState === 'partial' ? 1 : 0),
+          endgame_full: acc.endgame_full + (egState === 'full' ? 1 : 0),
+          minor_penalties: acc.minor_penalties + (fouls.minor_penalties || 0),
+          major_penalties: acc.major_penalties + (fouls.major_penalties || 0),
         };
       },
       {
-        auto_artifacts_classified: 0, auto_artifacts_overflow: 0, auto_patterns: 0,
+        auto_artifacts_classified: 0, auto_artifacts_overflow: 0, auto_patterns: 0, auto_leave: 0,
         teleop_artifacts_classified: 0, teleop_artifacts_overflow: 0, teleop_artifacts_depot: 0, teleop_patterns: 0,
+        endgame_none: 0, endgame_partial: 0, endgame_full: 0,
+        minor_penalties: 0, major_penalties: 0,
       }
     );
 
@@ -65,11 +82,17 @@ export function FTCMatchupCard2026({ teamNumber, alliance }: MatchupCardProps) {
       auto_artifacts_classified: parseFloat((totals.auto_artifacts_classified / count).toFixed(1)),
       auto_artifacts_overflow: parseFloat((totals.auto_artifacts_overflow / count).toFixed(1)),
       auto_patterns: parseFloat((totals.auto_patterns / count).toFixed(1)),
+      auto_leave_rate: parseFloat(((totals.auto_leave / count) * 100).toFixed(1)),
       teleop_artifacts_classified: parseFloat((totals.teleop_artifacts_classified / count).toFixed(1)),
       teleop_artifacts_overflow: parseFloat((totals.teleop_artifacts_overflow / count).toFixed(1)),
       teleop_artifacts_depot: parseFloat((totals.teleop_artifacts_depot / count).toFixed(1)),
       teleop_patterns: parseFloat((totals.teleop_patterns / count).toFixed(1)),
       endgame_state: bestEndgame,
+      endgame_none_rate: parseFloat(((totals.endgame_none / count) * 100).toFixed(1)),
+      endgame_partial_rate: parseFloat(((totals.endgame_partial / count) * 100).toFixed(1)),
+      endgame_full_rate: parseFloat(((totals.endgame_full / count) * 100).toFixed(1)),
+      avg_minor_penalties: parseFloat((totals.minor_penalties / count).toFixed(1)),
+      avg_major_penalties: parseFloat((totals.major_penalties / count).toFixed(1)),
     };
   };
 
@@ -150,6 +173,12 @@ export function FTCMatchupCard2026({ teamNumber, alliance }: MatchupCardProps) {
                     {stats.auto_patterns}
                   </Badge>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Leave Rate</span>
+                  <Badge variant={stats.auto_leave_rate > 80 ? 'default' : 'secondary'} className="text-xs h-5">
+                    {stats.auto_leave_rate}%
+                  </Badge>
+                </div>
               </div>
             </div>
 
@@ -189,13 +218,75 @@ export function FTCMatchupCard2026({ teamNumber, alliance }: MatchupCardProps) {
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
                 <ArrowUp className="h-3 w-3" /> Endgame
               </h4>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Most Common</span>
-                <Badge variant="secondary" className="text-xs h-5 capitalize">
-                  {stats.endgame_state}
-                </Badge>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Full</span>
+                  <Badge variant={stats.endgame_full_rate > 50 ? 'default' : 'secondary'} className="text-xs h-5">
+                    {stats.endgame_full_rate}%
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Partial</span>
+                  <span className="font-medium">{stats.endgame_partial_rate}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">None</span>
+                  <span className="font-medium">{stats.endgame_none_rate}%</span>
+                </div>
               </div>
             </div>
+
+            {/* Penalty Warning */}
+            {(stats.avg_major_penalties > 0.3 || stats.avg_minor_penalties > 1) && (
+              <>
+                <Separator className="my-1" />
+                <div className="flex items-center gap-2 text-sm">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <div className="flex flex-wrap gap-2">
+                    {stats.avg_major_penalties > 0.3 && (
+                      <Badge variant="destructive" className="text-xs">
+                        {stats.avg_major_penalties} major/match
+                      </Badge>
+                    )}
+                    {stats.avg_minor_penalties > 1 && (
+                      <Badge variant="outline" className="text-xs">
+                        {stats.avg_minor_penalties} minor/match
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Pit Scouting Capabilities */}
+            {teamData?.pitEntry?.gameSpecificData && (() => {
+              const pitData = teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>;
+              const endgamePit = pitData.endgame;
+              const teleopPit = pitData.teleoperated;
+              if (!endgamePit && !teleopPit) return null;
+              return (
+                <>
+                  <Separator className="my-1" />
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Pit Report</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {!!endgamePit?.baseCapability && (
+                        <Badge variant="outline" className="text-xs">Base: {String(endgamePit.baseCapability)}</Badge>
+                      )}
+                      {!!teleopPit?.artifactIntake && (
+                        <Badge variant="outline" className="text-xs">Intake: {String(teleopPit.artifactIntake)}</Badge>
+                      )}
+                      {!!teleopPit?.shootingReliability && (
+                        <Badge variant="outline" className="text-xs">Shooting: {String(teleopPit.shootingReliability)}</Badge>
+                      )}
+                      {teleopPit?.cycleTime != null && (
+                        <Badge variant="outline" className="text-xs">Cycle: {String(teleopPit.cycleTime)}s</Badge>
+                      )}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </>
         ) : (
           <p className="text-sm text-muted-foreground">No match data to analyze</p>

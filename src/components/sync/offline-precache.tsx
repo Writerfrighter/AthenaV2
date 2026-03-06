@@ -34,6 +34,7 @@ import {
   Calendar,
   Shield,
   Layout,
+  BarChart3,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,6 +50,7 @@ function stepIcon(id: CacheStepId) {
     case 'scoutList': return Users;
     case 'pitEntries': return FileText;
     case 'matchEntries': return Database;
+    case 'analysisData': return BarChart3;
   }
 }
 

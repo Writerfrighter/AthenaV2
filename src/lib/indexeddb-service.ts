@@ -14,6 +14,7 @@ import type {
   CachedScoutList,
   CachedPitEntries,
   CachedMatchEntries,
+  CachedAnalysisData,
   EventCacheStatus
 } from '@/lib/offline-types';
 import { DB_NAME, DB_VERSION, STORES } from '@/lib/offline-types';
@@ -92,6 +93,12 @@ class IndexedDBService {
         if (!db.objectStoreNames.contains(STORES.CACHED_MATCH_ENTRIES)) {
           const matchStore = db.createObjectStore(STORES.CACHED_MATCH_ENTRIES, { keyPath: 'eventCode' });
           matchStore.createIndex('cachedAt', 'cachedAt');
+        }
+
+        // Create cached analysis data store for offline analysis page
+        if (!db.objectStoreNames.contains(STORES.CACHED_ANALYSIS_DATA)) {
+          const analysisStore = db.createObjectStore(STORES.CACHED_ANALYSIS_DATA, { keyPath: 'eventCode' });
+          analysisStore.createIndex('cachedAt', 'cachedAt');
         }
 
         // Create event cache status store for tracking what's cached
@@ -374,7 +381,7 @@ class IndexedDBService {
     return new Promise((resolve, reject) => {
       const storeNames = [
         STORES.QUEUE, STORES.SYNC_LOG, STORES.CONFIG,
-        STORES.EVENT_TEAMS, STORES.EVENT_LIST, STORES.SCOUT_LIST,
+        STORES.EVENT_TEAMS, STORES.EVENT_LIST, STORES.SCOUT_LIST, STORES.CACHED_ANALYSIS_DATA,
         STORES.CACHED_PIT_ENTRIES, STORES.CACHED_MATCH_ENTRIES, STORES.EVENT_CACHE_STATUS
       ];
       const transaction = db.transaction(storeNames, 'readwrite');
@@ -630,6 +637,49 @@ class IndexedDBService {
     });
   }
 
+  // ============================================
+  // Analysis Data Cache
+  // ============================================
+
+  // Cache analysis data for an event
+  async cacheAnalysisData(
+    eventCode: string,
+    data: import('@/lib/shared-types').AnalysisData
+  ): Promise<void> {
+    const db = await this.ensureDb();
+
+    const cachedData: CachedAnalysisData = {
+      eventCode,
+      data,
+      cachedAt: new Date(),
+    };
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORES.CACHED_ANALYSIS_DATA], 'readwrite');
+      const store = transaction.objectStore(STORES.CACHED_ANALYSIS_DATA);
+      const request = store.put(cachedData);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(new Error('Failed to cache analysis data'));
+    });
+  }
+
+  // Get cached analysis data for an event
+  async getCachedAnalysisData(
+    eventCode: string
+  ): Promise<CachedAnalysisData | null> {
+    const db = await this.ensureDb();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORES.CACHED_ANALYSIS_DATA], 'readonly');
+      const store = transaction.objectStore(STORES.CACHED_ANALYSIS_DATA);
+      const request = store.get(eventCode);
+
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(new Error('Failed to get cached analysis data'));
+    });
+  }
+
   // Get event cache status
   async getEventCacheStatus(eventCode: string): Promise<EventCacheStatus | null> {
     const db = await this.ensureDb();
@@ -662,7 +712,7 @@ class IndexedDBService {
   async clearEventCache(eventCode: string): Promise<void> {
     const db = await this.ensureDb();
 
-    const storeNames = [STORES.CACHED_PIT_ENTRIES, STORES.CACHED_MATCH_ENTRIES, STORES.EVENT_CACHE_STATUS];
+    const storeNames = [STORES.CACHED_PIT_ENTRIES, STORES.CACHED_MATCH_ENTRIES, STORES.CACHED_ANALYSIS_DATA, STORES.EVENT_CACHE_STATUS];
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(storeNames, 'readwrite');

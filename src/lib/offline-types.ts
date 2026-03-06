@@ -128,8 +128,15 @@ export interface CachedMatchEntries {
   cachedAt: Date;
 }
 
+// Cached analysis data for an event
+export interface CachedAnalysisData {
+  eventCode: string;
+  data: import('@/lib/shared-types').AnalysisData;
+  cachedAt: Date;
+}
+
 // IndexedDB schema version - increment when adding new stores
-export const DB_VERSION = 4;
+export const DB_VERSION = 5;
 export const DB_NAME = 'athena-offline-cache';
 
 // Store names
@@ -142,5 +149,6 @@ export const STORES = {
   SCOUT_LIST: 'scout_list',
   CACHED_PIT_ENTRIES: 'cached_pit_entries',
   CACHED_MATCH_ENTRIES: 'cached_match_entries',
+  CACHED_ANALYSIS_DATA: 'cached_analysis_data',
   EVENT_CACHE_STATUS: 'event_cache_status',
 } as const;

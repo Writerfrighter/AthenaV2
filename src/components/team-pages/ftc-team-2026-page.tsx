@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Trophy, Target, Activity, BarChart, Package } from 'lucide-react';
+import { ExternalLink, Trophy, Target, Activity, BarChart, Package, AlertTriangle, Wrench } from 'lucide-react';
 import TeamInfo from '@/components/team-pages-common/TeamInfo';
 import TeamNotes from '@/components/team-pages-common/TeamNotes';
 import { useTeamData } from '@/hooks/use-team-data';
@@ -39,7 +39,9 @@ interface DecodeData {
   avg_auto_patterns: number;
   avg_teleop_artifacts: number;
   avg_teleop_patterns: number;
-  avg_endgame_base: number;
+
+  // Auto leave rate
+  auto_leave_rate: number;
 
   // Detailed autonomous breakdown
   auto_artifacts_classified: number;
@@ -52,8 +54,14 @@ interface DecodeData {
   teleop_artifacts_depot: number;
   teleop_patterns: number;
 
-  // Endgame
-  endgame_state: string;
+  // Endgame distribution
+  endgame_none_rate: number;
+  endgame_partial_rate: number;
+  endgame_full_rate: number;
+
+  // Penalties
+  avg_minor_penalties: number;
+  avg_major_penalties: number;
 }
 
 export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
@@ -92,26 +100,39 @@ export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
     if (!teamData?.matchEntries || teamData.matchEntries.length === 0) return null;
 
     const matchEntries = teamData.matchEntries;
+    const count = matchEntries.length;
+
     const totals = matchEntries.reduce((acc, match) => {
-      const auto = match.gameSpecificData?.autonomous as Record<string, number> | undefined || {};
+      const auto = match.gameSpecificData?.autonomous as Record<string, number | boolean> | undefined || {};
       const teleop = match.gameSpecificData?.teleop as Record<string, number> | undefined || {};
+      const endgame = match.gameSpecificData?.endgame as Record<string, string> | undefined || {};
+      const fouls = match.gameSpecificData?.fouls as Record<string, number> | undefined || {};
 
       return {
-        auto_artifacts_classified: acc.auto_artifacts_classified + (auto.artifacts_classified || 0),
-        auto_artifacts_overflow: acc.auto_artifacts_overflow + (auto.artifacts_overflow || 0),
-        auto_patterns: acc.auto_patterns + (auto.patterns || 0),
+        auto_leave: acc.auto_leave + (auto.leave ? 1 : 0),
+        auto_artifacts_classified: acc.auto_artifacts_classified + (Number(auto.artifacts_classified) || 0),
+        auto_artifacts_overflow: acc.auto_artifacts_overflow + (Number(auto.artifacts_overflow) || 0),
+        auto_patterns: acc.auto_patterns + (Number(auto.patterns) || 0),
 
         teleop_artifacts_classified: acc.teleop_artifacts_classified + (teleop.artifacts_classified || 0),
         teleop_artifacts_overflow: acc.teleop_artifacts_overflow + (teleop.artifacts_overflow || 0),
         teleop_artifacts_depot: acc.teleop_artifacts_depot + (teleop.artifacts_depot || 0),
         teleop_patterns: acc.teleop_patterns + (teleop.patterns || 0),
+
+        endgame_none: acc.endgame_none + (!endgame.ending_based_state || endgame.ending_based_state === 'none' ? 1 : 0),
+        endgame_partial: acc.endgame_partial + (endgame.ending_based_state === 'partial' ? 1 : 0),
+        endgame_full: acc.endgame_full + (endgame.ending_based_state === 'full' ? 1 : 0),
+
+        minor_penalties: acc.minor_penalties + (fouls.minor_penalties || 0),
+        major_penalties: acc.major_penalties + (fouls.major_penalties || 0),
       };
     }, {
+      auto_leave: 0,
       auto_artifacts_classified: 0, auto_artifacts_overflow: 0, auto_patterns: 0,
-      teleop_artifacts_classified: 0, teleop_artifacts_overflow: 0, teleop_artifacts_depot: 0, teleop_patterns: 0
+      teleop_artifacts_classified: 0, teleop_artifacts_overflow: 0, teleop_artifacts_depot: 0, teleop_patterns: 0,
+      endgame_none: 0, endgame_partial: 0, endgame_full: 0,
+      minor_penalties: 0, major_penalties: 0,
     });
-
-    const count = matchEntries.length;
 
     // Calculate averages and points
     const autoArtifactsClassified = parseFloat((totals.auto_artifacts_classified / count).toFixed(1));
@@ -124,13 +145,13 @@ export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
     const teleopPatterns = parseFloat((totals.teleop_patterns / count).toFixed(1));
 
     return {
-      avg_total: averageScore, // Use average score from FIRST Events API instead of EPA
+      avg_total: averageScore,
       epa: teamData.epa?.totalEPA || 0,
+      auto_leave_rate: parseFloat(((totals.auto_leave / count) * 100).toFixed(1)),
       avg_auto_artifacts: autoArtifactsClassified + autoArtifactsOverflow,
       avg_auto_patterns: autoPatterns,
       avg_teleop_artifacts: teleopArtifactsClassified + teleopArtifactsOverflow + teleopArtifactsDepot,
       avg_teleop_patterns: teleopPatterns,
-      avg_endgame_base: 0, // Would need to calculate from endgame data
 
       auto_artifacts_classified: autoArtifactsClassified,
       auto_artifacts_overflow: autoArtifactsOverflow,
@@ -141,7 +162,12 @@ export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
       teleop_artifacts_depot: teleopArtifactsDepot,
       teleop_patterns: teleopPatterns,
 
-      endgame_state: "Full Base", // Would come from endgame data
+      endgame_none_rate: parseFloat(((totals.endgame_none / count) * 100).toFixed(1)),
+      endgame_partial_rate: parseFloat(((totals.endgame_partial / count) * 100).toFixed(1)),
+      endgame_full_rate: parseFloat(((totals.endgame_full / count) * 100).toFixed(1)),
+
+      avg_minor_penalties: parseFloat((totals.minor_penalties / count).toFixed(1)),
+      avg_major_penalties: parseFloat((totals.major_penalties / count).toFixed(1)),
     };
   };
 
@@ -333,6 +359,7 @@ export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
               {decodeData ? (isNaN(decodeData.avg_auto_artifacts) ? 0 : decodeData.avg_auto_artifacts).toFixed(1) : 0}
             </div>
             <p className="text-xs text-muted-foreground">Average autonomous artifacts</p>
+            <p className="text-xs text-muted-foreground mt-1">Leave rate: {decodeData?.auto_leave_rate ?? 0}%</p>
           </CardContent>
         </Card>
 
@@ -492,6 +519,70 @@ export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
         </Card>
       </div>
 
+      {/* Endgame & Reliability */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Endgame Base State Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Endgame Base Distribution</CardTitle>
+            <CardDescription>Percentage of matches at each base state</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <h4 className="font-semibold mb-2">None</h4>
+                <Badge variant="secondary">{decodeData?.endgame_none_rate.toFixed(1) || 0}%</Badge>
+                <p className="text-xs text-muted-foreground mt-1">0 pts</p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">Partial Base</h4>
+                <Badge variant="secondary">{decodeData?.endgame_partial_rate.toFixed(1) || 0}%</Badge>
+                <p className="text-xs text-muted-foreground mt-1">5 pts</p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">Full Base</h4>
+                <Badge variant={decodeData && decodeData.endgame_full_rate > 50 ? 'default' : 'secondary'}>
+                  {decodeData?.endgame_full_rate.toFixed(1) || 0}%
+                </Badge>
+                <p className="text-xs text-muted-foreground mt-1">10 pts</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Penalties */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Penalties</CardTitle>
+            <CardDescription>Penalty averages per match</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Avg Minor Penalties</span>
+                <Badge variant="secondary">{decodeData?.avg_minor_penalties.toFixed(1) || 0}</Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Avg Major Penalties</span>
+                <Badge variant={decodeData && decodeData.avg_major_penalties > 0.3 ? 'destructive' : 'secondary'}>
+                  {decodeData?.avg_major_penalties.toFixed(1) || 0}
+                </Badge>
+              </div>
+              <div className="pt-2 border-t">
+                <div className="flex justify-between items-center font-semibold">
+                  <span className="text-sm">Est. Penalty Points</span>
+                  <Badge variant="secondary">
+                    {decodeData
+                      ? ((decodeData.avg_minor_penalties * -5) + (decodeData.avg_major_penalties * -15)).toFixed(1)
+                      : 0} pts
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Pattern Performance */}
       <Card>
         <CardHeader>
@@ -533,6 +624,124 @@ export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Pit Scouting Report */}
+      {teamData?.pitEntry?.gameSpecificData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              Pit Scouting Report
+            </CardTitle>
+            <CardDescription>Robot capabilities reported during pit scouting</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Autonomous Capabilities */}
+              <div>
+                <h4 className="font-semibold mb-3">Autonomous</h4>
+                <div className="space-y-2">
+                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).autonomous && (() => {
+                    const autoData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).autonomous;
+                    return (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Leaves Zone</span>
+                          <Badge variant={autoData.autoLeave ? 'default' : 'secondary'} className="text-xs">
+                            {autoData.autoLeave ? 'Yes' : 'No'}
+                          </Badge>
+                        </div>
+                        {autoData.autoArtifactsClassified != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Artifacts Classified</span>
+                            <Badge variant="secondary" className="text-xs">{String(autoData.autoArtifactsClassified)}</Badge>
+                          </div>
+                        )}
+                        {autoData.autoPatterns != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Auto Patterns</span>
+                            <Badge variant="secondary" className="text-xs">{String(autoData.autoPatterns)}</Badge>
+                          </div>
+                        )}
+                        {autoData.autoRoutineCount != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Auto Routines</span>
+                            <Badge variant="secondary" className="text-xs">{String(autoData.autoRoutineCount)}</Badge>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Teleop Capabilities */}
+              <div>
+                <h4 className="font-semibold mb-3">Teleoperated</h4>
+                <div className="space-y-2">
+                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).teleoperated && (() => {
+                    const teleopData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).teleoperated;
+                    return (
+                      <>
+                        {teleopData.artifactIntake && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Intake Method</span>
+                            <Badge variant="outline" className="text-xs">{String(teleopData.artifactIntake)}</Badge>
+                          </div>
+                        )}
+                        {teleopData.shootingReliability && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Shooting Reliability</span>
+                            <Badge variant="outline" className="text-xs">{String(teleopData.shootingReliability)}</Badge>
+                          </div>
+                        )}
+                        {teleopData.shootingLocations && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Shooting Locations</span>
+                            <Badge variant="outline" className="text-xs">{String(teleopData.shootingLocations)}</Badge>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Can Sort</span>
+                          <Badge variant={teleopData.canSort ? 'default' : 'secondary'} className="text-xs">
+                            {teleopData.canSort ? 'Yes' : 'No'}
+                          </Badge>
+                        </div>
+                        {teleopData.cycleTime != null && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Cycle Time</span>
+                            <Badge variant="secondary" className="text-xs">{String(teleopData.cycleTime)}s</Badge>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Endgame Capabilities */}
+              <div>
+                <h4 className="font-semibold mb-3">Endgame</h4>
+                <div className="space-y-2">
+                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).endgame && (() => {
+                    const endData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).endgame;
+                    return (
+                      <>
+                        {endData.baseCapability && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Base Capability</span>
+                            <Badge variant="outline" className="text-xs">{String(endData.baseCapability)}</Badge>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Scouting Notes */}
       <TeamNotes notes={teamNotes} searchNote={searchNote} setSearchNote={setSearchNote} />
