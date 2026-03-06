@@ -16,6 +16,8 @@ interface FieldDrawingCanvasProps {
   fieldImageSrc?: string;
   /** CSS class for the container */
   className?: string;
+  /** When true, hides the toolbar and disables drawing interactions */
+  readOnly?: boolean;
 }
 
 type Tool = 'pen' | 'eraser';
@@ -81,6 +83,7 @@ export function FieldDrawingCanvas({
   onChange,
   fieldImageSrc = '/assets/Rebuilt Field .png',
   className,
+  readOnly = false,
 }: FieldDrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -371,12 +374,17 @@ export function FieldDrawingCanvas({
 
   return (
     <div className={cn('space-y-3', className)}>
-      <Label className="text-base font-medium">Autonomous Path Drawing</Label>
-      <p className="text-sm text-muted-foreground">
-        Draw the robot&apos;s autonomous path on the field. Use the pen to draw and the eraser to remove entire strokes.
-      </p>
+      {!readOnly && (
+        <>
+          <Label className="text-base font-medium">Autonomous Path Drawing</Label>
+          <p className="text-sm text-muted-foreground">
+            Draw the robot&apos;s autonomous path on the field. Use the pen to draw and the eraser to remove entire strokes.
+          </p>
+        </>
+      )}
 
       {/* Toolbar */}
+      {!readOnly && (
       <div className="flex flex-wrap items-center gap-2 p-2 bg-muted/50 rounded-lg border">
         {/* Tool Selection */}
         <div className="flex items-center gap-1">
@@ -472,6 +480,7 @@ export function FieldDrawingCanvas({
           </Button>
         </div>
       </div>
+      )}
 
       {/* Canvas */}
       <div
@@ -484,19 +493,19 @@ export function FieldDrawingCanvas({
           height={canvasSize.height}
           className={cn(
             'block w-full',
-            tool === 'pen' ? 'cursor-crosshair' : 'cursor-pointer',
+            readOnly ? 'cursor-default' : tool === 'pen' ? 'cursor-crosshair' : 'cursor-pointer',
           )}
           style={{
             height: canvasSize.height > 0 ? `${canvasSize.height}px` : 'auto',
           }}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-          onTouchCancel={stopDrawing}
+          onMouseDown={readOnly ? undefined : startDrawing}
+          onMouseMove={readOnly ? undefined : draw}
+          onMouseUp={readOnly ? undefined : stopDrawing}
+          onMouseLeave={readOnly ? undefined : stopDrawing}
+          onTouchStart={readOnly ? undefined : startDrawing}
+          onTouchMove={readOnly ? undefined : draw}
+          onTouchEnd={readOnly ? undefined : stopDrawing}
+          onTouchCancel={readOnly ? undefined : stopDrawing}
         />
       </div>
     </div>

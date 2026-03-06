@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Trophy, Target, Activity, BarChart, Flame, AlertTriangle, Wrench } from 'lucide-react';
+import { ExternalLink, Trophy, Target, Activity, BarChart, Flame, AlertTriangle, Wrench, Map, Ruler } from 'lucide-react';
 import TeamInfo from '@/components/team-pages-common/TeamInfo';
 import TeamImage from '@/components/team-pages-common/TeamImage';
 import TeamNotes from '@/components/team-pages-common/TeamNotes';
+import { FieldDrawingCanvas } from '@/components/forms/field-drawing-canvas';
 import { useTeamData } from '@/hooks/use-team-data';
 import {
   BarChart as RechartsBarChart,
@@ -249,6 +250,9 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
     
     // Add notes from pit entry if available
     if (teamData?.pitEntry) {
+      if (teamData.pitEntry.notes && teamData.pitEntry.notes.trim()) {
+        notes.push(teamData.pitEntry.notes.trim());
+      }
       const pitData = teamData.pitEntry.gameSpecificData;
       if (pitData && typeof pitData === 'object') {
         Object.entries(pitData).forEach(([key, value]) => {
@@ -732,117 +736,156 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
             <CardDescription>Robot capabilities reported during pit scouting</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Autonomous Capabilities */}
-              <div>
-                <h4 className="font-semibold mb-3">Autonomous</h4>
-                <div className="space-y-2">
-                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).autonomous && (() => {
-                    const autoData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).autonomous;
-                    return (
-                      <>
-                        {autoData.startingPosition && (
+            {(() => {
+              const gsd = teamData.pitEntry.gameSpecificData as Record<string, string | number | boolean | string[]>;
+              return (
+                <>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {/* Autonomous Capabilities */}
+                    <div>
+                      <h4 className="font-semibold mb-3">Autonomous</h4>
+                      <div className="space-y-2">
+                        {gsd.autonomous_startingPosition && (
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Starting Position</span>
-                            <Badge variant="outline" className="text-xs">{String(autoData.startingPosition)}</Badge>
+                            <Badge variant="outline" className="text-xs">{String(gsd.autonomous_startingPosition)}</Badge>
                           </div>
                         )}
-                        {autoData.fuelScoredAuto != null && (
+                        {gsd.autonomous_fuelScoredAuto != null && (
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Auto Fuel Scored</span>
-                            <Badge variant="secondary" className="text-xs">{String(autoData.fuelScoredAuto)}</Badge>
+                            <Badge variant="secondary" className="text-xs">{String(gsd.autonomous_fuelScoredAuto)}</Badge>
                           </div>
                         )}
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-muted-foreground">Auto L1 Climb</span>
-                          <Badge variant={autoData.autoClimb ? 'default' : 'secondary'} className="text-xs">
-                            {autoData.autoClimb ? 'Yes' : 'No'}
+                          <Badge variant={gsd.autonomous_autoClimb ? 'default' : 'secondary'} className="text-xs">
+                            {gsd.autonomous_autoClimb ? 'Yes' : 'No'}
                           </Badge>
                         </div>
-                        {autoData.autoRoutineCount != null && (
+                        {gsd.hasAuto != null && (
                           <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Auto Paths</span>
-                            <Badge variant="secondary" className="text-xs">{String(autoData.autoRoutineCount)}</Badge>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* Teleop Capabilities */}
-              <div>
-                <h4 className="font-semibold mb-3">Teleoperated</h4>
-                <div className="space-y-2">
-                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).teleoperated && (() => {
-                    const teleopData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).teleoperated;
-                    return (
-                      <>
-                        {teleopData.intakeType && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Intake Method</span>
-                            <Badge variant="outline" className="text-xs">
-                              {Array.isArray(teleopData.intakeType) ? (teleopData.intakeType as string[]).join(', ') : String(teleopData.intakeType)}
+                            <span className="text-sm text-muted-foreground">Has Auto Routine</span>
+                            <Badge variant={gsd.hasAuto ? 'default' : 'secondary'} className="text-xs">
+                              {gsd.hasAuto ? 'Yes' : 'No'}
                             </Badge>
                           </div>
                         )}
-                        {teleopData.fuelScoredTeleopEstimate != null && (
+                      </div>
+                    </div>
+
+                    {/* Teleop Capabilities */}
+                    <div>
+                      <h4 className="font-semibold mb-3">Teleoperated</h4>
+                      <div className="space-y-2">
+                        {gsd.teleoperated_intakeType && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Intake Method</span>
+                            <Badge variant="outline" className="text-xs">
+                              {Array.isArray(gsd.teleoperated_intakeType) ? (gsd.teleoperated_intakeType as string[]).join(', ') : String(gsd.teleoperated_intakeType)}
+                            </Badge>
+                          </div>
+                        )}
+                        {gsd.teleoperated_fuelScoredTeleopEstimate != null && (
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Fuel Estimate</span>
-                            <Badge variant="secondary" className="text-xs">{String(teleopData.fuelScoredTeleopEstimate)}</Badge>
+                            <Badge variant="secondary" className="text-xs">{String(gsd.teleoperated_fuelScoredTeleopEstimate)}</Badge>
                           </div>
                         )}
-                        {teleopData.cycleTime != null && (
+                        {gsd.teleoperated_cycleTime != null && (
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Cycle Time</span>
-                            <Badge variant="secondary" className="text-xs">{String(teleopData.cycleTime)}s</Badge>
+                            <Badge variant="secondary" className="text-xs">{String(gsd.teleoperated_cycleTime)}s</Badge>
                           </div>
                         )}
-                        {teleopData.humanPlayerAccuracy && (
+                        {gsd.teleoperated_humanPlayerAccuracy && (
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">HP Accuracy</span>
-                            <Badge variant="outline" className="text-xs">{String(teleopData.humanPlayerAccuracy)}</Badge>
+                            <Badge variant="outline" className="text-xs">{String(gsd.teleoperated_humanPlayerAccuracy)}</Badge>
                           </div>
                         )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
+                      </div>
+                    </div>
 
-              {/* Endgame Capabilities */}
-              <div>
-                <h4 className="font-semibold mb-3">Endgame</h4>
-                <div className="space-y-2">
-                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).endgame && (() => {
-                    const endData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).endgame;
-                    return (
-                      <>
-                        {endData.climbCapability && (
+                    {/* Endgame Capabilities */}
+                    <div>
+                      <h4 className="font-semibold mb-3">Endgame</h4>
+                      <div className="space-y-2">
+                        {gsd.endgame_climbCapability && (
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Climb Capability</span>
-                            <Badge variant="outline" className="text-xs">{String(endData.climbCapability)}</Badge>
+                            <Badge variant="outline" className="text-xs">{String(gsd.endgame_climbCapability)}</Badge>
                           </div>
                         )}
-                        {endData.climbTime != null && (
+                        {gsd.endgame_climbTime != null && (
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Climb Time</span>
-                            <Badge variant="secondary" className="text-xs">{String(endData.climbTime)}s</Badge>
+                            <Badge variant="secondary" className="text-xs">{String(gsd.endgame_climbTime)}s</Badge>
                           </div>
                         )}
-                        {endData.climbReliability && (
+                        {gsd.endgame_climbReliability && (
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Climb Reliability</span>
-                            <Badge variant="outline" className="text-xs">{String(endData.climbReliability)}</Badge>
+                            <Badge variant="outline" className="text-xs">{String(gsd.endgame_climbReliability)}</Badge>
                           </div>
                         )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Robot Dimensions */}
+                  {(teamData.pitEntry.length || teamData.pitEntry.width) && (
+                    <div className="mt-6 pt-4 border-t">
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <Ruler className="h-4 w-4" />
+                        Robot Dimensions
+                      </h4>
+                      <div className="flex gap-6">
+                        {teamData.pitEntry.length != null && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Length:</span>
+                            <Badge variant="secondary">{teamData.pitEntry.length}&quot;</Badge>
+                          </div>
+                        )}
+                        {teamData.pitEntry.width != null && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Width:</span>
+                            <Badge variant="secondary">{teamData.pitEntry.width}&quot;</Badge>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pit Scouting Notes */}
+                  {teamData.pitEntry.notes && teamData.pitEntry.notes.trim() && (
+                    <div className="mt-6 pt-4 border-t">
+                      <h4 className="font-semibold mb-2">Pit Scout Notes</h4>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{teamData.pitEntry.notes}</p>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Autonomous Path Drawing */}
+      {teamData?.pitEntry?.autoDrawing && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Map className="h-5 w-5" />
+              Autonomous Path
+            </CardTitle>
+            <CardDescription>Robot autonomous path drawn during pit scouting</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldDrawingCanvas
+              initialData={teamData.pitEntry.autoDrawing}
+              readOnly
+            />
           </CardContent>
         </Card>
       )}

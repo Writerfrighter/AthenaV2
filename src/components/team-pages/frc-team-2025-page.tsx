@@ -611,127 +611,111 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
             <CardDescription>Robot capabilities reported during pit scouting</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Autonomous Capabilities */}
-              <div>
-                <h4 className="font-semibold mb-3">Autonomous</h4>
-                <div className="space-y-2">
-                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).autonomous && (() => {
-                    const autoData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).autonomous;
-                    return (
-                      <>
-                        {autoData.startingPosition && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Starting Position</span>
-                            <Badge variant="outline" className="text-xs">{String(autoData.startingPosition)}</Badge>
-                          </div>
-                        )}
+            {(() => {
+              const gsd = teamData.pitEntry.gameSpecificData as Record<string, string | number | boolean | string[]>;
+              return (
+                <div className="grid md:grid-cols-3 gap-6">
+                  {/* Autonomous Capabilities */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Autonomous</h4>
+                    <div className="space-y-2">
+                      {gsd.autonomous_startingPosition && (
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">Leaves Zone</span>
-                          <Badge variant={autoData.autoLeave ? 'default' : 'secondary'} className="text-xs">
-                            {autoData.autoLeave ? 'Yes' : 'No'}
-                          </Badge>
+                          <span className="text-sm text-muted-foreground">Starting Position</span>
+                          <Badge variant="outline" className="text-xs">{String(gsd.autonomous_startingPosition)}</Badge>
                         </div>
-                        {autoData.autoCoralLevels && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Coral Levels</span>
-                            <Badge variant="outline" className="text-xs">{String(autoData.autoCoralLevels)}</Badge>
-                          </div>
-                        )}
-                        {autoData.autoAlgaeScoring && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Algae Scoring</span>
-                            <Badge variant="outline" className="text-xs">{String(autoData.autoAlgaeScoring)}</Badge>
-                          </div>
-                        )}
-                        {autoData.autoRoutineCount != null && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Auto Routines</span>
-                            <Badge variant="secondary" className="text-xs">{String(autoData.autoRoutineCount)}</Badge>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
+                      )}
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Leaves Zone</span>
+                        <Badge variant={gsd.autonomous_autoLeave ? 'default' : 'secondary'} className="text-xs">
+                          {gsd.autonomous_autoLeave ? 'Yes' : 'No'}
+                        </Badge>
+                      </div>
+                      {gsd.autonomous_autoCoralLevels && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Coral Levels</span>
+                          <Badge variant="outline" className="text-xs">{String(gsd.autonomous_autoCoralLevels)}</Badge>
+                        </div>
+                      )}
+                      {gsd.autonomous_autoAlgaeScoring && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Algae Scoring</span>
+                          <Badge variant="outline" className="text-xs">{String(gsd.autonomous_autoAlgaeScoring)}</Badge>
+                        </div>
+                      )}
+                      {gsd.autonomous_autoRoutineCount != null && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Auto Routines</span>
+                          <Badge variant="secondary" className="text-xs">{String(gsd.autonomous_autoRoutineCount)}</Badge>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Teleop Capabilities */}
-              <div>
-                <h4 className="font-semibold mb-3">Teleoperated</h4>
-                <div className="space-y-2">
-                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).teleoperated && (() => {
-                    const teleopData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).teleoperated;
-                    return (
-                      <>
-                        {teleopData.intakeType && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Intake Method</span>
-                            <Badge variant="outline" className="text-xs">{String(teleopData.intakeType)}</Badge>
-                          </div>
-                        )}
-                        {teleopData.coralCapability && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Coral Capability</span>
-                            <Badge variant="outline" className="text-xs">{String(teleopData.coralCapability)}</Badge>
-                          </div>
-                        )}
-                        {teleopData.algaeCapability && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Algae Capability</span>
-                            <Badge variant="outline" className="text-xs">{String(teleopData.algaeCapability)}</Badge>
-                          </div>
-                        )}
-                        {teleopData.cycleTime != null && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Cycle Time</span>
-                            <Badge variant="secondary" className="text-xs">{String(teleopData.cycleTime)}s</Badge>
-                          </div>
-                        )}
-                        {teleopData.reliability && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Reliability</span>
-                            <Badge variant="outline" className="text-xs">{String(teleopData.reliability)}</Badge>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
+                  {/* Teleop Capabilities */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Teleoperated</h4>
+                    <div className="space-y-2">
+                      {gsd.teleoperated_intakeType && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Intake Method</span>
+                          <Badge variant="outline" className="text-xs">{String(gsd.teleoperated_intakeType)}</Badge>
+                        </div>
+                      )}
+                      {gsd.teleoperated_coralCapability && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Coral Capability</span>
+                          <Badge variant="outline" className="text-xs">{String(gsd.teleoperated_coralCapability)}</Badge>
+                        </div>
+                      )}
+                      {gsd.teleoperated_algaeCapability && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Algae Capability</span>
+                          <Badge variant="outline" className="text-xs">{String(gsd.teleoperated_algaeCapability)}</Badge>
+                        </div>
+                      )}
+                      {gsd.teleoperated_cycleTime != null && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Cycle Time</span>
+                          <Badge variant="secondary" className="text-xs">{String(gsd.teleoperated_cycleTime)}s</Badge>
+                        </div>
+                      )}
+                      {gsd.teleoperated_reliability && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Reliability</span>
+                          <Badge variant="outline" className="text-xs">{String(gsd.teleoperated_reliability)}</Badge>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Endgame Capabilities */}
-              <div>
-                <h4 className="font-semibold mb-3">Endgame</h4>
-                <div className="space-y-2">
-                  {!!(teamData.pitEntry.gameSpecificData as Record<string, unknown>).endgame && (() => {
-                    const endData = (teamData.pitEntry.gameSpecificData as Record<string, Record<string, unknown>>).endgame;
-                    return (
-                      <>
-                        {endData.climbCapability && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Climb Capability</span>
-                            <Badge variant="outline" className="text-xs">{String(endData.climbCapability)}</Badge>
-                          </div>
-                        )}
-                        {endData.climbTime != null && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Climb Time</span>
-                            <Badge variant="secondary" className="text-xs">{String(endData.climbTime)}s</Badge>
-                          </div>
-                        )}
-                        {endData.climbReliability && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Climb Reliability</span>
-                            <Badge variant="outline" className="text-xs">{String(endData.climbReliability)}</Badge>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
+                  {/* Endgame Capabilities */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Endgame</h4>
+                    <div className="space-y-2">
+                      {gsd.endgame_climbCapability && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Climb Capability</span>
+                          <Badge variant="outline" className="text-xs">{String(gsd.endgame_climbCapability)}</Badge>
+                        </div>
+                      )}
+                      {gsd.endgame_climbTime != null && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Climb Time</span>
+                          <Badge variant="secondary" className="text-xs">{String(gsd.endgame_climbTime)}s</Badge>
+                        </div>
+                      )}
+                      {gsd.endgame_climbReliability && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Climb Reliability</span>
+                          <Badge variant="outline" className="text-xs">{String(gsd.endgame_climbReliability)}</Badge>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()}
           </CardContent>
         </Card>
       )}

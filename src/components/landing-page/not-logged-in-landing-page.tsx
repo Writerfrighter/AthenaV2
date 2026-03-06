@@ -139,7 +139,15 @@ export function NotLoggedInLandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 w-full max-h-[70vh] sm:max-h-[100vh] flex items-center py-2 sm:py-12 bg-[url(/assets/HeroCropped.jpg)] bg-cover bg-[position:left_center] sm:bg-center">
+      <section className="relative z-10 w-full max-h-[70vh] sm:max-h-[100vh] flex items-center py-2 sm:py-12">
+        <Image
+          src="/assets/HeroCropped.jpg"
+          alt=""
+          fill
+          priority
+          className="object-cover object-left sm:object-center -z-10"
+          sizes="100vw"
+        />
         <div className="absolute inset-0 max-md:bg-black/50 lg:bg-linear-to-r lg:from-black/0 lg:to-black/60" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">

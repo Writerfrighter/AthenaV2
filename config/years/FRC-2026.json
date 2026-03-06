@@ -135,7 +135,7 @@
       "climbCapability": {
         "label": "Climbing Capability",
         "type": "select",
-        "options": ["L1", "L2", "L3"]
+        "options": ["None","L1", "L2", "L3"]
       },
       "climbTime": {
         "label": "Average Climb Time (seconds)",
