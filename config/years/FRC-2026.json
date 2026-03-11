@@ -99,7 +99,7 @@
     "autonomous": {
       "startingPosition": {
         "label": "Starting Position",
-        "type": "select",
+        "type": "multiselect",
         "options": ["Left Trench", "Left Bump", "Hub", "Right Bump", "Right Trench"]
       },
       "fuelScoredAuto": {
@@ -117,13 +117,13 @@
         "type": "multiselect",
         "options": ["Ground pickup", "Outpost", "No Intake"]
       },
-      "fuelScoredTeleopEstimate": {
-        "label": "Teleop Fuel Scored Estimate",
+      "fuelScoredPerShift": {
+        "label": "Average Fuel Scored per Alliance Shift",
         "type": "number"
       },
-      "cycleTime": {
-        "label": "Estimated Cycle Time (seconds)",
-        "type": "number"
+      "shuttling": {
+        "label": "Can Shoot to Shuttle Fuel",
+        "type": "boolean"
       },
       "humanPlayerAccuracy": {
         "label": "Human Player Accuracy",
