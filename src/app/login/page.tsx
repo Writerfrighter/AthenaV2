@@ -96,7 +96,7 @@ export default function Page() {
         <div className="w-full max-w-md">
           <Card className="shadow-lg rounded-2xl backdrop-blur-sm">
             <CardHeader className="text-center mt-2">
-              <CardTitle className="text-2xl font-semibold text-primary">Sign In</CardTitle>
+              <CardTitle className="text-2xl font-semibold text-primary">Log In</CardTitle>
               <CardDescription className="text-muted-foreground">
                 Log in to your TRC Athena account
               </CardDescription>
