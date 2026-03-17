@@ -635,6 +635,9 @@ export function DraggablePicklist({
                 preventOnFilter={false}
                 ghostClass="opacity-30"
                 dragClass="shadow-lg"
+                scroll={true}
+                scrollSpeed={20}
+                scrollSensitivity={100}
                 className="space-y-2 sm:min-h-48"
               >
                 {localPick1Order.map((item, idx) => renderTeamCard(item.teamNumber, idx + 1, '1stPick'))}
@@ -665,6 +668,9 @@ export function DraggablePicklist({
                   preventOnFilter={false}
                   ghostClass="opacity-30"
                   dragClass="shadow-lg"
+                  scroll={true}
+                  scrollSpeed={20}
+                  scrollSensitivity={100}
                   className="space-y-2 sm:min-h-48"
                 >
                   {localPick2Order.map((item, idx) => renderTeamCard(item.teamNumber, idx + 1, '2ndPick'))}
@@ -695,6 +701,9 @@ export function DraggablePicklist({
                 preventOnFilter={false}
                 ghostClass="opacity-30"
                 dragClass="shadow-lg"
+                scroll={true}
+                scrollSpeed={20}
+                scrollSensitivity={100}
                 sort={false}
                 className="space-y-2 min-h-48"
               >

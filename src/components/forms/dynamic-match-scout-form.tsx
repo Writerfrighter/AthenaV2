@@ -637,6 +637,7 @@ export function DynamicMatchScoutForm() {
                     value={formData.notes}
                     onChange={(e) => handleBasicInputChange('notes', e.target.value)}
                     className="focus:border-green-500 min-h-[200px] mt-2"
+                    required={true} 
                   />
                 </CardContent>
               </Card>
