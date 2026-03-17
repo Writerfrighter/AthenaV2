@@ -76,9 +76,9 @@
         "description": "General playstyle of the robot",
         "type": "select",
         "pointValues": {
+          "offensive": 0,
           "defensive": 0,
-          "balanced": 0,
-          "offensive": 0
+          "balanced": 0
         }
       }
     },
