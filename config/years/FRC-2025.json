@@ -74,10 +74,6 @@
       }
     },
     "endgame": {
-      "has_climb": {
-        "label": "Has climb",
-        "type": "boolean"
-      },
       "ending_robot_state": {
         "label": "Ending Robot State",
         "description": "Robot's final position during endgame",
@@ -86,8 +82,7 @@
           "park": 3,
           "shallow": 6,
           "deep": 12
-        },
-        "dependsOn": "has_climb"
+        }
       }
     },
     "fouls": {
