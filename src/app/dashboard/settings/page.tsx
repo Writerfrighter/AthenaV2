@@ -19,7 +19,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
-          <Settings className="h-8 w-8" />
+          <Settings className="hidden sm:block h-8 w-8" />
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
             <p className="text-muted-foreground">

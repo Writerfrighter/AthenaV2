@@ -221,7 +221,7 @@ export default function Page() {
               <div className="mt-6 text-center text-sm">
                 Already have an account?{" "}
                 <Link href="/login" className="underline underline-offset-4 hover:text-primary">
-                  Sign in
+                  Log in
                 </Link>
               </div>
             </CardContent>
