@@ -673,7 +673,13 @@ export function DynamicPitScoutForm() {
                     <div className="border-b pb-4">
                       <h3 className="text-lg font-semibold mb-4">Endgame Capabilities</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {Object.entries(gameConfig.pitScouting.endgame).map(([name, field]: [string, any]) => 
+                        {Object.entries(gameConfig.pitScouting.endgame)
+                          .filter(([, field]: [string, any]) => {
+                            if (!field.dependsOn) return true;
+                            const dependencyValue = formData.gameSpecificData[`endgame_${field.dependsOn}`];
+                            return Boolean(dependencyValue);
+                          })
+                          .map(([name, field]: [string, any]) => 
                           renderCustomField({
                             name: `endgame_${name}`,
                             label: field.label,

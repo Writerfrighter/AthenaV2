@@ -132,19 +132,26 @@
       }
     },
     "endgame": {
+      "hasClimb": {
+        "label": "Has Climb",
+        "type": "boolean"
+      },
       "climbCapability": {
-        "label": "Climbing Capability",
+        "label": "Highest Climb Level",
         "type": "select",
-        "options": ["None","L1", "L2", "L3"]
+        "options": ["None","L1", "L2", "L3"],
+        "dependsOn": "hasClimb"
       },
       "climbTime": {
         "label": "Average Climb Time (seconds)",
-        "type": "number"
+        "type": "number",
+        "dependsOn": "hasClimb"
       },
       "climbReliability": {
         "label": "Climb Success Rate",
         "type": "select",
-        "options": ["Very Reliable (90%+)", "Mostly Reliable (70-90%)", "Somewhat Reliable (40-70%)", "Unreliable (<40%)"]
+        "options": ["Very Reliable (90%+)", "Mostly Reliable (70-90%)", "Somewhat Reliable (40-70%)", "Unreliable (<40%)"],
+        "dependsOn": "hasClimb"
       }
     }
   }
