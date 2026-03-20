@@ -9,15 +9,15 @@ import TeamInfo from '@/components/team-pages-common/TeamInfo';
 import TeamImage from '@/components/team-pages-common/TeamImage';
 import TeamNotes from '@/components/team-pages-common/TeamNotes';
 import { FieldDrawingCanvas } from '@/components/forms/field-drawing-canvas';
+import { PerformanceOverTimeChart } from '@/components/charts/performance-over-time-chart';
 import { useTeamData } from '@/hooks/use-team-data';
+import { useGameConfig } from '@/hooks/use-game-config';
 import {
   BarChart as RechartsBarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  PieChart,
-  Pie,
   Cell,
 } from 'recharts';
 import {
@@ -68,6 +68,8 @@ interface RebuiltData {
 export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
   const [searchNote, setSearchNote] = useState("");
   const { teamData, loading, error } = useTeamData(teamNumber);
+  const { currentYear, getCurrentYearConfig } = useGameConfig();
+  const yearConfig = getCurrentYearConfig();
   const [averageScore, setAverageScore] = useState<number>(0);
   const [loadingAvgScore, setLoadingAvgScore] = useState(false);
 
@@ -189,43 +191,6 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
     { name: 'Teleop Corraled', value: rebuiltData.teleop_fuel_corraled, fill: '#22c55e' },
     { name: 'Teleop Shuttled', value: rebuiltData.teleop_fuel_shuttled, fill: '#a3e635' },
   ] : [];
-
-  // Point breakdown pie chart
-  const pointBreakdownData = rebuiltData ? [
-    { name: 'Auto Fuel', value: rebuiltData.auto_fuel_scored * 1, fill: '#f97316' },
-    { name: 'Auto Climb', value: (rebuiltData.auto_climb_rate / 100) * 15, fill: '#fb923c' },
-    { name: 'Teleop Fuel', value: rebuiltData.teleop_fuel_scored * 1, fill: '#ef4444' },
-    { name: 'Endgame Climb', value: (rebuiltData.endgame_l1_rate / 100) * 10 + (rebuiltData.endgame_l2_rate / 100) * 20 + (rebuiltData.endgame_l3_rate / 100) * 30, fill: '#8b5cf6' },
-  ] : [];
-
-  // Transform for shadcn chart
-  const chartData = pointBreakdownData.map((item) => ({
-    browser: item.name,
-    visitors: item.value,
-    fill: item.fill
-  }));
-
-  const chartConfig = {
-    visitors: {
-      label: "Points: ",
-    },
-    "Auto Fuel": {
-      label: "Auto Fuel: ",
-      color: "#f97316",
-    },
-    "Auto Climb": {
-      label: "Auto Climb: ",
-      color: "#fb923c",
-    },
-    "Teleop Fuel": {
-      label: "Teleop Fuel: ",
-      color: "#ef4444",
-    },
-    "Endgame Climb": {
-      label: "Endgame Climb: ",
-      color: "#8b5cf6",
-    },
-  } satisfies ChartConfig;
 
   // Endgame breakdown for bar chart
   const endgameBreakdownData = rebuiltData ? [
@@ -531,27 +496,20 @@ export function FRCTeam2026Page({ teamNumber }: TeamPageProps) {
           </CardContent>
         </Card>
 
-        {/* Point Distribution Chart */}
-        <Card className="flex flex-col">
-          <CardHeader className="items-center pb-0">
-            <CardTitle>Point Distribution</CardTitle>
-            <CardDescription>Breakdown of scoring methods</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 pb-0">
-            <ChartContainer
-              config={chartConfig}
-              className="mx-auto aspect-square max-h-[250px]"
-            >
-              <PieChart>
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent />}
-                />
-                <Pie data={chartData} dataKey="visitors" nameKey="browser" />
-              </PieChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        {/* Performance Over Time */}
+        {yearConfig && teamData?.matchEntries && teamData.matchEntries.length > 1 ? (
+          <PerformanceOverTimeChart
+            matchEntries={teamData.matchEntries}
+            yearConfig={yearConfig}
+            year={currentYear}
+          />
+        ) : (
+          <Card className="flex items-center justify-center">
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground text-sm">Need 2+ matches for performance trend</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Endgame & Reliability */}

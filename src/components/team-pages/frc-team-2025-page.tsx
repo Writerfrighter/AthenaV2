@@ -8,7 +8,9 @@ import { ExternalLink, Search, Trophy, Target, Activity, BarChart, MapPin, Alert
 import TeamInfo from '@/components/team-pages-common/TeamInfo';
 import TeamImage from '@/components/team-pages-common/TeamImage';
 import TeamNotes from '@/components/team-pages-common/TeamNotes';
+import { PerformanceOverTimeChart } from '@/components/charts/performance-over-time-chart';
 import { useTeamData } from '@/hooks/use-team-data';
+import { useGameConfig } from '@/hooks/use-game-config';
 import {
   BarChart as RechartsBarChart,
   Bar,
@@ -16,8 +18,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  PieChart,
-  Pie
 } from 'recharts';
 import {
   ChartConfig,
@@ -72,6 +72,8 @@ interface ReefscapeData {
 export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
   const [searchNote, setSearchNote] = useState("");
   const { teamData, loading, error } = useTeamData(teamNumber);
+  const { currentYear, getCurrentYearConfig } = useGameConfig();
+  const yearConfig = getCurrentYearConfig();
   const [averageScore, setAverageScore] = useState<number>(0);
   const [loadingAvgScore, setLoadingAvgScore] = useState(false);
 
@@ -189,48 +191,6 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
     { name: 'Net', value: reefscapeData.teleop_net },
     { name: 'Processor', value: reefscapeData.teleop_processor },
   ] : [];
-
-  // Point breakdown pie chart
-  const pointBreakdownData = reefscapeData ? [
-    { name: 'Auto Coral', value: reefscapeData.avg_auto_coral * 3, fill: '#ff6b6b' },
-    { name: 'Auto Algae', value: reefscapeData.avg_auto_algae * 5, fill: '#4ecdc4' },
-    { name: 'Tele Coral', value: reefscapeData.avg_teleop_coral * 3, fill: '#ff9999' },
-    { name: 'Tele Algae', value: reefscapeData.avg_teleop_algae * 5, fill: '#7fdddd' },
-    { name: 'Endgame', value: (reefscapeData.endgame_park_rate / 100) * 3 + (reefscapeData.endgame_shallow_rate / 100) * 6 + (reefscapeData.endgame_deep_rate / 100) * 12, fill: '#a78bfa' },
-  ] : [];
-
-  // Transform for shadcn chart
-  const chartData = pointBreakdownData.map((item) => ({
-    browser: item.name,
-    visitors: item.value,
-    fill: item.fill
-  }));
-
-  const chartConfig = {
-    visitors: {
-      label: "Points: ",
-    },
-    "Auto Coral": {
-      label: "Auto Coral: ",
-      color: "#ff6b6b",
-    },
-    "Auto Algae": {
-      label: "Auto Algae: ",
-      color: "#4ecdc4",
-    },
-    "Teleop Coral": {
-      label: "Teleop Coral: ",
-      color: "#ff9999",
-    },
-    "Teleop Algae": {
-      label: "Teleop Algae: ",
-      color: "#7fdddd",
-    },
-    "Endgame": {
-      label: "Endgame: ",
-      color: "#a78bfa",
-    },
-  } satisfies ChartConfig;
 
   // Extract actual notes from team data
   const extractTeamNotes = (): string[] => {
@@ -508,27 +468,20 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
           </CardContent>
         </Card>
 
-        {/* Point Distribution Chart */}
-        <Card className="flex flex-col">
-          <CardHeader className="items-center pb-0">
-            <CardTitle>Point Distribution</CardTitle>
-            <CardDescription>Breakdown of scoring methods</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 pb-0">
-            <ChartContainer
-              config={chartConfig}
-              className="mx-auto aspect-square max-h-[250px]"
-            >
-              <PieChart>
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent />}
-                />
-                <Pie data={chartData} dataKey="visitors" nameKey="browser" />
-              </PieChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        {/* Performance Over Time */}
+        {yearConfig && teamData?.matchEntries && teamData.matchEntries.length > 1 ? (
+          <PerformanceOverTimeChart
+            matchEntries={teamData.matchEntries}
+            yearConfig={yearConfig}
+            year={currentYear}
+          />
+        ) : (
+          <Card className="flex items-center justify-center">
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground text-sm">Need 2+ matches for performance trend</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
   {/* Endgame & Reliability */}

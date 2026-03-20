@@ -7,15 +7,15 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink, Trophy, Target, Activity, BarChart, Package, AlertTriangle, Wrench } from 'lucide-react';
 import TeamInfo from '@/components/team-pages-common/TeamInfo';
 import TeamNotes from '@/components/team-pages-common/TeamNotes';
+import { PerformanceOverTimeChart } from '@/components/charts/performance-over-time-chart';
 import { useTeamData } from '@/hooks/use-team-data';
+import { useGameConfig } from '@/hooks/use-game-config';
 import {
   BarChart as RechartsBarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  PieChart,
-  Pie,
   Cell,
   ResponsiveContainer,
   Legend
@@ -67,6 +67,8 @@ interface DecodeData {
 export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
   const [searchNote, setSearchNote] = useState("");
   const { teamData, loading, error } = useTeamData(teamNumber);
+  const { currentYear, getCurrentYearConfig } = useGameConfig();
+  const yearConfig = getCurrentYearConfig();
   const [averageScore, setAverageScore] = useState<number>(0);
   const [loadingAvgScore, setLoadingAvgScore] = useState(false);
 
@@ -181,43 +183,6 @@ export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
     { name: 'Teleop Overflow', value: decodeData.teleop_artifacts_overflow, fill: '#60a5fa' },
     { name: 'Teleop Depot', value: decodeData.teleop_artifacts_depot, fill: '#93c5fd' },
   ] : [];
-
-  // Point breakdown pie chart
-  const pointBreakdownData = decodeData ? [
-    { name: 'Auto Artifacts', value: (decodeData.auto_artifacts_classified * 3) + (decodeData.auto_artifacts_overflow * 1), fill: '#8b5cf6' },
-    { name: 'Auto Patterns', value: decodeData.auto_patterns * 6, fill: '#a78bfa' },
-    { name: 'Teleop Artifacts', value: (decodeData.teleop_artifacts_classified * 3) + (decodeData.teleop_artifacts_overflow * 1) + (decodeData.teleop_artifacts_depot * 1), fill: '#3b82f6' },
-    { name: 'Teleop Patterns', value: decodeData.teleop_patterns * 6, fill: '#60a5fa' },
-  ] : [];
-
-  // Transform for shadcn chart
-  const chartData = pointBreakdownData.map((item) => ({
-    browser: item.name,
-    visitors: item.value,
-    fill: item.fill
-  }));
-
-  const chartConfig = {
-    visitors: {
-      label: "Points: ",
-    },
-    "Auto Artifacts": {
-      label: "Auto Artifacts: ",
-      color: "#8b5cf6",
-    },
-    "Auto Patterns": {
-      label: "Auto Patterns: ",
-      color: "#a78bfa",
-    },
-    "Teleop Artifacts": {
-      label: "Teleop Artifacts: ",
-      color: "#3b82f6",
-    },
-    "Teleop Patterns": {
-      label: "Teleop Patterns: ",
-      color: "#60a5fa",
-    },
-  } satisfies ChartConfig;
 
   // Extract actual notes from team data
   const extractTeamNotes = (): string[] => {
@@ -496,27 +461,20 @@ export function FTCTeam2026Page({ teamNumber }: TeamPageProps) {
           </CardContent>
         </Card>
 
-        {/* Point Distribution Chart */}
-        <Card className="flex flex-col">
-          <CardHeader className="items-center pb-0">
-            <CardTitle>Point Distribution</CardTitle>
-            <CardDescription>Breakdown of scoring methods</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 pb-0">
-            <ChartContainer
-              config={chartConfig}
-              className="mx-auto aspect-square max-h-[250px]"
-            >
-              <PieChart>
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent />}
-                />
-                <Pie data={chartData} dataKey="visitors" nameKey="browser" />
-              </PieChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        {/* Performance Over Time */}
+        {yearConfig && teamData?.matchEntries && teamData.matchEntries.length > 1 ? (
+          <PerformanceOverTimeChart
+            matchEntries={teamData.matchEntries}
+            yearConfig={yearConfig}
+            year={currentYear}
+          />
+        ) : (
+          <Card className="flex items-center justify-center">
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground text-sm">Need 2+ matches for performance trend</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Endgame & Reliability */}
