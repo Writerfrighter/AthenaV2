@@ -19,5 +19,6 @@ export type {
   PicklistNote,
   PicklistRow,
   PicklistEntryRow,
-  PicklistNoteRow
+  PicklistNoteRow,
+  MatchAssignment
 } from '@/lib/shared-types';

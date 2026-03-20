@@ -296,6 +296,24 @@ export class AzureSqlDatabaseService implements DatabaseService {
         FOREIGN KEY (picklistId) REFERENCES picklists(id) ON DELETE CASCADE
       )
     `);
+
+    // Create matchAssignments table
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='matchAssignments' AND xtype='U')
+      CREATE TABLE matchAssignments (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        eventCode NVARCHAR(50) NOT NULL,
+        year INT NOT NULL,
+        matchNumber INT NOT NULL,
+        alliance NVARCHAR(10) NOT NULL,
+        position INT NOT NULL,
+        userId NVARCHAR(255) NOT NULL,
+        created_at DATETIME DEFAULT GETDATE(),
+        updated_at DATETIME DEFAULT GETDATE(),
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+        CONSTRAINT uq_match_assignment UNIQUE (eventCode, year, matchNumber, alliance, position)
+      )
+    `);
   }
 
   // Pit scouting methods
@@ -1517,5 +1535,88 @@ export class AzureSqlDatabaseService implements DatabaseService {
 
   async syncFromCloud?(): Promise<void> {
     // Not applicable for Azure SQL as it's already cloud-based
+  }
+
+  // Match assignment methods
+  async addMatchAssignment(assignment: Omit<import('./types').MatchAssignment, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const result = await pool.request()
+      .input('eventCode', mssql.NVarChar, assignment.eventCode)
+      .input('year', mssql.Int, assignment.year)
+      .input('matchNumber', mssql.Int, assignment.matchNumber)
+      .input('alliance', mssql.NVarChar, assignment.alliance)
+      .input('position', mssql.Int, assignment.position)
+      .input('userId', mssql.NVarChar, assignment.userId)
+      .query(`
+        MERGE matchAssignments AS target
+        USING (SELECT @eventCode AS eventCode, @year AS year, @matchNumber AS matchNumber, @alliance AS alliance, @position AS position) AS source
+        ON target.eventCode = source.eventCode AND target.year = source.year AND target.matchNumber = source.matchNumber AND target.alliance = source.alliance AND target.position = source.position
+        WHEN MATCHED THEN
+          UPDATE SET userId = @userId, updated_at = GETDATE()
+        WHEN NOT MATCHED THEN
+          INSERT (eventCode, year, matchNumber, alliance, position, userId)
+          VALUES (@eventCode, @year, @matchNumber, @alliance, @position, @userId)
+        OUTPUT INSERTED.id;
+      `);
+    return result.recordset[0].id;
+  }
+
+  async getMatchAssignments(eventCode: string, year: number, matchNumber: number): Promise<import('./types').MatchAssignment[]> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const result = await pool.request()
+      .input('eventCode', mssql.NVarChar, eventCode)
+      .input('year', mssql.Int, year)
+      .input('matchNumber', mssql.Int, matchNumber)
+      .query('SELECT * FROM matchAssignments WHERE eventCode = @eventCode AND year = @year AND matchNumber = @matchNumber');
+    return result.recordset;
+  }
+
+  async updateMatchAssignment(id: number, updates: Partial<import('./types').MatchAssignment>): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const request = pool.request().input('id', mssql.Int, id);
+    const setParts: string[] = [];
+    if (updates.userId !== undefined) {
+      setParts.push('userId = @userId');
+      request.input('userId', mssql.NVarChar, updates.userId);
+    }
+    if (updates.position !== undefined) {
+      setParts.push('position = @position');
+      request.input('position', mssql.Int, updates.position);
+    }
+    if (updates.alliance !== undefined) {
+      setParts.push('alliance = @alliance');
+      request.input('alliance', mssql.NVarChar, updates.alliance);
+    }
+    if (setParts.length === 0) return;
+    setParts.push('updated_at = GETDATE()');
+    const query = `UPDATE matchAssignments SET ${setParts.join(', ')} WHERE id = @id`;
+    await request.query(query);
+  }
+
+  async deleteMatchAssignment(id: number): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    await pool.request().input('id', mssql.Int, id).query('DELETE FROM matchAssignments WHERE id = @id');
+  }
+
+  async getMatchAssignmentsByUser(userId: string): Promise<import('./types').MatchAssignment[]> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    const result = await pool.request()
+      .input('userId', mssql.NVarChar, userId)
+      .query('SELECT * FROM matchAssignments WHERE userId = @userId');
+    return result.recordset;
+  }
+
+  async deleteMatchAssignmentsByEvent(eventCode: string, year: number): Promise<void> {
+    const pool = await this.getPool();
+    const mssql = await import('mssql');
+    await pool.request()
+      .input('eventCode', mssql.NVarChar, eventCode)
+      .input('year', mssql.Int, year)
+      .query('DELETE FROM matchAssignments WHERE eventCode = @eventCode AND year = @year');
   }
 }
