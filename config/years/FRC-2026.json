@@ -76,9 +76,9 @@
         "description": "General playstyle of the robot",
         "type": "select",
         "pointValues": {
+          "offensive": 0,
           "defensive": 0,
-          "balanced": 0,
-          "offensive": 0
+          "balanced": 0
         }
       }
     },
@@ -99,7 +99,7 @@
     "autonomous": {
       "startingPosition": {
         "label": "Starting Position",
-        "type": "select",
+        "type": "multiselect",
         "options": ["Left Trench", "Left Bump", "Hub", "Right Bump", "Right Trench"]
       },
       "fuelScoredAuto": {
@@ -117,13 +117,13 @@
         "type": "multiselect",
         "options": ["Ground pickup", "Outpost", "No Intake"]
       },
-      "fuelScoredTeleopEstimate": {
-        "label": "Teleop Fuel Scored Estimate",
+      "fuelScoredPerShift": {
+        "label": "Average Fuel Scored per Alliance Shift",
         "type": "number"
       },
-      "cycleTime": {
-        "label": "Estimated Cycle Time (seconds)",
-        "type": "number"
+      "shuttling": {
+        "label": "Can Shoot to Shuttle Fuel",
+        "type": "boolean"
       },
       "humanPlayerAccuracy": {
         "label": "Human Player Accuracy",
@@ -132,19 +132,26 @@
       }
     },
     "endgame": {
+      "hasClimb": {
+        "label": "Has Climb",
+        "type": "boolean"
+      },
       "climbCapability": {
-        "label": "Climbing Capability",
+        "label": "Highest Climb Level",
         "type": "select",
-        "options": ["None","L1", "L2", "L3"]
+        "options": ["None","L1", "L2", "L3"],
+        "dependsOn": "hasClimb"
       },
       "climbTime": {
         "label": "Average Climb Time (seconds)",
-        "type": "number"
+        "type": "number",
+        "dependsOn": "hasClimb"
       },
       "climbReliability": {
         "label": "Climb Success Rate",
         "type": "select",
-        "options": ["Very Reliable (90%+)", "Mostly Reliable (70-90%)", "Somewhat Reliable (40-70%)", "Unreliable (<40%)"]
+        "options": ["Very Reliable (90%+)", "Mostly Reliable (70-90%)", "Somewhat Reliable (40-70%)", "Unreliable (<40%)"],
+        "dependsOn": "hasClimb"
       }
     }
   }

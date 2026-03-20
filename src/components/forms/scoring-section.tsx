@@ -73,7 +73,13 @@ export function ScoringSection({
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-6">
-          {Object.entries(scoringConfig).map(([key, config]) => (
+          {Object.entries(scoringConfig)
+            .filter(([key, config]) => {
+              if (!config.dependsOn) return true;
+              const dependencyValue = (formData[section] as Record<string, number | string | boolean>)[config.dependsOn];
+              return Boolean(dependencyValue);
+            })
+            .map(([key, config]) => (
             <ScoringField
               key={key}
               section={section}

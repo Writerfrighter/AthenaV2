@@ -145,11 +145,37 @@ export async function GET(request: NextRequest) {
     // Calculate scouter accuracy
     const result = computeScouterAccuracy(matchesWithScouters, officialResults, yearConfig);
 
+    // Resolve scouter IDs to user names
+    const scouterIds = result.scouters.map(s => s.scouterId);
+    const userNameMap: Record<string, string> = {};
+    if (scouterIds.length > 0) {
+      try {
+        const db = getDbService();
+        if (db.getPool) {
+          const pool = await db.getPool();
+          const idList = scouterIds.map((_, i) => `@id${i}`).join(', ');
+          const req = pool.request();
+          scouterIds.forEach((id, i) => req.input(`id${i}`, id));
+          const usersResult = await req.query(
+            `SELECT id, name FROM users WHERE id IN (${idList})`
+          );
+          usersResult.recordset.forEach((row: { id: string; name: string }) => {
+            userNameMap[row.id.toString()] = row.name;
+          });
+        }
+      } catch {
+        // Non-critical: fall back to IDs if user lookup fails
+      }
+    }
+
     // Return results
     return NextResponse.json({
       success: result.convergenceAchieved,
       data: {
-        scouters: result.scouters,
+        scouters: result.scouters.map(s => ({
+          ...s,
+          scouterName: userNameMap[s.scouterId] || null
+        })),
         overallMeanError: result.overallMeanError,
         convergenceAchieved: result.convergenceAchieved,
         message: result.message,

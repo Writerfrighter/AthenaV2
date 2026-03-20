@@ -157,7 +157,7 @@ export default function MatchupPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <Swords className="h-8 w-8 text-primary" />
+          <Swords className="hidden sm:block h-8 w-8 text-primary" />
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Match Matchup</h1>
             <p className="text-muted-foreground">
@@ -299,7 +299,7 @@ export default function MatchupPage() {
               {matchType === 'qualification' ? 'Qual' : 'Playoff'} Match {matchNumber}
             </Badge>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-blue-600 dark:text-blue-400">Blue Alliance</span>
+              <span className="font-semibold text-blue-600 dark:text-blue-400 text-right">Blue Alliance</span>
               <div className="h-4 w-4 rounded-full bg-blue-500" />
             </div>
           </div>

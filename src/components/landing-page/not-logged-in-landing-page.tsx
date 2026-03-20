@@ -139,7 +139,7 @@ export function NotLoggedInLandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 w-full max-h-[70vh] sm:max-h-[100vh] flex items-center py-2 sm:py-12">
+      <section className="relative z-10 w-full max-h-[70vh] sm:max-h-[80vh] flex items-center py-2 sm:py-12">
         <Image
           src="/assets/HeroCropped.jpg"
           alt=""
@@ -148,7 +148,7 @@ export function NotLoggedInLandingPage() {
           className="object-cover object-left sm:object-center -z-10"
           sizes="100vw"
         />
-        <div className="absolute inset-0 max-md:bg-black/50 lg:bg-linear-to-r lg:from-black/0 lg:to-black/60" />
+        <div className="absolute inset-0 max-lg:bg-black/50 lg:bg-linear-to-r lg:from-black/0 lg:to-black/60" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           
@@ -163,7 +163,7 @@ export function NotLoggedInLandingPage() {
                   Athena provides a one platform for scouting, metrics, and alliance prep.
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 sm:justify-end items-center sm:items-start">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-end items-center sm:items-start">
                 <Link href="/signup">
                   <Button size="xl" className="gap-2 text-lg">
                     <UserPlus className="h-10 w-10" />
@@ -307,7 +307,7 @@ export function NotLoggedInLandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="relative">
               <div className="aspect-square rounded-lg bg-background flex items-center justify-center overflow-hidden">
-                <Calendar className="h-32 w-32 text-primary/20" />
+                <Image src="/assets/Scouting2.jpg" width={600} height={600} alt="Student scouting using green scouting tablet."/>
               </div>
             </div>
             <div>
@@ -355,7 +355,7 @@ export function NotLoggedInLandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="relative">
               <div className="aspect-square rounded-lg bg-background flex items-center justify-center overflow-hidden">
-                <Image src="/assets/Tablets.jpg" width={600} height={600} alt="Students scouting using green scouting tablets."/>
+                <Image src="/assets/Scouting.jpg" width={600} height={600} alt="Students scouting using green scouting tablets."/>
               </div>
             </div>
             <div>
