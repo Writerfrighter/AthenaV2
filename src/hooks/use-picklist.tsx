@@ -69,21 +69,35 @@ export function usePicklist(options: UsePicklistOptions) {
 
       // First get the picklist metadata
       const picklistResponse = await fetch(`/api/database/picklist?${params}`);
-      if (!picklistResponse.ok) return;
+      if (!picklistResponse.ok) {
+        throw new Error(`Failed to fetch picklist: ${picklistResponse.status}`);
+      }
 
       const picklistData = await picklistResponse.json();
       if (picklistData.picklist) {
         setPicklist(picklistData.picklist);
 
-        // Then fetch entries
+        // Route already returns entries with existing picklist; use them directly
+        // to avoid a second request race/failure that can intermittently clear UI.
+        if (Array.isArray(picklistData.entries)) {
+          setEntries(picklistData.entries);
+          return;
+        }
+
+        // Fallback for older/alternate response shapes.
         const entriesParams = new URLSearchParams({
           picklistId: picklistData.picklist.id.toString()
         });
         const entriesResponse = await fetch(`/api/database/picklist/entries?${entriesParams}`);
         if (entriesResponse.ok) {
           const entriesData = await entriesResponse.json();
-          setEntries(entriesData.entries);
+          setEntries(Array.isArray(entriesData.entries) ? entriesData.entries : []);
+        } else {
+          setEntries([]);
         }
+      } else {
+        setPicklist(null);
+        setEntries([]);
       }
     } catch (error) {
       console.error('Error fetching existing picklist:', error);
