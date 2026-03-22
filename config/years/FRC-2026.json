@@ -85,12 +85,12 @@
     "fouls": {
       "fouls": {
         "label": "Fouls",
-        "points": -3,
+        "points": -5,
         "description": "Minor penalties committed"
       },
       "tech_fouls": {
         "label": "Tech Fouls",
-        "points": -10,
+        "points": -15,
         "description": "Technical fouls committed"
       }
     }
