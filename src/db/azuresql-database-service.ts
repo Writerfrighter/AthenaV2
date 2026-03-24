@@ -831,9 +831,73 @@ export class AzureSqlDatabaseService implements DatabaseService {
   async deleteCustomEvent(eventCode: string): Promise<void> {
     const pool = await this.getPool();
     const mssql = await import('mssql');
-    await pool.request()
-      .input('eventCode', mssql.NVarChar, eventCode)
-      .query('DELETE FROM customEvents WHERE eventCode = @eventCode');
+
+    // Delete the event and ALL event-scoped data. These tables are not all related
+    // by foreign keys, so we must explicitly delete by (eventCode, year, competitionType)
+    // where applicable.
+    const tx = new mssql.Transaction(pool);
+    await tx.begin();
+
+    try {
+      const req = new mssql.Request(tx);
+      req.input('eventCode', mssql.NVarChar, eventCode);
+
+      // Fetch event metadata first (year + competitionType) so we can delete related rows reliably.
+      const metaResult = await req.query(
+        'SELECT TOP 1 year, competitionType FROM customEvents WHERE eventCode = @eventCode'
+      );
+
+      // If the event doesn't exist, treat as a no-op to keep DELETE idempotent.
+      if (metaResult.recordset.length === 0) {
+        await tx.rollback();
+        return;
+      }
+
+      const year = metaResult.recordset[0].year as number;
+      const competitionType = (metaResult.recordset[0].competitionType || 'FRC') as CompetitionType;
+
+      // Match assignments (used by /api/database/match-assignments)
+      await new mssql.Request(tx)
+        .input('eventCode', mssql.NVarChar, eventCode)
+        .input('year', mssql.Int, year)
+        .query('DELETE FROM matchAssignments WHERE eventCode = @eventCode AND year = @year');
+
+      // Picklists -> (entries, notes) are FK cascaded, but delete picklists for this event.
+      await new mssql.Request(tx)
+        .input('eventCode', mssql.NVarChar, eventCode)
+        .input('year', mssql.Int, year)
+        .input('competitionType', mssql.NVarChar, competitionType)
+        .query('DELETE FROM picklists WHERE eventCode = @eventCode AND year = @year AND competitionType = @competitionType');
+
+      // Scouting blocks -> blockAssignments cascades via FK.
+      await new mssql.Request(tx)
+        .input('eventCode', mssql.NVarChar, eventCode)
+        .input('year', mssql.Int, year)
+        .query('DELETE FROM scoutingBlocks WHERE eventCode = @eventCode AND year = @year');
+
+      // Scouted data
+      await new mssql.Request(tx)
+        .input('eventCode', mssql.NVarChar, eventCode)
+        .input('year', mssql.Int, year)
+        .input('competitionType', mssql.NVarChar, competitionType)
+        .query('DELETE FROM matchEntries WHERE eventCode = @eventCode AND year = @year AND competitionType = @competitionType');
+
+      await new mssql.Request(tx)
+        .input('eventCode', mssql.NVarChar, eventCode)
+        .input('year', mssql.Int, year)
+        .input('competitionType', mssql.NVarChar, competitionType)
+        .query('DELETE FROM pitEntries WHERE eventCode = @eventCode AND year = @year AND competitionType = @competitionType');
+
+      // Finally delete the event itself
+      await new mssql.Request(tx)
+        .input('eventCode', mssql.NVarChar, eventCode)
+        .query('DELETE FROM customEvents WHERE eventCode = @eventCode');
+
+      await tx.commit();
+    } catch (err) {
+      await tx.rollback();
+      throw err;
+    }
   }
 
   // Scouting block methods
