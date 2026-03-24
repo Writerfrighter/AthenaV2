@@ -112,6 +112,10 @@
       }
     },
     "teleoperated": {
+      "hopperCapacity": {
+        "label": "Hopper Capacity",
+        "type": "number"
+      },
       "intakeType": {
         "label": "Intake Method",
         "type": "multiselect",
@@ -122,8 +126,19 @@
         "type": "number"
       },
       "shuttling": {
-        "label": "Can Shoot to Shuttle Fuel",
+        "label": "Has Shoot-Passback Capabilities",
         "type": "boolean"
+      },
+      "shootOnTheMove": {
+        "label": "Can Shoot on the Move",
+        "type": "boolean"
+      }
+    },
+    "driveTeam": {
+      "driveTeamExperience": {
+        "label": "Hours Practiced with Current Robot",
+        "type": "select",
+        "options": ["<10 Hours", "10-20 Hours", "20-30 Hours", "30+ Hours"]
       },
       "humanPlayerAccuracy": {
         "label": "Human Player Accuracy",

@@ -55,7 +55,7 @@ export function DynamicPitScoutForm() {
     };
 
     // Initialize fields for each category
-    ['autonomous', 'teleoperated', 'endgame'].forEach(category => {
+    ['autonomous', 'teleoperated', 'driveTeam', 'endgame'].forEach(category => {
       if (config?.pitScouting?.[category]) {
         Object.entries(config.pitScouting[category]).forEach(([fieldName, fieldConfig]: [string, any]) => {
           switch (fieldConfig.type) {
@@ -659,6 +659,23 @@ export function DynamicPitScoutForm() {
                         {Object.entries(gameConfig.pitScouting.teleoperated).map(([name, field]: [string, any]) => 
                           renderCustomField({
                             name: `teleoperated_${name}`,
+                            label: field.label,
+                            type: field.type,
+                            options: field.options
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Drive Team */}
+                  {gameConfig.pitScouting.driveTeam && Object.keys(gameConfig.pitScouting.driveTeam).length > 0 && (
+                    <div className="border-b pb-4">
+                      <h3 className="text-lg font-semibold mb-4">Drive Team</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {Object.entries(gameConfig.pitScouting.driveTeam).map(([name, field]: [string, any]) => 
+                          renderCustomField({
+                            name: `driveTeam_${name}`,
                             label: field.label,
                             type: field.type,
                             options: field.options

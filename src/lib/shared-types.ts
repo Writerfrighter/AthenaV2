@@ -338,6 +338,11 @@ export interface YearConfig {
       type: 'text' | 'number' | 'boolean' | 'select';
       options?: string[];
     }>;
+    driveTeam?: Record<string, {
+      label: string;
+      type: 'text' | 'number' | 'boolean' | 'select';
+      options?: string[];
+    }>;
     endgame: Record<string, {
       label: string;
       type: 'text' | 'number' | 'boolean' | 'select';
