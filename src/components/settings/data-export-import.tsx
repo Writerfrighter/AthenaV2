@@ -20,8 +20,19 @@ export function DataExportImportComponent() {
   const [exportProgress, setExportProgress] = useState(0);
   const [importProgress, setImportProgress] = useState(0);
   const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
-  const [includePit, setIncludePit] = useState(true);
-  const [includeMatch, setIncludeMatch] = useState(true);
+  const [includePit, setIncludePit] = useState(false);
+  const [includeMatch, setIncludeMatch] = useState(false);
+
+  // Enforce mutual exclusivity: never allow exporting both pit + match in the same file.
+  const setIncludePitExclusive = (checked: boolean) => {
+    setIncludePit(checked);
+    if (checked) setIncludeMatch(false);
+  };
+
+  const setIncludeMatchExclusive = (checked: boolean) => {
+    setIncludeMatch(checked);
+    if (checked) setIncludePit(false);
+  };
 
   // Get available years for the current competition type
   const availableYears = useMemo(() => {
@@ -37,6 +48,11 @@ export function DataExportImportComponent() {
     // Validate selection before starting
     if (!includePit && !includeMatch) {
       toast.error('Please select at least one data type to export');
+      return;
+    }
+
+    if (includePit && includeMatch) {
+      toast.error('Please export only one data type at a time (Pit or Match)');
       return;
     }
 
@@ -64,8 +80,8 @@ export function DataExportImportComponent() {
       if (includePit) types.push('pit');
       if (includeMatch) types.push('match');
 
-      if (types.length === 0) {
-        throw new Error('Please select at least one data type to export');
+      if (types.length !== 1) {
+        throw new Error('Please select exactly one data type to export');
       }
 
       params.append('types', types.join(','));
@@ -82,11 +98,9 @@ export function DataExportImportComponent() {
         ? availableYears.find(y => y.year === selectedYear)
         : null;
       
-      const dataTypeStr = types.length === 2 
-        ? 'all-scouting' 
-        : types[0] === 'pit' 
-          ? 'pit-scouting' 
-          : 'match-scouting';
+      const dataTypeStr = types[0] === 'pit' 
+        ? 'pit-scouting' 
+        : 'match-scouting';
       
       const yearStr = yearInfo 
         ? `${yearInfo.year}-${yearInfo.gameName.replace(/\s+/g, '-')}` 
@@ -231,14 +245,14 @@ export function DataExportImportComponent() {
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox
                 checked={includePit}
-                onCheckedChange={(checked) => setIncludePit(checked === true)}
+                onCheckedChange={(checked) => setIncludePitExclusive(checked === true)}
               />
               Pit Scouting
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox
                 checked={includeMatch}
-                onCheckedChange={(checked) => setIncludeMatch(checked === true)}
+                onCheckedChange={(checked) => setIncludeMatchExclusive(checked === true)}
               />
               Match Scouting
             </label>
