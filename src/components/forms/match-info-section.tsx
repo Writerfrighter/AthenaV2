@@ -90,8 +90,8 @@ export function MatchInfoSection({
           Match Information
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 gap-4 sm:flex sm:justify-start sm:gap-10">
-        <div className="space-y-2">
+      <CardContent className="grid grid-cols-1 sm:flex sm:justify-between gap-4 sm:gap-10">
+        <div className="space-y-2 w-full">
           <div className="flex items-center gap-2 h-5">
             <Label htmlFor="matchNumber">Match Number</Label>
             {isMatchFromScoutingSchedule && (
@@ -119,7 +119,7 @@ export function MatchInfoSection({
           />
         </div>
         
-        <div className="space-y-2">
+        <div className="space-y-2 w-full">
           <div className="flex items-center gap-2 h-5">
             <Label htmlFor="teamNumber">Team Number</Label>
             {isAutoAssigned && (
@@ -139,7 +139,7 @@ export function MatchInfoSection({
               value={formData.teamNumber === 0 ? undefined : String(formData.teamNumber)} 
               onValueChange={(value) => onBasicInputChange('teamNumber', Number(value))}
             >
-              <SelectTrigger className={isAutoAssigned ? 'border-primary/50 bg-primary/5' : ''}>
+              <SelectTrigger className={isAutoAssigned ? 'border-primary/50 bg-primary/5 w-full' : 'w-full'}>
                 <SelectValue placeholder="Select team number" />
               </SelectTrigger>
               <SelectContent>
@@ -166,11 +166,12 @@ export function MatchInfoSection({
               required
               min="1"
               max="9999"
+              className='w-full'
             />
           )}
         </div>
         
-        <div className="space-y-2">
+        <div className="space-y-2 w-full">
           <div className="flex items-center gap-2 h-5">
             <Label>Alliance Position</Label>
             {isAllianceFromScoutingSchedule && (
@@ -187,7 +188,7 @@ export function MatchInfoSection({
               onAllianceChange(alliance, position);
             }}
           >
-            <SelectTrigger className={isAllianceFromScoutingSchedule ? 'border-amber-500/50 bg-amber-500/5' : ''}>
+            <SelectTrigger className={isAllianceFromScoutingSchedule ? 'border-amber-500/50 bg-amber-500/5 w-full' : 'w-full'}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

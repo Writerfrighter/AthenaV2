@@ -49,7 +49,7 @@ export function ScoringSection({
                 value={String((formData.autonomous as Record<string, unknown>).startPosition || '')} 
                 onValueChange={(value) => onInputChange('autonomous', 'startPosition', value)}
               >
-                <SelectTrigger className="focus:border-green-500">
+                <SelectTrigger className="focus:border-green-500 w-full">
                   <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
@@ -72,7 +72,7 @@ export function ScoringSection({
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-6">
           {Object.entries(scoringConfig)
             .filter(([key, config]) => {
               if (!config.dependsOn) return true;

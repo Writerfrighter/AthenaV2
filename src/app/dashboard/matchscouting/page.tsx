@@ -216,7 +216,7 @@ export default function MatchScoutingPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="grid grid-rows-2 md:grid-cols-2 gap-2 md:-mb-10">
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Match Scouting</h1>
@@ -231,7 +231,7 @@ export default function MatchScoutingPage() {
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 md:justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">

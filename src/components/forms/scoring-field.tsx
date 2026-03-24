@@ -70,7 +70,7 @@ export function ScoringField({
               value={selectValue}
               onValueChange={(value) => onValueChange(section, fieldKey, value)}
             >
-              <SelectTrigger className="h-16 w-full text-base font-semibold focus:ring-2 focus:ring-primary/20 bg-muted border-2">
+              <SelectTrigger className="h-16 w-full text-base font-semibold focus:ring-2 focus:ring-primary/20 bg-muted border-">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -128,7 +128,7 @@ export function ScoringField({
                 min={0}
                 value={numValue}
                 onChange={e => onValueChange(section, fieldKey, Math.max(0, Number(e.target.value)))}
-                className="hide-spinners w-28 flex-shrink-0 text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-primary/20"
+                className="hide-spinners w-12 sm:w-28 flex-shrink-0 text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-primary/20"
                 style={{height: '3.5rem'}}
               />
               {increments.map((inc) => (

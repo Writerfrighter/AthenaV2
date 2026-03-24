@@ -342,7 +342,7 @@ export function NotLoggedInLandingPage() {
             </div>
             <div className="order-1 lg:order-2 relative">
               <div className="aspect-square rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
-                <Hammer className="h-32 w-32 text-primary/20" />
+                <Image src="/assets/PitScouting.jpg" width={600} height={600} alt="Students from different robotics team looking together at green scouting tablet." />
               </div>
             </div>
           </div>
@@ -399,7 +399,7 @@ export function NotLoggedInLandingPage() {
 
       {/* Footer */}
       <footer className="relative z-10 w-full mt-auto border-t bg-primary/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="text-center text-sm text-muted-foreground">
             <span>
               Made with
