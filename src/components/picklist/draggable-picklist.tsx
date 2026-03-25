@@ -37,11 +37,11 @@ interface SortableTeamItem extends ItemInterface {
   teamNumber: number;
 }
 
-export function DraggablePicklist({ 
-  eventCode, 
-  year, 
+export function DraggablePicklist({
+  eventCode,
+  year,
   competitionType,
-  ownTeamNumber = 492 
+  ownTeamNumber = 492
 }: DraggablePicklistProps) {
   const [expandedTeams, setExpandedTeams] = useState<Set<number>>(new Set());
   const [teamNotes, setTeamNotes] = useState<Record<number, string>>({});
@@ -106,9 +106,9 @@ export function DraggablePicklist({
   useEffect(() => {
     const pick1TeamNumbers = new Set(localPick1Order.map(e => e.teamNumber));
     const pick2TeamNumbers = new Set(localPick2Order.map(e => e.teamNumber));
-    
+
     const unlisted = allEventTeams
-      .filter(team => 
+      .filter(team =>
         team.teamNumber !== ownTeamNumber &&
         !pick1TeamNumbers.has(team.teamNumber) &&
         !pick2TeamNumbers.has(team.teamNumber)
@@ -119,7 +119,7 @@ export function DraggablePicklist({
         qualRanking: qualRankings.get(team.teamNumber) ?? 999,
       }))
       .sort((a, b) => a.qualRanking - b.qualRanking);
-    
+
     setLocalUnlisted(unlisted);
   }, [allEventTeams, localPick1Order, localPick2Order, ownTeamNumber, qualRankings]);
 
@@ -277,7 +277,7 @@ export function DraggablePicklist({
   }, [localPick1Order, localPick2Order]);
 
   const totalEventTeams = allEventTeams.filter(t => t.teamNumber !== ownTeamNumber).length;
-  
+
   const actualPicklistCount = localPick1Order.length + localPick2Order.length;
   const hasDiscrepancy = (
     totalPicklistTeams + localUnlisted.length !== totalEventTeams ||
@@ -535,16 +535,22 @@ export function DraggablePicklist({
                   <div className="text-xs text-muted-foreground mt-1">
                     Auto-saves after you stop typing
                   </div>
-                  <div className="flex justify-start mt-4 gap-2">
-                    {listType !== '1stPick' && (
-                      <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "1stPick")}>Send to 1st Pick</Button>
-                    )}
-                    {listType !== '2ndPick' && (
-                      <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "2ndPick")}>Send to 2nd Pick</Button>
-                    )}
-                    {listType !== 'Unlisted' && (
-                      <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "Unlisted")}>Send to Unlisted</Button>
-                    )}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-start mt-4 gap-2">
+                      {listType !== '1stPick' && (
+                        <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "1stPick")}>Send to 1st Pick</Button>
+                      )}
+                      {listType !== '2ndPick' && (
+                        <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "2ndPick")}>Send to 2nd Pick</Button>
+                      )}
+                      {listType !== 'Unlisted' && (
+                        <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "Unlisted")}>Send to Unlisted</Button>
+                      )}
+                    </div>
+                    <div className=''>
+                      {/* TO DO: MAKE BLACKLIST ACTUALLY DO SOMETHING */}
+                      <Button variant="destructive" onClick={() => moveTeam(teamNumber, listType, "Unlisted")}>Blacklist</Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -597,8 +603,8 @@ export function DraggablePicklist({
             </Button>
           ) : (
             <>
-              <Button 
-                onClick={handleSave} 
+              <Button
+                onClick={handleSave}
                 disabled={!hasUnsavedChanges || isSaving}
                 variant="default"
               >
@@ -722,7 +728,7 @@ export function DraggablePicklist({
           You have unsaved changes
         </div>
       )}
-      
+
       <DeleteConfirmationDialog
         open={showResetDialog}
         onOpenChange={setShowResetDialog}

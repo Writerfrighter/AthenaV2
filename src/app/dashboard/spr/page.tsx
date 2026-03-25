@@ -179,7 +179,7 @@ export default function SPRPage() {
                 SPR uses a least-squares method similar to OPR to isolate each scouter&apos;s accuracy.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -193,18 +193,15 @@ export default function SPRPage() {
                 </TableHeader>
                 <TableBody>
                   {data.scouters.map((scouter, index) => (
-                    <TableRow key={scouter.scouterId}>
-                      <TableCell className="font-medium">{index + 1}</TableCell>
+                    <TableRow key={scouter.scouterId} className="">
+                      <TableCell className="font-medium my-1">{index + 1}</TableCell>
                       <TableCell>
-                        <div className="font-medium">{getDisplayName(scouter)}</div>
-                        {scouter.scouterName && (
-                          <div className="text-xs text-muted-foreground">{scouter.scouterId}</div>
-                        )}
+                        <div className="font-medium my-1">{getDisplayName(scouter)}</div>
                       </TableCell>
-                      <TableCell className="text-right font-mono">{scouter.errorValue.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">{scouter.matchesScounted}</TableCell>
-                      <TableCell className="text-right font-mono">{scouter.totalAbsoluteError.toFixed(1)}</TableCell>
-                      <TableCell className="text-center">{getPerformanceBadge(scouter.percentile)}</TableCell>
+                      <TableCell className="text-right font-mono my-1">{scouter.errorValue.toFixed(2)}</TableCell>
+                      <TableCell className="text-right my-1">{scouter.matchesScounted}</TableCell>
+                      <TableCell className="text-right font-mono my-1">{scouter.totalAbsoluteError.toFixed(1)}</TableCell>
+                      <TableCell className="text-center my-1">{getPerformanceBadge(scouter.percentile)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -223,7 +220,7 @@ export default function SPRPage() {
             <div className="grid gap-4 md:grid-cols-2">
               {/* Best Performer */}
               <Card className="border-green-200 dark:border-green-800">
-                <CardHeader>
+                <CardHeader className="-mb-4">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Star className="h-4 w-4 text-green-500" />
                     Best Performer
@@ -248,7 +245,7 @@ export default function SPRPage() {
 
               {/* Needs Improvement */}
               <Card className="border-orange-200 dark:border-orange-800">
-                <CardHeader>
+                <CardHeader className="-mb-4">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <TriangleAlert className="h-4 w-4 text-orange-500" />
                     Needs Improvement
