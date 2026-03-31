@@ -5,6 +5,7 @@ import { computeScouterAccuracy } from '@/lib/statistics';
 import gameConfig from '../../../../../config/game-config-loader';
 import { auth } from '@/lib/auth/config';
 import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
+import { fetchOfficialResults, OfficialResultsError } from '@/lib/api/spr-official-results';
 
 // Get database service from manager
 function getDbService() {
@@ -66,23 +67,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch official results from internal API
-    const officialResultsUrl = new URL('/api/database/spr/official-results', request.url);
-    officialResultsUrl.searchParams.set('eventCode', eventCode);
-    officialResultsUrl.searchParams.set('competitionType', competitionType);
-    officialResultsUrl.searchParams.set('year', year);
+    let officialResultsJson;
+    try {
+      officialResultsJson = await fetchOfficialResults(eventCode, competitionType, yearNum);
+    } catch (error) {
+      if (error instanceof OfficialResultsError) {
+        return NextResponse.json(
+          {
+            error: 'Failed to fetch official results from TBA',
+            details: error.details || error.message,
+          },
+          { status: error.status }
+        );
+      }
 
-    const officialResultsResponse = await fetch(officialResultsUrl.toString());
-    
-    if (!officialResultsResponse.ok) {
-      const errorData = await officialResultsResponse.json();
-      return NextResponse.json(
-        { error: 'Failed to fetch official results from TBA', details: errorData.error },
-        { status: 502 }
-      );
+      throw error;
     }
 
-    const officialResultsJson = await officialResultsResponse.json();
     const officialResultsData = officialResultsJson.results as Record<string, {
       red: { officialScore: number; foulPoints: number };
       blue: { officialScore: number; foulPoints: number };
