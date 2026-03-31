@@ -3,48 +3,10 @@ import { auth } from '@/lib/auth/config';
 import { databaseManager } from '@/db/database-manager';
 import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 
-// GET /api/schedule/assignments?blockId=xxx or ?eventCode=xxx&year=2025 or ?userId=xxx
-export async function GET(request: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.VIEW_SCHEDULE)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const searchParams = request.nextUrl.searchParams;
-    const blockId = searchParams.get('blockId');
-    const eventCode = searchParams.get('eventCode');
-    const year = searchParams.get('year');
-    const userId = searchParams.get('userId');
-
-    const service = databaseManager.getService();
-    let assignments;
-
-    if (blockId) {
-      assignments = await service.getBlockAssignments(parseInt(blockId));
-    } else if (eventCode && year) {
-      assignments = await service.getBlockAssignmentsByEvent(eventCode, parseInt(year));
-    } else if (userId) {
-      assignments = await service.getBlockAssignmentsByUser(userId);
-    } else {
-      return NextResponse.json(
-        { error: 'blockId, (eventCode and year), or userId is required' },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(assignments);
-  } catch (error) {
-    console.error('Error fetching block assignments:', error);
-    return NextResponse.json({ error: 'Failed to fetch block assignments' }, { status: 500 });
-  }
-}
-
-// POST /api/schedule/assignments - Create new block assignment
+// POST /api/schedule/assignments
+// Body: { eventCode, year, startMatch, endMatch, alliance, position, userId }
+// - If userId is null, clears that slot for the range
+// - Otherwise overwrites that slot for the range to that user
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -52,20 +14,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Allow scouts to assign themselves, but only lead_scout/admin can assign others
     const body = await request.json();
-    const { blockId, userId, alliance, position } = body;
+    const { eventCode, year, startMatch, endMatch, userId, alliance, position } = body;
 
-    if (!blockId || !userId || !alliance || position === undefined) {
+    if (
+      !eventCode ||
+      year === undefined ||
+      startMatch === undefined ||
+      endMatch === undefined ||
+      !alliance ||
+      position === undefined
+    ) {
       return NextResponse.json(
-        { error: 'blockId, userId, alliance, and position are required' },
+        { error: 'eventCode, year, startMatch, endMatch, alliance, and position are required' },
         { status: 400 }
       );
     }
 
-    // Users cannot assign themselves - only users with CREATE_SCHEDULE or EDIT_SCHEDULE can make assignments
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.CREATE_SCHEDULE) && 
-        !hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_SCHEDULE)) {
+    if (
+      !hasPermission(session.user.role ?? null, PERMISSIONS.CREATE_SCHEDULE) &&
+      !hasPermission(session.user.role ?? null, PERMISSIONS.EDIT_SCHEDULE)
+    ) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -73,26 +42,79 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'alliance must be "red" or "blue"' }, { status: 400 });
     }
 
-    if (position < 0 || position > 2) {
-      return NextResponse.json({ error: 'position must be 0, 1, or 2' }, { status: 400 });
+    const yearNum = parseInt(year);
+    const start = parseInt(startMatch);
+    const end = parseInt(endMatch);
+    const positionNum = parseInt(position);
+
+    if (Number.isNaN(yearNum) || Number.isNaN(start) || Number.isNaN(end) || Number.isNaN(positionNum)) {
+      return NextResponse.json({ error: 'year/startMatch/endMatch/position must be numbers' }, { status: 400 });
+    }
+
+    if (start <= 0 || end < start) {
+      return NextResponse.json(
+        { error: 'startMatch must be > 0 and endMatch must be >= startMatch' },
+        { status: 400 }
+      );
+    }
+
+    if (positionNum < 0) {
+      return NextResponse.json({ error: 'position must be a non-negative integer' }, { status: 400 });
     }
 
     const service = databaseManager.getService();
-    const id = await service.addBlockAssignment({
-      blockId: parseInt(blockId),
-      userId,
-      alliance,
-      position: parseInt(position)
-    });
+    const pool = await service.getPool?.();
+    if (!pool) {
+      return NextResponse.json({ error: 'Schedule assignments require a SQL-backed provider' }, { status: 400 });
+    }
 
-    return NextResponse.json({ id }, { status: 201 });
+    const mssql = await import('mssql');
+
+    // Always delete first (overwrite semantics)
+    await pool
+      .request()
+      .input('eventCode', mssql.NVarChar, eventCode)
+      .input('year', mssql.Int, yearNum)
+      .input('startMatch', mssql.Int, start)
+      .input('endMatch', mssql.Int, end)
+      .input('alliance', mssql.NVarChar, alliance)
+      .input('position', mssql.Int, positionNum)
+      .query(`
+        DELETE FROM matchAssignments
+        WHERE eventCode = @eventCode
+          AND year = @year
+          AND matchNumber BETWEEN @startMatch AND @endMatch
+          AND alliance = @alliance
+          AND position = @position
+      `);
+
+    if (userId !== null && userId !== undefined && userId !== '') {
+      const values: string[] = [];
+      for (let matchNumber = start; matchNumber <= end; matchNumber++) {
+        values.push(`(@eventCode, @year, ${matchNumber}, @alliance, @position, @userId)`);
+      }
+
+      await pool
+        .request()
+        .input('eventCode', mssql.NVarChar, eventCode)
+        .input('year', mssql.Int, yearNum)
+        .input('alliance', mssql.NVarChar, alliance)
+        .input('position', mssql.Int, positionNum)
+        .input('userId', mssql.NVarChar, userId)
+        .query(`
+          INSERT INTO matchAssignments (eventCode, year, matchNumber, alliance, position, userId)
+          VALUES ${values.join(', ')}
+        `);
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error('Error creating block assignment:', error);
-    return NextResponse.json({ error: 'Failed to create block assignment' }, { status: 500 });
+    console.error('Error saving schedule assignments:', error);
+    return NextResponse.json({ error: 'Failed to save schedule assignments' }, { status: 500 });
   }
 }
 
-// DELETE /api/schedule/assignments?blockId=xxx - Delete all assignments for a block
+// DELETE /api/schedule/assignments?eventCode=xxx&year=2025 - clear all assignments for an event
 export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
@@ -105,18 +127,33 @@ export async function DELETE(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const blockId = searchParams.get('blockId');
+    const eventCode = searchParams.get('eventCode');
+    const yearRaw = searchParams.get('year');
 
-    if (!blockId) {
-      return NextResponse.json({ error: 'blockId is required' }, { status: 400 });
+    if (!eventCode || !yearRaw) {
+      return NextResponse.json({ error: 'eventCode and year are required' }, { status: 400 });
+    }
+
+    const year = parseInt(yearRaw);
+    if (Number.isNaN(year)) {
+      return NextResponse.json({ error: 'year must be a number' }, { status: 400 });
     }
 
     const service = databaseManager.getService();
-    await service.deleteBlockAssignmentsByBlock(parseInt(blockId));
+    const pool = await service.getPool?.();
+
+    if (pool) {
+      const mssql = await import('mssql');
+      await pool
+        .request()
+        .input('eventCode', mssql.NVarChar, eventCode)
+        .input('year', mssql.Int, year)
+        .query('DELETE FROM matchAssignments WHERE eventCode = @eventCode AND year = @year');
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting block assignments:', error);
-    return NextResponse.json({ error: 'Failed to delete block assignments' }, { status: 500 });
+    console.error('Error clearing schedule assignments:', error);
+    return NextResponse.json({ error: 'Failed to clear schedule assignments' }, { status: 500 });
   }
 }

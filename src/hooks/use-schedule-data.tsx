@@ -3,7 +3,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSelectedEvent } from './use-event-config';
 import { useGameConfig } from './use-game-config';
-import type { ScoutingBlockWithAssignments, BlockAssignment } from '@/lib/shared-types';
+
+type ScheduleBlock = {
+  id: number;
+  eventCode: string;
+  year: number;
+  blockNumber: number;
+  startMatch: number;
+  endMatch: number;
+  created_at?: Date;
+  updated_at?: Date;
+  redScouts: Array<string | null>;
+  blueScouts: Array<string | null>;
+};
 
 interface User {
   id: string;
@@ -21,14 +33,14 @@ interface UserWithPartners extends User {
 export function useScheduleData() {
   const selectedEvent = useSelectedEvent();
   const { currentYear, competitionType } = useGameConfig();
-  
+
   // Core state
   const [users, setUsers] = useState<UserWithPartners[]>([]);
-  const [blocks, setBlocks] = useState<ScoutingBlockWithAssignments[]>([]);
+  const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
+
   // Configuration state
   const [blockSize, setBlockSize] = useState<number>(5);
   const [matchCount, setMatchCount] = useState<number>(0);
@@ -52,11 +64,13 @@ export function useScheduleData() {
           throw new Error('Failed to fetch users');
         }
         const usersData = await usersResponse.json();
-        
-        const usersWithPartners: UserWithPartners[] = usersData.users.map((user: User & { preferredPartners?: string[] }) => ({
-          ...user,
-          preferredPartners: user.preferredPartners || []
-        }));
+
+        const usersWithPartners: UserWithPartners[] = usersData.users.map(
+          (user: User & { preferredPartners?: string[] }) => ({
+            ...user,
+            preferredPartners: user.preferredPartners || [],
+          })
+        );
         setUsers(usersWithPartners);
       } catch (err) {
         console.error('Error fetching users:', err);
@@ -66,49 +80,7 @@ export function useScheduleData() {
     fetchUsers();
   }, []);
 
-  // Fetch blocks for event
-  useEffect(() => {
-    const fetchBlocks = async () => {
-      if (!selectedEvent) {
-        setBlocks([]);
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const blocksResponse = await fetch(
-          `/api/schedule/blocks?eventCode=${selectedEvent.code}&year=${currentYear}&competitionType=${competitionType}`
-        );
-        if (blocksResponse.ok) {
-          const blocksData = await blocksResponse.json();
-          setBlocks(blocksData);
-          
-          // Extract block size from existing blocks if any
-          if (blocksData.length > 0) {
-            const firstBlock = blocksData[0];
-            const size = firstBlock.endMatch - firstBlock.startMatch + 1;
-            if (size > 0) {
-              setBlockSize(size);
-            }
-          }
-        } else {
-          setBlocks([]);
-        }
-      } catch (err) {
-        console.error('Error fetching blocks:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchBlocks();
-  }, [selectedEvent, currentYear, competitionType, refreshTrigger]);
-
-  // Fetch match count from API
+  // Fetch match count from API (unchanged behavior)
   useEffect(() => {
     const fetchMatchCount = async () => {
       if (!selectedEvent) {
@@ -118,14 +90,16 @@ export function useScheduleData() {
       }
 
       try {
-        const matchesResponse = await fetch(`/api/event/matches?eventCode=${selectedEvent.code}&competitionType=${competitionType}&season=${currentYear}`);
-        
+        const matchesResponse = await fetch(
+          `/api/event/matches?eventCode=${selectedEvent.code}&competitionType=${competitionType}&season=${currentYear}`
+        );
+
         if (matchesResponse.ok) {
           const matchesData = await matchesResponse.json();
           const count = matchesData.qualMatchesCount || matchesData.totalMatches || 0;
           setApiMatchCount(count);
           setIsApiMatchCountAvailable(count > 0);
-          
+
           // Auto-set match count if not already set and API has data
           if (count > 0 && matchCount === 0) {
             setMatchCount(count);
@@ -153,59 +127,125 @@ export function useScheduleData() {
     fetchMatchCount();
   }, [selectedEvent, currentYear, competitionType, matchCount]);
 
-  // Generate blocks based on match count and block size
-  const generateBlocks = useCallback(async () => {
-    if (!selectedEvent || matchCount <= 0 || blockSize <= 0) return;
+  // Fetch virtual blocks for event
+  useEffect(() => {
+    const hydrateBlocks = async () => {
+      if (!selectedEvent || matchCount <= 0 || blockSize <= 0) {
+        setBlocks([]);
+        setIsLoading(false);
+        return;
+      }
 
-    try {
-      // Delete existing blocks first
-      await fetch(`/api/schedule/blocks?eventCode=${selectedEvent.code}&year=${currentYear}`, {
-        method: 'DELETE',
-      });
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      // Calculate number of blocks
-      const numBlocks = Math.ceil(matchCount / blockSize);
-      
-      // Create blocks with proper match ranges
-      const blockPromises = [];
-      let currentMatch = 1;
-      
-      for (let i = 0; i < numBlocks; i++) {
-        const startMatch = currentMatch;
-        const endMatch = Math.min(currentMatch + blockSize - 1, matchCount);
-        
-        blockPromises.push(
-          fetch('/api/schedule/blocks', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+        const scoutsPerAlliance = competitionType === 'FTC' ? 2 : 3;
+
+        // Compute virtual shifts locally (no /api/schedule/blocks API).
+        const computedBlocks: ScheduleBlock[] = Array.from(
+          { length: Math.ceil(matchCount / blockSize) },
+          (_, i) => {
+            const startMatch = i * blockSize + 1;
+            const endMatch = Math.min(startMatch + blockSize - 1, matchCount);
+            return {
+              id: i + 1,
               eventCode: selectedEvent.code,
               year: currentYear,
               blockNumber: i + 1,
               startMatch,
-              endMatch
-            })
-          })
+              endMatch,
+              created_at: undefined,
+              updated_at: undefined,
+              redScouts: Array(scoutsPerAlliance).fill(null),
+              blueScouts: Array(scoutsPerAlliance).fill(null),
+            };
+          }
         );
-        
-        currentMatch = endMatch + 1;
-      }
 
-      await Promise.all(blockPromises);
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error('Error generating blocks:', error);
-      throw error;
-    }
-  }, [selectedEvent, currentYear, matchCount, blockSize]);
+        // Hydrate from matchAssignments by collapsing match-level assignments to shift-level,
+        // only when consistent across the whole shift range.
+        const res = await fetch(
+          `/api/database/match-assignments?eventCode=${selectedEvent.code}&year=${currentYear}`
+        );
+
+        if (!res.ok) {
+          setBlocks(computedBlocks);
+          return;
+        }
+
+        const rows = (await res.json()) as Array<{
+          matchNumber: number;
+          alliance: 'red' | 'blue';
+          position: number;
+          userId: string;
+        }>;
+
+        const byMatch = new Map<number, Map<'red' | 'blue', Map<number, string>>>();
+        for (const r of rows) {
+          let byAlliance = byMatch.get(r.matchNumber);
+          if (!byAlliance) {
+            byAlliance = new Map();
+            byMatch.set(r.matchNumber, byAlliance);
+          }
+          let byPos = byAlliance.get(r.alliance);
+          if (!byPos) {
+            byPos = new Map();
+            byAlliance.set(r.alliance, byPos);
+          }
+          byPos.set(r.position, r.userId);
+        }
+
+        const hydrated = computedBlocks.map(block => {
+          const getConsistent = (alliance: 'red' | 'blue', position: number): string | null => {
+            let value: string | null = null;
+            for (let matchNumber = block.startMatch; matchNumber <= block.endMatch; matchNumber++) {
+              const v = byMatch.get(matchNumber)?.get(alliance)?.get(position) ?? null;
+              if (matchNumber === block.startMatch) value = v;
+              else if (value !== v) return null;
+            }
+            return value;
+          };
+
+          const redScouts = [...block.redScouts];
+          const blueScouts = [...block.blueScouts];
+          for (let pos = 0; pos < scoutsPerAlliance; pos++) {
+            redScouts[pos] = getConsistent('red', pos);
+            blueScouts[pos] = getConsistent('blue', pos);
+          }
+
+          return { ...block, redScouts, blueScouts };
+        });
+
+        setBlocks(hydrated);
+      } catch (err) {
+        console.error('Error hydrating schedule:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+        setBlocks([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    hydrateBlocks();
+  }, [selectedEvent, currentYear, competitionType, matchCount, blockSize, refreshTrigger]);
+
+  // Generate blocks based on match count and block size
+  // Blocks are virtual now; this just triggers a refresh.
+  const generateBlocks = useCallback(async () => {
+    if (!selectedEvent || matchCount <= 0 || blockSize <= 0) return;
+    setRefreshTrigger(prev => prev + 1);
+  }, [selectedEvent, matchCount, blockSize]);
 
   // Sync match count from API
   const syncMatchCountFromApi = useCallback(async () => {
     if (!selectedEvent) return { success: false, count: 0 };
 
     try {
-      const matchesResponse = await fetch(`/api/event/matches?eventCode=${selectedEvent.code}&competitionType=${competitionType}&season=${currentYear}`);
-      
+      const matchesResponse = await fetch(
+        `/api/event/matches?eventCode=${selectedEvent.code}&competitionType=${competitionType}&season=${currentYear}`
+      );
+
       if (matchesResponse.ok) {
         const matchesData = await matchesResponse.json();
         const count = matchesData.qualMatchesCount || matchesData.totalMatches || 0;
@@ -228,143 +268,63 @@ export function useScheduleData() {
     setMatchCount(count);
   }, []);
 
-  // Assign scout to block position
-  const assignScout = useCallback(async (
-    blockId: number,
-    userId: string | null,
-    alliance: 'red' | 'blue',
-    position: number
-  ) => {
-    try {
-      if (userId === null) {
-        const blockToUpdate = blocks?.find((b: ScoutingBlockWithAssignments) => b.id === blockId);
-        if (!blockToUpdate) return;
+  // Assign scout to a virtual block position (range write)
+  const assignScout = useCallback(
+    async (blockId: number, userId: string | null, alliance: 'red' | 'blue', position: number) => {
+      if (!selectedEvent) return;
 
-        const scoutsArray = alliance === 'red' ? blockToUpdate.redScouts : blockToUpdate.blueScouts;
-        const currentUserId = scoutsArray[position];
-        
-        if (currentUserId) {
-          const assignmentsResponse = await fetch(`/api/schedule/assignments?blockId=${blockId}`);
-          if (assignmentsResponse.ok) {
-            const allAssignments: BlockAssignment[] = await assignmentsResponse.json();
-            const assignmentToDelete = allAssignments.find(
-              a => a.userId === currentUserId && a.alliance === alliance && a.position === position
-            );
-            
-            if (assignmentToDelete?.id) {
-              await fetch(`/api/schedule/assignments/${assignmentToDelete.id}`, {
-                method: 'DELETE',
-              });
-            }
-          }
-        }
-      } else {
-        const response = await fetch('/api/schedule/assignments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            blockId,
-            userId,
-            alliance,
-            position
-          })
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to create assignment');
-        }
-      }
-    } catch (error) {
-      console.error('Error assigning scout:', error);
-      throw error;
-    }
-  }, [blocks]);
+      const block = blocks.find(b => b.id === blockId);
+      if (!block) return;
 
-  // Clear all assignments for the event
-  const clearAllAssignments = useCallback(async () => {
-    if (!selectedEvent) return;
-
-    try {
-      await Promise.all(
-        blocks.map((block: ScoutingBlockWithAssignments) => 
-          fetch(`/api/schedule/assignments?blockId=${block.id}`, {
-            method: 'DELETE',
-          })
-        )
-      );
-
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error('Error clearing assignments:', error);
-      throw error;
-    }
-  }, [selectedEvent, blocks]);
-
-  // Delete all blocks
-  const deleteAllBlocks = useCallback(async () => {
-    if (!selectedEvent) return;
-
-    try {
-      await fetch(`/api/schedule/blocks?eventCode=${selectedEvent.code}&year=${currentYear}`, {
-        method: 'DELETE',
-      });
-      
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error('Error deleting blocks:', error);
-      throw error;
-    }
-  }, [selectedEvent, currentYear]);
-
-  // Add a single block at the end
-  const addBlock = useCallback(async () => {
-    if (!selectedEvent || blocks.length === 0) return;
-
-    try {
-      const lastBlock = [...blocks].sort((a, b) => b.blockNumber - a.blockNumber)[0];
-      const nextBlockNumber = lastBlock.blockNumber + 1;
-      const startMatch = lastBlock.endMatch + 1;
-      const endMatch = startMatch + blockSize - 1;
-
-      const response = await fetch('/api/schedule/blocks', {
+      const response = await fetch('/api/schedule/assignments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventCode: selectedEvent.code,
           year: currentYear,
-          blockNumber: nextBlockNumber,
-          startMatch,
-          endMatch
-        })
+          startMatch: block.startMatch,
+          endMatch: block.endMatch,
+          alliance,
+          position,
+          userId,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create block');
+        throw new Error('Failed to save assignment');
       }
+    },
+    [selectedEvent, currentYear, blocks]
+  );
 
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error('Error adding block:', error);
-      throw error;
+  // Clear all assignments for the event
+  const clearAllAssignments = useCallback(async () => {
+    if (!selectedEvent) return;
+
+    const response = await fetch(`/api/schedule/assignments?eventCode=${selectedEvent.code}&year=${currentYear}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to clear assignments');
     }
-  }, [selectedEvent, currentYear, blocks, blockSize]);
 
-  // Delete a single block
-  const deleteBlock = useCallback(async (blockId: number) => {
-    try {
-      const response = await fetch(`/api/schedule/blocks/${blockId}`, {
-        method: 'DELETE',
-      });
+    setRefreshTrigger(prev => prev + 1);
+  }, [selectedEvent, currentYear]);
 
-      if (!response.ok) {
-        throw new Error('Failed to delete block');
-      }
+  // Delete all blocks (virtual) => clear all schedule data
+  const deleteAllBlocks = useCallback(async () => {
+    // Clearing schedule == clearing all matchAssignments for this event
+    await clearAllAssignments();
+  }, [clearAllAssignments]);
 
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error('Error deleting block:', error);
-      throw error;
-    }
+  // Add/delete single block are no longer supported; keep them as helpers that refresh.
+  const addBlock = useCallback(async () => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  const deleteBlock = useCallback(async () => {
+    setRefreshTrigger(prev => prev + 1);
   }, []);
 
   // Refresh data manually
@@ -376,7 +336,7 @@ export function useScheduleData() {
     // Data
     users,
     blocks,
-    
+
     // Configuration
     blockSize,
     setBlockSize,
@@ -385,12 +345,12 @@ export function useScheduleData() {
     apiMatchCount,
     isApiMatchCountAvailable,
     competitionType,
-    
+
     // State
     isLoading,
     error,
     hasEvent: !!selectedEvent,
-    
+
     // Actions
     generateBlocks,
     syncMatchCountFromApi,

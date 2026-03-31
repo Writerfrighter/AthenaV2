@@ -4,7 +4,17 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSelectedEvent } from './use-event-config';
 import { useGameConfig } from './use-game-config';
-import type { ScoutingBlockWithAssignments } from '@/lib/shared-types';
+
+type ScheduleBlock = {
+  id: number;
+  eventCode: string;
+  year: number;
+  blockNumber: number;
+  startMatch: number;
+  endMatch: number;
+  redScouts: Array<string | null>;
+  blueScouts: Array<string | null>;
+};
 
 interface ScoutingAssignment {
   blockId: number;
@@ -20,13 +30,13 @@ export function useScoutingAssignment() {
   const selectedEvent = useSelectedEvent();
   const { currentYear, competitionType } = useGameConfig();
   
-  const [blocks, setBlocks] = useState<ScoutingBlockWithAssignments[]>([]);
+  const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch scouting blocks for the event
+  // Fetch scouting schedule for the event
   useEffect(() => {
-    const fetchBlocks = async () => {
+    const fetchSchedule = async () => {
       if (!selectedEvent?.code) {
         setBlocks([]);
         return;
@@ -36,18 +46,108 @@ export function useScoutingAssignment() {
       setError(null);
 
       try {
-        const response = await fetch(
-          `/api/schedule/blocks?eventCode=${selectedEvent.code}&year=${currentYear}&competitionType=${competitionType}`
-        );
+        // Default shift size if user hasn't configured it here.
+        const blockSize = competitionType === 'FTC' ? 3 : 5;
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch scouting blocks');
+        // Get matchCount (prefer API, fallback to custom-events)
+        let matchCount = 0;
+        const matchesResponse = await fetch(
+          `/api/event/matches?eventCode=${selectedEvent.code}&competitionType=${competitionType}&season=${currentYear}`
+        );
+        if (matchesResponse.ok) {
+          const matchesData = await matchesResponse.json();
+          matchCount = matchesData.qualMatchesCount || matchesData.totalMatches || 0;
         }
 
-        const data: ScoutingBlockWithAssignments[] = await response.json();
-        setBlocks(data);
+        if (!matchCount) {
+          const customResponse = await fetch(`/api/database/custom-events?year=${currentYear}`);
+          if (customResponse.ok) {
+            const customEvents = await customResponse.json();
+            const customEvent = customEvents.find((e: { eventCode: string }) => e.eventCode === selectedEvent.code);
+            matchCount = customEvent?.matchCount || 0;
+          }
+        }
+
+        if (!matchCount) {
+          setBlocks([]);
+          return;
+        }
+
+        const scoutsPerAlliance = competitionType === 'FTC' ? 2 : 3;
+
+        const computedBlocks: ScheduleBlock[] = Array.from(
+          { length: Math.ceil(matchCount / blockSize) },
+          (_, i) => {
+            const startMatch = i * blockSize + 1;
+            const endMatch = Math.min(startMatch + blockSize - 1, matchCount);
+            return {
+              id: i + 1,
+              eventCode: selectedEvent.code,
+              year: currentYear,
+              blockNumber: i + 1,
+              startMatch,
+              endMatch,
+              redScouts: Array(scoutsPerAlliance).fill(null),
+              blueScouts: Array(scoutsPerAlliance).fill(null),
+            };
+          }
+        );
+
+        const res = await fetch(
+          `/api/database/match-assignments?eventCode=${selectedEvent.code}&year=${currentYear}`
+        );
+
+        if (!res.ok) {
+          setBlocks(computedBlocks);
+          return;
+        }
+
+        const rows = (await res.json()) as Array<{
+          matchNumber: number;
+          alliance: 'red' | 'blue';
+          position: number;
+          userId: string;
+        }>;
+
+        const byMatch = new Map<number, Map<'red' | 'blue', Map<number, string>>>();
+        for (const r of rows) {
+          let byAlliance = byMatch.get(r.matchNumber);
+          if (!byAlliance) {
+            byAlliance = new Map();
+            byMatch.set(r.matchNumber, byAlliance);
+          }
+          let byPos = byAlliance.get(r.alliance);
+          if (!byPos) {
+            byPos = new Map();
+            byAlliance.set(r.alliance, byPos);
+          }
+          byPos.set(r.position, r.userId);
+        }
+
+        const hydrated = computedBlocks.map(block => {
+          const getConsistent = (alliance: 'red' | 'blue', position: number): string | null => {
+            let value: string | null = null;
+            for (let matchNumber = block.startMatch; matchNumber <= block.endMatch; matchNumber++) {
+              const v = byMatch.get(matchNumber)?.get(alliance)?.get(position) ?? null;
+              if (matchNumber === block.startMatch) value = v;
+              else if (value !== v) return null;
+            }
+            return value;
+          };
+
+          const redScouts = [...block.redScouts];
+          const blueScouts = [...block.blueScouts];
+          for (let pos = 0; pos < scoutsPerAlliance; pos++) {
+            redScouts[pos] = getConsistent('red', pos);
+            blueScouts[pos] = getConsistent('blue', pos);
+          }
+
+          return { ...block, redScouts, blueScouts };
+        });
+
+        setBlocks(hydrated);
       } catch (err) {
-        console.error('Error fetching scouting blocks:', err);
+        console.error('Error loading scouting schedule:', err);
         setError(err instanceof Error ? err.message : 'Failed to load scouting schedule');
         setBlocks([]);
       } finally {
@@ -55,7 +155,7 @@ export function useScoutingAssignment() {
       }
     };
 
-    fetchBlocks();
+    fetchSchedule();
   }, [selectedEvent?.code, currentYear, competitionType]);
 
   // Find the current user's assignments across all blocks
@@ -67,10 +167,10 @@ export function useScoutingAssignment() {
 
     for (const block of blocks) {
       // Check red alliance positions
-      block.redScouts.forEach((scoutId, index) => {
+      block.redScouts.forEach((scoutId: string | null, index: number) => {
         if (scoutId === userId) {
           assignments.push({
-            blockId: block.id!,
+            blockId: block.id,
             blockNumber: block.blockNumber,
             startMatch: block.startMatch,
             endMatch: block.endMatch,
@@ -81,10 +181,10 @@ export function useScoutingAssignment() {
       });
 
       // Check blue alliance positions
-      block.blueScouts.forEach((scoutId, index) => {
+      block.blueScouts.forEach((scoutId: string | null, index: number) => {
         if (scoutId === userId) {
           assignments.push({
-            blockId: block.id!,
+            blockId: block.id,
             blockNumber: block.blockNumber,
             startMatch: block.startMatch,
             endMatch: block.endMatch,

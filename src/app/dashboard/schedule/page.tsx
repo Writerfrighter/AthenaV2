@@ -13,10 +13,18 @@ import { useScheduleData } from '@/hooks/use-schedule-data'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
-import type { ScoutingBlockWithAssignments } from '@/lib/shared-types'
 import { toast } from 'sonner'
-import { useSession } from 'next-auth/react'
-import { hasPermission, PERMISSIONS } from '@/lib/auth/roles'
+
+type ScheduleBlock = {
+  id: number
+  eventCode: string
+  year: number
+  blockNumber: number
+  startMatch: number
+  endMatch: number
+  redScouts: (string | null)[]
+  blueScouts: (string | null)[]
+}
 
 // User type with preferred partners
 interface UserWithPartners {
@@ -82,12 +90,7 @@ export default function SchedulePage() {
     refreshData,
   } = useScheduleData()
 
-  // Get session for permission checking
-  const { data: session } = useSession()
-  const canEditSchedule = useMemo(() => {
-    const role = session?.user?.role ?? null
-    return hasPermission(role, PERMISSIONS.CREATE_SCHEDULE) || hasPermission(role, PERMISSIONS.EDIT_SCHEDULE)
-  }, [session?.user?.role])
+  const canEditSchedule = true
 
   // UI state
   const [activeScouts, setActiveScouts] = useState<string[]>([])
@@ -107,9 +110,9 @@ export default function SchedulePage() {
   const [lastSyncedDbBlocksRef, setLastSyncedDbBlocksRef] = useState<string>('')
 
   // Map DB blocks to display format
-  const mapBlocksToDisplay = useCallback((sourceBlocks: ScoutingBlockWithAssignments[]): DisplayBlock[] => {
+  const mapBlocksToDisplay = useCallback((sourceBlocks: ScheduleBlock[]): DisplayBlock[] => {
     return sourceBlocks.map(block => ({
-      id: block.id!,
+      id: block.id,
       name: `Shift ${block.blockNumber}`,
       blockNumber: block.blockNumber,
       matches: Array.from({ length: block.endMatch - block.startMatch + 1 }, (_, i) => block.startMatch + i),
