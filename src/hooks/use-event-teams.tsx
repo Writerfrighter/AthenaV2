@@ -29,16 +29,22 @@ export function useEventTeams() {
   });
 
   useEffect(() => {
+    let isCancelled = false;
+
     async function fetchTeams() {
       if (!selectedEvent?.code) {
-        setTeamState({
-          teams: [],
-          loading: false,
-          error: null,
-          isOfflineData: false,
-        });
+        if (!isCancelled) {
+          setTeamState({
+            teams: [],
+            loading: false,
+            error: null,
+            isOfflineData: false,
+          });
+        }
         return;
       }
+
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
       setTeamState(prev => ({
         ...prev,
@@ -46,32 +52,45 @@ export function useEventTeams() {
         error: null,
       }));
 
-      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      let hasCachedTeams = false;
+      try {
+        const cachedData = await indexedDBService.getCachedEventTeams(selectedEvent.code);
+        if (cachedData && cachedData.teams.length > 0 && !isCancelled) {
+          hasCachedTeams = true;
+          setTeamState({
+            teams: [...cachedData.teams].sort((a, b) => a.teamNumber - b.teamNumber),
+            loading: isOnline,
+            error: null,
+            isOfflineData: true,
+          });
+        }
+      } catch (cacheError) {
+        console.warn('Failed to get cached teams:', cacheError);
+      }
 
       // If offline, try to get cached data first
       if (!isOnline) {
-        try {
-          const cachedData = await indexedDBService.getCachedEventTeams(selectedEvent.code);
-          if (cachedData && cachedData.teams.length > 0) {
-            setTeamState({
-              teams: cachedData.teams.sort((a, b) => a.teamNumber - b.teamNumber),
+        if (hasCachedTeams) {
+          if (!isCancelled) {
+            setTeamState(prev => ({
+              ...prev,
               loading: false,
               error: null,
               isOfflineData: true,
-            });
-            return;
+            }));
           }
-        } catch (cacheError) {
-          console.warn('Failed to get cached teams:', cacheError);
+          return;
         }
 
         // No cached data available while offline
-        setTeamState({
-          teams: [],
-          loading: false,
-          error: 'Offline - no cached team data available. Connect to internet to download team list.',
-          isOfflineData: false,
-        });
+        if (!isCancelled) {
+          setTeamState({
+            teams: [],
+            loading: false,
+            error: 'Offline - no cached team data available. Connect to internet to download team list.',
+            isOfflineData: false,
+          });
+        }
         return;
       }
 
@@ -110,41 +129,45 @@ export function useEventTeams() {
           console.warn('Failed to cache teams:', cacheError);
         }
 
-        setTeamState({
-          teams: sortedTeams,
-          loading: false,
-          error: null,
-          isOfflineData: false,
-        });
+        if (!isCancelled) {
+          setTeamState({
+            teams: sortedTeams,
+            loading: false,
+            error: null,
+            isOfflineData: false,
+          });
+        }
       } catch (error) {
         console.error('Error fetching teams:', error);
-        
-        // Try to fall back to cached data on fetch error
-        try {
-          const cachedData = await indexedDBService.getCachedEventTeams(selectedEvent.code);
-          if (cachedData && cachedData.teams.length > 0) {
-            setTeamState({
-              teams: cachedData.teams.sort((a, b) => a.teamNumber - b.teamNumber),
+
+        if (hasCachedTeams) {
+          if (!isCancelled) {
+            setTeamState(prev => ({
+              ...prev,
               loading: false,
               error: null,
               isOfflineData: true,
-            });
-            return;
+            }));
           }
-        } catch (cacheError) {
-          console.warn('Failed to get cached teams on error fallback:', cacheError);
+          return;
         }
 
-        setTeamState({
-          teams: [],
-          loading: false,
-          error: `Failed to fetch teams: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          isOfflineData: false,
-        });
+        if (!isCancelled) {
+          setTeamState({
+            teams: [],
+            loading: false,
+            error: `Failed to fetch teams: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            isOfflineData: false,
+          });
+        }
       }
     }
 
     fetchTeams();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [selectedEvent?.code, competitionType, currentYear]);
 
   return teamState;

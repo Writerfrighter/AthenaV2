@@ -62,7 +62,7 @@ export function DraggablePicklist({
   const localPick2Ref = useRef<SortableTeamItem[]>([]);
 
   // Get all event teams
-  const { teams: allEventTeams = [] } = useEventTeams();
+  const { teams: allEventTeams = [], loading: isEventTeamsLoading } = useEventTeams();
 
   // Initialize picklists
   const pick1 = usePicklist({
@@ -278,11 +278,16 @@ export function DraggablePicklist({
 
   const totalEventTeams = allEventTeams.filter(t => t.teamNumber !== ownTeamNumber).length;
 
+  const teamNameByNumber = useMemo(() => {
+    return new Map(allEventTeams.map((team) => [team.teamNumber, team.nickname]));
+  }, [allEventTeams]);
+
   const actualPicklistCount = localPick1Order.length + localPick2Order.length;
   const hasDiscrepancy = (
     totalPicklistTeams + localUnlisted.length !== totalEventTeams ||
     totalPicklistTeams !== actualPicklistCount
   );
+  const showCountMismatch = !isEventTeamsLoading && hasDiscrepancy;
 
   // Resolve which picklistId a team belongs to (pick1, pick2, or fallback)
   const resolvePicklistId = useCallback((teamNumber: number): number | undefined => {
@@ -453,6 +458,7 @@ export function DraggablePicklist({
     const isExpanded = expandedTeams.has(teamNumber);
     const qualRank = qualRankings.get(teamNumber);
     const epa = epaData.get(teamNumber);
+    const teamName = teamNameByNumber.get(teamNumber) || `Team ${teamNumber}`;
 
     return (
       <div key={teamNumber} data-id={String(teamNumber)}>
@@ -501,6 +507,10 @@ export function DraggablePicklist({
 
             <CollapsibleContent>
               <div className="px-3 pb-3 space-y-3 border-t pt-3 bg-background">
+                <div>
+                  <div className="text-xs text-muted-foreground">Team Name</div>
+                  <div className="font-semibold">{teamName}</div>
+                </div>
                 {epa && (
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="rounded-md border p-2">
@@ -590,7 +600,7 @@ export function DraggablePicklist({
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
             {totalPicklistTeams + localUnlisted.length} / {totalEventTeams} teams (excluding #{ownTeamNumber})
-            {hasDiscrepancy && (
+            {showCountMismatch && (
               <span className="text-destructive ml-2">⚠ Team count mismatch detected</span>
             )}
           </p>
@@ -715,7 +725,10 @@ export function DraggablePicklist({
               >
                 {localUnlisted.map((item) => renderTeamCard(item.teamNumber, null, 'Unlisted'))}
               </ReactSortable>
-              {localUnlisted.length === 0 && (
+              {localUnlisted.length === 0 && isEventTeamsLoading && (
+                <div className="text-center py-12 text-muted-foreground">Loading event teams...</div>
+              )}
+              {localUnlisted.length === 0 && !isEventTeamsLoading && (
                 <div className="text-center py-12 text-muted-foreground">All teams assigned</div>
               )}
             </CardContent>

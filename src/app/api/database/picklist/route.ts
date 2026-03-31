@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     const eventCode = searchParams.get('eventCode');
     const competitionType = (searchParams.get('competitionType') as CompetitionType) || 'FRC';
     const picklistType = searchParams.get('picklistType') || 'main';
+    const existingOnly = searchParams.get('existingOnly') === 'true';
 
     const service = getDbService();
 
@@ -74,8 +75,19 @@ export async function GET(request: NextRequest) {
             success: true
           });
         }
+
+        if (existingOnly) {
+          return NextResponse.json({
+            picklist: null,
+            entries: [],
+            success: true
+          });
+        }
       } catch (error) {
         console.error('Error fetching existing picklist by event:', error);
+        if (existingOnly) {
+          return NextResponse.json({ error: 'Failed to fetch existing picklist' }, { status: 500 });
+        }
         // Continue to generate rankings if no existing picklist found
       }
     }
