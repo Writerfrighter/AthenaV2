@@ -5,6 +5,7 @@ import { computeScouterAccuracy } from '@/lib/statistics';
 import gameConfig from '../../../../../config/game-config-loader';
 import { auth } from '@/lib/auth/config';
 import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
+import { fetchOfficialResults, OfficialResultsError } from '@/lib/api/spr-official-results';
 
 // Get database service from manager
 function getDbService() {
@@ -21,6 +22,7 @@ function getDbService() {
  * - year: number (required) - The competition year
  * - eventCode: string (required) - The event code
  * - competitionType: 'FRC' | 'FTC' (default: 'FRC')
+ * - verbose: 'true' | 'false' (default: 'false') - Include by-match equation breakdown data
  * 
  * Returns:
  * - scouters: Array of scouter performance data sorted by accuracy (best to worst)
@@ -42,6 +44,7 @@ export async function GET(request: NextRequest) {
     const year = searchParams.get('year');
     const eventCode = searchParams.get('eventCode');
     const competitionType = (searchParams.get('competitionType') as CompetitionType) || 'FRC';
+    const verbose = searchParams.get('verbose') === 'true';
 
     // Validate required parameters
     if (!year) {
@@ -66,23 +69,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch official results from internal API
-    const officialResultsUrl = new URL('/api/database/spr/official-results', request.url);
-    officialResultsUrl.searchParams.set('eventCode', eventCode);
-    officialResultsUrl.searchParams.set('competitionType', competitionType);
-    officialResultsUrl.searchParams.set('year', year);
+    let officialResultsJson;
+    try {
+      officialResultsJson = await fetchOfficialResults(eventCode, competitionType, yearNum);
+    } catch (error) {
+      if (error instanceof OfficialResultsError) {
+        return NextResponse.json(
+          {
+            error: 'Failed to fetch official results from TBA',
+            details: error.details || error.message,
+          },
+          { status: error.status }
+        );
+      }
 
-    const officialResultsResponse = await fetch(officialResultsUrl.toString());
-    
-    if (!officialResultsResponse.ok) {
-      const errorData = await officialResultsResponse.json();
-      return NextResponse.json(
-        { error: 'Failed to fetch official results from TBA', details: errorData.error },
-        { status: 502 }
-      );
+      throw error;
     }
 
-    const officialResultsJson = await officialResultsResponse.json();
     const officialResultsData = officialResultsJson.results as Record<string, {
       red: { officialScore: number; foulPoints: number };
       blue: { officialScore: number; foulPoints: number };
@@ -143,7 +146,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate scouter accuracy
-    const result = computeScouterAccuracy(matchesWithScouters, officialResults, yearConfig);
+    const result = computeScouterAccuracy(matchesWithScouters, officialResults, yearConfig, {
+      verbose,
+    });
 
     // Resolve scouter IDs to user names
     const scouterIds = result.scouters.map(s => s.scouterId);
@@ -179,6 +184,15 @@ export async function GET(request: NextRequest) {
         overallMeanError: result.overallMeanError,
         convergenceAchieved: result.convergenceAchieved,
         message: result.message,
+        verboseData: result.verboseData
+          ? {
+              ...result.verboseData,
+              equations: result.verboseData.equations.map((equation) => ({
+                ...equation,
+                scouterNames: equation.scouterIds.map((id) => userNameMap[id] || 'Unknown Scouter'),
+              })),
+            }
+          : undefined,
         metadata: {
           totalMatches: matchesWithScouters.length,
           uniqueScouters: result.scouters.length,
