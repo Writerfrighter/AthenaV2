@@ -8,7 +8,7 @@ interface UsePicklistOptions {
   eventCode: string;
   year: number;
   competitionType: CompetitionType;
-  picklistType?: 'pick1' | 'pick2' | 'main';
+  picklistType?: 'pick1' | 'pick2' | 'blacklist' | 'main';
 }
 
 interface TeamPicklistData {
