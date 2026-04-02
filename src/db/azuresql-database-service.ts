@@ -258,7 +258,6 @@ export class AzureSqlDatabaseService implements DatabaseService {
         picklistId INT NOT NULL,
         teamNumber INT NOT NULL,
         rank INT NOT NULL,
-        qualRanking INT,
         source NVARCHAR(50),
         notes NVARCHAR(MAX),
         created_at DATETIME DEFAULT GETDATE(),
@@ -266,6 +265,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
         FOREIGN KEY (picklistId) REFERENCES picklists(id) ON DELETE CASCADE,
         CONSTRAINT uq_picklist_team UNIQUE (picklistId, teamNumber)
       )
+    `);
+
+    // Remove legacy persisted qualification ranking; live rankings are sourced from event APIs.
+    await pool.request().query(`
+      IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_NAME = 'picklistEntries' AND COLUMN_NAME = 'qualRanking')
+      ALTER TABLE picklistEntries DROP COLUMN qualRanking
     `);
 
     // Create picklistNotes table
@@ -1020,13 +1026,12 @@ export class AzureSqlDatabaseService implements DatabaseService {
       .input('picklistId', mssql.Int, e.picklistId)
       .input('teamNumber', mssql.Int, e.teamNumber)
       .input('rank', mssql.Int, e.rank)
-      .input('qualRanking', mssql.Int, e.qualRanking || null)
       .input('source', mssql.NVarChar, e.source || null)
       .input('notes', mssql.NVarChar, e.notes || null)
       .query(`
-        INSERT INTO picklistEntries (picklistId, teamNumber, rank, qualRanking, source, notes)
+        INSERT INTO picklistEntries (picklistId, teamNumber, rank, source, notes)
         OUTPUT INSERTED.id
-        VALUES (@picklistId, @teamNumber, @rank, @qualRanking, @source, @notes)
+        VALUES (@picklistId, @teamNumber, @rank, @source, @notes)
       `);
 
     return result.recordset[0].id;
@@ -1043,7 +1048,6 @@ export class AzureSqlDatabaseService implements DatabaseService {
       picklistId: row.picklistId,
       teamNumber: row.teamNumber,
       rank: row.rank,
-      qualRanking: row.qualRanking || undefined,
       source: row.source || undefined,
       notes: row.notes || undefined,
       created_at: row.created_at,
@@ -1060,7 +1064,6 @@ export class AzureSqlDatabaseService implements DatabaseService {
       picklistId: row.picklistId,
       teamNumber: row.teamNumber,
       rank: row.rank,
-      qualRanking: row.qualRanking || undefined,
       source: row.source || undefined,
       notes: row.notes || undefined,
       created_at: row.created_at,
@@ -1145,9 +1148,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
           .input('rank', mssql.Int, e.rank)
           .query(`
             IF EXISTS (SELECT 1 FROM picklistEntries WHERE picklistId = @picklistId AND teamNumber = @teamNumber)
-              UPDATE picklistEntries SET rank = @rank, updated_at = GETDATE() WHERE picklistId = @picklistId AND teamNumber = @teamNumber
+              UPDATE picklistEntries
+              SET rank = @rank,
+                  updated_at = GETDATE()
+              WHERE picklistId = @picklistId AND teamNumber = @teamNumber
             ELSE
-              INSERT INTO picklistEntries (picklistId, teamNumber, rank) VALUES (@picklistId, @teamNumber, @rank)
+              INSERT INTO picklistEntries (picklistId, teamNumber, rank)
+              VALUES (@picklistId, @teamNumber, @rank)
           `);
       }
       await tx.commit();

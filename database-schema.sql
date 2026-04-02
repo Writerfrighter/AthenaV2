@@ -96,7 +96,6 @@ CREATE TABLE picklistEntries (
     picklistId INT NOT NULL,
     teamNumber INT NOT NULL,
     rank INT NOT NULL, -- Position in the picklist (1 = highest priority)
-    qualRanking INT, -- Original qualification ranking from TBA/FIRST
     created_at DATETIME DEFAULT GETDATE(),
     updated_at DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (picklistId) REFERENCES picklists(id) ON DELETE CASCADE,

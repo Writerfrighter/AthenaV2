@@ -265,11 +265,14 @@ export function DraggablePicklist({
 
   // Initialize picklists if needed
   const initializePicklists = useCallback(async () => {
-    if (pick1.picklist || pick2.picklist || blacklist.picklist) return;
     try {
-      await pick1.createPicklist([]);
-      await pick2.createPicklist([]);
-      await blacklist.createPicklist([]);
+      const initTasks: Promise<unknown>[] = [];
+      if (!pick1.picklist) initTasks.push(pick1.createPicklist([]));
+      if (!pick2.picklist) initTasks.push(pick2.createPicklist([]));
+      if (!blacklist.picklist) initTasks.push(blacklist.createPicklist([]));
+
+      if (initTasks.length === 0) return;
+      await Promise.all(initTasks);
       toast.success('Picklists initialized - drag teams from Unlisted');
     } catch (error) {
       console.error('Failed to initialize picklists:', error);
@@ -287,11 +290,14 @@ export function DraggablePicklist({
 
   const totalEventTeams = allEventTeams.filter(t => t.teamNumber !== ownTeamNumber).length;
 
-  const actualPicklistCount = localPick1Order.length + localPick2Order.length;
-  const hasDiscrepancy = (
-    totalPicklistTeams + localUnlisted.length !== totalEventTeams ||
-    totalPicklistTeams !== actualPicklistCount
-  );
+  const totalTrackedTeams = useMemo(() => {
+    const trackedTeams = new Set<number>();
+    localPick1Order.forEach(e => trackedTeams.add(e.teamNumber));
+    localPick2Order.forEach(e => trackedTeams.add(e.teamNumber));
+    localBlacklistOrder.forEach(e => trackedTeams.add(e.teamNumber));
+    localUnlisted.forEach(e => trackedTeams.add(e.teamNumber));
+    return trackedTeams.size;
+  }, [localPick1Order, localPick2Order, localBlacklistOrder, localUnlisted]);
 
   // Resolve which picklistId a team belongs to (pick1, pick2, or fallback)
   const resolvePicklistId = useCallback((teamNumber: number): number | undefined => {
@@ -390,7 +396,7 @@ export function DraggablePicklist({
     } finally {
       setIsSaving(false);
     }
-  }, [localPick1Order, localPick2Order, pick1, pick2]);
+  }, [localPick1Order, localPick2Order, localBlacklistOrder, pick1, pick2, blacklist]);
 
   const confirmReset = useCallback(async () => {
     try {
@@ -464,10 +470,10 @@ export function DraggablePicklist({
     setHasUnsavedChanges(true);
   }, []);
 
-  console.log('EVENT TEAMS:', allEventTeams.length);
-  console.log('PICK1:', pick1.picklist, pick1.entries);
-  console.log('PICK2:', pick2.picklist, pick2.entries);
-  console.log('BLACKLIST:', blacklist.picklist, blacklist.entries);
+  // console.log('EVENT TEAMS:', allEventTeams.length);
+  // console.log('PICK1:', pick1.picklist, pick1.entries);
+  // console.log('PICK2:', pick2.picklist, pick2.entries);
+  // console.log('BLACKLIST:', blacklist.picklist, blacklist.entries);
 
   //helper method to remove a team from all lists
   const removeTeamFromAllLists = (teamNumber: number) => {
@@ -523,7 +529,7 @@ export function DraggablePicklist({
                     EPA {epa.totalEPA.toFixed(1)}
                   </div>
                 )}
-                {qualRank !== undefined && (
+                {qualRank !== undefined && !blacklisted && (
                   <Badge variant="outline" className="flex-shrink-0 text-xs">
                     R{qualRank}
                   </Badge>
@@ -663,10 +669,7 @@ export function DraggablePicklist({
             {competitionType === 'FRC' ? 'FRC' : 'FTC'} Picklist - {eventCode}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {totalPicklistTeams + localUnlisted.length} / {totalEventTeams} teams (excluding #{ownTeamNumber})
-            {hasDiscrepancy && (
-              <span className="text-destructive ml-2">⚠ Team count mismatch detected</span>
-            )}
+            {totalTrackedTeams} / {totalEventTeams} teams (excluding #{ownTeamNumber})
           </p>
         </div>
         <div className='flex flex-col gap-2'>

@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { picklistId, teamNumber, rank, qualRanking } = body;
+    const { picklistId, teamNumber, rank } = body;
 
     if (!picklistId || !teamNumber || rank === undefined) {
       return NextResponse.json(
@@ -68,8 +68,7 @@ export async function POST(request: NextRequest) {
     const entryId = await service.addPicklistEntry({
       picklistId,
       teamNumber,
-      rank,
-      qualRanking
+      rank
     });
 
     return NextResponse.json({
@@ -77,7 +76,6 @@ export async function POST(request: NextRequest) {
       picklistId,
       teamNumber,
       rank,
-      qualRanking,
       success: true
     });
   } catch (error) {
@@ -95,7 +93,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { entryId, rank, qualRanking } = body;
+    const { entryId, rank } = body;
 
     if (!entryId) {
       return NextResponse.json(
@@ -106,8 +104,7 @@ export async function PUT(request: NextRequest) {
 
     const service = getDbService();
     await service.updatePicklistEntry(entryId, {
-      rank,
-      qualRanking
+      rank
     });
 
     return NextResponse.json({

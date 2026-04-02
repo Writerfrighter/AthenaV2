@@ -118,7 +118,6 @@ export interface PicklistEntry {
   picklistId: number;
   teamNumber: number;
   rank: number; // Position in the picklist (1-indexed)
-  qualRanking?: number; // Initial qualification ranking from TBA/FIRST FTC
   created_at?: Date;
   updated_at?: Date;
 }
@@ -148,7 +147,6 @@ export interface PicklistEntryRow {
   picklistId: number;
   teamNumber: number;
   rank: number;
-  qualRanking: number | null;
   created_at: Date;
   updated_at: Date;
 }
