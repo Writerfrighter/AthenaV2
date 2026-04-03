@@ -501,12 +501,12 @@ export function DraggablePicklist({
           onOpenChange={() => toggleTeamExpanded(teamNumber)}
         >
           <div className={`border rounded-lg transition-all ${blacklisted && 'bg-muted'}`}>
-            <div className="flex items-center gap-2 p-3 w-full">
+            <div className="flex items-center gap-1 p-3 w-full">
               <div className="sortable-handle cursor-grab active:cursor-grabbing hover:bg-accent rounded p-1 flex-shrink-0">
                 <GripVertical className="h-4 w-4" />
               </div>
               {rank !== null && (
-                <div className="flex-shrink-0 font-bold text-lg w-8">#{rank}</div>
+                <div className="flex-shrink-0 font-bold text-lg w-6">#{rank}</div>
               )}
               <div className="flex-grow font-semibold text-lg text-left">{teamNumber}</div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -530,7 +530,7 @@ export function DraggablePicklist({
                   </div>
                 )}
                 {qualRank !== undefined && !blacklisted && (
-                  <Badge variant="outline" className="flex-shrink-0 text-xs">
+                  <Badge variant="outline" className="flex-shrink-0 text-xs min-[60rem]:hidden min-[76rem]:block">
                     R{qualRank}
                   </Badge>
                 )}
@@ -583,15 +583,16 @@ export function DraggablePicklist({
                     Auto-saves after you stop typing
                   </div>
                   <div className="flex flex-col gap-2">
-                    <div className="flex justify-start mt-4 gap-2">
+                    <div className="flex justify-start mt-4 gap-2 flex-row min-[56rem]:flex-col min-[76rem]:flex-row">
+                      
                       {listType !== '1stPick' && (
-                        <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "1stPick")}>Send to 1st Pick</Button>
+                        <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "1stPick")}>Set 1st Pick</Button>
                       )}
                       {listType !== '2ndPick' && (
-                        <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "2ndPick")}>Send to 2nd Pick</Button>
+                        <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "2ndPick")}>Set 2nd Pick</Button>
                       )}
                       {listType !== 'Unlisted' && (
-                        <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "Unlisted")}>Send to Unlisted</Button>
+                        <Button variant="default" onClick={() => moveTeam(teamNumber, listType, "Unlisted")}>Set Unlisted</Button>
                       )}
                     </div>
                     <div className=''>
