@@ -10,24 +10,20 @@ export default auth((req) => {
     const isManifest = req.nextUrl.pathname === '/manifest'
 
     // Debug logging
-    console.log(`Middleware - Path: ${req.nextUrl.pathname}, IsAuth: ${isAuth}, IsAuthPage: ${isAuthPage}`)
-
-    // TODO: Re-enable authentication after testing
-    // Allow all access temporarily for testing
-    return NextResponse.next()
+    // console.log(`Middleware - Path: ${req.nextUrl.pathname}, IsAuth: ${isAuth}, IsAuthPage: ${isAuthPage}`)
 
     // Allow access to auth pages, API routes, and home page
-    // if (isAuthPage || isApiAuth || isApiRegister || isHomePage || isManifest) {
-    //     return NextResponse.next()
-    // }
+    if (isAuthPage || isApiAuth || isApiRegister || isHomePage || isManifest) {
+        return NextResponse.next()
+    }
 
     // Redirect to login if not authenticated
-    // if (!isAuth) {
-    //     console.log(`Redirecting to login - no auth for path: ${req.nextUrl.pathname}`)
-    //     return NextResponse.redirect(new URL('/login', req.url))
-    // }
+    if (!isAuth) {
+        // console.log(`Redirecting to login - no auth for path: ${req.nextUrl.pathname}`)
+        return NextResponse.redirect(new URL('/login', req.url))
+    }
 
-    console.log(`Allowing access to: ${req.nextUrl.pathname}`)
+    // // console.log(`Allowing access to: ${req.nextUrl.pathname}`)
     return NextResponse.next()
 })
 
