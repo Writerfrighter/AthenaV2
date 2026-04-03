@@ -1,9 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { databaseManager } from '@/db/database-manager'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimit = checkRateLimit(request, {
+      keyPrefix: 'login',
+      windowMs: 60 * 1000,
+      maxRequests: 20,
+    })
+
+    if (rateLimit.limited) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': rateLimit.retryAfterSeconds.toString(),
+          },
+        }
+      )
+    }
+
     const { username, password } = await request.json()
 
     if (!username || !password) {
