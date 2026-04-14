@@ -13,11 +13,35 @@ export interface ScouterSPR {
   totalAbsoluteError: number;
 }
 
+export interface SPRVerboseEquation {
+  matchNumber: number;
+  alliance: 'red' | 'blue';
+  scouterIds: string[];
+  scouterNames?: string[];
+  robotCount: number;
+  expectedRobots: number;
+  scoutedTotal: number;
+  officialScore: number;
+  foulPoints: number;
+  adjustedOfficial: number;
+  error: number;
+  skipped: boolean;
+  skipReason?: string;
+}
+
+export interface SPRVerboseData {
+  equations: SPRVerboseEquation[];
+  totalEquations: number;
+  skippedEquations: number;
+  usedEquations: number;
+}
+
 export interface SPRData {
   scouters: ScouterSPR[];
   overallMeanError: number;
   convergenceAchieved: boolean;
   message?: string;
+  verboseData?: SPRVerboseData;
   metadata: {
     totalMatches: number;
     uniqueScouters: number;
@@ -28,7 +52,8 @@ export interface SPRData {
   };
 }
 
-export function useSPRData() {
+export function useSPRData(options?: { verbose?: boolean }) {
+  const verbose = options?.verbose ?? false;
   const selectedEvent = useSelectedEvent();
   const { currentYear, competitionType } = useGameConfig();
   const [data, setData] = useState<SPRData | null>(null);
@@ -46,6 +71,7 @@ export function useSPRData() {
         year: currentYear.toString(),
         eventCode: selectedEvent.code,
         competitionType: competitionType,
+        verbose: verbose ? 'true' : 'false',
       });
 
       const response = await fetch(`/api/database/spr?${params}`);
@@ -68,7 +94,7 @@ export function useSPRData() {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, currentYear, competitionType]);
+  }, [selectedEvent, currentYear, competitionType, verbose]);
 
   useEffect(() => {
     fetchSPR();

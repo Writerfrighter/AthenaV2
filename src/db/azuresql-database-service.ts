@@ -198,35 +198,20 @@ export class AzureSqlDatabaseService implements DatabaseService {
       )
     `);
 
-    // Create scoutingBlocks table
+    // Create matchAssignments table (source of truth for per-match scouting schedule)
     await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='scoutingBlocks' AND xtype='U')
-      CREATE TABLE scoutingBlocks (
+      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='matchAssignments' AND xtype='U')
+      CREATE TABLE matchAssignments (
         id INT IDENTITY(1,1) PRIMARY KEY,
         eventCode NVARCHAR(50) NOT NULL,
         year INT NOT NULL,
-        blockNumber INT NOT NULL,
-        startMatch INT NOT NULL,
-        endMatch INT NOT NULL,
-        created_at DATETIME DEFAULT GETDATE(),
-        updated_at DATETIME DEFAULT GETDATE(),
-        UNIQUE(eventCode, year, blockNumber)
-      )
-    `);
-
-    // Create blockAssignments table
-    await pool.request().query(`
-      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='blockAssignments' AND xtype='U')
-      CREATE TABLE blockAssignments (
-        id INT IDENTITY(1,1) PRIMARY KEY,
-        blockId INT NOT NULL,
-        userId NVARCHAR(255) NOT NULL,
+        matchNumber INT NOT NULL,
         alliance NVARCHAR(10) NOT NULL,
         position INT NOT NULL,
+        userId NVARCHAR(255) NOT NULL,
         created_at DATETIME DEFAULT GETDATE(),
-        FOREIGN KEY (blockId) REFERENCES scoutingBlocks(id) ON DELETE CASCADE,
         FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
-        UNIQUE(blockId, alliance, position)
+        CONSTRAINT uq_match_assignment UNIQUE (eventCode, year, matchNumber, alliance, position)
       )
     `);
 
@@ -273,7 +258,6 @@ export class AzureSqlDatabaseService implements DatabaseService {
         picklistId INT NOT NULL,
         teamNumber INT NOT NULL,
         rank INT NOT NULL,
-        qualRanking INT,
         source NVARCHAR(50),
         notes NVARCHAR(MAX),
         created_at DATETIME DEFAULT GETDATE(),
@@ -281,6 +265,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
         FOREIGN KEY (picklistId) REFERENCES picklists(id) ON DELETE CASCADE,
         CONSTRAINT uq_picklist_team UNIQUE (picklistId, teamNumber)
       )
+    `);
+
+    // Remove legacy persisted qualification ranking; live rankings are sourced from event APIs.
+    await pool.request().query(`
+      IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_NAME = 'picklistEntries' AND COLUMN_NAME = 'qualRanking')
+      ALTER TABLE picklistEntries DROP COLUMN qualRanking
     `);
 
     // Create picklistNotes table
@@ -856,7 +847,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
       const year = metaResult.recordset[0].year as number;
       const competitionType = (metaResult.recordset[0].competitionType || 'FRC') as CompetitionType;
 
-      // Match assignments (used by /api/database/match-assignments)
+      // Match assignments
       await new mssql.Request(tx)
         .input('eventCode', mssql.NVarChar, eventCode)
         .input('year', mssql.Int, year)
@@ -868,12 +859,6 @@ export class AzureSqlDatabaseService implements DatabaseService {
         .input('year', mssql.Int, year)
         .input('competitionType', mssql.NVarChar, competitionType)
         .query('DELETE FROM picklists WHERE eventCode = @eventCode AND year = @year AND competitionType = @competitionType');
-
-      // Scouting blocks -> blockAssignments cascades via FK.
-      await new mssql.Request(tx)
-        .input('eventCode', mssql.NVarChar, eventCode)
-        .input('year', mssql.Int, year)
-        .query('DELETE FROM scoutingBlocks WHERE eventCode = @eventCode AND year = @year');
 
       // Scouted data
       await new mssql.Request(tx)
@@ -898,213 +883,6 @@ export class AzureSqlDatabaseService implements DatabaseService {
       await tx.rollback();
       throw err;
     }
-  }
-
-  // Scouting block methods
-  async addScoutingBlock(block: Omit<import('./types').ScoutingBlock, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    
-    const result = await pool.request()
-      .input('eventCode', mssql.NVarChar, block.eventCode)
-      .input('year', mssql.Int, block.year)
-      .input('blockNumber', mssql.Int, block.blockNumber)
-      .input('startMatch', mssql.Int, block.startMatch)
-      .input('endMatch', mssql.Int, block.endMatch)
-      .query(`
-        INSERT INTO scoutingBlocks (eventCode, year, blockNumber, startMatch, endMatch)
-        OUTPUT INSERTED.id
-        VALUES (@eventCode, @year, @blockNumber, @startMatch, @endMatch)
-      `);
-
-    return result.recordset[0].id;
-  }
-
-  async getScoutingBlock(id: number): Promise<import('./types').ScoutingBlock | undefined> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    
-    const result = await pool.request()
-      .input('id', mssql.Int, id)
-      .query('SELECT * FROM scoutingBlocks WHERE id = @id');
-
-    return result.recordset[0];
-  }
-
-  async getScoutingBlocks(eventCode: string, year: number): Promise<import('./types').ScoutingBlock[]> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    
-    const result = await pool.request()
-      .input('eventCode', mssql.NVarChar, eventCode)
-      .input('year', mssql.Int, year)
-      .query('SELECT * FROM scoutingBlocks WHERE eventCode = @eventCode AND year = @year ORDER BY blockNumber');
-
-    return result.recordset;
-  }
-
-  async updateScoutingBlock(id: number, updates: Partial<import('./types').ScoutingBlock>): Promise<void> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    const request = pool.request();
-
-    const setParts: string[] = [];
-    if (updates.blockNumber !== undefined) {
-      request.input('blockNumber', mssql.Int, updates.blockNumber);
-      setParts.push('blockNumber = @blockNumber');
-    }
-    if (updates.startMatch !== undefined) {
-      request.input('startMatch', mssql.Int, updates.startMatch);
-      setParts.push('startMatch = @startMatch');
-    }
-    if (updates.endMatch !== undefined) {
-      request.input('endMatch', mssql.Int, updates.endMatch);
-      setParts.push('endMatch = @endMatch');
-    }
-
-    if (setParts.length === 0) return;
-
-    setParts.push('updated_at = GETDATE()');
-    request.input('id', mssql.Int, id);
-
-    const query = `UPDATE scoutingBlocks SET ${setParts.join(', ')} WHERE id = @id`;
-    await request.query(query);
-  }
-
-  async deleteScoutingBlock(id: number): Promise<void> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    await pool.request()
-      .input('id', mssql.Int, id)
-      .query('DELETE FROM scoutingBlocks WHERE id = @id');
-  }
-
-  async deleteScoutingBlocksByEvent(eventCode: string, year: number): Promise<void> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    await pool.request()
-      .input('eventCode', mssql.NVarChar, eventCode)
-      .input('year', mssql.Int, year)
-      .query('DELETE FROM scoutingBlocks WHERE eventCode = @eventCode AND year = @year');
-  }
-
-  // Block assignment methods
-  async addBlockAssignment(assignment: Omit<import('./types').BlockAssignment, 'id' | 'created_at'>): Promise<number> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    
-    // Use MERGE to upsert - update userId if assignment slot already exists, otherwise insert
-    const result = await pool.request()
-      .input('blockId', mssql.Int, assignment.blockId)
-      .input('userId', mssql.NVarChar, assignment.userId)
-      .input('alliance', mssql.NVarChar, assignment.alliance)
-      .input('position', mssql.Int, assignment.position)
-      .query(`
-        MERGE blockAssignments AS target
-        USING (SELECT @blockId AS blockId, @alliance AS alliance, @position AS position) AS source
-        ON target.blockId = source.blockId AND target.alliance = source.alliance AND target.position = source.position
-        WHEN MATCHED THEN
-          UPDATE SET userId = @userId
-        WHEN NOT MATCHED THEN
-          INSERT (blockId, userId, alliance, position)
-          VALUES (@blockId, @userId, @alliance, @position)
-        OUTPUT INSERTED.id;
-      `);
-
-    return result.recordset[0].id;
-  }
-
-  async getBlockAssignment(id: number): Promise<import('./types').BlockAssignment | undefined> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    
-    const result = await pool.request()
-      .input('id', mssql.Int, id)
-      .query('SELECT * FROM blockAssignments WHERE id = @id');
-
-    return result.recordset[0];
-  }
-
-  async getBlockAssignments(blockId: number): Promise<import('./types').BlockAssignment[]> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    
-    const result = await pool.request()
-      .input('blockId', mssql.Int, blockId)
-      .query('SELECT * FROM blockAssignments WHERE blockId = @blockId ORDER BY alliance, position');
-
-    return result.recordset;
-  }
-
-  async getBlockAssignmentsByEvent(eventCode: string, year: number): Promise<import('./types').BlockAssignment[]> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    
-    const result = await pool.request()
-      .input('eventCode', mssql.NVarChar, eventCode)
-      .input('year', mssql.Int, year)
-      .query(`
-        SELECT ba.* FROM blockAssignments ba
-        INNER JOIN scoutingBlocks sb ON ba.blockId = sb.id
-        WHERE sb.eventCode = @eventCode AND sb.year = @year
-        ORDER BY sb.blockNumber, ba.alliance, ba.position
-      `);
-
-    return result.recordset;
-  }
-
-  async getBlockAssignmentsByUser(userId: string): Promise<import('./types').BlockAssignment[]> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    
-    const result = await pool.request()
-      .input('userId', mssql.NVarChar, userId)
-      .query('SELECT * FROM blockAssignments WHERE userId = @userId');
-
-    return result.recordset;
-  }
-
-  async updateBlockAssignment(id: number, updates: Partial<import('./types').BlockAssignment>): Promise<void> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    const request = pool.request();
-
-    const setParts: string[] = [];
-    if (updates.userId !== undefined) {
-      request.input('userId', mssql.NVarChar, updates.userId);
-      setParts.push('userId = @userId');
-    }
-    if (updates.alliance !== undefined) {
-      request.input('alliance', mssql.NVarChar, updates.alliance);
-      setParts.push('alliance = @alliance');
-    }
-    if (updates.position !== undefined) {
-      request.input('position', mssql.Int, updates.position);
-      setParts.push('position = @position');
-    }
-
-    if (setParts.length === 0) return;
-
-    request.input('id', mssql.Int, id);
-
-    const query = `UPDATE blockAssignments SET ${setParts.join(', ')} WHERE id = @id`;
-    await request.query(query);
-  }
-
-  async deleteBlockAssignment(id: number): Promise<void> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    await pool.request()
-      .input('id', mssql.Int, id)
-      .query('DELETE FROM blockAssignments WHERE id = @id');
-  }
-
-  async deleteBlockAssignmentsByBlock(blockId: number): Promise<void> {
-    const pool = await this.getPool();
-    const mssql = await import('mssql');
-    await pool.request()
-      .input('blockId', mssql.Int, blockId)
-      .query('DELETE FROM blockAssignments WHERE blockId = @blockId');
   }
 
   // Picklist methods
@@ -1248,13 +1026,12 @@ export class AzureSqlDatabaseService implements DatabaseService {
       .input('picklistId', mssql.Int, e.picklistId)
       .input('teamNumber', mssql.Int, e.teamNumber)
       .input('rank', mssql.Int, e.rank)
-      .input('qualRanking', mssql.Int, e.qualRanking || null)
       .input('source', mssql.NVarChar, e.source || null)
       .input('notes', mssql.NVarChar, e.notes || null)
       .query(`
-        INSERT INTO picklistEntries (picklistId, teamNumber, rank, qualRanking, source, notes)
+        INSERT INTO picklistEntries (picklistId, teamNumber, rank, source, notes)
         OUTPUT INSERTED.id
-        VALUES (@picklistId, @teamNumber, @rank, @qualRanking, @source, @notes)
+        VALUES (@picklistId, @teamNumber, @rank, @source, @notes)
       `);
 
     return result.recordset[0].id;
@@ -1271,7 +1048,6 @@ export class AzureSqlDatabaseService implements DatabaseService {
       picklistId: row.picklistId,
       teamNumber: row.teamNumber,
       rank: row.rank,
-      qualRanking: row.qualRanking || undefined,
       source: row.source || undefined,
       notes: row.notes || undefined,
       created_at: row.created_at,
@@ -1288,7 +1064,6 @@ export class AzureSqlDatabaseService implements DatabaseService {
       picklistId: row.picklistId,
       teamNumber: row.teamNumber,
       rank: row.rank,
-      qualRanking: row.qualRanking || undefined,
       source: row.source || undefined,
       notes: row.notes || undefined,
       created_at: row.created_at,
@@ -1373,9 +1148,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
           .input('rank', mssql.Int, e.rank)
           .query(`
             IF EXISTS (SELECT 1 FROM picklistEntries WHERE picklistId = @picklistId AND teamNumber = @teamNumber)
-              UPDATE picklistEntries SET rank = @rank, updated_at = GETDATE() WHERE picklistId = @picklistId AND teamNumber = @teamNumber
+              UPDATE picklistEntries
+              SET rank = @rank,
+                  updated_at = GETDATE()
+              WHERE picklistId = @picklistId AND teamNumber = @teamNumber
             ELSE
-              INSERT INTO picklistEntries (picklistId, teamNumber, rank) VALUES (@picklistId, @teamNumber, @rank)
+              INSERT INTO picklistEntries (picklistId, teamNumber, rank)
+              VALUES (@picklistId, @teamNumber, @rank)
           `);
       }
       await tx.commit();
@@ -1464,34 +1243,6 @@ export class AzureSqlDatabaseService implements DatabaseService {
     const pool = await this.getPool();
     const mssql = await import('mssql');
     await pool.request().input('id', mssql.Int, id).query('DELETE FROM picklistNotes WHERE id = @id');
-  }
-
-  // Combined query for blocks with assignments
-  async getScoutingBlocksWithAssignments(eventCode: string, year: number, scoutsPerAlliance: number = 3): Promise<import('./types').ScoutingBlockWithAssignments[]> {
-    const blocks = await this.getScoutingBlocks(eventCode, year);
-    const assignments = await this.getBlockAssignmentsByEvent(eventCode, year);
-
-    return blocks.map(block => {
-      const blockAssignments = assignments.filter(a => a.blockId === block.id);
-      const redScouts: (string | null)[] = Array(scoutsPerAlliance).fill(null);
-      const blueScouts: (string | null)[] = Array(scoutsPerAlliance).fill(null);
-
-      blockAssignments.forEach(assignment => {
-        if (assignment.position < scoutsPerAlliance) {
-          if (assignment.alliance === 'red') {
-            redScouts[assignment.position] = assignment.userId;
-          } else {
-            blueScouts[assignment.position] = assignment.userId;
-          }
-        }
-      });
-
-      return {
-        ...block,
-        redScouts,
-        blueScouts
-      };
-    });
   }
 
   // User preferred partners methods

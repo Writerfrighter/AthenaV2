@@ -8,7 +8,7 @@ interface UsePicklistOptions {
   eventCode: string;
   year: number;
   competitionType: CompetitionType;
-  picklistType?: 'pick1' | 'pick2' | 'main';
+  picklistType?: 'pick1' | 'pick2' | 'blacklist' | 'main';
 }
 
 interface TeamPicklistData {
@@ -149,19 +149,24 @@ export function usePicklist(options: UsePicklistOptions) {
   // Update picklist entry order
   const updatePicklistOrder = useCallback(
     async (newEntries: Array<{ teamNumber: number; rank: number }>) => {
-      if (!picklist?.id) {
-        toast.error('No picklist to update');
-        return;
-      }
-
       try {
         setIsSaving(true);
+
+        // If this specific picklist doesn't exist yet (common for blacklist), create it on demand.
+        let picklistId = picklist?.id;
+        if (!picklistId) {
+          picklistId = await createPicklist([]);
+        }
+
+        if (!picklistId) {
+          throw new Error('Failed to resolve picklist ID for save');
+        }
         
         const response = await fetch('/api/database/picklist', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            picklistId: picklist.id,
+            picklistId,
             entries: newEntries
           })
         });
@@ -173,10 +178,9 @@ export function usePicklist(options: UsePicklistOptions) {
           const existingEntry = entries.find(e => e.teamNumber === newEntry.teamNumber);
           return {
             id: existingEntry?.id || 0,
-            picklistId: picklist.id!,
+            picklistId,
             teamNumber: newEntry.teamNumber,
             rank: newEntry.rank,
-            qualRanking: existingEntry?.qualRanking,
             created_at: existingEntry?.created_at ? (typeof existingEntry.created_at === 'string' ? new Date(existingEntry.created_at) : existingEntry.created_at) : new Date(),
             updated_at: new Date()
           };
@@ -190,7 +194,7 @@ export function usePicklist(options: UsePicklistOptions) {
         setIsSaving(false);
       }
     },
-    [picklist?.id, entries]
+    [picklist?.id, entries, createPicklist]
   );
 
   // Reset/delete picklist

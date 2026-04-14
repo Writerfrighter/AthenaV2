@@ -8,18 +8,14 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Calendar, Clock, Users, Handshake, Loader2, AlertCircle, RefreshCw, ChevronRight, ChevronDown, RotateCcw, UserRound } from "lucide-react"
+import { Calendar, Clock, Users, Handshake, Loader2, AlertCircle, RefreshCw, RotateCcw, UserRound, ChevronRight } from "lucide-react"
 import { useScheduleData } from '@/hooks/use-schedule-data'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
-import type { ScoutingBlockWithAssignments } from '@/lib/shared-types'
 import { toast } from 'sonner'
-import { useSession } from 'next-auth/react'
-import { hasPermission, PERMISSIONS } from '@/lib/auth/roles'
 
-// User type with preferred partners
-interface UserWithPartners {
+type UserWithPartners = {
   id: string
   name: string
   username: string
@@ -27,17 +23,68 @@ interface UserWithPartners {
   preferredPartners: string[]
 }
 
-// Display block type for UI
-interface DisplayBlock {
+type DisplayBlock = {
   id: number
   name: string
   blockNumber: number
   matches: number[]
+}
+
+type MatchAssignment = {
+  matchNumber: number
   redScouts: (string | null)[]
   blueScouts: (string | null)[]
 }
 
-// Memoized scout checkbox
+const MatchAssignmentRow = React.memo(({
+  match,
+  scoutsPerAlliance,
+  getAvailableUsersForMatchSlot,
+  setLocalMatchScout,
+}: {
+  match: MatchAssignment
+  scoutsPerAlliance: number
+  getAvailableUsersForMatchSlot: (match: MatchAssignment, alliance: 'red' | 'blue', position: number) => UserWithPartners[]
+  setLocalMatchScout: (matchNumber: number, alliance: 'red' | 'blue', position: number, scoutId: string | null) => void
+}) => {
+  return (
+    <div className="rounded-md border px-3 py-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="w-16 text-sm font-medium">M{match.matchNumber}</div>
+        {(['red', 'blue'] as const).map(alliance => (
+          <div key={`${match.matchNumber}-${alliance}`} className="flex items-center gap-2">
+            <span className={`text-xs font-medium w-8 ${alliance === 'red' ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+              {alliance === 'red' ? 'R' : 'B'}
+            </span>
+            {Array.from({ length: scoutsPerAlliance }, (_, position) => {
+              const slotValue = alliance === 'red' ? match.redScouts[position] : match.blueScouts[position]
+              const availableUsers = getAvailableUsersForMatchSlot(match, alliance, position)
+              return (
+                <Select
+                  key={`${match.matchNumber}-${alliance}-${position}`}
+                  value={slotValue ?? 'none'}
+                  onValueChange={(value) => setLocalMatchScout(match.matchNumber, alliance, position, value === 'none' ? null : value)}
+                >
+                  <SelectTrigger className="h-8 w-40 text-xs">
+                    <SelectValue placeholder={`S${position + 1}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {availableUsers.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+})
+MatchAssignmentRow.displayName = 'MatchAssignmentRow'
+
 const ActiveScoutCheckbox = React.memo(({
   scout,
   isActive,
@@ -64,6 +111,7 @@ export default function SchedulePage() {
   const {
     users,
     blocks: dbBlocks,
+    matchAssignments,
     blockSize,
     setBlockSize,
     matchCount,
@@ -76,20 +124,13 @@ export default function SchedulePage() {
     hasEvent,
     generateBlocks,
     syncMatchCountFromApi,
-    assignScout,
-    clearAllAssignments,
+    assignScoutRange,
     deleteAllBlocks,
     refreshData,
   } = useScheduleData()
 
-  // Get session for permission checking
-  const { data: session } = useSession()
-  const canEditSchedule = useMemo(() => {
-    const role = session?.user?.role ?? null
-    return hasPermission(role, PERMISSIONS.CREATE_SCHEDULE) || hasPermission(role, PERMISSIONS.EDIT_SCHEDULE)
-  }, [session?.user?.role])
+  const scoutsPerAlliance = competitionType === 'FTC' ? 2 : 3
 
-  // UI state
   const [activeScouts, setActiveScouts] = useState<string[]>([])
   const [isGeneratingBlocks, setIsGeneratingBlocks] = useState(false)
   const [isAutoAssigning, setIsAutoAssigning] = useState(false)
@@ -97,92 +138,21 @@ export default function SchedulePage() {
   const [isSyncingMatchCount, setIsSyncingMatchCount] = useState(false)
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
-  
-  // Form inputs
-  const [manualMatchInput, setManualMatchInput] = useState<string>('')
-  
-  // Local state for assignments
-  const [localBlocks, setLocalBlocks] = useState<DisplayBlock[]>([])
-  // Track the last synced dbBlocks to detect when to reset local state
-  const [lastSyncedDbBlocksRef, setLastSyncedDbBlocksRef] = useState<string>('')
+  const [showGroupTemplates, setShowGroupTemplates] = useState(false)
 
-  // Map DB blocks to display format
-  const mapBlocksToDisplay = useCallback((sourceBlocks: ScoutingBlockWithAssignments[]): DisplayBlock[] => {
-    return sourceBlocks.map(block => ({
-      id: block.id!,
-      name: `Shift ${block.blockNumber}`,
+  const [manualMatchInput, setManualMatchInput] = useState<string>('')
+  const [localMatches, setLocalMatches] = useState<MatchAssignment[]>([])
+  const [lastSyncedFingerprint, setLastSyncedFingerprint] = useState('')
+
+  const blocks = useMemo<DisplayBlock[]>(() => {
+    return dbBlocks.map(block => ({
+      id: block.id,
+      name: `Virtual Group ${block.blockNumber}`,
       blockNumber: block.blockNumber,
       matches: Array.from({ length: block.endMatch - block.startMatch + 1 }, (_, i) => block.startMatch + i),
-      redScouts: [...block.redScouts],
-      blueScouts: [...block.blueScouts],
     }))
-  }, [])
+  }, [dbBlocks])
 
-  // Compute hasUnsavedChanges by comparing local blocks with DB blocks
-  const hasUnsavedChanges = useMemo(() => {
-    if (localBlocks.length !== dbBlocks.length) return false // Different structure means not comparable
-    
-    for (const localBlock of localBlocks) {
-      const dbBlock = dbBlocks.find(b => b.id === localBlock.id)
-      if (!dbBlock) return false // Block doesn't exist in DB yet
-      
-      // Compare red scouts
-      for (let i = 0; i < localBlock.redScouts.length; i++) {
-        if (localBlock.redScouts[i] !== dbBlock.redScouts[i]) return true
-      }
-      
-      // Compare blue scouts
-      for (let i = 0; i < localBlock.blueScouts.length; i++) {
-        if (localBlock.blueScouts[i] !== dbBlock.blueScouts[i]) return true
-      }
-    }
-    
-    return false
-  }, [localBlocks, dbBlocks])
-
-  // Sync local blocks with DB blocks when DB blocks change (from external source)
-  useEffect(() => {
-    // Create a fingerprint of dbBlocks to detect actual changes
-    const dbBlocksFingerprint = JSON.stringify(dbBlocks.map(b => ({
-      id: b.id,
-      red: b.redScouts,
-      blue: b.blueScouts
-    })))
-    
-    // Only sync if dbBlocks actually changed from what we last synced
-    if (dbBlocksFingerprint !== lastSyncedDbBlocksRef) {
-      setLocalBlocks(mapBlocksToDisplay(dbBlocks))
-      setLastSyncedDbBlocksRef(dbBlocksFingerprint)
-      
-      // Auto-populate active scouts from existing assignments
-      const assignedScoutIds = new Set<string>()
-      dbBlocks.forEach(block => {
-        block.redScouts.forEach(scoutId => {
-          if (scoutId) assignedScoutIds.add(scoutId)
-        })
-        block.blueScouts.forEach(scoutId => {
-          if (scoutId) assignedScoutIds.add(scoutId)
-        })
-      })
-      setActiveScouts(Array.from(assignedScoutIds))
-    }
-  }, [dbBlocks, mapBlocksToDisplay, lastSyncedDbBlocksRef])
-
-  // Clear active scouts when no event
-  useEffect(() => {
-    if (!hasEvent) {
-      setActiveScouts([])
-    }
-  }, [hasEvent])
-
-  const blocks = localBlocks
-
-  // Toggle active scout
-  const toggleActiveScout = useCallback((scoutId: string, checked: boolean) => {
-    setActiveScouts(prev => checked ? [...prev, scoutId] : prev.filter(id => id !== scoutId))
-  }, [])
-
-  // Sorted users and active set
   const sortedUsers = useMemo<UserWithPartners[]>(() => {
     return [...users].sort((a, b) => a.name.localeCompare(b.name))
   }, [users])
@@ -193,59 +163,103 @@ export default function SchedulePage() {
     return sortedUsers.filter(user => activeScoutSet.has(user.id))
   }, [sortedUsers, activeScoutSet])
 
-  // Partner helpers
-  const hasPreferredPartnerInBlock = useCallback((userId: string, block: DisplayBlock) => {
-    const user = usersById.get(userId)
-    if (!user || user.preferredPartners.length === 0) return false
-    const assignedScouts = new Set<string>([
-      ...block.redScouts.filter((s): s is string => s !== null),
-      ...block.blueScouts.filter((s): s is string => s !== null),
-    ])
-    return user.preferredPartners.some(partnerId => assignedScouts.has(partnerId))
-  }, [usersById])
+  const buildInitialMatches = useCallback((): MatchAssignment[] => {
+    const initial: MatchAssignment[] = Array.from({ length: matchCount }, (_, i) => ({
+      matchNumber: i + 1,
+      redScouts: Array(scoutsPerAlliance).fill(null),
+      blueScouts: Array(scoutsPerAlliance).fill(null),
+    }))
 
-  const getPairedPartnersInBlock = useCallback((userId: string, block: DisplayBlock) => {
-    const user = usersById.get(userId)
-    if (!user || user.preferredPartners.length === 0) return []
-    const assignedScouts = new Set<string>([
-      ...block.redScouts.filter((s): s is string => s !== null),
-      ...block.blueScouts.filter((s): s is string => s !== null),
-    ])
-    return user.preferredPartners.filter(partnerId => assignedScouts.has(partnerId))
-  }, [usersById])
+    matchAssignments.forEach(row => {
+      if (row.matchNumber < 1 || row.matchNumber > matchCount) return
+      if (row.position < 0 || row.position >= scoutsPerAlliance) return
+      const target = initial[row.matchNumber - 1]
+      if (row.alliance === 'red') target.redScouts[row.position] = row.userId
+      else target.blueScouts[row.position] = row.userId
+    })
 
-  // Workload calculation
-  const computeUserWorkload = useCallback((targetBlocks: DisplayBlock[]) => {
+    return initial
+  }, [matchCount, scoutsPerAlliance, matchAssignments])
+
+  useEffect(() => {
+    if (!hasEvent || matchCount <= 0) {
+      setLocalMatches([])
+      return
+    }
+
+    const fingerprint = JSON.stringify({ matchCount, scoutsPerAlliance, rows: matchAssignments })
+    if (fingerprint !== lastSyncedFingerprint) {
+      setLocalMatches(buildInitialMatches())
+      setLastSyncedFingerprint(fingerprint)
+
+      const assignedScoutIds = new Set<string>()
+      matchAssignments.forEach(row => {
+        if (row.userId) assignedScoutIds.add(row.userId)
+      })
+      setActiveScouts(Array.from(assignedScoutIds))
+    }
+  }, [hasEvent, matchCount, scoutsPerAlliance, matchAssignments, lastSyncedFingerprint, buildInitialMatches])
+
+  const matchesByNumber = useMemo(() => {
+    const map = new Map<number, MatchAssignment>()
+    localMatches.forEach(match => map.set(match.matchNumber, match))
+    return map
+  }, [localMatches])
+
+  const hasUnsavedChanges = useMemo(() => {
+    const dbMap = new Map<string, string | null>()
+    matchAssignments.forEach(row => dbMap.set(`${row.matchNumber}-${row.alliance}-${row.position}`, row.userId))
+
+    for (const match of localMatches) {
+      for (let pos = 0; pos < scoutsPerAlliance; pos++) {
+        const dbRed = dbMap.get(`${match.matchNumber}-red-${pos}`) ?? null
+        const dbBlue = dbMap.get(`${match.matchNumber}-blue-${pos}`) ?? null
+        if ((match.redScouts[pos] ?? null) !== dbRed) return true
+        if ((match.blueScouts[pos] ?? null) !== dbBlue) return true
+      }
+    }
+
+    return false
+  }, [localMatches, matchAssignments, scoutsPerAlliance])
+
+  const computeUserWorkload = useCallback((targetMatches: MatchAssignment[]) => {
     const workload = new Map<string, number>()
     sortedUsers.forEach(user => workload.set(user.id, 0))
-    targetBlocks.forEach(block => {
-      block.redScouts.forEach(scoutId => {
+    targetMatches.forEach(match => {
+      match.redScouts.forEach(scoutId => {
         if (scoutId) workload.set(scoutId, (workload.get(scoutId) ?? 0) + 1)
       })
-      block.blueScouts.forEach(scoutId => {
+      match.blueScouts.forEach(scoutId => {
         if (scoutId) workload.set(scoutId, (workload.get(scoutId) ?? 0) + 1)
       })
     })
     return workload
   }, [sortedUsers])
 
-  const workloadMap = useMemo(() => computeUserWorkload(blocks), [blocks, computeUserWorkload])
+  const workloadMap = useMemo(() => computeUserWorkload(localMatches), [localMatches, computeUserWorkload])
 
-  // Schedule summary
+  const hasPreferredPartnerInMatch = useCallback((userId: string, match: MatchAssignment) => {
+    const user = usersById.get(userId)
+    if (!user || user.preferredPartners.length === 0) return false
+    const assignedScouts = new Set<string>([
+      ...match.redScouts.filter((s): s is string => s !== null),
+      ...match.blueScouts.filter((s): s is string => s !== null),
+    ])
+    return user.preferredPartners.some(partnerId => assignedScouts.has(partnerId))
+  }, [usersById])
+
   const scheduleSummary = useMemo(() => {
     let totalAssigned = 0
     let unassigned = 0
     let preferredPairHits = 0
     const assignedScoutIds = new Set<string>()
 
-    blocks.forEach(block => {
-      [...block.redScouts, ...block.blueScouts].forEach(scoutId => {
+    localMatches.forEach(match => {
+      [...match.redScouts, ...match.blueScouts].forEach(scoutId => {
         if (scoutId) {
           totalAssigned++
           assignedScoutIds.add(scoutId)
-          if (hasPreferredPartnerInBlock(scoutId, block)) {
-            preferredPairHits++
-          }
+          if (hasPreferredPartnerInMatch(scoutId, match)) preferredPairHits++
         } else {
           unassigned++
         }
@@ -258,69 +272,268 @@ export default function SchedulePage() {
       activeAssignedCount: assignedScoutIds.size,
       preferredPairings: Math.floor(preferredPairHits / 2),
     }
-  }, [blocks, hasPreferredPartnerInBlock])
+  }, [localMatches, hasPreferredPartnerInMatch])
 
-  // Workload list
   const workloadList = useMemo(() => {
     return sortedUsers
       .map(user => ({
         user,
-        blocksAssigned: workloadMap.get(user.id) ?? 0,
+        matchesAssigned: workloadMap.get(user.id) ?? 0,
         isActive: activeScoutSet.has(user.id),
       }))
-      .sort((a, b) => b.blocksAssigned - a.blocksAssigned)
+      .sort((a, b) => b.matchesAssigned - a.matchesAssigned)
   }, [sortedUsers, workloadMap, activeScoutSet])
 
-  // Assign scout (local only)
-  const assignBlockScout = async (blockId: number, alliance: 'red' | 'blue', scoutIndex: number, scoutId: string | null) => {
-    setLocalBlocks(prevBlocks => prevBlocks.map(block => {
-      if (block.id !== blockId) return block
-      const updatedBlock = { ...block }
-      if (alliance === 'red') {
-        updatedBlock.redScouts = [...block.redScouts]
-        updatedBlock.redScouts[scoutIndex] = scoutId
-      } else {
-        updatedBlock.blueScouts = [...block.blueScouts]
-        updatedBlock.blueScouts[scoutIndex] = scoutId
-      }
-      return updatedBlock
-    }))
-  }
+  const toggleActiveScout = useCallback((scoutId: string, checked: boolean) => {
+    setActiveScouts(prev => checked ? [...prev, scoutId] : prev.filter(id => id !== scoutId))
+  }, [])
 
-  // Save all changes
+  const setLocalMatchScout = useCallback((matchNumber: number, alliance: 'red' | 'blue', position: number, scoutId: string | null) => {
+    setLocalMatches(prev => prev.map(match => {
+      if (match.matchNumber !== matchNumber) return match
+      const updated = { ...match, redScouts: [...match.redScouts], blueScouts: [...match.blueScouts] }
+      if (alliance === 'red') updated.redScouts[position] = scoutId
+      else updated.blueScouts[position] = scoutId
+      return updated
+    }))
+  }, [])
+
+  const getAvailableUsersForMatchSlot = useCallback((match: MatchAssignment, alliance: 'red' | 'blue', position: number) => {
+    const assignedIds = new Set<string>()
+    match.redScouts.forEach((scoutId, idx) => {
+      if (scoutId && !(alliance === 'red' && idx === position)) assignedIds.add(scoutId)
+    })
+    match.blueScouts.forEach((scoutId, idx) => {
+      if (scoutId && !(alliance === 'blue' && idx === position)) assignedIds.add(scoutId)
+    })
+    return sortedUsers.filter(user => !assignedIds.has(user.id))
+  }, [sortedUsers])
+
+  const applyGroupSlot = useCallback((block: DisplayBlock, alliance: 'red' | 'blue', position: number, scoutId: string | null) => {
+    const groupMatchNumbers = new Set(block.matches)
+    setLocalMatches(prev => prev.map(match => {
+      if (!groupMatchNumbers.has(match.matchNumber)) return match
+      const next = { ...match, redScouts: [...match.redScouts], blueScouts: [...match.blueScouts] }
+      const targetSlots = alliance === 'red' ? next.redScouts : next.blueScouts
+
+      if (scoutId === null) {
+        targetSlots[position] = null
+        return next
+      }
+
+      const assignedInMatch = new Set<string>([
+        ...next.redScouts.filter((s): s is string => s !== null),
+        ...next.blueScouts.filter((s): s is string => s !== null),
+      ])
+      const currentAtSlot = targetSlots[position]
+      if (currentAtSlot) assignedInMatch.delete(currentAtSlot)
+
+      if (!assignedInMatch.has(scoutId)) targetSlots[position] = scoutId
+      return next
+    }))
+  }, [])
+
+  const getGroupSlotValue = useCallback((block: DisplayBlock, alliance: 'red' | 'blue', position: number): string | null | 'mixed' => {
+    let value: string | null | undefined = undefined
+    for (const matchNumber of block.matches) {
+      const match = matchesByNumber.get(matchNumber)
+      if (!match) continue
+      const slotValue = alliance === 'red' ? match.redScouts[position] : match.blueScouts[position]
+      if (value === undefined) value = slotValue
+      else if (value !== slotValue) return 'mixed'
+    }
+    return value ?? null
+  }, [matchesByNumber])
+
+  const autoAssignAllMatches = useCallback(() => {
+    if (sortedActiveUsers.length === 0) {
+      toast.error('Select active scouts first')
+      return
+    }
+
+    setIsAutoAssigning(true)
+    try {
+      setLocalMatches(prev => {
+        const draft = prev.map(match => ({ ...match, redScouts: [...match.redScouts], blueScouts: [...match.blueScouts] }))
+        const workload = computeUserWorkload(draft)
+
+        for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+          const block = blocks[blockIndex]
+          const blockMatchIndexes = block.matches
+            .map(matchNumber => matchNumber - 1)
+            .filter(index => index >= 0 && index < draft.length)
+
+          if (blockMatchIndexes.length === 0) continue
+
+          const previousBlockScouts = new Set<string>()
+          if (blockIndex > 0) {
+            const previousBlock = blocks[blockIndex - 1]
+            previousBlock.matches
+              .map(matchNumber => matchNumber - 1)
+              .filter(index => index >= 0 && index < draft.length)
+              .forEach(index => {
+                draft[index].redScouts.forEach(s => { if (s) previousBlockScouts.add(s) })
+                draft[index].blueScouts.forEach(s => { if (s) previousBlockScouts.add(s) })
+              })
+          }
+
+          const representativeMatch = draft[blockMatchIndexes[0]]
+
+          const assignGroupSlot = (alliance: 'red' | 'blue', position: number) => {
+            const slotHasOpenMatch = blockMatchIndexes.some(index => {
+              const match = draft[index]
+              const slots = alliance === 'red' ? match.redScouts : match.blueScouts
+              return slots[position] === null
+            })
+            if (!slotHasOpenMatch) return
+
+            const alreadyChosenForGroup = new Set<string>()
+            for (let p = 0; p < scoutsPerAlliance; p++) {
+              const redScout = representativeMatch.redScouts[p]
+              const blueScout = representativeMatch.blueScouts[p]
+              if (redScout) alreadyChosenForGroup.add(redScout)
+              if (blueScout) alreadyChosenForGroup.add(blueScout)
+            }
+
+            let best: UserWithPartners | null = null
+            let bestScore: [number, number, number, number] | null = null
+
+            for (let idx = 0; idx < sortedActiveUsers.length; idx++) {
+              const candidate = sortedActiveUsers[idx]
+              if (alreadyChosenForGroup.has(candidate.id)) continue
+
+              const score: [number, number, number, number] = [
+                previousBlockScouts.has(candidate.id) ? 1 : 0,
+                workload.get(candidate.id) ?? 0,
+                hasPreferredPartnerInMatch(candidate.id, representativeMatch) ? 0 : 1,
+                idx,
+              ]
+
+              if (!bestScore ||
+                score[0] < bestScore[0] ||
+                (score[0] === bestScore[0] && score[1] < bestScore[1]) ||
+                (score[0] === bestScore[0] && score[1] === bestScore[1] && score[2] < bestScore[2]) ||
+                (score[0] === bestScore[0] && score[1] === bestScore[1] && score[2] === bestScore[2] && score[3] < bestScore[3])) {
+                bestScore = score
+                best = candidate
+              }
+            }
+
+            if (!best) return
+
+            representativeMatch[alliance === 'red' ? 'redScouts' : 'blueScouts'][position] = best.id
+
+            blockMatchIndexes.forEach(index => {
+              const match = draft[index]
+              const slots = alliance === 'red' ? match.redScouts : match.blueScouts
+              if (slots[position] !== null) return
+
+              const assignedInMatch = new Set<string>([
+                ...match.redScouts.filter((s): s is string => s !== null),
+                ...match.blueScouts.filter((s): s is string => s !== null),
+              ])
+              if (assignedInMatch.has(best!.id)) return
+
+              slots[position] = best!.id
+              workload.set(best!.id, (workload.get(best!.id) ?? 0) + 1)
+            })
+          }
+
+          for (let pos = 0; pos < scoutsPerAlliance; pos++) assignGroupSlot('red', pos)
+          for (let pos = 0; pos < scoutsPerAlliance; pos++) assignGroupSlot('blue', pos)
+        }
+
+        return draft
+      })
+
+      toast.success('Auto-assigned all matches using virtual groups')
+    } catch (err) {
+      console.error('Error auto-assigning matches:', err)
+      toast.error('Failed to auto-assign matches')
+    } finally {
+      setIsAutoAssigning(false)
+    }
+  }, [sortedActiveUsers, computeUserWorkload, hasPreferredPartnerInMatch, scoutsPerAlliance, blocks])
+
+  const clearAssignments = useCallback(() => {
+    setLocalMatches(prev => prev.map(match => ({
+      ...match,
+      redScouts: match.redScouts.map(() => null),
+      blueScouts: match.blueScouts.map(() => null),
+    })))
+    toast.success('All match assignments cleared')
+  }, [])
+
   const saveAllChanges = async () => {
     setIsSaving(true)
     try {
-      const assignmentsToMake: Array<{
-        blockId: number
-        userId: string | null
+      const dbMap = new Map<string, string | null>()
+      matchAssignments.forEach(row => dbMap.set(`${row.matchNumber}-${row.alliance}-${row.position}`, row.userId))
+
+      const changes: Array<{ matchNumber: number; alliance: 'red' | 'blue'; position: number; userId: string | null }> = []
+      localMatches.forEach(match => {
+        for (let pos = 0; pos < scoutsPerAlliance; pos++) {
+          const dbRed = dbMap.get(`${match.matchNumber}-red-${pos}`) ?? null
+          const dbBlue = dbMap.get(`${match.matchNumber}-blue-${pos}`) ?? null
+          if ((match.redScouts[pos] ?? null) !== dbRed) {
+            changes.push({ matchNumber: match.matchNumber, alliance: 'red', position: pos, userId: match.redScouts[pos] ?? null })
+          }
+          if ((match.blueScouts[pos] ?? null) !== dbBlue) {
+            changes.push({ matchNumber: match.matchNumber, alliance: 'blue', position: pos, userId: match.blueScouts[pos] ?? null })
+          }
+        }
+      })
+
+      type RangeChange = {
+        startMatch: number
+        endMatch: number
         alliance: 'red' | 'blue'
         position: number
-      }> = []
+        userId: string | null
+      }
 
-      localBlocks.forEach(localBlock => {
-        const dbBlock = dbBlocks.find(b => b.id === localBlock.id)
-        if (!dbBlock) return
+      const grouped = new Map<string, number[]>()
+      for (const change of changes) {
+        const key = `${change.alliance}|${change.position}|${change.userId ?? 'null'}`
+        const matches = grouped.get(key)
+        if (matches) matches.push(change.matchNumber)
+        else grouped.set(key, [change.matchNumber])
+      }
 
-        localBlock.redScouts.forEach((scoutId, index) => {
-          if (scoutId !== dbBlock.redScouts[index]) {
-            assignmentsToMake.push({ blockId: localBlock.id, userId: scoutId, alliance: 'red', position: index })
+      const compactedChanges: RangeChange[] = []
+      grouped.forEach((matchNumbers, key) => {
+        const [allianceRaw, positionRaw, userIdRaw] = key.split('|')
+        const alliance = allianceRaw as 'red' | 'blue'
+        const position = parseInt(positionRaw, 10)
+        const userId = userIdRaw === 'null' ? null : userIdRaw
+
+        const sortedMatches = [...matchNumbers].sort((a, b) => a - b)
+        let start = sortedMatches[0]
+        let prev = sortedMatches[0]
+
+        for (let i = 1; i < sortedMatches.length; i++) {
+          const current = sortedMatches[i]
+          if (current === prev + 1) {
+            prev = current
+            continue
           }
-        })
-        localBlock.blueScouts.forEach((scoutId, index) => {
-          if (scoutId !== dbBlock.blueScouts[index]) {
-            assignmentsToMake.push({ blockId: localBlock.id, userId: scoutId, alliance: 'blue', position: index })
-          }
-        })
+
+          compactedChanges.push({ startMatch: start, endMatch: prev, alliance, position, userId })
+          start = current
+          prev = current
+        }
+
+        compactedChanges.push({ startMatch: start, endMatch: prev, alliance, position, userId })
       })
 
       const batchSize = 20
-      for (let i = 0; i < assignmentsToMake.length; i += batchSize) {
-        const batch = assignmentsToMake.slice(i, i + batchSize)
-        await Promise.all(batch.map(a => assignScout(a.blockId, a.userId, a.alliance, a.position)))
+      for (let i = 0; i < compactedChanges.length; i += batchSize) {
+        const batch = compactedChanges.slice(i, i + batchSize)
+        await Promise.all(batch.map(change =>
+          assignScoutRange(change.startMatch, change.endMatch, change.userId, change.alliance, change.position)
+        ))
       }
 
-      // Refresh data from server to sync local state
       refreshData()
       toast.success('Changes saved')
     } catch (err) {
@@ -331,214 +544,24 @@ export default function SchedulePage() {
     }
   }
 
-  // Discard changes
   const discardChanges = () => {
-    setLocalBlocks(mapBlocksToDisplay(dbBlocks))
+    setLocalMatches(buildInitialMatches())
   }
 
-  // Get available users for a slot
-  const getAvailableUsersForSlot = useCallback((block: DisplayBlock, alliance: 'red' | 'blue', scoutIndex: number): UserWithPartners[] => {
-    const assignedIds = new Set<string>()
-    block.redScouts.forEach((scoutId, index) => {
-      if (scoutId && !(alliance === 'red' && index === scoutIndex)) assignedIds.add(scoutId)
-    })
-    block.blueScouts.forEach((scoutId, index) => {
-      if (scoutId && !(alliance === 'blue' && index === scoutIndex)) assignedIds.add(scoutId)
-    })
-    return sortedActiveUsers.filter(user => !assignedIds.has(user.id))
-  }, [sortedActiveUsers])
-
-  // Auto-assign all scouts
-  const autoAssignAllScouts = useCallback(() => {
-    if (sortedActiveUsers.length === 0) {
-      toast.error('Select active scouts first')
-      return
-    }
-    
-    setIsAutoAssigning(true)
-    let didModify = false
-
-    try {
-      setLocalBlocks(prevBlocks => {
-        const draftBlocks = prevBlocks.map(block => ({
-          ...block,
-          redScouts: [...block.redScouts],
-          blueScouts: [...block.blueScouts],
-        }))
-
-        const workload = computeUserWorkload(draftBlocks)
-
-        const wasAssignedToPreviousBlock = (scoutId: string, blockIndex: number) => {
-          if (blockIndex <= 0) return false
-          const prevBlock = draftBlocks[blockIndex - 1]
-          return [...prevBlock.redScouts, ...prevBlock.blueScouts].includes(scoutId)
-        }
-
-        draftBlocks.forEach((block, blockIndex) => {
-          const assignAlliance = (alliance: 'red' | 'blue') => {
-            const currentScouts = alliance === 'red' ? block.redScouts : block.blueScouts
-            const assignedInBlock = new Set<string>([
-              ...block.redScouts.filter((id): id is string => id !== null),
-              ...block.blueScouts.filter((id): id is string => id !== null),
-            ])
-
-            for (let slotIndex = 0; slotIndex < currentScouts.length; slotIndex++) {
-              if (currentScouts[slotIndex]) continue
-
-              let bestCandidate: UserWithPartners | null = null
-              let bestScore: [number, number, number, number] | null = null
-
-              for (let i = 0; i < sortedActiveUsers.length; i++) {
-                const candidate = sortedActiveUsers[i]
-                if (assignedInBlock.has(candidate.id)) continue
-
-                const backToBack = wasAssignedToPreviousBlock(candidate.id, blockIndex) ? 1 : 0
-                const workloadValue = workload.get(candidate.id) ?? 0
-                const preferredPartnerScore = hasPreferredPartnerInBlock(candidate.id, block) ? 0 : 1
-                const score: [number, number, number, number] = [backToBack, workloadValue, preferredPartnerScore, i]
-
-                if (!bestScore ||
-                    score[0] < bestScore[0] ||
-                    (score[0] === bestScore[0] && score[1] < bestScore[1]) ||
-                    (score[0] === bestScore[0] && score[1] === bestScore[1] && score[2] < bestScore[2]) ||
-                    (score[0] === bestScore[0] && score[1] === bestScore[1] && score[2] === bestScore[2] && score[3] < bestScore[3])) {
-                  bestScore = score
-                  bestCandidate = candidate
-                }
-              }
-
-              if (bestCandidate) {
-                currentScouts[slotIndex] = bestCandidate.id
-                assignedInBlock.add(bestCandidate.id)
-                workload.set(bestCandidate.id, (workload.get(bestCandidate.id) ?? 0) + 1)
-                didModify = true
-              }
-            }
-          }
-
-          assignAlliance('red')
-          assignAlliance('blue')
-        })
-
-        return draftBlocks
-      })
-      
-      if (didModify) {
-        toast.success('Scouts auto-assigned')
-      }
-    } catch (err) {
-      console.error('Error auto-assigning:', err)
-      toast.error('Failed to auto-assign scouts')
-    } finally {
-      setIsAutoAssigning(false)
-    }
-  }, [computeUserWorkload, hasPreferredPartnerInBlock, sortedActiveUsers])
-
-  // Clear all assignments
-  const clearAssignments = useCallback(() => {
-    setLocalBlocks(prevBlocks => prevBlocks.map(block => ({
-      ...block,
-      redScouts: block.redScouts.map(() => null),
-      blueScouts: block.blueScouts.map(() => null),
-    })))
-    toast.success('Assignments cleared')
-  }, [])
-
-  // Quick assign a single slot with the best available scout
-  const quickAssignSlot = useCallback((blockId: number, alliance: 'red' | 'blue', scoutIndex: number) => {
-    if (sortedActiveUsers.length === 0) {
-      toast.error('Select active scouts first')
-      return
-    }
-
-    setLocalBlocks(prevBlocks => {
-      const blockIndex = prevBlocks.findIndex(b => b.id === blockId)
-      if (blockIndex === -1) return prevBlocks
-
-      const block = prevBlocks[blockIndex]
-      const currentScouts = alliance === 'red' ? block.redScouts : block.blueScouts
-      
-      // Skip if already assigned
-      if (currentScouts[scoutIndex] !== null) return prevBlocks
-
-      // Get scouts already assigned in this block
-      const assignedInBlock = new Set<string>([
-        ...block.redScouts.filter((s): s is string => s !== null),
-        ...block.blueScouts.filter((s): s is string => s !== null),
-      ])
-
-      // Compute current workload
-      const workload = computeUserWorkload(prevBlocks)
-
-      // Check if scout was in the previous block (avoid back-to-back)
-      const wasAssignedToPreviousBlock = (scoutId: string) => {
-        if (blockIndex <= 0) return false
-        const prevBlock = prevBlocks[blockIndex - 1]
-        return [...prevBlock.redScouts, ...prevBlock.blueScouts].includes(scoutId)
-      }
-
-      // Find the best candidate
-      let bestCandidate: UserWithPartners | null = null
-      let bestScore: [number, number, number, number] | null = null
-
-      for (let i = 0; i < sortedActiveUsers.length; i++) {
-        const candidate = sortedActiveUsers[i]
-        if (assignedInBlock.has(candidate.id)) continue
-
-        const backToBack = wasAssignedToPreviousBlock(candidate.id) ? 1 : 0
-        const workloadValue = workload.get(candidate.id) ?? 0
-        const preferredPartnerScore = hasPreferredPartnerInBlock(candidate.id, block) ? 0 : 1
-        const score: [number, number, number, number] = [backToBack, workloadValue, preferredPartnerScore, i]
-
-        if (!bestScore ||
-            score[0] < bestScore[0] ||
-            (score[0] === bestScore[0] && score[1] < bestScore[1]) ||
-            (score[0] === bestScore[0] && score[1] === bestScore[1] && score[2] < bestScore[2]) ||
-            (score[0] === bestScore[0] && score[1] === bestScore[1] && score[2] === bestScore[2] && score[3] < bestScore[3])) {
-          bestScore = score
-          bestCandidate = candidate
-        }
-      }
-
-      if (!bestCandidate) {
-        toast.error('No available scouts for this slot')
-        return prevBlocks
-      }
-
-      // Update the block with the new assignment
-      const draftBlocks = [...prevBlocks]
-      const updatedBlock = { ...block }
-      if (alliance === 'red') {
-        updatedBlock.redScouts = [...block.redScouts]
-        updatedBlock.redScouts[scoutIndex] = bestCandidate.id
-      } else {
-        updatedBlock.blueScouts = [...block.blueScouts]
-        updatedBlock.blueScouts[scoutIndex] = bestCandidate.id
-      }
-      draftBlocks[blockIndex] = updatedBlock
-
-      return draftBlocks
-    })
-  }, [sortedActiveUsers, computeUserWorkload, hasPreferredPartnerInBlock])
-
-  // Handle actions
   const handleSetManualMatchCount = async () => {
     const count = parseInt(manualMatchInput)
     if (!isNaN(count) && count > 0 && count <= 200) {
       setManualMatchCount(count)
       setManualMatchInput('')
       toast.success(`Match count set to ${count}`)
-      
-      // Auto-regenerate blocks if they already exist
       if (blocks.length > 0) {
         setIsGeneratingBlocks(true)
         try {
           await generateBlocks()
-          const numBlocks = Math.ceil(count / blockSize)
-          toast.success(`Regenerated ${numBlocks} blocks`)
+          toast.success(`Regenerated ${Math.ceil(count / blockSize)} virtual groups`)
         } catch (err) {
-          console.error('Error regenerating blocks:', err)
-          toast.error('Failed to regenerate blocks')
+          console.error('Error regenerating groups:', err)
+          toast.error('Failed to regenerate groups')
         } finally {
           setIsGeneratingBlocks(false)
         }
@@ -554,17 +577,14 @@ export default function SchedulePage() {
       const result = await syncMatchCountFromApi()
       if (result.success) {
         toast.success(`Match count updated to ${result.count}`)
-        
-        // Auto-regenerate blocks if they already exist
         if (blocks.length > 0) {
           setIsGeneratingBlocks(true)
           try {
             await generateBlocks()
-            const numBlocks = Math.ceil(result.count / blockSize)
-            toast.success(`Regenerated ${numBlocks} blocks`)
+            toast.success(`Regenerated ${Math.ceil(result.count / blockSize)} virtual groups`)
           } catch (err) {
-            console.error('Error regenerating blocks:', err)
-            toast.error('Failed to regenerate blocks')
+            console.error('Error regenerating groups:', err)
+            toast.error('Failed to regenerate groups')
           } finally {
             setIsGeneratingBlocks(false)
           }
@@ -573,7 +593,7 @@ export default function SchedulePage() {
         toast.error('Match schedule not yet available')
       }
     } catch (err) {
-      console.error('Error syncing:', err)
+      console.error('Error syncing match count:', err)
       toast.error('Failed to sync match count')
     } finally {
       setIsSyncingMatchCount(false)
@@ -585,15 +605,14 @@ export default function SchedulePage() {
       toast.error('Set match count first')
       return
     }
-    
+
     setIsGeneratingBlocks(true)
     try {
       await generateBlocks()
-      const numBlocks = Math.ceil(matchCount / blockSize)
-      toast.success(`Generated ${numBlocks} blocks`)
+      toast.success(`Generated ${Math.ceil(matchCount / blockSize)} virtual groups`)
     } catch (err) {
-      console.error('Error generating blocks:', err)
-      toast.error('Failed to generate blocks')
+      console.error('Error generating groups:', err)
+      toast.error('Failed to generate groups')
     } finally {
       setIsGeneratingBlocks(false)
     }
@@ -606,17 +625,15 @@ export default function SchedulePage() {
       setShowResetDialog(false)
       toast.success('Schedule reset')
     } catch (err) {
-      console.error('Error resetting:', err)
+      console.error('Error resetting schedule:', err)
       toast.error('Failed to reset schedule')
     } finally {
       setIsResetting(false)
     }
   }
 
-  // Calculated number of blocks
   const calculatedBlocks = matchCount > 0 && blockSize > 0 ? Math.ceil(matchCount / blockSize) : 0
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -628,31 +645,25 @@ export default function SchedulePage() {
     )
   }
 
-  // No event selected
   if (!hasEvent) {
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Schedule</h1>
-          <p className="text-muted-foreground">Configure scouting blocks and assign scouts.</p>
+          <p className="text-muted-foreground">Configure virtual groups and manage match assignments.</p>
         </div>
         <Alert>
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Select an event from the event switcher to manage the scouting schedule.
-          </AlertDescription>
+          <AlertDescription>Select an event from the event switcher to manage the scouting schedule.</AlertDescription>
         </Alert>
       </div>
     )
   }
 
-  // Error state
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Schedule</h1>
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight">Schedule</h1>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
@@ -663,13 +674,10 @@ export default function SchedulePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Schedule</h1>
-          <p className="text-muted-foreground">
-            Configure block size, set match count, then generate blocks and assign scouts.
-          </p>
+          <p className="text-muted-foreground">Per-match editing with optional group templates for fast changes.</p>
         </div>
         {hasUnsavedChanges && (
           <div className="flex items-center gap-2">
@@ -682,31 +690,18 @@ export default function SchedulePage() {
         )}
       </div>
 
-
-
-      {/* Step 1-3: Schedule Configuration - Hide when schedule exists */}
       {blocks.length === 0 && (
         <>
-          {/* Step 1: Block Size Configuration */}
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <CardTitle>Matches Per Shift</CardTitle>
-              </div>
-              <CardDescription className="-mb-3">
-                Set how many qualification matches each scouting shift will cover.
-              </CardDescription>
+              <CardTitle>Matches Per Virtual Group</CardTitle>
+              <CardDescription>Virtual groups are only templates for quick assignment ranges.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
-                <Label htmlFor="block-size">Matches per shift:</Label>
-                <Select 
-                  value={blockSize.toString()} 
-                  onValueChange={(value) => setBlockSize(parseInt(value))}
-                >
-                  <SelectTrigger className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
+                <Label htmlFor="block-size">Matches per virtual group:</Label>
+                <Select value={blockSize.toString()} onValueChange={(value) => setBlockSize(parseInt(value))}>
+                  <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {[3, 4, 5, 6, 7, 8, 9, 10].map(n => (
                       <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
@@ -717,44 +712,22 @@ export default function SchedulePage() {
             </CardContent>
           </Card>
 
-          {/* Step 2: Match Count Configuration */}
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <CardTitle>Match Count</CardTitle>
-              </div>
-              <CardDescription>
-                Set the total number of qualification matches. API data takes priority when available—sync to get the latest count.
-              </CardDescription>
+              <CardTitle>Match Count</CardTitle>
+              <CardDescription>Set qualification match count. API sync is preferred when available.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Alert when API data available but different from current */}
               {isApiMatchCountAvailable && apiMatchCount !== matchCount && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="flex items-center justify-between">
-                    <span>
-                      <strong>Update Available:</strong> API shows {apiMatchCount} matches, but you have {matchCount > 0 ? matchCount : 'no count'} set. 
-                      Click Sync to update.
-                    </span>
+                  <AlertDescription>
+                    <strong>Update Available:</strong> API shows {apiMatchCount} matches, current value is {matchCount > 0 ? matchCount : 'unset'}.
                   </AlertDescription>
                 </Alert>
               )}
 
               <div className="flex flex-wrap items-end gap-4">
-                {/* API match count display (when available and different) */}
-                {isApiMatchCountAvailable && apiMatchCount !== matchCount && (
-                  <div className="space-y-2">
-                    <Label>API Match Count</Label>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-sm px-3 py-1 text-green-600 border-green-600">
-                        {apiMatchCount}
-                      </Badge>
-                    </div>
-                  </div>
-                )}
-
-                {/* Manual input */}                
                 <div className="space-y-3">
                   <Label htmlFor="manual-match-count">Set Manually</Label>
                   <div className="flex items-center gap-2">
@@ -768,19 +741,15 @@ export default function SchedulePage() {
                       onChange={(e) => setManualMatchInput(e.target.value)}
                       className="w-24"
                     />
-                    <Button variant="outline" onClick={handleSetManualMatchCount} disabled={!manualMatchInput}>
-                      Set
-                    </Button>
+                    <Button variant="outline" onClick={handleSetManualMatchCount} disabled={!manualMatchInput}>Set</Button>
                   </div>
                 </div>
-                
 
-                {/* Sync from API */}
                 <div className="space-y-3 ml-6">
                   <Label>Sync from API</Label>
-                  <Button 
-                    variant={isApiMatchCountAvailable && apiMatchCount !== matchCount ? "default" : "outline"} 
-                    onClick={handleSyncMatchCount} 
+                  <Button
+                    variant={isApiMatchCountAvailable && apiMatchCount !== matchCount ? "default" : "outline"}
+                    onClick={handleSyncMatchCount}
                     disabled={isSyncingMatchCount}
                   >
                     {isSyncingMatchCount ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
@@ -788,329 +757,180 @@ export default function SchedulePage() {
                   </Button>
                 </div>
               </div>
-              
-              <div className="pt-3">
-                {/* Current match count */}
-                <div className="flex gap-4 items-center">
-                  <Label>Match Count</Label>
-                  <div className="flex items-center gap-2">
-                    <div>{matchCount > 0 ? matchCount : 'Not Set'}</div>
-                    {isApiMatchCountAvailable && apiMatchCount === matchCount && (
-                      <Badge variant="outline" className="text-xs text-green-600 border-green-600 ml-4 mt-1">From API</Badge>
-                    )}
-                    {isApiMatchCountAvailable && apiMatchCount !== matchCount && (
-                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-600 ml-4 mt-1">Needs Update</Badge>
-                    )}
-                  </div>
-                </div>
 
-                {matchCount > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                    <ChevronRight className="h-4 w-4" />
-                    <span>{matchCount} matches ÷ {blockSize} per shift = <strong>{calculatedBlocks} shifts</strong></span>
-                  </div>
-                )}
-              </div>
+              {matchCount > 0 && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <ChevronRight className="h-4 w-4" />
+                  <span>{matchCount} matches / {blockSize} per group = <strong>{calculatedBlocks} virtual groups</strong></span>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Step 3: Generate Shifts */}
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <CardTitle>Generate Shifts</CardTitle>
-              </div>
-              <CardDescription>
-                Create scouting shifts based on the configured match count and shift size.
-              </CardDescription>
+              <CardTitle>Generate Virtual Groups</CardTitle>
+              <CardDescription>Generate groups, then edit match assignments directly.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4">
-                <Button onClick={handleGenerateBlocks} disabled={matchCount <= 0 || isGeneratingBlocks}>
-                  {isGeneratingBlocks ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</> : 'Generate Shifts'}
-                </Button>
-                {matchCount <= 0 && (
-                  <span className="text-sm text-muted-foreground">Set match count first</span>
-                )}
-              </div>
+              <Button onClick={handleGenerateBlocks} disabled={matchCount <= 0 || isGeneratingBlocks}>
+                {isGeneratingBlocks ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</> : 'Generate Virtual Groups'}
+              </Button>
             </CardContent>
           </Card>
         </>
       )}
 
-      {/* Schedule Management - only show when blocks exist */}
       {blocks.length > 0 && (
         <>
-          {/* Active Scouts Selection - Collapsible - Only for users with edit permissions */}
-          {canEditSchedule && (
-            <Collapsible defaultOpen={false}>
-              <Card>
-                <CardHeader>
-                  <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="flex items-center gap-2">
-                          <UserRound className="h-5 w-5" />
-                          Select Active Scouts
-                        </CardTitle>
-                        <Badge variant="secondary" className="text-xs">
-                          {sortedActiveUsers.length} selected
-                        </Badge>
-                      </div>
-                      <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          <Collapsible defaultOpen={false}>
+            <Card>
+              <CardHeader>
+                <CollapsibleTrigger className="w-full">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2">
+                        <UserRound className="h-5 w-5" />
+                        Active Scouts
+                      </CardTitle>
+                      <Badge variant="secondary" className="text-xs">{sortedActiveUsers.length} selected</Badge>
                     </div>
-                  </CollapsibleTrigger>
-                  <CardDescription>
-                    Choose which scouts are available for assignment.
-                  </CardDescription>
-                </CardHeader>
-                <CollapsibleContent>
-                  <CardContent>
-                    <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                      {sortedUsers.map(scout => (
-                        <ActiveScoutCheckbox
-                          key={scout.id}
-                          scout={scout}
-                          isActive={activeScoutSet.has(scout.id)}
-                          onToggle={toggleActiveScout}
-                        />
-                      ))}
-                    </div>
-                    {sortedActiveUsers.length > 0 && (
-                      <div className="mt-4 flex items-center gap-4">
-                        <Button onClick={autoAssignAllScouts} disabled={isAutoAssigning}>
-                          {isAutoAssigning ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Assigning...</> : 'Auto-Assign All'}
-                        </Button>
-                        <Button variant="outline" onClick={clearAssignments}>Clear All Assignments</Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
-          )}
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                </CollapsibleTrigger>
+                <CardDescription>Used for auto-assign and group template actions.</CardDescription>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent>
+                  <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                    {sortedUsers.map(scout => (
+                      <ActiveScoutCheckbox
+                        key={scout.id}
+                        scout={scout}
+                        isActive={activeScoutSet.has(scout.id)}
+                        onToggle={toggleActiveScout}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-4 flex items-center gap-3">
+                    <Button onClick={autoAssignAllMatches} disabled={isAutoAssigning}>
+                      {isAutoAssigning ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Assigning...</> : 'Auto-Fill All Matches'}
+                    </Button>
+                    <Button variant="outline" onClick={clearAssignments}>Clear All Assignments</Button>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
-          {/* Scouting Schedule */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="space-y-1.5">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
-                    Scouting Schedule
+                    Match Assignments
                   </CardTitle>
-                  <CardDescription>
-                    Assign scouts to each shift. Scouts stay in position for their entire shift.
-                  </CardDescription>
+                  <CardDescription>All matches are visible below. Use virtual group templates for fast range edits.</CardDescription>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="default" className="text-sm px-3 py-1">{blocks.length} shifts</Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {matchCount} matches · {blockSize}/shift
-                    </span>
-                  </div>
-                  {canEditSchedule && (
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      onClick={() => setShowResetDialog(true)}
-                      className="gap-2"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      Reset
-                    </Button>
-                  )}
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="text-sm px-3 py-1">{blocks.length} virtual groups</Badge>
+                  <Button variant="destructive" size="sm" onClick={() => setShowResetDialog(true)} className="gap-2">
+                    <RotateCcw className="h-4 w-4" />
+                    Reset
+                  </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                {blocks.map((block) => (
-                  <div key={block.id} className="border rounded-lg p-6">
-                    <div className="mb-6">
-                      <h3 className="text-xl font-semibold">{block.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Matches: {block.matches.join(', ')}
-                      </p>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-8">
-                      {/* Red Alliance */}
-                      <div>
-                        <h4 className="font-medium text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
-                          <div className="w-4 h-4 bg-red-500 dark:bg-red-600 rounded"></div>
-                          Red Alliance Scouts
-                        </h4>
-                        <div className="space-y-3">
-                          {block.redScouts.map((_, scoutIndex) => {
-                            const scoutId = block.redScouts[scoutIndex]
-                            const assignedScout = scoutId ? usersById.get(scoutId) : null
-                            const availableUsers = getAvailableUsersForSlot(block, 'red', scoutIndex)
-                            const isPaired = assignedScout && hasPreferredPartnerInBlock(assignedScout.id, block)
-                            const pairedPartners = assignedScout ? getPairedPartnersInBlock(assignedScout.id, block) : []
-
-                            return (
-                              <div key={scoutIndex} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                  <span className="font-medium">Scout {scoutIndex + 1}</span>
-                                  {assignedScout && (
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant="secondary" className="flex items-center gap-1">
-                                        <Users className="h-3 w-3" />
-                                        {assignedScout.name}
-                                      </Badge>
-                                      {isPaired && (
-                                        <Badge 
-                                          variant="outline" 
-                                          className="flex items-center gap-1 text-primary border-primary"
-                                          title={`Paired with: ${pairedPartners.map(id => usersById.get(id)?.name).join(', ')}`}
-                                        >
-                                          <Handshake className="h-3 w-3" />
-                                          Paired
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  )}
-                                  {!assignedScout && !canEditSchedule && (
-                                    <Badge variant="outline" className="text-muted-foreground">Unassigned</Badge>
-                                  )}
-                                </div>
-                                {canEditSchedule && (
-                                  <div className="flex items-center gap-2">
-                                    {!assignedScout && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => quickAssignSlot(block.id, 'red', scoutIndex)}
-                                        className="text-xs"
-                                      >
-                                        Quick
-                                      </Button>
-                                    )}
-                                    <Select
-                                      value={scoutId || "none"}
-                                      onValueChange={(value) => assignBlockScout(block.id, 'red', scoutIndex, value === "none" ? null : value)}
-                                    >
-                                      <SelectTrigger className="w-40">
-                                        <SelectValue placeholder="Select scout" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        {availableUsers.map(user => (
-                                          <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
+              <div className="space-y-4">
+                <Collapsible open={showGroupTemplates} onOpenChange={setShowGroupTemplates}>
+                  <div className="rounded-md border p-4">
+                    <CollapsibleTrigger className="w-full text-left">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium">Virtual Group Templates</div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </div>
-
-                      {/* Blue Alliance */}
-                      <div>
-                        <h4 className="font-medium text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
-                          <div className="w-4 h-4 bg-blue-600 dark:bg-blue-400 rounded"></div>
-                          Blue Alliance Scouts
-                        </h4>
-                        <div className="space-y-3">
-                          {block.blueScouts.map((_, scoutIndex) => {
-                            const scoutId = block.blueScouts[scoutIndex]
-                            const assignedScout = scoutId ? usersById.get(scoutId) : null
-                            const availableUsers = getAvailableUsersForSlot(block, 'blue', scoutIndex)
-                            const isPaired = assignedScout && hasPreferredPartnerInBlock(assignedScout.id, block)
-                            const pairedPartners = assignedScout ? getPairedPartnersInBlock(assignedScout.id, block) : []
-
-                            return (
-                              <div key={scoutIndex} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                  <span className="font-medium">Scout {scoutIndex + 1}</span>
-                                  {assignedScout && (
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant="secondary" className="flex items-center gap-1">
-                                        <Users className="h-3 w-3" />
-                                        {assignedScout.name}
-                                      </Badge>
-                                      {isPaired && (
-                                        <Badge 
-                                          variant="outline" 
-                                          className="flex items-center gap-1 text-primary border-primary"
-                                          title={`Paired with: ${pairedPartners.map(id => usersById.get(id)?.name).join(', ')}`}
-                                        >
-                                          <Handshake className="h-3 w-3" />
-                                          Paired
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  )}
-                                  {!assignedScout && !canEditSchedule && (
-                                    <Badge variant="outline" className="text-muted-foreground">Unassigned</Badge>
-                                  )}
-                                </div>
-                                {canEditSchedule && (
-                                  <div className="flex items-center gap-2">
-                                    {!assignedScout && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => quickAssignSlot(block.id, 'blue', scoutIndex)}
-                                        className="text-xs"
-                                      >
-                                        Quick
-                                      </Button>
-                                    )}
-                                    <Select
-                                      value={scoutId || "none"}
-                                      onValueChange={(value) => assignBlockScout(block.id, 'blue', scoutIndex, value === "none" ? null : value)}
-                                    >
-                                      <SelectTrigger className="w-40">
-                                        <SelectValue placeholder="Select scout" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        {availableUsers.map(user => (
-                                          <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {showGroupTemplates && <div className="mt-4 space-y-3">
+                        {blocks.map(block => (
+                          <div key={block.id} className="rounded border p-3">
+                            <div className="text-sm font-medium mb-2">
+                              {block.name} ({block.matches[0]}-{block.matches[block.matches.length - 1]})
+                            </div>
+                            <div className="grid gap-2 md:grid-cols-2">
+                              {(['red', 'blue'] as const).map(alliance => (
+                                <div key={`${block.id}-${alliance}`} className="space-y-2">
+                                  <div className={`text-xs font-medium ${alliance === 'red' ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                    {alliance === 'red' ? 'Red' : 'Blue'} Template
                                   </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    </div>
+                                  {Array.from({ length: scoutsPerAlliance }, (_, position) => {
+                                    const currentValue = getGroupSlotValue(block, alliance, position)
+                                    return (
+                                      <div key={`${block.id}-${alliance}-${position}`} className="flex items-center gap-2">
+                                        <Label className="w-12 text-xs">S{position + 1}</Label>
+                                        <Select
+                                          value={currentValue === 'mixed' ? 'mixed' : (currentValue ?? 'none')}
+                                          onValueChange={(value) => applyGroupSlot(block, alliance, position, value === 'none' ? null : value)}
+                                        >
+                                          <SelectTrigger className="h-8 w-44 text-xs">
+                                            <SelectValue placeholder="Apply to group" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="none">Clear Slot</SelectItem>
+                                            {currentValue === 'mixed' && <SelectItem value="mixed" disabled>Mixed Values</SelectItem>}
+                                            {sortedActiveUsers.map(user => (
+                                              <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>}
+                    </CollapsibleContent>
                   </div>
-                ))}
+                </Collapsible>
+
+                <div className="space-y-2">
+                  {localMatches.map(match => (
+                    <MatchAssignmentRow
+                      key={match.matchNumber}
+                      match={match}
+                      scoutsPerAlliance={scoutsPerAlliance}
+                      getAvailableUsersForMatchSlot={getAvailableUsersForMatchSlot}
+                      setLocalMatchScout={setLocalMatchScout}
+                    />
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Workload Distribution */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 Scout Workload Distribution
               </CardTitle>
-              <CardDescription>
-                Shows how many shifts each scout is assigned to.
-              </CardDescription>
+              <CardDescription>Shows how many matches each scout is assigned to.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                {workloadList.map(({ user, blocksAssigned, isActive }) => (
+                {workloadList.map(({ user, matchesAssigned, isActive }) => (
                   <div key={user.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{user.name}</span>
                       {isActive && <Badge variant="default" className="text-xs">Active</Badge>}
                     </div>
-                    <Badge variant={blocksAssigned > 0 ? "default" : "secondary"}>
-                      {blocksAssigned} shift{blocksAssigned !== 1 ? 's' : ''}
+                    <Badge variant={matchesAssigned > 0 ? 'default' : 'secondary'}>
+                      {matchesAssigned} match{matchesAssigned !== 1 ? 'es' : ''}
                     </Badge>
                   </div>
                 ))}
@@ -1118,64 +938,52 @@ export default function SchedulePage() {
             </CardContent>
           </Card>
 
-          {/* Summary Stats */}
           <div className="grid gap-4 md:grid-cols-5">
             <Card className="gap-1">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Shifts</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Matches</CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{blocks.length}</div>
-              </CardContent>
+              <CardContent><div className="text-2xl font-bold">{matchCount}</div></CardContent>
             </Card>
             <Card className="gap-1">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Assigned</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{scheduleSummary.totalAssigned}</div>
-              </CardContent>
+              <CardContent><div className="text-2xl font-bold">{scheduleSummary.totalAssigned}</div></CardContent>
             </Card>
             <Card className="gap-1">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Unassigned</CardTitle>
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{scheduleSummary.unassigned}</div>
-              </CardContent>
+              <CardContent><div className="text-2xl font-bold">{scheduleSummary.unassigned}</div></CardContent>
             </Card>
             <Card className="gap-1">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Active Scouts</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{scheduleSummary.activeAssignedCount}</div>
-              </CardContent>
+              <CardContent><div className="text-2xl font-bold">{scheduleSummary.activeAssignedCount}</div></CardContent>
             </Card>
             <Card className="gap-1">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Preferred Pairings</CardTitle>
                 <Handshake className="h-4 w-4 text-primary" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-primary">{scheduleSummary.preferredPairings}</div>
-              </CardContent>
+              <CardContent><div className="text-2xl font-bold text-primary">{scheduleSummary.preferredPairings}</div></CardContent>
             </Card>
           </div>
         </>
       )}
 
-      {/* Reset Confirmation Dialog */}
       <DeleteConfirmationDialog
         open={showResetDialog}
         onOpenChange={setShowResetDialog}
         onConfirm={handleReset}
         title="Reset Schedule"
-        description="This will delete all shifts and assignments for this event. You can then reconfigure and regenerate."
+        description="This will clear all match assignments for this event. Virtual groups can be regenerated anytime."
         confirmButtonText="Reset"
         loadingText="Resetting..."
         loading={isResetting}

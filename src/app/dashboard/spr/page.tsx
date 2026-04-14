@@ -1,9 +1,12 @@
 'use client'
 
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import {
   Table,
   TableBody,
@@ -41,12 +44,13 @@ function getPerformanceBadge(percentile: number) {
 }
 
 function getDisplayName(scouter: ScouterSPR) {
-  return scouter.scouterName || scouter.scouterId;
+  return scouter.scouterName || "Unknown Scouter";
 }
 
 export default function SPRPage() {
+  const [verbose, setVerbose] = useState(false)
   const selectedEvent = useSelectedEvent()
-  const { data, loading, error, refetch } = useSPRData()
+  const { data, loading, error, refetch } = useSPRData({ verbose })
 
   if (!selectedEvent) {
     return (
@@ -75,15 +79,28 @@ export default function SPRPage() {
             Scouter Performance Rating (SPR) — accuracy analysis for {selectedEvent.name}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={refetch}
-          disabled={loading}
-        >
-          {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-          Refresh
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              id="spr-verbose"
+              checked={verbose}
+              onCheckedChange={setVerbose}
+              disabled={loading}
+            />
+            <Label htmlFor="spr-verbose" className="text-xs text-muted-foreground sm:text-sm">
+              Verbose (show by-match breakdown)
+            </Label>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refetch}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Loading State */}
@@ -268,6 +285,63 @@ export default function SPRPage() {
                 </CardContent>
               </Card>
             </div>
+          )}
+
+          {/* Verbose By-Match Breakdown */}
+          {verbose && data.verboseData && (
+            <Card>
+              <CardHeader>
+                <CardTitle>By-Match Breakdown</CardTitle>
+                <CardDescription>
+                  Detailed alliance-level equations used in SPR calculation.
+                  Used: {data.verboseData.usedEquations} | Skipped: {data.verboseData.skippedEquations} | Total: {data.verboseData.totalEquations}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Match</TableHead>
+                        <TableHead>Alliance</TableHead>
+                        <TableHead>Scouters</TableHead>
+                        <TableHead className="text-right">Scouted</TableHead>
+                        <TableHead className="text-right">Official</TableHead>
+                        <TableHead className="text-right">Fouls</TableHead>
+                        <TableHead className="text-right">Adjusted</TableHead>
+                        <TableHead className="text-right">Error</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.verboseData.equations.map((equation, index) => (
+                        <TableRow key={`${equation.matchNumber}-${equation.alliance}-${index}`}>
+                          <TableCell className="font-mono">Q{equation.matchNumber}</TableCell>
+                          <TableCell>
+                            <Badge variant={equation.alliance === 'red' ? 'destructive' : 'default'}>
+                              {equation.alliance}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[240px] truncate">{equation.scouterNames?.join(', ') || 'Unknown Scouter'}</TableCell>
+                          <TableCell className="text-right font-mono">{equation.scoutedTotal}</TableCell>
+                          <TableCell className="text-right font-mono">{equation.officialScore}</TableCell>
+                          <TableCell className="text-right font-mono">{equation.foulPoints}</TableCell>
+                          <TableCell className="text-right font-mono">{equation.adjustedOfficial}</TableCell>
+                          <TableCell className="text-right font-mono">{equation.error}</TableCell>
+                          <TableCell>
+                            {equation.skipped ? (
+                              <Badge variant="outline">Skipped{equation.skipReason ? `: ${equation.skipReason}` : ''}</Badge>
+                            ) : (
+                              <Badge variant="secondary">Used</Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </>
       )}

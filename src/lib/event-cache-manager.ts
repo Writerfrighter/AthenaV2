@@ -192,7 +192,7 @@ async function cacheSchedule(opts: CacheOptions): Promise<void> {
 async function cacheScoutSchedule(opts: CacheOptions): Promise<void> {
   opts.onStepUpdate('scoutSchedule', { status: 'loading', detail: 'Downloading scouting schedule...' });
   try {
-    const url = `/api/schedule/blocks?eventCode=${opts.eventCode}&year=${opts.year}&competitionType=${opts.competitionType}`;
+    const url = `/api/database/match-assignments?eventCode=${opts.eventCode}&year=${opts.year}`;
     const res = await fetchAndCache(url);
     await res.text();
     opts.onStepUpdate('scoutSchedule', { status: 'success', detail: 'Scouting schedule cached' });

@@ -101,33 +101,6 @@ export interface CustomEventRow {
   competitionType: string;
 }
 
-// ========== SCHEDULING TYPES ==========
-
-export interface ScoutingBlock {
-  id?: number;
-  eventCode: string;
-  year: number;
-  blockNumber: number;
-  startMatch: number;
-  endMatch: number;
-  created_at?: Date;
-  updated_at?: Date;
-}
-
-export interface BlockAssignment {
-  id?: number;
-  blockId: number;
-  userId: string;
-  alliance: 'red' | 'blue';
-  position: number; // 0, 1, or 2
-  created_at?: Date;
-}
-
-export interface ScoutingBlockWithAssignments extends ScoutingBlock {
-  redScouts: (string | null)[]; // Array of user IDs or null (2 for FTC, 3 for FRC)
-  blueScouts: (string | null)[]; // Array of user IDs or null (2 for FTC, 3 for FRC)
-}
-
 // ========== PICKLIST TYPES ==========
 
 export interface Picklist {
@@ -135,7 +108,7 @@ export interface Picklist {
   eventCode: string;
   year: number;
   competitionType: CompetitionType;
-  picklistType: 'pick1' | 'pick2' | 'main'; // pick1/pick2 for FRC, main for FTC
+  picklistType: 'pick1' | 'pick2' | 'blacklist' | 'main'; // pick1/pick2 for FRC, main for FTC
   created_at?: Date;
   updated_at?: Date;
 }
@@ -145,7 +118,6 @@ export interface PicklistEntry {
   picklistId: number;
   teamNumber: number;
   rank: number; // Position in the picklist (1-indexed)
-  qualRanking?: number; // Initial qualification ranking from TBA/FIRST FTC
   created_at?: Date;
   updated_at?: Date;
 }
@@ -175,7 +147,6 @@ export interface PicklistEntryRow {
   picklistId: number;
   teamNumber: number;
   rank: number;
-  qualRanking: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -189,8 +160,6 @@ export interface PicklistNoteRow {
   created_at: Date;
   updated_at: Date;
 }
-
-// ========== SCHEDULING DATABASE SERVICE TYPES ==========
 
 // ========== DATABASE SERVICE TYPES ==========
 
@@ -220,27 +189,6 @@ export interface DatabaseService {
   getAllCustomEvents(year?: number, competitionType?: CompetitionType): Promise<CustomEvent[]>;
   updateCustomEvent(eventCode: string, updates: Partial<CustomEvent>): Promise<void>;
   deleteCustomEvent(eventCode: string): Promise<void>;
-
-  // Scouting blocks
-  addScoutingBlock(block: Omit<ScoutingBlock, 'id' | 'created_at' | 'updated_at'>): Promise<number>;
-  getScoutingBlock(id: number): Promise<ScoutingBlock | undefined>;
-  getScoutingBlocks(eventCode: string, year: number): Promise<ScoutingBlock[]>;
-  updateScoutingBlock(id: number, updates: Partial<ScoutingBlock>): Promise<void>;
-  deleteScoutingBlock(id: number): Promise<void>;
-  deleteScoutingBlocksByEvent(eventCode: string, year: number): Promise<void>;
-
-  // Block assignments
-  addBlockAssignment(assignment: Omit<BlockAssignment, 'id' | 'created_at'>): Promise<number>;
-  getBlockAssignment(id: number): Promise<BlockAssignment | undefined>;
-  getBlockAssignments(blockId: number): Promise<BlockAssignment[]>;
-  getBlockAssignmentsByEvent(eventCode: string, year: number): Promise<BlockAssignment[]>;
-  getBlockAssignmentsByUser(userId: string): Promise<BlockAssignment[]>;
-  updateBlockAssignment(id: number, updates: Partial<BlockAssignment>): Promise<void>;
-  deleteBlockAssignment(id: number): Promise<void>;
-  deleteBlockAssignmentsByBlock(blockId: number): Promise<void>;
-
-  // Scouting blocks with assignments (combined query)
-  getScoutingBlocksWithAssignments(eventCode: string, year: number, scoutsPerAlliance?: number): Promise<ScoutingBlockWithAssignments[]>;
 
   // User preferred partners
   updateUserPreferredPartners(userId: string, preferredPartners: string[]): Promise<void>;

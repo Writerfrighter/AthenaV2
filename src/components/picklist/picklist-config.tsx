@@ -75,8 +75,7 @@ export function PicklistConfig({ eventCode, year, competitionType }: PicklistCon
         activePiclist.initialRanking.map((team) => ({
           picklistId: 0, // Will be set in createPicklist
           teamNumber: team.teamNumber,
-          rank: team.rank,
-          qualRanking: team.rank
+          rank: team.rank
         }));
 
       const picklistId = await activePiclist.createPicklist(entriesToCreate);
