@@ -319,8 +319,7 @@ export async function POST(request: NextRequest) {
         await service.addPicklistEntry({
           picklistId,
           teamNumber: entry.teamNumber,
-          rank: entry.rank,
-          qualRanking: entry.qualRanking
+          rank: entry.rank
         });
       }
     }

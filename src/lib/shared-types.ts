@@ -108,7 +108,7 @@ export interface Picklist {
   eventCode: string;
   year: number;
   competitionType: CompetitionType;
-  picklistType: 'pick1' | 'pick2' | 'main'; // pick1/pick2 for FRC, main for FTC
+  picklistType: 'pick1' | 'pick2' | 'blacklist' | 'main'; // pick1/pick2 for FRC, main for FTC
   created_at?: Date;
   updated_at?: Date;
 }
@@ -118,7 +118,6 @@ export interface PicklistEntry {
   picklistId: number;
   teamNumber: number;
   rank: number; // Position in the picklist (1-indexed)
-  qualRanking?: number; // Initial qualification ranking from TBA/FIRST FTC
   created_at?: Date;
   updated_at?: Date;
 }
@@ -148,7 +147,6 @@ export interface PicklistEntryRow {
   picklistId: number;
   teamNumber: number;
   rank: number;
-  qualRanking: number | null;
   created_at: Date;
   updated_at: Date;
 }

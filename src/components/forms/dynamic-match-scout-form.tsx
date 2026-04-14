@@ -147,17 +147,12 @@ export function DynamicMatchScoutForm() {
     const lastSubmitted = eventCode ? getLastSubmittedMatch(eventCode) : 0;
 
     if (lastSubmitted > 0) {
-      // We have a previously submitted match – advance from it
+      // We have a previously submitted match – jump to the next scheduled assignment
       const nextAssignment = getNextAssignment(lastSubmitted);
       const nextMatch = lastSubmitted + 1;
 
       if (nextAssignment) {
-        // If the next match falls within the assignment block, use it;
-        // otherwise jump to the block's start match.
-        const resolvedMatch =
-          nextMatch >= nextAssignment.startMatch && nextMatch <= nextAssignment.endMatch
-            ? nextMatch
-            : nextAssignment.startMatch;
+        const resolvedMatch = nextAssignment.matchNumber;
 
         setFormData(prev => ({
           ...prev,
@@ -166,7 +161,7 @@ export function DynamicMatchScoutForm() {
           alliancePosition: nextAssignment.position
         }));
       } else {
-        // No assignment covers the next match – just bump the number
+        // No upcoming scheduled assignment – just bump the number
         setFormData(prev => ({
           ...prev,
           matchNumber: nextMatch
@@ -344,15 +339,15 @@ export function DynamicMatchScoutForm() {
           setLastSubmittedMatch(selectedEvent.code, submittedMatch);
         }
 
-        // Compute next match + assignment from scouting schedule
+          // Compute next scheduled assignment from scouting schedule
         const nextMatch = submittedMatch + 1;
-        const nextAssignment = hasAssignments ? getAssignmentForMatch(nextMatch) : null;
+          const nextAssignment = hasAssignments ? getNextAssignment(submittedMatch) : null;
 
         const newFormData = gameConfig ? initializeFormData(gameConfig) : defaultData;
-        newFormData.matchNumber = nextMatch;
+          newFormData.matchNumber = nextAssignment?.matchNumber ?? nextMatch;
 
-  let nextAlliance = formData.alliance;
-  let nextAlliancePosition = formData.alliancePosition || 1;
+          let nextAlliance = formData.alliance;
+          let nextAlliancePosition = formData.alliancePosition || 1;
 
         if (nextAssignment) {
           nextAlliance = nextAssignment.alliance;
@@ -363,8 +358,8 @@ export function DynamicMatchScoutForm() {
         newFormData.alliance = nextAlliance;
         newFormData.alliancePosition = nextAlliancePosition;
 
-        // Auto-populate team number for the next match/alliance/position when schedule data is available
-        const nextTeamNumber = getTeamForPosition(nextMatch, nextAlliance, nextAlliancePosition);
+        // Auto-populate team number for the next selected match/alliance/position when schedule data is available
+        const nextTeamNumber = getTeamForPosition(newFormData.matchNumber, nextAlliance, nextAlliancePosition);
         if (nextTeamNumber !== null) {
           newFormData.teamNumber = nextTeamNumber;
         }
