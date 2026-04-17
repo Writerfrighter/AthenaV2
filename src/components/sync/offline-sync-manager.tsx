@@ -244,7 +244,7 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div>
             <Button
               onClick={loadQueuedEntries}
               variant="outline"
@@ -253,26 +253,26 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
               <Download className="mr-2 h-4 w-4" />
               View Queue
             </Button>
-
-            <Button
-              onClick={handleClearSynced}
-              disabled={isClearing}
-              variant="outline"
-              className="w-full"
-            >
-              {isClearing ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Clearing...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Clear Synced
-                </>
-              )}
-            </Button>
           </div>
+
+          <Button
+            onClick={handleClearSynced}
+            disabled={isClearing}
+            variant="outline"
+            className="w-full"
+          >
+            {isClearing ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Clearing...
+              </>
+            ) : (
+              <>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Clear Synced
+              </>
+            )}
+          </Button>
         </div>
 
         {/* Queue Details */}

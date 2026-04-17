@@ -61,6 +61,7 @@ export function DynamicMatchScoutForm() {
   const [activeTab, setActiveTab] = useState("auto");
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
+  const submitInFlightRef = useRef(false);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
@@ -225,6 +226,10 @@ export function DynamicMatchScoutForm() {
   };
 
   const handleSubmit = async () => {
+    if (submitInFlightRef.current || isSubmitting) {
+      return;
+    }
+
     if (!formData.matchNumber || !formData.teamNumber) {
       toast.error("Please fill in match number and team number");
       return;
@@ -236,30 +241,30 @@ export function DynamicMatchScoutForm() {
       return;
     }
 
-    // Check for duplicate match scout entry (only for new entries, not edits)
-    if (!isEditMode && selectedEvent?.code) {
-      try {
-        const response = await fetch(
-          `/api/database/match/check?teamNumber=${formData.teamNumber}&matchNumber=${formData.matchNumber}&eventCode=${selectedEvent.code}`
-        );
-        const data = await response.json();
-        
-        if (data.exists) {
-          toast.error("Duplicate entry detected", {
-            description: `Team ${formData.teamNumber} has already been scouted for Match ${formData.matchNumber}. Please check existing entries or edit the existing entry.`,
-            icon: <AlertCircle className="h-4 w-4" />
-          });
-          setIsSubmitting(false);
-          return;
-        }
-      } catch (error) {
-        console.error('Error checking for duplicate:', error);
-      }
-    }
-
+    submitInFlightRef.current = true;
     setIsSubmitting(true);
 
     try {
+      // Check for duplicate match scout entry (only for new entries, not edits)
+      if (!isEditMode && selectedEvent?.code) {
+        try {
+          const response = await fetch(
+            `/api/database/match/check?teamNumber=${formData.teamNumber}&matchNumber=${formData.matchNumber}&eventCode=${selectedEvent.code}`
+          );
+          const data = await response.json();
+          
+          if (data.exists) {
+            toast.error("Duplicate entry detected", {
+              description: `Team ${formData.teamNumber} has already been scouted for Match ${formData.matchNumber}. Please check existing entries or edit the existing entry.`,
+              icon: <AlertCircle className="h-4 w-4" />
+            });
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking for duplicate:', error);
+        }
+      }
+
       if (isEditMode && editingEntryId) {
         // Update existing entry
         const response = await fetch('/api/database/match', {
@@ -374,6 +379,7 @@ export function DynamicMatchScoutForm() {
       });
     } finally {
       setIsSubmitting(false);
+      submitInFlightRef.current = false;
     }
   };
 

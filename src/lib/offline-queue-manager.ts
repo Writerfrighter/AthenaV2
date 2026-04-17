@@ -9,7 +9,8 @@ import type {
   QueuedMatchEntry, 
   SyncResult, 
   SyncConfig,
-  SyncStatus 
+  SyncStatus,
+  DedupeQueueResult
 } from '@/lib/offline-types';
 
 // Default sync configuration
@@ -17,7 +18,7 @@ const DEFAULT_SYNC_CONFIG: SyncConfig = {
   maxRetries: 3,
   retryDelayMs: 1000,
   batchSize: 10,
-  autoSyncEnabled: true
+  autoSyncEnabled: false
 };
 
 class OfflineQueueManager {
@@ -307,6 +308,7 @@ class OfflineQueueManager {
     await this.ensureInitialized();
     const currentConfig = await this.getSyncConfig();
     const newConfig = { ...currentConfig, ...config };
+
     await indexedDBService.setSyncConfig(newConfig);
   }
 
@@ -420,6 +422,98 @@ class OfflineQueueManager {
   private async getEntriesByStatus(status: SyncStatus): Promise<QueuedEntry[]> {
     const allEntries = await indexedDBService.getAllQueuedEntries();
     return allEntries.filter(entry => entry.status === status);
+  }
+
+  // Build the key used to detect duplicate queue entries.
+  // This matches the same uniqueness rules enforced by the backend.
+  private getDedupeKey(entry: QueuedEntry): string {
+    const base = [
+      entry.type,
+      String(entry.data.year),
+      String(entry.data.competitionType),
+      String(entry.data.eventCode ?? ''),
+      String(entry.data.teamNumber),
+    ];
+
+    if (entry.type === 'match') {
+      base.push(String((entry.data as QueuedMatchEntry['data']).matchNumber));
+    }
+
+    return base.join('|');
+  }
+
+  // Remove duplicate unsynced entries, keeping the best candidate for each key.
+  async dedupePendingEntries(): Promise<DedupeQueueResult> {
+    if (typeof window === 'undefined') {
+      return {
+        removedCount: 0,
+        removedEntryIds: [],
+        remainingUnsyncedCount: 0,
+        remainingPendingCount: 0,
+      };
+    }
+
+    await this.ensureInitialized();
+    const allEntries = await indexedDBService.getAllQueuedEntries();
+    const unsyncedEntries = allEntries.filter(entry => entry.status !== 'synced');
+    const sortedEntries = [...unsyncedEntries].sort((a, b) => {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+    const getStatusPriority = (status: SyncStatus): number => {
+      if (status === 'pending') return 0;
+      if (status === 'syncing') return 1;
+      return 2;
+    };
+
+    const keptByKey = new Map<string, QueuedEntry>();
+    const duplicateIds: string[] = [];
+
+    for (const entry of sortedEntries) {
+      const key = this.getDedupeKey(entry);
+      const existing = keptByKey.get(key);
+
+      if (!existing) {
+        keptByKey.set(key, entry);
+        continue;
+      }
+
+      const existingPriority = getStatusPriority(existing.status);
+      const currentPriority = getStatusPriority(entry.status);
+
+      if (currentPriority < existingPriority) {
+        duplicateIds.push(existing.id);
+        keptByKey.set(key, entry);
+        continue;
+      }
+
+      if (currentPriority > existingPriority) {
+        duplicateIds.push(entry.id);
+        continue;
+      }
+
+      const existingCreatedAt = new Date(existing.createdAt).getTime();
+      const entryCreatedAt = new Date(entry.createdAt).getTime();
+      if (entryCreatedAt < existingCreatedAt) {
+        duplicateIds.push(existing.id);
+        keptByKey.set(key, entry);
+      } else {
+        duplicateIds.push(entry.id);
+      }
+    }
+
+    const removedCount = await indexedDBService.removeEntries(duplicateIds);
+    const remainingUnsyncedCount = unsyncedEntries.length - removedCount;
+    const remainingPendingCount = keptByKey.size
+      ? Array.from(keptByKey.values()).filter(entry => entry.status === 'pending').length
+      : 0;
+
+    return {
+      removedCount,
+      removedEntryIds: duplicateIds,
+      remainingUnsyncedCount,
+      remainingPendingCount,
+    };
   }
 
   // Clear all retry timeouts
