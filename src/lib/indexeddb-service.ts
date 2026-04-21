@@ -123,52 +123,92 @@ class IndexedDBService {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  // Add pit entry to offline queue
-  async queuePitEntry(data: Omit<PitEntry, 'id'>): Promise<string> {
+  // Build a stable key for queue entry deduplication.
+  private getQueueDedupeKey(
+    type: QueuedEntry['type'],
+    data: QueuedEntry['data']
+  ): string {
+    const base = [
+      type,
+      String(data.year),
+      String(data.competitionType),
+      String(data.eventCode ?? ''),
+      String(data.teamNumber),
+    ];
+
+    if (type === 'match') {
+      base.push(String((data as Omit<MatchEntry, 'id'>).matchNumber));
+    }
+
+    return base.join('|');
+  }
+
+  // Queue a scouting entry, replacing an existing unsynced duplicate instead of appending.
+  private async queueEntry(
+    type: QueuedEntry['type'],
+    data: QueuedEntry['data']
+  ): Promise<string> {
     const db = await this.ensureDb();
-    const id = this.generateId();
-    
-    const queuedEntry: QueuedPitEntry = {
-      id,
-      type: 'pit',
-      status: 'pending',
-      data,
-      createdAt: new Date(),
-      attempts: 0
-    };
+    const dedupeKey = this.getQueueDedupeKey(type, data);
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([STORES.QUEUE], 'readwrite');
       const store = transaction.objectStore(STORES.QUEUE);
-      const request = store.add(queuedEntry);
+      const getAllRequest = store.getAll();
 
-      request.onsuccess = () => resolve(id);
-      request.onerror = () => reject(new Error('Failed to queue pit entry'));
+      getAllRequest.onsuccess = () => {
+        const entries = getAllRequest.result as QueuedEntry[];
+        const existingUnsynced = entries.find(entry => {
+          if (entry.status === 'synced') {
+            return false;
+          }
+
+          return this.getQueueDedupeKey(entry.type, entry.data) === dedupeKey;
+        });
+
+        if (existingUnsynced) {
+          const updatedEntry: QueuedEntry = {
+            ...existingUnsynced,
+            status: 'pending',
+            data,
+            attempts: 0,
+            error: undefined,
+            lastAttempt: undefined,
+          };
+
+          const updateRequest = store.put(updatedEntry);
+          updateRequest.onsuccess = () => resolve(existingUnsynced.id);
+          updateRequest.onerror = () => reject(new Error('Failed to update queued entry'));
+          return;
+        }
+
+        const id = this.generateId();
+        const queuedEntry: QueuedEntry = {
+          id,
+          type,
+          status: 'pending',
+          data,
+          createdAt: new Date(),
+          attempts: 0,
+        };
+
+        const addRequest = store.add(queuedEntry);
+        addRequest.onsuccess = () => resolve(id);
+        addRequest.onerror = () => reject(new Error(`Failed to queue ${type} entry`));
+      };
+
+      getAllRequest.onerror = () => reject(new Error('Failed to inspect existing queue entries'));
     });
+  }
+
+  // Add pit entry to offline queue
+  async queuePitEntry(data: Omit<PitEntry, 'id'>): Promise<string> {
+    return this.queueEntry('pit', data);
   }
 
   // Add match entry to offline queue
   async queueMatchEntry(data: Omit<MatchEntry, 'id'>): Promise<string> {
-    const db = await this.ensureDb();
-    const id = this.generateId();
-    
-    const queuedEntry: QueuedMatchEntry = {
-      id,
-      type: 'match',
-      status: 'pending',
-      data,
-      createdAt: new Date(),
-      attempts: 0
-    };
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.QUEUE], 'readwrite');
-      const store = transaction.objectStore(STORES.QUEUE);
-      const request = store.add(queuedEntry);
-
-      request.onsuccess = () => resolve(id);
-      request.onerror = () => reject(new Error('Failed to queue match entry'));
-    });
+    return this.queueEntry('match', data);
   }
 
   // Get all pending entries
@@ -253,6 +293,31 @@ class IndexedDBService {
 
       request.onsuccess = () => resolve();
       request.onerror = () => reject(new Error('Failed to remove entry'));
+    });
+  }
+
+  // Remove multiple entries from queue
+  async removeEntries(ids: string[]): Promise<number> {
+    if (ids.length === 0) {
+      return 0;
+    }
+
+    const db = await this.ensureDb();
+
+    return new Promise((resolve, reject) => {
+      let deletedCount = 0;
+      const transaction = db.transaction([STORES.QUEUE], 'readwrite');
+      const store = transaction.objectStore(STORES.QUEUE);
+
+      transaction.oncomplete = () => resolve(deletedCount);
+      transaction.onerror = () => reject(new Error('Failed to remove entries'));
+
+      ids.forEach(id => {
+        const request = store.delete(id);
+        request.onsuccess = () => {
+          deletedCount += 1;
+        };
+      });
     });
   }
 

@@ -38,6 +38,7 @@ export function DynamicPitScoutForm() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Function to initialize form data with all pit scouting fields
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -193,34 +194,40 @@ export function DynamicPitScoutForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (isSubmitting) {
+      return;
+    }
+
     // For tablet accounts, ensure a scout is selected
     if (session?.user?.role === 'tablet' && !selectedScoutId && !isEditMode) {
       toast.error("Please select which scout you're entering data for");
       return;
     }
 
-    // Check for duplicate pit scout entry (only for new entries, not edits)
-    if (!isEditMode && selectedEvent?.code) {
-      try {
-        const response = await fetch(
-          `/api/database/pit/check?teamNumber=${formData.team}&eventCode=${selectedEvent.code}`
-        );
-        const data = await response.json();
-        
-        if (data.exists) {
-          toast.error("Duplicate entry detected", {
-            description: `Team ${formData.team} has already been pit scouted for this event. Please check existing entries or edit the existing entry.`,
-            icon: <AlertCircle className="h-4 w-4" />
-          });
-          return;
-        }
-      } catch (error) {
-        console.error('Error checking for duplicate:', error);
-        // Continue with submission even if check fails
-      }
-    }
+    setIsSubmitting(true);
 
     try {
+      // Check for duplicate pit scout entry (only for new entries, not edits)
+      if (!isEditMode && selectedEvent?.code) {
+        try {
+          const response = await fetch(
+            `/api/database/pit/check?teamNumber=${formData.team}&eventCode=${selectedEvent.code}`
+          );
+          const data = await response.json();
+          
+          if (data.exists) {
+            toast.error("Duplicate entry detected", {
+              description: `Team ${formData.team} has already been pit scouted for this event. Please check existing entries or edit the existing entry.`,
+              icon: <AlertCircle className="h-4 w-4" />
+            });
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking for duplicate:', error);
+          // Continue with submission even if check fails
+        }
+      }
+
       if (isEditMode && editingEntryId) {
         // Update existing entry
         const response = await fetch('/api/database/pit', {
@@ -322,6 +329,8 @@ export function DynamicPitScoutForm() {
         description: error instanceof Error ? error.message : "Unknown error",
         icon: <AlertCircle className="h-4 w-4" />
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -734,6 +743,7 @@ export function DynamicPitScoutForm() {
                       variant="outline"
                       onClick={() => router.push('/dashboard/pitscouting')}
                       size="lg" 
+                      disabled={isSubmitting}
                       className="flex-1 h-12 text-base"
                     >
                       Cancel
@@ -741,20 +751,34 @@ export function DynamicPitScoutForm() {
                     <Button 
                       type="submit" 
                       size="lg" 
+                      disabled={isSubmitting}
                       className="flex-1 h-12 text-base"
                     >
-                      <CheckCircle className="mr-2 h-5 w-5" />
-                      Update Entry
+                      {isSubmitting ? (
+                        'Updating...'
+                      ) : (
+                        <>
+                          <CheckCircle className="mr-2 h-5 w-5" />
+                          Update Entry
+                        </>
+                      )}
                     </Button>
                   </div>
                 ) : (
                   <Button 
                     type="submit" 
                     size="lg" 
+                    disabled={isSubmitting}
                     className="w-full h-12 text-base"
                   >
-                    <CheckCircle className="mr-2 h-5 w-5" />
-                    Save Scouting Data
+                    {isSubmitting ? (
+                      'Saving...'
+                    ) : (
+                      <>
+                        <CheckCircle className="mr-2 h-5 w-5" />
+                        Save Scouting Data
+                      </>
+                    )}
                   </Button>
                 )}
               </div>

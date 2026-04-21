@@ -64,7 +64,8 @@ export function usePicklist(options: UsePicklistOptions) {
         eventCode: options.eventCode,
         year: options.year.toString(),
         competitionType: options.competitionType,
-        picklistType: options.picklistType || 'main'
+        picklistType: options.picklistType || 'main',
+        existingOnly: 'true'
       });
 
       // First get the picklist metadata

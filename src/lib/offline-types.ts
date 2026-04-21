@@ -48,6 +48,14 @@ export interface SyncResult {
   timestamp: Date;
 }
 
+// Result for queued-entry deduplication
+export interface DedupeQueueResult {
+  removedCount: number;
+  removedEntryIds: string[];
+  remainingUnsyncedCount: number;
+  remainingPendingCount: number;
+}
+
 // Network status tracking
 export interface NetworkStatus {
   isOnline: boolean;
