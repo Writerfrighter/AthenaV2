@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSelectedEvent } from './use-event-config';
+import { useEventConfig } from './use-event-config';
 import { useGameConfig } from './use-game-config';
 import { statsApi } from '@/lib/api/database-client';
 // We'll call a server-side proxy route instead of calling TBA directly from the client
@@ -27,27 +27,36 @@ export interface DashboardStats {
   }>;
 }
 
+const DEFAULT_DASHBOARD_STATS: DashboardStats = {
+  teamsScouted: 0,
+  matchesRecorded: 0,
+  dataQuality: 0,
+  ranking: 0,
+  pitScoutingProgress: { current: 0, total: 0 },
+  qualificationProgress: { current: 0, total: 0 },
+  nextMatch: null,
+  recentActivity: [],
+  topTeams: []
+};
+
 export function useDashboardStats() {
-  const selectedEvent = useSelectedEvent();
-  const { currentYear, getCurrentYearConfig, competitionType } = useGameConfig();
+  const { selectedEvent, isLoading: isEventLoading } = useEventConfig();
+  const { currentYear, getCurrentYearConfig, competitionType, isInitialized } = useGameConfig();
   const gameConfig = getCurrentYearConfig();
-  const [stats, setStats] = useState<DashboardStats>({
-    teamsScouted: 0,
-    matchesRecorded: 0,
-    dataQuality: 0,
-    ranking: 0,
-    pitScoutingProgress: { current: 0, total: 0 },
-    qualificationProgress: { current: 0, total: 0 },
-    nextMatch: null,
-    recentActivity: [],
-    topTeams: []
-  });
+  const [stats, setStats] = useState<DashboardStats>(DEFAULT_DASHBOARD_STATS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isInitialized || isEventLoading) {
+      // Keep loading placeholders visible while providers hydrate from local storage / APIs.
+      setLoading(true);
+      return;
+    }
+
     async function fetchStats() {
       if (!selectedEvent || !gameConfig) {
+        setStats(DEFAULT_DASHBOARD_STATS);
         setLoading(false);
         return;
       }
@@ -134,7 +143,7 @@ export function useDashboardStats() {
     }
 
     fetchStats();
-  }, [selectedEvent, currentYear, gameConfig, competitionType]);
+  }, [selectedEvent, currentYear, gameConfig, competitionType, isInitialized, isEventLoading]);
 
   return { stats, loading, error };
 }

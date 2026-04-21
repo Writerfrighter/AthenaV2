@@ -1,7 +1,6 @@
 'use client';
 
-import { EPATable } from "@/components/tables/epa-table"
-import { StackedEPAChart } from "@/components/charts/stacked-epa-chart"
+import dynamic from "next/dynamic"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Tabs,
@@ -11,6 +10,20 @@ import {
 } from "@/components/ui/tabs";
 import { BarChart3, Table2, TrendingUp, Activity } from "lucide-react"
 import { useAnalysisStats } from "@/hooks/use-analysis-stats"
+
+const StackedEPAChart = dynamic(
+  () => import("@/components/charts/stacked-epa-chart").then((mod) => mod.StackedEPAChart),
+  {
+    loading: () => <div className="text-sm text-muted-foreground">Loading chart...</div>,
+  }
+)
+
+const EPATable = dynamic(
+  () => import("@/components/tables/epa-table").then((mod) => mod.EPATable),
+  {
+    loading: () => <div className="text-sm text-muted-foreground">Loading table...</div>,
+  }
+)
 
 export default function Page() {
   const { stats, loading } = useAnalysisStats();

@@ -9,7 +9,6 @@ import {
   Users, 
   ClipboardList, 
   TrendingUp, 
-  Calendar, 
   MapPin,
   Clock,
   Target,
@@ -171,21 +170,33 @@ export default function Page() {
                 <span>Pit Scouting</span>
                 <span>{loading ? "..." : `${stats.pitScoutingProgress.current}/${stats.pitScoutingProgress.total}`}</span>
               </div>
-              <Progress value={loading ? 0 : (stats.pitScoutingProgress.current / stats.pitScoutingProgress.total) * 100} className="h-2" />
+              <Progress
+                aria-label="Pit scouting completion"
+                value={loading ? 0 : (stats.pitScoutingProgress.current / stats.pitScoutingProgress.total) * 100}
+                className="h-2"
+              />
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Qualification Matches</span>
                 <span>{loading ? "..." : `${stats.qualificationProgress.current}/${stats.qualificationProgress.total}`}</span>
               </div>
-              <Progress value={loading ? 0 : (stats.qualificationProgress.current / stats.qualificationProgress.total) * 100} className="h-2" />
+              <Progress
+                aria-label="Qualification matches completion"
+                value={loading ? 0 : (stats.qualificationProgress.current / stats.qualificationProgress.total) * 100}
+                className="h-2"
+              />
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Data Totality</span>
                 <span>{loading ? "..." : `${(stats.dataQuality ?? 0).toFixed(2)}%`}</span>
               </div>
-              <Progress value={loading ? 0 : (stats.dataQuality ?? 0)} className="h-2" />
+              <Progress
+                aria-label="Data totality completion"
+                value={loading ? 0 : (stats.dataQuality ?? 0)}
+                className="h-2"
+              />
             </div>
 
             <div className="pt-4 border-t">

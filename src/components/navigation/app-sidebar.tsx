@@ -129,9 +129,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="icon" {...props} variant="floating">
-      <SidebarHeader className={`${competitionType === "FRC" ? 'bg-blue-200 dark:bg-blue-900' : 'bg-orange-200 dark:bg-orange-900'} rounded-t-sm mb-1.5`}>
+      <SidebarHeader className={`${competitionType === "FRC" ? 'bg-blue-200 dark:bg-blue-900' : 'bg-orange-200 dark:bg-orange-900'} rounded-t-sm mb-1.5 text-slate-900 dark:text-slate-100`}>
         <div className={`px-2 group-data-[collapsible=icon]:hidden`}>
-          <p className="text-xs font-medium text-center uppercase tracking-wider" >
+          <p className="text-xs font-semibold text-center uppercase tracking-wider" >
             {competitionName}
           </p>
         </div>

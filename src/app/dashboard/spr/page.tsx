@@ -25,8 +25,10 @@ import {
   Award,
   Star,
   TriangleAlert,
+  CircleHelp,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useSelectedEvent } from "@/hooks/use-event-config"
 import { useSPRData, type ScouterSPR } from "@/hooks/use-spr-data"
 
@@ -45,6 +47,26 @@ function getPerformanceBadge(percentile: number) {
 
 function getDisplayName(scouter: ScouterSPR) {
   return scouter.scouterName || "Unknown Scouter";
+}
+
+function MetricTooltip({ title, description }: { title: string; description: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={`About ${title}`}
+          className="inline-flex items-center text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <CircleHelp className="h-3.5 w-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[320px] leading-relaxed">
+        <p className="font-semibold">{title}</p>
+        <p>{description}</p>
+      </TooltipContent>
+    </Tooltip>
+  )
 }
 
 export default function SPRPage() {
@@ -202,10 +224,34 @@ export default function SPRPage() {
                   <TableRow>
                     <TableHead className="w-12">Rank</TableHead>
                     <TableHead>Scouter</TableHead>
-                    <TableHead className="text-right">Error Value</TableHead>
+                    <TableHead className="text-right">
+                      <span className="inline-flex items-center justify-end gap-1">
+                        Error Value
+                        <MetricTooltip
+                          title="Error Value"
+                          description="Estimated per-alliance error contribution from the least-squares model. Lower is better."
+                        />
+                      </span>
+                    </TableHead>
                     <TableHead className="text-right">Matches</TableHead>
-                    <TableHead className="text-right">Total Error</TableHead>
-                    <TableHead className="text-center">Performance</TableHead>
+                    <TableHead className="text-right">
+                      <span className="inline-flex items-center justify-end gap-1">
+                        Total Error
+                        <MetricTooltip
+                          title="Total Error"
+                          description="Cumulative absolute alliance error share attributed to this scouter. Larger values can reflect either lower accuracy, more matches, or both."
+                        />
+                      </span>
+                    </TableHead>
+                    <TableHead className="text-center">
+                      <span className="inline-flex items-center justify-center gap-1">
+                        Accuracy
+                        <MetricTooltip
+                          title="Accuracy (Percentile)"
+                          description="Relative rank among scouters after sorting by Error Value. 100 is best in this event, 0 is lowest."
+                        />
+                      </span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -252,7 +298,7 @@ export default function SPRPage() {
                   </div>
                   <div className="mt-3">
                     <div className="flex justify-between text-xs mb-1">
-                      <span>Accuracy</span>
+                      <span>Accuracy (Percentile)</span>
                       <span>{data.scouters[0].percentile}th percentile</span>
                     </div>
                     <Progress value={data.scouters[0].percentile} className="h-2" />
@@ -277,7 +323,7 @@ export default function SPRPage() {
                   </div>
                   <div className="mt-3">
                     <div className="flex justify-between text-xs mb-1">
-                      <span>Accuracy</span>
+                      <span>Accuracy (Percentile)</span>
                       <span>{data.scouters[data.scouters.length - 1].percentile}th percentile</span>
                     </div>
                     <Progress value={data.scouters[data.scouters.length - 1].percentile} className="h-2" />
@@ -343,6 +389,24 @@ export default function SPRPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Methodology */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Methodology</CardTitle>
+              <CardDescription>
+                SPR models each alliance as one equation and solves a least-squares system, similar to OPR.
+                For each alliance: scouted points (without penalties) are compared to official score adjusted for opponent foul points.
+                Lower values are better because they represent less estimated error contribution.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              <p>1. Build equations per alliance using assigned scouters and observed alliance error.</p>
+              <p>2. Solve for each scouter&apos;s error contribution using ridge-regularized normal equations.</p>
+              <p>3. Rank scouters by Error Value (ascending), then convert rank into Accuracy percentile.</p>
+              <p>4. Total Error is cumulative and grows with match count, so compare it alongside Matches.</p>
+            </CardContent>
+          </Card>
         </>
       )}
     </div>

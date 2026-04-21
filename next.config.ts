@@ -3,6 +3,10 @@ import { withSerwist } from '@serwist/turbopack';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts'],
+    webpackMemoryOptimizations: true
+  },
   async headers() {
     const securityHeaders = [
       { key: 'X-Frame-Options', value: 'DENY' },
