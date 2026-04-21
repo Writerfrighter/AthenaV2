@@ -61,21 +61,25 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
   {
     id: "select",
     header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
+      <div className="ml-2">
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      </div>
     ),
     cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
+      <div className="ml-2">
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      </div>
     ),
     enableSorting: false,
     enableHiding: false,
@@ -83,28 +87,24 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
   {
     accessorKey: "matchNumber",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-8 px-2"
+      <button
+        className="h-8 flex items-center hover:text-primary"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Match <ArrowUpDown className="ml-1 h-3 w-3" />
-      </Button>
+        Match <ArrowUpDown className="p-1" />
+      </button>
     ),
     cell: ({ row }) => <div className="font-medium text-sm">#{row.getValue("matchNumber")}</div>,
   },
   {
     accessorKey: "teamNumber",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-8 px-2"
+      <button
+        className="h-8 flex items-center hover:text-primary"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Team <ArrowUpDown className="ml-1 h-3 w-3" />
-      </Button>
+        Team <ArrowUpDown className="p-1" />
+      </button>
     ),
     cell: ({ row }) => <div className="font-medium text-sm">{row.getValue("teamNumber")}</div>,
   },
@@ -114,26 +114,26 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
     cell: ({ row }) => {
       const alliance = row.getValue("alliance") as string;
       return (
-        <Badge
-          variant={alliance === 'red' ? 'destructive' : 'default'}
-          className={`text-xs px-1.5 py-0 ${alliance === 'blue' ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}`}
-        >
-          {alliance.toUpperCase()}
-        </Badge>
+        <div className="">
+          <Badge
+            variant={alliance === 'red' ? 'destructive' : 'default'}
+            className={`text-xs px-1.5 py-0 ${alliance === 'blue' ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}`}
+          >
+            {alliance.toUpperCase()}
+          </Badge>
+        </div>
       );
     },
   },
   {
     accessorKey: "timestamp",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-8 px-2"
+      <button
+        className="h-8 flex items-center hover:text-primary"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Time <ArrowUpDown className="ml-1 h-3 w-3" />
-      </Button>
+        Time <ArrowUpDown className="p-1" />
+      </button>
     ),
     cell: ({ row }) => {
       const timestamp = row.getValue("timestamp") as Date;
@@ -169,27 +169,29 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
       const entry = row.original;
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => entry.id && onEdit(entry)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => entry.id && onDelete(entry.id)}
-              className="text-destructive"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="text-right mr-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => entry.id && onEdit(entry)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => entry.id && onDelete(entry.id)}
+                className="text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       );
     },
     },
@@ -220,7 +222,7 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
 
   return (
     <div className="w-full">
-      <div className="flex items-center pb-2 gap-2">
+      <div className="flex justify-between items-center pb-2 gap-2">
         <Input
           placeholder="Filter teams..."
           value={(table.getColumn("teamNumber")?.getFilterValue() as string) ?? ""}
@@ -234,6 +236,7 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
             variant="destructive"
             size="sm"
             onClick={() => onDeleteSelected(selectedIds)}
+            className=""
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Delete {selectedIds.length} selected
@@ -268,7 +271,7 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="pl-4">
+                    <TableCell key={cell.id} className="">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

@@ -166,7 +166,7 @@ export function EPATable({ data }: { data?: EPABreakdown[] }) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              <Filter/> Filters <ChevronDown /> 
+              <Filter/> Column Filters <ChevronDown />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

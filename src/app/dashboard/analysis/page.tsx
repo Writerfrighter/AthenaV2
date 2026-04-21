@@ -31,7 +31,7 @@ export default function Page() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Performance Analysis</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Analysis</h1>
         <p className="text-muted-foreground">
           Analyze team performance with EPA (Expected Points Added) metrics and visualizations
         </p>
