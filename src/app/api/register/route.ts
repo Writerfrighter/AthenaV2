@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { databaseManager } from '@/db/database-manager'
 import { DatabaseService } from '@/db/types'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
+
+const REGISTER_WINDOW_MS = 60 * 1000
+const REGISTER_MAX_REQUESTS = 20
 
 // Initialize database service
 let dbService: DatabaseService
@@ -18,8 +21,8 @@ export async function POST(request: NextRequest) {
   try {
     const rateLimit = checkRateLimit(request, {
       keyPrefix: 'register',
-      windowMs: 60 * 1000,
-      maxRequests: 20,
+      windowMs: REGISTER_WINDOW_MS,
+      maxRequests: REGISTER_MAX_REQUESTS,
     })
 
     if (rateLimit.limited) {
@@ -27,9 +30,7 @@ export async function POST(request: NextRequest) {
         { error: 'Too many account creation attempts. Please try again later.' },
         {
           status: 429,
-          headers: {
-            'Retry-After': rateLimit.retryAfterSeconds.toString(),
-          },
+          headers: getRateLimitHeaders(rateLimit, REGISTER_MAX_REQUESTS),
         }
       )
     }
