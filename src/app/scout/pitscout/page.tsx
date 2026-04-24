@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
+import { ThemeSelector } from "@/components/settings/theme-selector";
 import { DynamicPitScoutForm } from "@/components/forms/dynamic-pit-scout-form";
 import { OfflineStatusWidget } from "@/components/sync/offline-status-widget";
 import { useSelectedEvent } from "@/hooks/use-event-config";
@@ -29,7 +30,10 @@ export default function Page() {
               <div className="h-6 w-px bg-border"></div>
               <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Pit Scouting</h1>
             </div>
-            <ModeToggle />
+            <div className="ml-auto flex items-center gap-2">
+              <ModeToggle />
+              <ThemeSelector />
+            </div>
           </div>
           {/* Year selector on second row */}
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">

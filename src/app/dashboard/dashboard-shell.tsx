@@ -56,7 +56,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 orientation="vertical"
                 className="mr-2 data-[orientation=vertical]:h-4"
               />
-              <div className="ml-auto flex items-center gap-1">
+              <div className="ml-auto flex items-center gap-2">
                 <ModeToggle />
                 <ThemeSelector />
               </div>
