@@ -1,6 +1,6 @@
 import { DatabaseService } from './database-service';
 import { PitEntry, MatchEntry, CustomEvent, AzureSqlConfig, PitEntryRow, MatchEntryRow, CustomEventRow, CompetitionType } from './types';
-import { Picklist, PicklistEntry, PicklistNote, PicklistRow, PicklistEntryRow, PicklistNoteRow } from '@/lib/shared-types';
+import { Picklist, PicklistEntry, PicklistNote} from '@/lib/shared-types';
 
 export class AzureSqlDatabaseService implements DatabaseService {
   private pool: import('mssql').ConnectionPool | null = null;

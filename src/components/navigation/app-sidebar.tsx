@@ -39,6 +39,11 @@ const data = {
     { title: "Home", url: "/", icon: Home },
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     {
+      title: "Matchup",
+      url: "/dashboard/matchup",
+      icon: Swords
+    },
+    {
       title: "Analysis",
       url: "/dashboard/analysis",
       icon: ChartColumnIncreasing,
@@ -71,11 +76,6 @@ const data = {
       title: "Schedule",
       url: "/dashboard/schedule",
       icon: CalendarClock
-    },
-    {
-      title: "Matchup",
-      url: "/dashboard/matchup",
-      icon: Swords
     },
     {
       title: "Scouter Performance",
