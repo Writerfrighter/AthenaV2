@@ -69,11 +69,13 @@ export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: P
       />
     ),
     cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
+      <div className="">
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      </div>
     ),
     enableSorting: false,
     enableHiding: false,
@@ -81,33 +83,33 @@ export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: P
   {
     accessorKey: "teamNumber",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
+      <button
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="flex hover:text-primary"
       >
-        Team <ArrowUpDown />
-      </Button>
+        Team <ArrowUpDown className="p-1"/>
+      </button>
     ),
     cell: ({ row }) => <div className="font-medium">{row.getValue("teamNumber")}</div>,
   },
   {
     accessorKey: "driveTrain",
     header: "Drive Train",
-    cell: ({ row }) => <div>{row.getValue("driveTrain")}</div>,
+    cell: ({ row }) => <div className="">{row.getValue("driveTrain")}</div>,
   },
   {
     accessorKey: "weight",
     header: ({ column }) => (
-      <Button
-        variant="ghost"
+      <button
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="flex hover:text-primary"
       >
-        Weight (lbs) <ArrowUpDown />
-      </Button>
+        Weight (lbs) <ArrowUpDown className="p-1"/>
+      </button>
     ),
     cell: ({ row }) => {
       const value = row.getValue("weight") as number | undefined;
-      return <div className="text-right">{value !== undefined && value !== null ? value : '-'}</div>;
+      return <div className="">{value !== undefined && value !== null ? value : '-'}</div>;
     },
   },
   {
@@ -115,7 +117,7 @@ export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: P
     header: "Length (in)",
     cell: ({ row }) => {
       const value = row.getValue("length") as number | undefined;
-      return <div className="text-right">{value !== undefined && value !== null ? value : '-'}</div>;
+      return <div className="">{value !== undefined && value !== null ? value : '-'}</div>;
     },
   },
   {
@@ -123,21 +125,21 @@ export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: P
     header: "Width (in)",
     cell: ({ row }) => {
       const value = row.getValue("width") as number | undefined;
-      return <div className="text-right">{value !== undefined && value !== null ? value : '-'}</div>;
+      return <div className="">{value !== undefined && value !== null ? value : '-'}</div>;
     },
   },
-  {
-    accessorKey: "gameSpecificData",
-    header: "Capabilities",
-    cell: ({ row }) => {
-      const data = row.getValue("gameSpecificData") as PitEntry['gameSpecificData'];
-      const capabilities = [];
-      if (data.coralCapability) capabilities.push(`Coral: ${data.coralCapability}`);
-      if (data.algaeCapability) capabilities.push(`Algae: ${data.algaeCapability}`);
-      if (data.climbCapability) capabilities.push(`Climb: ${data.climbCapability}`);
-      return <div className="text-sm">{capabilities.join(", ")}</div>;
-    },
-  },
+  // {
+  //   accessorKey: "gameSpecificData",
+  //   header: "Capabilities",
+  //   cell: ({ row }) => {
+  //     const data = row.getValue("gameSpecificData") as PitEntry['gameSpecificData'];
+  //     const capabilities = [];
+  //     if (data.coralCapability) capabilities.push(`Coral: ${data.coralCapability}`);
+  //     if (data.algaeCapability) capabilities.push(`Algae: ${data.algaeCapability}`);
+  //     if (data.climbCapability) capabilities.push(`Climb: ${data.climbCapability}`);
+  //     return <div className="text-sm">{capabilities.join(", ")}</div>;
+  //   },
+  // },
   {
     id: "actions",
     enableHiding: false,
@@ -145,27 +147,29 @@ export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: P
       const entry = row.original;
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => entry.id && onEdit(entry)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => entry.id && onDelete(entry.id)}
-              className="text-destructive"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="text-right mr-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => entry.id && onEdit(entry)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => entry.id && onDelete(entry.id)}
+                className="text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       );
     },
     },
@@ -244,7 +248,7 @@ export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: P
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

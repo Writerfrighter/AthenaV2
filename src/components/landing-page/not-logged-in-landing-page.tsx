@@ -144,7 +144,6 @@ export function NotLoggedInLandingPage() {
           src="/assets/HeroCropped.jpg"
           alt=""
           fill
-          priority
           className="object-cover object-left sm:object-center -z-10"
           sizes="100vw"
         />

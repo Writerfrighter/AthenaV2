@@ -9,8 +9,8 @@ import {
   Palette,
 } from "lucide-react"
 
-import { useAccountSettingsDialog } from "@/app/dashboard/layout"
-import { useNotificationSettingsDialog } from "@/app/dashboard/layout"
+import { useAccountSettingsDialog } from "@/app/dashboard/dashboard-shell"
+import { useNotificationSettingsDialog } from "@/app/dashboard/dashboard-shell"
 import { signOut } from "next-auth/react"
 import { useGameConfig } from "@/hooks/use-game-config"
 import { ThemeSelector } from "@/components/settings/theme-selector"

@@ -566,10 +566,16 @@ export function computeScouterAccuracy(
   // Sort by error value (ascending - lower is better)
   scouterPerformances.sort((a, b) => a.errorValue - b.errorValue);
 
-  // Assign percentiles (100 = best, 0 = worst)
-  scouterPerformances.forEach((perf, idx) => {
-    perf.percentile = Math.round((1 - idx / scouterPerformances.length) * 100);
-  });
+  // Assign percentiles (100 = best, 0 = worst).
+  // Use (n - 1) spacing so the last ranked scouter maps to 0 instead of ~100/n.
+  if (scouterPerformances.length === 1) {
+    scouterPerformances[0].percentile = 100;
+  } else {
+    const denominator = scouterPerformances.length - 1;
+    scouterPerformances.forEach((perf, idx) => {
+      perf.percentile = Math.round((1 - idx / denominator) * 100);
+    });
+  }
 
   // Calculate overall mean error (absolute so magnitude reflects deviation)
   const overallMeanError = equations.reduce((sum, eq) => sum + Math.abs(eq.observedError), 0) / equations.length;

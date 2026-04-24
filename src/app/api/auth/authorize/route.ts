@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { databaseManager } from '@/db/database-manager'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
+
+const LOGIN_WINDOW_MS = 60 * 1000
+const LOGIN_MAX_REQUESTS = 20
 
 export async function POST(request: NextRequest) {
   try {
     const rateLimit = checkRateLimit(request, {
       keyPrefix: 'login',
-      windowMs: 60 * 1000,
-      maxRequests: 20,
+      windowMs: LOGIN_WINDOW_MS,
+      maxRequests: LOGIN_MAX_REQUESTS,
     })
 
     if (rateLimit.limited) {
@@ -16,9 +19,7 @@ export async function POST(request: NextRequest) {
         { error: 'Too many login attempts. Please try again later.' },
         {
           status: 429,
-          headers: {
-            'Retry-After': rateLimit.retryAfterSeconds.toString(),
-          },
+          headers: getRateLimitHeaders(rateLimit, LOGIN_MAX_REQUESTS),
         }
       )
     }
