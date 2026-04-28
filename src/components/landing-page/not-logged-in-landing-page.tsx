@@ -396,6 +396,41 @@ export function NotLoggedInLandingPage() {
         </div>
       </section>
 
+      {/* About Titan Robotics Club */}
+      <section id="about-trc" className="relative z-10 w-full py-12 sm:py-16 bg-background/50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">About Titan Robotics Club</h2>
+          <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+            Titan Robotics Club (TRC) is a middle and high school robotics program at the International School in Bellevue, Washington. We aim to spread awareness and raise interest within our school and our community about robotics and the programs of FIRST (For Inspiration and Recognition of Science and Technology). As part of the annual FIRST Robotics Competition, FIRST Tech Challenge, and FIRST Lego League, our team of 100+ students works with field professionals and adult mentors to earn valuable life experience with robotics, technology, and science.
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-2 justify-center max-w-xl mx-auto">
+            <div className="rounded-2xl border border-primary/20 bg-background/80 p-4 flex flex-col items-center gap-3">
+              <Users className="h-6 w-6 text-primary" />
+              <div>
+                <div className="font-semibold text-center">Student-led</div>
+                <div className="text-sm text-muted-foreground">Design, build, and ship by students.</div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-primary/20 bg-background/80 p-4 flex flex-col items-center gap-3">
+              <Trophy className="h-6 w-6 text-primary" />
+              <div>
+                <div className="font-semibold text-center">Competition Proven</div>
+                <div className="text-sm text-muted-foreground">Field-tested at regionals and beyond.</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-center">
+            <a href="https://titanrobotics.com" target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="lg" className="gap-2">
+                Visit TRC Website <ArrowRight className="h-4 w-4" />
+              </Button>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="relative z-10 w-full mt-auto border-t bg-primary/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
