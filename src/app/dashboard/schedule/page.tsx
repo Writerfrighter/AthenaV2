@@ -49,36 +49,40 @@ const MatchAssignmentRow = React.memo(({
 }) => {
   return (
     <div className="rounded-md border px-3 py-2">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="w-16 text-sm font-medium">M{match.matchNumber}</div>
-        {(['red', 'blue'] as const).map(alliance => (
-          <div key={`${match.matchNumber}-${alliance}`} className="flex items-center gap-2">
-            <span className={`text-xs font-medium w-8 ${alliance === 'red' ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
-              {alliance === 'red' ? 'R' : 'B'}
-            </span>
-            {Array.from({ length: scoutsPerAlliance }, (_, position) => {
-              const slotValue = alliance === 'red' ? match.redScouts[position] : match.blueScouts[position]
-              const availableUsers = getAvailableUsersForMatchSlot(match, alliance, position)
-              return (
-                <Select
-                  key={`${match.matchNumber}-${alliance}-${position}`}
-                  value={slotValue ?? 'none'}
-                  onValueChange={(value) => setLocalMatchScout(match.matchNumber, alliance, position, value === 'none' ? null : value)}
-                >
-                  <SelectTrigger className="h-8 w-40 text-xs">
-                    <SelectValue placeholder={`S${position + 1}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {availableUsers.map(user => (
-                      <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )
-            })}
-          </div>
-        ))}
+      <div className="flex flex-col flex-wrap gap-3">
+        <div className="w-16 text-sm font-medium">Match {match.matchNumber}</div>
+        <div className='grid grid-cols-2 md:grid-cols-1 gap-y-2 xl:grid-cols-2'>
+          {(['red', 'blue'] as const).map(alliance => (
+            <div key={`${match.matchNumber}-${alliance}`} className="flex flex-col gap-2">
+              <span className={`text-xs font-medium w-8 ${alliance === 'red' ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                {alliance === 'red' ? 'Red' : 'Blue'}
+              </span>
+              <div className='flex flex-col md:flex-row gap-y-2 md:gap-x-4'>
+              {Array.from({ length: scoutsPerAlliance }, (_, position) => {
+                const slotValue = alliance === 'red' ? match.redScouts[position] : match.blueScouts[position]
+                const availableUsers = getAvailableUsersForMatchSlot(match, alliance, position)
+                return (
+                  <Select
+                    key={`${match.matchNumber}-${alliance}-${position}`}
+                    value={slotValue ?? 'none'}
+                    onValueChange={(value) => setLocalMatchScout(match.matchNumber, alliance, position, value === 'none' ? null : value)}
+                  >
+                    <SelectTrigger className="h-8 w-40 text-xs">
+                      <SelectValue placeholder={`S${position + 1}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {availableUsers.map(user => (
+                        <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )
+              })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -859,35 +863,37 @@ export default function SchedulePage() {
                             <div className="text-sm font-medium mb-2">
                               {block.name} ({block.matches[0]}-{block.matches[block.matches.length - 1]})
                             </div>
-                            <div className="grid gap-2 md:grid-cols-2">
+                            <div className="grid gap-2 grid-cols-2 md:grid-cols-1 md:grid-rows-2">
                               {(['red', 'blue'] as const).map(alliance => (
                                 <div key={`${block.id}-${alliance}`} className="space-y-2">
                                   <div className={`text-xs font-medium ${alliance === 'red' ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
                                     {alliance === 'red' ? 'Red' : 'Blue'} Template
                                   </div>
-                                  {Array.from({ length: scoutsPerAlliance }, (_, position) => {
-                                    const currentValue = getGroupSlotValue(block, alliance, position)
-                                    return (
-                                      <div key={`${block.id}-${alliance}-${position}`} className="flex items-center gap-2">
-                                        <Label className="w-12 text-xs">S{position + 1}</Label>
-                                        <Select
-                                          value={currentValue === 'mixed' ? 'mixed' : (currentValue ?? 'none')}
-                                          onValueChange={(value) => applyGroupSlot(block, alliance, position, value === 'none' ? null : value)}
-                                        >
-                                          <SelectTrigger className="h-8 w-44 text-xs">
-                                            <SelectValue placeholder="Apply to group" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="none">Clear Slot</SelectItem>
-                                            {currentValue === 'mixed' && <SelectItem value="mixed" disabled>Mixed Values</SelectItem>}
-                                            {sortedActiveUsers.map(user => (
-                                              <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    )
-                                  })}
+                                  <div className='flex flex-col gap-y-2 md:gap-x-6 md:flex-row lg:gap-x-10'>
+                                    {Array.from({ length: scoutsPerAlliance }, (_, position) => {
+                                      const currentValue = getGroupSlotValue(block, alliance, position)
+                                      return (
+                                        <div key={`${block.id}-${alliance}-${position}`} className="items-center gap-2 flex">
+                                          <Label className="text-xs mr-2">S{position + 1}</Label>
+                                          <Select
+                                            value={currentValue === 'mixed' ? 'mixed' : (currentValue ?? 'none')}
+                                            onValueChange={(value) => applyGroupSlot(block, alliance, position, value === 'none' ? null : value)}
+                                          >
+                                            <SelectTrigger className="h-8 w-44 text-xs">
+                                              <SelectValue placeholder="Apply to group" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="none">Clear Slot</SelectItem>
+                                              {currentValue === 'mixed' && <SelectItem value="mixed" disabled>Mixed Values</SelectItem>}
+                                              {sortedActiveUsers.map(user => (
+                                                <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
                                 </div>
                               ))}
                             </div>
