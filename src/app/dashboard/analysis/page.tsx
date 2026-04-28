@@ -128,7 +128,7 @@ export default function Page() {
             </TabsContent>
 
             <TabsContent value="table" className="space-y-4">
-              <EPATable data={stats.teamEPAData} />
+              <EPATable data={stats.teamEPAData} metrics={stats.availableMetrics} />
             </TabsContent>
           </Tabs>
         </CardContent>

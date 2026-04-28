@@ -5,19 +5,23 @@ import { useSelectedEvent } from './use-event-config';
 import { useGameConfig } from './use-game-config';
 import { statsApi } from '@/lib/api/database-client';
 import { indexedDBService } from '@/lib/indexeddb-service';
+import { AnalysisMetricDefinition } from '@/lib/shared-types';
 
 export interface AnalysisStats {
   teamsAnalyzed: number;
   highestEPA: number;
   averageEPA: number;
   dataPoints: number;
+  availableMetrics: AnalysisMetricDefinition[];
   teamEPAData: Array<{
     team: string;
+    matchesPlayed: number;
     auto: number;
     teleop: number;
     endgame: number;
     penalties: number;
     totalEPA: number;
+    detailMetrics: Record<string, number>;
   }>;
 }
 
@@ -31,13 +35,16 @@ function transformToStats(apiStats: import('@/lib/shared-types').AnalysisData): 
       ? parseFloat((apiStats.teamEPAData.reduce((sum, team) => sum + team.totalEPA, 0) / apiStats.teamEPAData.length).toFixed(3))
       : 0,
     dataPoints: apiStats.totalMatches,
+    availableMetrics: apiStats.availableMetrics || [],
     teamEPAData: apiStats.teamEPAData.map(team => ({
       team: team.teamNumber.toString(),
+      matchesPlayed: team.matchesPlayed,
       auto: parseFloat((team.autoEPA || 0).toFixed(3)),
       teleop: parseFloat((team.teleopEPA || 0).toFixed(3)),
       endgame: parseFloat((team.endgameEPA || 0).toFixed(3)),
       penalties: parseFloat((team.penaltiesEPA || 0).toFixed(3)),
-      totalEPA: parseFloat(team.totalEPA.toFixed(3))
+      totalEPA: parseFloat(team.totalEPA.toFixed(3)),
+      detailMetrics: team.detailMetrics || {}
     }))
   };
 }
@@ -51,6 +58,7 @@ export function useAnalysisStats() {
     highestEPA: 0,
     averageEPA: 0,
     dataPoints: 0,
+    availableMetrics: [],
     teamEPAData: []
   });
   const [loading, setLoading] = useState(true);

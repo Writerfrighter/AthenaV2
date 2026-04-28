@@ -358,6 +358,7 @@ export interface DashboardStats {
 }
 
 export interface AnalysisData {
+  availableMetrics?: AnalysisMetricDefinition[];
   scoringAnalysis: Array<{
     category: string;
     average: number;
@@ -373,9 +374,17 @@ export interface AnalysisData {
     teleopEPA: number;
     endgameEPA: number;
     penaltiesEPA: number;
+    detailMetrics?: Record<string, number>;
   }>;
   totalMatches: number;
   totalTeams: number;
+}
+
+export interface AnalysisMetricDefinition {
+  key: string;
+  label: string;
+  category: string;
+  valueType: 'rate' | 'average';
 }
 
 export interface TeamData {
