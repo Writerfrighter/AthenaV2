@@ -226,7 +226,7 @@ export interface DatabaseService {
   syncFromCloud?(): Promise<void>;
 }
 
-export type DatabaseProvider = 'azuresql';
+export type DatabaseProvider = 'azuresql' | 'firebase' | 'local' | 'cosmos';
 
 export interface AzureSqlConfig {
   server?: string;
@@ -237,12 +237,32 @@ export interface AzureSqlConfig {
   useManagedIdentity?: boolean;
 }
 
+export interface FirebaseConfig {
+  // Either a path to a service account JSON file or the raw JSON object
+  serviceAccountPath?: string;
+  serviceAccountJson?: Record<string, unknown>;
+  databaseURL?: string;
+}
+
+export interface CosmosConfig {
+  endpoint?: string;
+  key?: string;
+  databaseId?: string;
+  containerId?: string;
+}
+
 export interface DatabaseConfig {
   provider: DatabaseProvider;
   local?: {
-    name: string;
+    connectionString?: string;
+    server?: string;
+    database?: string;
+    user?: string;
+    password?: string;
   };
   azuresql?: AzureSqlConfig;
+  firebase?: FirebaseConfig;
+  cosmos?: CosmosConfig;
 }
 
 // ========== GAME CONFIGURATION TYPES ==========
