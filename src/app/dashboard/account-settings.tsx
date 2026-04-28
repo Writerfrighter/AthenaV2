@@ -21,6 +21,9 @@ export function AccountSettingsDialog({ open, onOpenChange }: { open: boolean, o
   const [name, setName] = useState("")
   const [username, setUsername] = useState("")
   const [saving, setSaving] = useState(false)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState("")
@@ -39,6 +42,7 @@ export function AccountSettingsDialog({ open, onOpenChange }: { open: boolean, o
     if (session?.user) {
       setName(session.user.name || "")
       setUsername(session.user.username || "")
+      setAvatarPreview((session.user as any).avatarUrl || (session.user as any).image || null)
     }
   }, [session, open])
 
@@ -122,6 +126,25 @@ export function AccountSettingsDialog({ open, onOpenChange }: { open: boolean, o
           username: username.trim(),
         }
       })
+
+      // Refresh avatar in session if server returned avatarUrl earlier
+      try {
+        const meRes = await fetch('/api/auth/me');
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          await update({
+            ...session,
+            user: {
+              ...session?.user,
+              name: name.trim(),
+              username: username.trim(),
+              image: meData.avatarUrl || session?.user?.image,
+            }
+          })
+        }
+      } catch (err) {
+        // ignore
+      }
 
       toast.success("Profile updated successfully")
     } catch (error) {
@@ -257,6 +280,81 @@ export function AccountSettingsDialog({ open, onOpenChange }: { open: boolean, o
                 {saving ? "Saving..." : "Save Profile"}
               </Button>
             </form>
+          </div>
+
+          {/* Avatar Upload */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Profile Picture</h3>
+            <p className="text-sm text-muted-foreground mb-2">Upload a profile picture to replace the TRC logo in the sidebar.</p>
+            <div className="flex items-center gap-3">
+              <div className="w-20 h-20 rounded-lg overflow-hidden border bg-muted/10 flex items-center justify-center">
+                {avatarPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarPreview} alt="avatar preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-sm text-muted-foreground">No image</div>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setAvatarFile(file);
+                    if (file) {
+                      const url = URL.createObjectURL(file);
+                      setAvatarPreview(url);
+                    }
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async () => {
+                      if (!avatarFile || !session?.user?.id) return;
+                      setUploadingAvatar(true);
+                      try {
+                        const reader = new FileReader();
+                        const p = await new Promise<string>((res, rej) => {
+                          reader.onload = () => res(String(reader.result));
+                          reader.onerror = rej;
+                          reader.readAsDataURL(avatarFile);
+                        });
+
+                        const response = await fetch('/api/users/me/avatar', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ dataUrl: p }),
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok) {
+                          throw new Error(data.error || 'Upload failed');
+                        }
+
+                        // Update session image
+                        await update({
+                          ...session,
+                          user: { ...session.user, image: data.avatarUrl }
+                        });
+                        toast.success('Avatar uploaded');
+                      } catch (err) {
+                        console.error('Upload error', err);
+                        toast.error('Failed to upload avatar');
+                      } finally {
+                        setUploadingAvatar(false);
+                      }
+                    }}
+                    disabled={!avatarFile || uploadingAvatar}
+                  >
+                    {uploadingAvatar ? 'Uploading...' : 'Upload'}
+                  </Button>
+                  <Button variant="ghost" onClick={() => { setAvatarFile(null); setAvatarPreview((session?.user as any)?.image || null); }}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <Separator />

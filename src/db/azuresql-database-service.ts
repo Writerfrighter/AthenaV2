@@ -1,6 +1,6 @@
 import { DatabaseService } from './database-service';
 import { PitEntry, MatchEntry, CustomEvent, AzureSqlConfig, PitEntryRow, MatchEntryRow, CustomEventRow, CompetitionType } from './types';
-import { Picklist, PicklistEntry, PicklistNote, PicklistRow, PicklistEntryRow, PicklistNoteRow } from '@/lib/shared-types';
+import { Picklist, PicklistEntry, PicklistNote} from '@/lib/shared-types';
 
 export class AzureSqlDatabaseService implements DatabaseService {
   private pool: import('mssql').ConnectionPool | null = null;
@@ -220,6 +220,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
       IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
                      WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'preferredPartners')
       ALTER TABLE users ADD preferredPartners NVARCHAR(MAX)
+    `);
+
+    // Add avatarUrl column to users table if it doesn't exist
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+                     WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'avatarUrl')
+      ALTER TABLE users ADD avatarUrl NVARCHAR(1024)
     `);
 
     // Create picklists table

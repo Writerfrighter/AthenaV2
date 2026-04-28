@@ -43,12 +43,12 @@ export const columns: ColumnDef<EPABreakdown>[] = [
     accessorKey: "auto",
     header: ({ column }) => (
       <div className="flex justify-end">
-        <Button
-          variant="ghost"
+        <button
+          className="flex items-center hover:text-primary"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Auto <ArrowUpDown />
-        </Button>
+          Auto <ArrowUpDown className="pl-2"/>
+        </button>
       </div>
     ),
     cell: ({ row }) => <div className="text-right">{row.getValue("auto")}</div>,
@@ -57,12 +57,12 @@ export const columns: ColumnDef<EPABreakdown>[] = [
     accessorKey: "teleop",
     header: ({ column }) => (
       <div className="flex justify-end">
-        <Button
-          variant="ghost"
+        <button
+          className="flex items-center hover:text-primary"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Teleop <ArrowUpDown />
-        </Button>
+          Teleop <ArrowUpDown className="pl-2"/>
+        </button>
       </div>
     ),
     cell: ({ row }) => (
@@ -73,12 +73,12 @@ export const columns: ColumnDef<EPABreakdown>[] = [
     accessorKey: "endgame",
     header: ({ column }) => (
       <div className="flex justify-end">
-        <Button
-          variant="ghost"
+        <button
+          className="flex items-center hover:text-primary"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Endgame <ArrowUpDown />
-        </Button>
+          Endgame <ArrowUpDown className="pl-2"/>
+        </button>
       </div>
     ),
     cell: ({ row }) => (
@@ -89,12 +89,12 @@ export const columns: ColumnDef<EPABreakdown>[] = [
     accessorKey: "penalties",
     header: ({ column }) => (
       <div className="flex justify-end">
-        <Button
-          variant="ghost"
+        <button
+          className="flex items-center hover:text-primary"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Penalties <ArrowUpDown />
-        </Button>
+          Penalties <ArrowUpDown className="pl-2"/>
+        </button>
       </div>
     ),
     cell: ({ row }) => (
@@ -105,12 +105,12 @@ export const columns: ColumnDef<EPABreakdown>[] = [
     accessorKey: "totalEPA",
     header: ({ column }) => (
       <div className="flex justify-end">
-        <Button
-          variant="ghost"
+        <button
+          className="flex items-center hover:text-primary"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Total EPA <ArrowUpDown />
-        </Button>
+          Total EPA <ArrowUpDown className="pl-2"/>
+        </button>
       </div>
     ),
     cell: ({ row }) => (

@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
+import { ThemeSelector } from "@/components/settings/theme-selector";
 import { DynamicMatchScoutForm } from "@/components/forms/dynamic-match-scout-form";
 import { OfflineStatusWidget } from "@/components/sync/offline-status-widget";
 import { useSelectedEvent } from "@/hooks/use-event-config";
@@ -29,8 +30,9 @@ export default function Page() {
               <div className="h-6 w-px bg-border"></div>
               <h1 className="text-lg font-semibold dark:text-white">Match Scouting</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2">
               <ModeToggle />
+              <ThemeSelector />
             </div>
           </div>
           {/* Year selector on second row for mobile */}

@@ -39,6 +39,11 @@ const data = {
     { title: "Home", url: "/", icon: Home },
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     {
+      title: "Matchup",
+      url: "/dashboard/matchup",
+      icon: Swords
+    },
+    {
       title: "Analysis",
       url: "/dashboard/analysis",
       icon: ChartColumnIncreasing,
@@ -71,11 +76,6 @@ const data = {
       title: "Schedule",
       url: "/dashboard/schedule",
       icon: CalendarClock
-    },
-    {
-      title: "Matchup",
-      url: "/dashboard/matchup",
-      icon: Swords
     },
     {
       title: "Scouter Performance",
@@ -116,7 +116,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const userData = session?.user ? {
     name: session.user.name || "User",
     username: session.user.username || "user",
-    avatar: "/TRCLogo.webp", // You can update this to use session.user.image if available
+    avatar: (session.user as any)?.image || (session.user as any)?.avatarUrl || "/TRCLogo.webp",
   } : {
     name: "Guest",
     username: "guest",

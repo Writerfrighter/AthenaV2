@@ -159,7 +159,7 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {Array.from({ length: 12 }).map((_, i) => (
                 <TeamCardSkeleton key={i} />
               ))}
@@ -170,7 +170,7 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
               <p className="text-muted-foreground">No teams found for this event.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {teams.map((team) => (
                 <TeamCard key={team.team_number} team={team} />
               ))}
