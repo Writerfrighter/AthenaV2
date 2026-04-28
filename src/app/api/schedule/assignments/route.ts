@@ -3,6 +3,74 @@ import { auth } from '@/lib/auth/config';
 import { databaseManager } from '@/db/database-manager';
 import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
 
+async function sendAssignmentNotification(params: {
+  title: string;
+  body: string;
+  url: string;
+  targetUserId?: string;
+}) {
+  try {
+    const { title, body, url, targetUserId } = params;
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+    if (!baseUrl) {
+      // No base URL configured; skip quietly (avoids breaking schedule writes)
+      return;
+    }
+
+    let targetEndpoint: string | undefined;
+
+    if (targetUserId) {
+      const service = databaseManager.getService();
+      const pool = await service.getPool?.();
+      if (!pool) return;
+
+      const mssql = await import('mssql');
+      const result = await pool
+        .request()
+        .input('userId', mssql.NVarChar, targetUserId)
+        .query('SELECT push_subscriptions FROM users WHERE id = @userId');
+
+      const raw = result.recordset?.[0]?.push_subscriptions;
+      if (raw) {
+        try {
+          const subs: Array<{ endpoint: string }> = JSON.parse(raw);
+          targetEndpoint = subs?.[0]?.endpoint;
+        } catch {
+          // ignore parse errors
+        }
+      }
+
+      if (!targetEndpoint) {
+        return;
+      }
+    }
+
+    await fetch(`${baseUrl.replace(/\/$/, '')}/api/notifications/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Forward cookies so /api/notifications/send sees the same session
+        Cookie: (await import('next/headers')).cookies().toString(),
+      },
+      body: JSON.stringify({
+        payload: {
+          title,
+          body,
+          url,
+          icon: '/TRCLogo.webp',
+          badge: '/TRCLogo.webp',
+          data: { timestamp: new Date().toISOString() },
+        },
+        targetEndpoint,
+      }),
+    });
+  } catch (error) {
+    // Never fail schedule updates due to notification issues
+    console.error('Failed to send assignment notification:', error);
+  }
+}
+
 // POST /api/schedule/assignments
 // Body: { eventCode, year, startMatch, endMatch, alliance, position, userId }
 // - If userId is null, clears that slot for the range
@@ -105,6 +173,9 @@ export async function POST(request: NextRequest) {
           INSERT INTO matchAssignments (eventCode, year, matchNumber, alliance, position, userId)
           VALUES ${values.join(', ')}
         `);
+
+      // Notifications are triggered based on match timing (e.g., 2 matches before),
+      // not when the assignment is created.
     }
 
     return NextResponse.json({ success: true }, { status: 200 });
