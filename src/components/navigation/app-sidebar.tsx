@@ -116,7 +116,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const userData = session?.user ? {
     name: session.user.name || "User",
     username: session.user.username || "user",
-    avatar: "/TRCLogo.webp", // You can update this to use session.user.image if available
+    avatar: (session.user as any)?.image || (session.user as any)?.avatarUrl || "/TRCLogo.webp",
   } : {
     name: "Guest",
     username: "guest",

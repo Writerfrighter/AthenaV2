@@ -222,6 +222,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
       ALTER TABLE users ADD preferredPartners NVARCHAR(MAX)
     `);
 
+    // Add avatarUrl column to users table if it doesn't exist
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+                     WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'avatarUrl')
+      ALTER TABLE users ADD avatarUrl NVARCHAR(1024)
+    `);
+
     // Create picklists table
     await pool.request().query(`
       IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='picklists' AND xtype='U')
