@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ModeToggle } from "@/components/ui/light-dark-toggle"
+import { ThemeSelector } from "@/components/settings/theme-selector"
 import { ArrowLeft, Users, UserRound } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -90,7 +91,10 @@ export default function Page() {
         </div>
         
         <div className="fixed top-4 right-4">
-          <ModeToggle />
+          <div className="flex gap-x-2">
+            <ModeToggle />
+            <ThemeSelector />
+          </div>
         </div>
         
         <div className="w-full max-w-md">

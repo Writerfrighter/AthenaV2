@@ -177,7 +177,7 @@ export default function MatchupPage() {
         <CardContent>
           <div className="flex flex-col gap-4">
             {/* Source toggle */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 -mt-6">
               <Button
                 variant={!useManual ? 'default' : 'outline'}
                 size="sm"
