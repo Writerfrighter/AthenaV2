@@ -60,9 +60,55 @@ AthenaV2 is a modern scouting and analytics platform designed for competitive ro
 	 pnpm build
 	 ```
 
-4. **Configuration:**
+4. **Run unit tests:**
+	 ```sh
+	 pnpm test
+	 ```
+
+5. **Run integration tests:**
+	 ```sh
+	 pnpm test:integration
+	 ```
+
+6. **Run e2e tests:**
+	 ```sh
+	 pnpm exec playwright install
+	 pnpm test:e2e
+	 ```
+
+7. **Configuration:**
 	 - Edit `config/game-config.json` for game-specific settings.
 	 - Set up database credentials in environment variables as needed.
+
+## Database Configuration
+
+Use `DATABASE_PROVIDER` to select a backend explicitly (`azuresql`, `firebase`, `cosmos`, `local`). If unset, the app auto-detects based on available env vars.
+
+### Local SQL (generic)
+
+Use a local SQL Server or any SQL Server-compatible instance:
+
+- `LOCAL_SQL_CONNECTION_STRING`
+- or `LOCAL_SQL_SERVER`, `LOCAL_SQL_DATABASE`, `LOCAL_SQL_USER`, `LOCAL_SQL_PASSWORD`
+
+### Azure SQL
+
+- `AZURE_SQL_CONNECTION_STRING`
+- or `AZURE_SQL_SERVER`, `AZURE_SQL_DATABASE`, `AZURE_SQL_USER`, `AZURE_SQL_PASSWORD`
+- `AZURE_SQL_USE_MANAGED_IDENTITY` (optional)
+
+### Firebase
+
+- `FIREBASE_SERVICE_ACCOUNT_PATH` (path to JSON file)
+- or `FIREBASE_SERVICE_ACCOUNT_JSON` (raw JSON string)
+- `FIREBASE_DATABASE_URL` (optional)
+
+### Azure Cosmos DB
+
+- `COSMOS_ENDPOINT`
+- `COSMOS_KEY`
+- `COSMOS_DATABASE_ID` (optional)
+- `COSMOS_CONTAINER_ID` (optional; defaults to per-collection names)
 
 ## Project Structure
 
