@@ -1,17 +1,29 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Upload, FileText, FileSpreadsheet, Database, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { useGameConfig } from '@/hooks/use-game-config';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState, useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Upload,
+  FileText,
+  FileSpreadsheet,
+  Database,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useGameConfig } from "@/hooks/use-game-config";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-type ExportFormat = 'json' | 'csv' | 'xlsx';
+type ExportFormat = "json" | "csv" | "xlsx";
 
 export function DataExportImportComponent() {
   const { config, competitionType } = useGameConfig();
@@ -19,7 +31,9 @@ export function DataExportImportComponent() {
   const [isImporting, setIsImporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [importProgress, setImportProgress] = useState(0);
-  const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
+  const [selectedYear, setSelectedYear] = useState<number | undefined>(
+    undefined,
+  );
   const [includePit, setIncludePit] = useState(false);
   const [includeMatch, setIncludeMatch] = useState(false);
 
@@ -36,9 +50,9 @@ export function DataExportImportComponent() {
 
   // Get available years for the current competition type
   const availableYears = useMemo(() => {
-    const years = Object.keys(config[competitionType] || {}).map(year => ({
+    const years = Object.keys(config[competitionType] || {}).map((year) => ({
       year: parseInt(year),
-      gameName: config[competitionType][year].gameName
+      gameName: config[competitionType][year].gameName,
     }));
 
     return years.sort((a, b) => b.year - a.year);
@@ -47,12 +61,12 @@ export function DataExportImportComponent() {
   const handleExport = async (format: ExportFormat) => {
     // Validate selection before starting
     if (!includePit && !includeMatch) {
-      toast.error('Please select at least one data type to export');
+      toast.error("Please select at least one data type to export");
       return;
     }
 
     if (includePit && includeMatch) {
-      toast.error('Please export only one data type at a time (Pit or Match)');
+      toast.error("Please export only one data type at a time (Pit or Match)");
       return;
     }
 
@@ -62,7 +76,7 @@ export function DataExportImportComponent() {
     try {
       // Simulate progress for better UX
       const progressInterval = setInterval(() => {
-        setExportProgress(prev => {
+        setExportProgress((prev) => {
           if (prev >= 90) return prev;
           return prev + Math.random() * 15;
         });
@@ -70,46 +84,45 @@ export function DataExportImportComponent() {
 
       const params = new URLSearchParams();
       if (selectedYear) {
-        params.append('year', selectedYear.toString());
+        params.append("year", selectedYear.toString());
       }
-      params.append('format', format);
-      params.append('competitionType', competitionType);
+      params.append("format", format);
+      params.append("competitionType", competitionType);
 
       // Ensure at least one type is selected
       const types: string[] = [];
-      if (includePit) types.push('pit');
-      if (includeMatch) types.push('match');
+      if (includePit) types.push("pit");
+      if (includeMatch) types.push("match");
 
       if (types.length !== 1) {
-        throw new Error('Please select exactly one data type to export');
+        throw new Error("Please select exactly one data type to export");
       }
 
-      params.append('types', types.join(','));
+      params.append("types", types.join(","));
 
       const response = await fetch(`/api/database/export?${params}`);
       if (!response.ok) {
-        throw new Error('Failed to export data');
+        throw new Error("Failed to export data");
       }
 
       setExportProgress(95);
 
       // Build descriptive filename
-      const yearInfo = selectedYear 
-        ? availableYears.find(y => y.year === selectedYear)
+      const yearInfo = selectedYear
+        ? availableYears.find((y) => y.year === selectedYear)
         : null;
-      
-      const dataTypeStr = types[0] === 'pit' 
-        ? 'pit-scouting' 
-        : 'match-scouting';
-      
-      const yearStr = yearInfo 
-        ? `${yearInfo.year}-${yearInfo.gameName.replace(/\s+/g, '-')}` 
-        : 'all-years';
-      
+
+      const dataTypeStr =
+        types[0] === "pit" ? "pit-scouting" : "match-scouting";
+
+      const yearStr = yearInfo
+        ? `${yearInfo.year}-${yearInfo.gameName.replace(/\s+/g, "-")}`
+        : "all-years";
+
       let filename = `${competitionType}-${yearStr}-${dataTypeStr}.${format}`;
 
       // Check if server provided a different filename
-      const contentDisposition = response.headers.get('content-disposition');
+      const contentDisposition = response.headers.get("content-disposition");
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="(.+)"/);
         if (filenameMatch) {
@@ -120,7 +133,7 @@ export function DataExportImportComponent() {
       // Download the file
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
@@ -136,9 +149,10 @@ export function DataExportImportComponent() {
         duration: 5000,
       });
     } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export data', {
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
+      console.error("Export error:", error);
+      toast.error("Failed to export data", {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
         duration: 5000,
       });
     } finally {
@@ -159,36 +173,37 @@ export function DataExportImportComponent() {
     try {
       // Simulate progress for better UX
       const progressInterval = setInterval(() => {
-        setImportProgress(prev => {
+        setImportProgress((prev) => {
           if (prev >= 90) return prev;
           return prev + Math.random() * 10;
         });
       }, 600);
 
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
-      const response = await fetch('/api/database/import', {
-        method: 'POST',
+      const response = await fetch("/api/database/import", {
+        method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to import data');
+        throw new Error(errorData.error || "Failed to import data");
       }
 
       setImportProgress(100);
       clearInterval(progressInterval);
 
-      toast.success('Data imported successfully', {
+      toast.success("Data imported successfully", {
         description: `File: ${file.name}`,
         duration: 5000,
       });
     } catch (error) {
-      console.error('Import error:', error);
-      toast.error('Failed to import data', {
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
+      console.error("Import error:", error);
+      toast.error("Failed to import data", {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
         duration: 5000,
       });
     } finally {
@@ -196,7 +211,7 @@ export function DataExportImportComponent() {
         setIsImporting(false);
         setImportProgress(0);
         // Reset file input
-        event.target.value = '';
+        event.target.value = "";
       }, 1000);
     }
   };
@@ -211,10 +226,14 @@ export function DataExportImportComponent() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <label htmlFor="year-select" className="text-sm font-medium">Filter by Year (optional)</label>
+          <label htmlFor="year-select" className="text-sm font-medium">
+            Filter by Year (optional)
+          </label>
           <Select
-            value={selectedYear ? selectedYear.toString() : ''}
-            onValueChange={(value) => setSelectedYear(value ? parseInt(value) : undefined)}
+            value={selectedYear ? selectedYear.toString() : ""}
+            onValueChange={(value) =>
+              setSelectedYear(value ? parseInt(value) : undefined)
+            }
           >
             <SelectTrigger className="w-full p-2 border rounded-md">
               <SelectValue placeholder="All Years" />
@@ -245,21 +264,25 @@ export function DataExportImportComponent() {
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox
                 checked={includePit}
-                onCheckedChange={(checked) => setIncludePitExclusive(checked === true)}
+                onCheckedChange={(checked) =>
+                  setIncludePitExclusive(checked === true)
+                }
               />
               Pit Scouting
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox
                 checked={includeMatch}
-                onCheckedChange={(checked) => setIncludeMatchExclusive(checked === true)}
+                onCheckedChange={(checked) =>
+                  setIncludeMatchExclusive(checked === true)
+                }
               />
               Match Scouting
             </label>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button
-              onClick={() => handleExport('json')}
+              onClick={() => handleExport("json")}
               disabled={isExporting || (!includePit && !includeMatch)}
               variant="outline"
               size="sm"
@@ -273,7 +296,7 @@ export function DataExportImportComponent() {
               JSON
             </Button>
             <Button
-              onClick={() => handleExport('csv')}
+              onClick={() => handleExport("csv")}
               disabled={isExporting || (!includePit && !includeMatch)}
               variant="outline"
               size="sm"
@@ -287,7 +310,7 @@ export function DataExportImportComponent() {
               CSV
             </Button>
             <Button
-              onClick={() => handleExport('xlsx')}
+              onClick={() => handleExport("xlsx")}
               disabled={isExporting || (!includePit && !includeMatch)}
               variant="outline"
               size="sm"

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Card, CardContent } from '@/components/ui/card';
-import { Construction, Hammer, AlertTriangle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from "@/components/ui/card";
+import { Construction, Hammer, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface UnderDevelopmentProps {
   title?: string;
@@ -10,10 +10,10 @@ interface UnderDevelopmentProps {
   featureName?: string;
 }
 
-export function UnderDevelopment({ 
+export function UnderDevelopment({
   title = "Under Development",
   description = "This feature is currently being built and will be available soon.",
-  featureName
+  featureName,
 }: UnderDevelopmentProps) {
   return (
     <div className="space-y-6">
@@ -23,7 +23,10 @@ export function UnderDevelopment({
           {featureName && (
             <h1 className="text-3xl font-bold tracking-tight">{featureName}</h1>
           )}
-          <Badge variant="outline" className="text-amber-600 border-amber-600 dark:text-amber-500 dark:border-amber-500">
+          <Badge
+            variant="outline"
+            className="text-amber-600 border-amber-600 dark:text-amber-500 dark:border-amber-500"
+          >
             <Construction className="h-3 w-3 mr-1" />
             Under Development
           </Badge>
@@ -48,9 +51,7 @@ export function UnderDevelopment({
               <h2 className="text-2xl font-semibold text-foreground">
                 We're Building Something Great!
               </h2>
-              <p className="text-muted-foreground text-lg">
-                {description}
-              </p>
+              <p className="text-muted-foreground text-lg">{description}</p>
             </div>
 
             {/* Status Banner */}
@@ -62,7 +63,8 @@ export function UnderDevelopment({
                     Development in Progress
                   </p>
                   <p className="text-sm text-amber-700 dark:text-amber-400">
-                    Our team is actively working on this feature. Check back soon for updates!
+                    Our team is actively working on this feature. Check back
+                    soon for updates!
                   </p>
                 </div>
               </div>

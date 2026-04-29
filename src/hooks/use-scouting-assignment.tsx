@@ -1,12 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useSession } from 'next-auth/react';
-import { useSelectedEvent } from './use-event-config';
-import { useGameConfig } from './use-game-config';
+import { useState, useEffect, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { useSelectedEvent } from "./use-event-config";
+import { useGameConfig } from "./use-game-config";
 
 const assignmentsCache = new Map<string, MatchAssignmentRow[]>();
-const getAssignmentsCacheKey = (eventCode: string, year: number) => `${eventCode}-${year}`;
+const getAssignmentsCacheKey = (eventCode: string, year: number) =>
+  `${eventCode}-${year}`;
 
 interface ScoutingAssignment {
   blockId: number;
@@ -14,13 +15,13 @@ interface ScoutingAssignment {
   startMatch: number;
   endMatch: number;
   matchNumber: number;
-  alliance: 'red' | 'blue';
+  alliance: "red" | "blue";
   position: number; // 1-indexed (1, 2, 3)
 }
 
 type MatchAssignmentRow = {
   matchNumber: number;
-  alliance: 'red' | 'blue';
+  alliance: "red" | "blue";
   position: number;
   userId: string;
 };
@@ -29,7 +30,7 @@ export function useScoutingAssignment() {
   const { data: session } = useSession();
   const selectedEvent = useSelectedEvent();
   const { currentYear, competitionType } = useGameConfig();
-  
+
   const [rows, setRows] = useState<MatchAssignmentRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +38,7 @@ export function useScoutingAssignment() {
   // Fetch per-match scouting assignments for the event
   useEffect(() => {
     const fetchAssignments = async () => {
-      if (!selectedEvent?.code) {
+      if (!selectedEvent?.eventCode) {
         setRows([]);
         return;
       }
@@ -46,7 +47,10 @@ export function useScoutingAssignment() {
       setError(null);
 
       try {
-        const cacheKey = getAssignmentsCacheKey(selectedEvent.code, currentYear);
+        const cacheKey = getAssignmentsCacheKey(
+          selectedEvent.eventCode,
+          currentYear,
+        );
         const cachedRows = assignmentsCache.get(cacheKey);
         if (cachedRows) {
           setRows(cachedRows);
@@ -54,7 +58,7 @@ export function useScoutingAssignment() {
         }
 
         const res = await fetch(
-          `/api/database/match-assignments?eventCode=${selectedEvent.code}&year=${currentYear}`
+          `/api/database/match-assignments?eventCode=${selectedEvent.eventCode}&year=${currentYear}`,
         );
 
         if (!res.ok) {
@@ -66,9 +70,17 @@ export function useScoutingAssignment() {
         assignmentsCache.set(cacheKey, data);
         setRows(data);
       } catch (err) {
-        console.error('Error loading scouting schedule:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load scouting schedule');
-        if (!assignmentsCache.get(getAssignmentsCacheKey(selectedEvent.code, currentYear))) {
+        console.error("Error loading scouting schedule:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load scouting schedule",
+        );
+        if (
+          !assignmentsCache.get(
+            getAssignmentsCacheKey(selectedEvent.eventCode, currentYear),
+          )
+        ) {
           setRows([]);
         }
       } finally {
@@ -77,18 +89,18 @@ export function useScoutingAssignment() {
     };
 
     fetchAssignments();
-  }, [selectedEvent?.code, currentYear, competitionType]);
+  }, [selectedEvent?.eventCode, currentYear, competitionType]);
 
   // Find the current user's assignments across all matches
   const userAssignments = useMemo((): ScoutingAssignment[] => {
     if (!session?.user?.id || rows.length === 0) return [];
 
     const userId = session.user.id;
-    const blockSize = competitionType === 'FTC' ? 3 : 5;
+    const blockSize = competitionType === "FTC" ? 3 : 5;
 
     const assignments = rows
-      .filter(r => r.userId === userId)
-      .map(r => {
+      .filter((r) => r.userId === userId)
+      .map((r) => {
         const blockNumber = Math.floor((r.matchNumber - 1) / blockSize) + 1;
         const startMatch = (blockNumber - 1) * blockSize + 1;
         const endMatch = startMatch + blockSize - 1;
@@ -113,8 +125,10 @@ export function useScoutingAssignment() {
   }, [userAssignments]);
 
   // Get assignment for a specific match number
-  const getAssignmentForMatch = (matchNumber: number): ScoutingAssignment | null => {
-    return userAssignments.find(a => a.matchNumber === matchNumber) || null;
+  const getAssignmentForMatch = (
+    matchNumber: number,
+  ): ScoutingAssignment | null => {
+    return userAssignments.find((a) => a.matchNumber === matchNumber) || null;
   };
 
   /**
@@ -123,10 +137,14 @@ export function useScoutingAssignment() {
    * If no block covers it, falls back to the next block whose start is > lastSubmittedMatch,
    * then falls back to the first assignment.
    */
-  const getNextAssignment = (lastSubmittedMatch: number): ScoutingAssignment | null => {
+  const getNextAssignment = (
+    lastSubmittedMatch: number,
+  ): ScoutingAssignment | null => {
     if (userAssignments.length === 0) return null;
 
-    const upcoming = userAssignments.find(a => a.matchNumber > lastSubmittedMatch);
+    const upcoming = userAssignments.find(
+      (a) => a.matchNumber > lastSubmittedMatch,
+    );
     if (upcoming) return upcoming;
 
     return firstAssignment;
@@ -153,6 +171,6 @@ export function useScoutingAssignment() {
     recommendedAlliance,
     recommendedPosition,
     getAssignmentForMatch,
-    getNextAssignment
+    getNextAssignment,
   };
 }

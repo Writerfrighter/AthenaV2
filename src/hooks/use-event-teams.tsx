@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSelectedEvent } from './use-event-config';
-import { useGameConfig } from './use-game-config';
-import { indexedDBService } from '@/lib/indexeddb-service';
+import { useState, useEffect } from "react";
+import { useSelectedEvent } from "./use-event-config";
+import { useGameConfig } from "./use-game-config";
+import { indexedDBService } from "@/lib/indexeddb-service";
 
 export interface TeamInfo {
   teamNumber: number;
@@ -32,7 +32,7 @@ export function useEventTeams() {
     let isCancelled = false;
 
     async function fetchTeams() {
-      if (!selectedEvent?.code) {
+      if (!selectedEvent?.eventCode) {
         if (!isCancelled) {
           setTeamState({
             teams: [],
@@ -44,9 +44,10 @@ export function useEventTeams() {
         return;
       }
 
-      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      const isOnline =
+        typeof navigator !== "undefined" ? navigator.onLine : true;
 
-      setTeamState(prev => ({
+      setTeamState((prev) => ({
         ...prev,
         loading: true,
         error: null,
@@ -54,25 +55,29 @@ export function useEventTeams() {
 
       let hasCachedTeams = false;
       try {
-        const cachedData = await indexedDBService.getCachedEventTeams(selectedEvent.code);
+        const cachedData = await indexedDBService.getCachedEventTeams(
+          selectedEvent.eventCode,
+        );
         if (cachedData && cachedData.teams.length > 0 && !isCancelled) {
           hasCachedTeams = true;
           setTeamState({
-            teams: [...cachedData.teams].sort((a, b) => a.teamNumber - b.teamNumber),
+            teams: [...cachedData.teams].sort(
+              (a, b) => a.teamNumber - b.teamNumber,
+            ),
             loading: isOnline,
             error: null,
             isOfflineData: true,
           });
         }
       } catch (cacheError) {
-        console.warn('Failed to get cached teams:', cacheError);
+        console.warn("Failed to get cached teams:", cacheError);
       }
 
       // If offline, try to get cached data first
       if (!isOnline) {
         if (hasCachedTeams) {
           if (!isCancelled) {
-            setTeamState(prev => ({
+            setTeamState((prev) => ({
               ...prev,
               loading: false,
               error: null,
@@ -87,7 +92,8 @@ export function useEventTeams() {
           setTeamState({
             teams: [],
             loading: false,
-            error: 'Offline - no cached team data available. Connect to internet to download team list.',
+            error:
+              "Offline - no cached team data available. Connect to internet to download team list.",
             isOfflineData: false,
           });
         }
@@ -96,37 +102,42 @@ export function useEventTeams() {
 
       try {
         // Fetch data from our server-side API route with competition type
-        const response = await fetch(`/api/events/${selectedEvent.code}/teams?competitionType=${competitionType}&year=${currentYear}`);
-      
+        const response = await fetch(
+          `/api/events/${selectedEvent.eventCode}/teams?competitionType=${competitionType}&year=${currentYear}`,
+        );
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.error) {
           throw new Error(data.error);
         }
 
         // The API route returns teams with team_number, nickname, etc.
-        const teams: TeamInfo[] = (data || []).map((team: { team_number: number; nickname?: string; key?: string }) => ({
-          teamNumber: team.team_number,
-          nickname: team.nickname || `Team ${team.team_number}`,
-          key: team.key || `${competitionType.toLowerCase()}${team.team_number}`,
-        }));
+        const teams: TeamInfo[] = (data || []).map(
+          (team: { team_number: number; nickname?: string; key?: string }) => ({
+            teamNumber: team.team_number,
+            nickname: team.nickname || `Team ${team.team_number}`,
+            key:
+              team.key || `${competitionType.toLowerCase()}${team.team_number}`,
+          }),
+        );
 
         const sortedTeams = teams.sort((a, b) => a.teamNumber - b.teamNumber);
 
         // Cache the teams for offline use
         try {
           await indexedDBService.cacheEventTeams(
-            selectedEvent.code,
+            selectedEvent.eventCode,
             competitionType,
             currentYear,
-            sortedTeams
+            sortedTeams,
           );
         } catch (cacheError) {
-          console.warn('Failed to cache teams:', cacheError);
+          console.warn("Failed to cache teams:", cacheError);
         }
 
         if (!isCancelled) {
@@ -138,11 +149,11 @@ export function useEventTeams() {
           });
         }
       } catch (error) {
-        console.error('Error fetching teams:', error);
+        console.error("Error fetching teams:", error);
 
         if (hasCachedTeams) {
           if (!isCancelled) {
-            setTeamState(prev => ({
+            setTeamState((prev) => ({
               ...prev,
               loading: false,
               error: null,
@@ -156,7 +167,7 @@ export function useEventTeams() {
           setTeamState({
             teams: [],
             loading: false,
-            error: `Failed to fetch teams: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            error: `Failed to fetch teams: ${error instanceof Error ? error.message : "Unknown error"}`,
             isOfflineData: false,
           });
         }
@@ -168,7 +179,7 @@ export function useEventTeams() {
     return () => {
       isCancelled = true;
     };
-  }, [selectedEvent?.code, competitionType, currentYear]);
+  }, [selectedEvent?.eventCode, competitionType, currentYear]);
 
   return teamState;
 }
@@ -177,12 +188,12 @@ export function useEventTeams() {
 export function useEventTeamNumbers(): number[] {
   const { teams } = useEventTeams();
   return teams
-    .map(team => team.teamNumber)
-    .filter(teamNumber => teamNumber && teamNumber > 0);
+    .map((team) => team.teamNumber)
+    .filter((teamNumber) => teamNumber && teamNumber > 0);
 }
 
 // Hook to get team info by number
 export function useTeamInfo(teamNumber: number): TeamInfo | null {
   const { teams } = useEventTeams();
-  return teams.find(team => team.teamNumber === teamNumber) || null;
+  return teams.find((team) => team.teamNumber === teamNumber) || null;
 }

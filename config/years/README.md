@@ -19,6 +19,7 @@ config/
 Year config files follow this pattern: `{COMPETITION_TYPE}-{YEAR}.json`
 
 Examples:
+
 - `FRC-2026.json` - FRC competition for 2026 season
 - `FTC-2025.json` - FTC competition for 2025 season
 
@@ -64,11 +65,13 @@ Use this template structure:
 ```
 
 **Field Types:**
+
 - `number` - Numeric counter (default)
 - `boolean` - Yes/No toggle
 - `select` - Dropdown with predefined options (use `pointValues`)
 
 **Optional Properties:**
+
 - `increments: [1, 5, 10]` - Shows quick increment buttons for number fields
 - `pointValues: {"option1": 5, "option2": 10}` - For select fields with variable scoring
 
@@ -77,7 +80,7 @@ Use this template structure:
 Update `config/game-config-loader.ts`:
 
 ```typescript
-import FRC2027Raw from './years/FRC-2027.json';
+import FRC2027Raw from "./years/FRC-2027.json";
 
 const gameConfig: GameConfig = {
   FRC: {
@@ -114,5 +117,6 @@ The `game-config-loader.ts` assembles all year configs into the same structure a
 ## Documentation
 
 For more details on game configuration options, see:
+
 - [YEAR_CONFIG_README.md](../YEAR_CONFIG_README.md) - Complete configuration guide
 - [.github/copilot-instructions.md](../.github/copilot-instructions.md) - Development patterns

@@ -1,8 +1,8 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 interface TeamNotesProps {
   notes: string[];
@@ -10,8 +10,14 @@ interface TeamNotesProps {
   setSearchNote: (val: string) => void;
 }
 
-export function TeamNotes({ notes, searchNote, setSearchNote }: TeamNotesProps) {
-  const filtered = notes.filter(n => n.toLowerCase().includes(searchNote.toLowerCase()));
+export function TeamNotes({
+  notes,
+  searchNote,
+  setSearchNote,
+}: TeamNotesProps) {
+  const filtered = notes.filter((n) =>
+    n.toLowerCase().includes(searchNote.toLowerCase()),
+  );
 
   return (
     <Card>

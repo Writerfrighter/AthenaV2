@@ -28,7 +28,6 @@ import { SearchForm } from "@/components/forms/search-form";
 import { useSession } from "next-auth/react";
 import { useGameConfig } from "@/hooks/use-game-config";
 
-
 const data = {
   user: {
     name: "Noah Fang",
@@ -41,7 +40,7 @@ const data = {
     {
       title: "Matchup",
       url: "/dashboard/matchup",
-      icon: Swords
+      icon: Swords,
     },
     {
       title: "Analysis",
@@ -75,12 +74,12 @@ const data = {
     {
       title: "Schedule",
       url: "/dashboard/schedule",
-      icon: CalendarClock
+      icon: CalendarClock,
     },
     {
       title: "Scouter Performance",
       url: "/dashboard/spr",
-      icon: UserCheck
+      icon: UserCheck,
     },
     {
       title: "Settings",
@@ -113,33 +112,42 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { competitionType } = useGameConfig();
 
   // Use session data if available, otherwise fallback to default
-  const userData = session?.user ? {
-    name: session.user.name || "User",
-    username: session.user.username || "user",
-    avatar: (session.user as any)?.image || (session.user as any)?.avatarUrl || "/TRCLogo.webp",
-  } : {
-    name: "Guest",
-    username: "guest",
-    avatar: "/TRCLogo.webp",
-  };
+  const userData = session?.user
+    ? {
+        name: session.user.name || "User",
+        username: session.user.username || "user",
+        avatar:
+          (session.user as any)?.image ||
+          (session.user as any)?.avatarUrl ||
+          "/TRCLogo.webp",
+      }
+    : {
+        name: "Guest",
+        username: "guest",
+        avatar: "/TRCLogo.webp",
+      };
 
-  const competitionName = competitionType === "FRC" 
-    ? "FIRST Robotics Competition" 
-    : "FIRST Tech Challenge";
+  const competitionName =
+    competitionType === "FRC"
+      ? "FIRST Robotics Competition"
+      : "FIRST Tech Challenge";
 
   return (
     <Sidebar collapsible="icon" {...props} variant="floating">
-      <SidebarHeader className={`${competitionType === "FRC" ? 'bg-blue-200 dark:bg-blue-900' : 'bg-orange-200 dark:bg-orange-900'} rounded-t-sm mb-1.5 text-slate-900 dark:text-slate-100`}>
+      <SidebarHeader
+        className={`${competitionType === "FRC" ? "bg-blue-200 dark:bg-blue-900" : "bg-orange-200 dark:bg-orange-900"} rounded-t-sm mb-1.5 text-slate-900 dark:text-slate-100`}
+      >
         <div className={`px-2 group-data-[collapsible=icon]:hidden`}>
-          <p className="text-xs font-semibold text-center uppercase tracking-wider" >
+          <p className="text-xs font-semibold text-center uppercase tracking-wider">
             {competitionName}
           </p>
         </div>
-        
       </SidebarHeader>
       <SidebarContent>
-        <div className="mx-2 mt-1"><EventSwitcher/></div>
-        <SearchForm className="mt-1 ms-2"/>
+        <div className="mx-2 mt-1">
+          <EventSwitcher />
+        </div>
+        <SearchForm className="mt-1 ms-2" />
         <NavMain items={data.navMain} />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>

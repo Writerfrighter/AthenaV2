@@ -46,11 +46,7 @@ export function DeleteConfirmationDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
-          <Button
-            onClick={onConfirm}
-            disabled={loading}
-            variant={variant}
-          >
+          <Button onClick={onConfirm} disabled={loading} variant={variant}>
             {loading ? loadingText : confirmButtonText}
           </Button>
         </AlertDialogFooter>

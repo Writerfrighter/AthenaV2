@@ -1,5 +1,5 @@
-import webPush from 'web-push';
-import { databaseManager } from '@/db/database-manager';
+import webPush from "web-push";
+import { databaseManager } from "@/db/database-manager";
 
 export interface StoredSubscription {
   endpoint: string;
@@ -32,32 +32,45 @@ function ensureVapidConfigured() {
   }
 
   // Safe to call multiple times (web-push just overwrites internal state)
-  webPush.setVapidDetails('mailto:noahnfang@outlook.com', publicKey, privateKey);
+  webPush.setVapidDetails(
+    "mailto:noahnfang@outlook.com",
+    publicKey,
+    privateKey,
+  );
   return true;
 }
 
-export async function loadAllSubscriptions(): Promise<Map<string, StoredSubscription>> {
+export async function loadAllSubscriptions(): Promise<
+  Map<string, StoredSubscription>
+> {
   const db = databaseManager.getService();
   if (!db.getPool) {
-    throw new Error('Database service does not support direct SQL queries');
+    throw new Error("Database service does not support direct SQL queries");
   }
   const pool = await db.getPool();
 
   const result = await pool
     .request()
-    .query('SELECT id, push_subscriptions FROM users WHERE push_subscriptions IS NOT NULL');
+    .query(
+      "SELECT id, push_subscriptions FROM users WHERE push_subscriptions IS NOT NULL",
+    );
 
   const subscriptions = new Map<string, StoredSubscription>();
 
   for (const user of result.recordset) {
     if (user.push_subscriptions) {
       try {
-        const userSubscriptions: StoredSubscription[] = JSON.parse(user.push_subscriptions);
+        const userSubscriptions: StoredSubscription[] = JSON.parse(
+          user.push_subscriptions,
+        );
         for (const sub of userSubscriptions) {
           subscriptions.set(sub.endpoint, sub);
         }
       } catch (error) {
-        console.error(`Error parsing subscriptions for user ${user.id}:`, error);
+        console.error(
+          `Error parsing subscriptions for user ${user.id}:`,
+          error,
+        );
       }
     }
   }
@@ -65,16 +78,18 @@ export async function loadAllSubscriptions(): Promise<Map<string, StoredSubscrip
   return subscriptions;
 }
 
-export async function loadSubscriptionsForUser(userId: string): Promise<StoredSubscription[]> {
+export async function loadSubscriptionsForUser(
+  userId: string,
+): Promise<StoredSubscription[]> {
   const db = databaseManager.getService();
   const pool = await db.getPool?.();
   if (!pool) return [];
 
-  const mssql = await import('mssql');
+  const mssql = await import("mssql");
   const result = await pool
     .request()
-    .input('userId', mssql.NVarChar, userId)
-    .query('SELECT push_subscriptions FROM users WHERE id = @userId');
+    .input("userId", mssql.NVarChar, userId)
+    .query("SELECT push_subscriptions FROM users WHERE id = @userId");
 
   const raw = result.recordset?.[0]?.push_subscriptions;
   if (!raw) return [];
@@ -90,7 +105,12 @@ export async function loadSubscriptionsForUser(userId: string): Promise<StoredSu
 export async function sendPushNotification(params: {
   payload: NotificationPayload;
   targetEndpoint?: string;
-}): Promise<{ results: SendResult[]; successful: number; failed: number; skipped: boolean }> {
+}): Promise<{
+  results: SendResult[];
+  successful: number;
+  failed: number;
+  skipped: boolean;
+}> {
   const vapidOk = ensureVapidConfigured();
   if (!vapidOk) {
     return { results: [], successful: 0, failed: 0, skipped: true };
@@ -100,12 +120,12 @@ export async function sendPushNotification(params: {
 
   const notificationData = {
     title: payload.title,
-    body: payload.body || '',
-    icon: payload.icon || '/TRCLogo.webp',
-    badge: payload.badge || '/TRCLogo.webp',
+    body: payload.body || "",
+    icon: payload.icon || "/TRCLogo.webp",
+    badge: payload.badge || "/TRCLogo.webp",
     data: {
       ...payload.data,
-      url: payload.url || '/dashboard',
+      url: payload.url || "/dashboard",
     },
   };
 
@@ -116,7 +136,13 @@ export async function sendPushNotification(params: {
     const subscription = subscriptions.get(targetEndpoint);
     if (!subscription) {
       return {
-        results: [{ endpoint: targetEndpoint, success: false, error: 'Subscription not found' }],
+        results: [
+          {
+            endpoint: targetEndpoint,
+            success: false,
+            error: "Subscription not found",
+          },
+        ],
         successful: 0,
         failed: 1,
         skipped: false,
@@ -124,37 +150,55 @@ export async function sendPushNotification(params: {
     }
 
     try {
-      await webPush.sendNotification(subscription as webPush.PushSubscription, JSON.stringify(notificationData));
+      await webPush.sendNotification(
+        subscription as webPush.PushSubscription,
+        JSON.stringify(notificationData),
+      );
       results.push({ endpoint: targetEndpoint, success: true });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      results.push({ endpoint: targetEndpoint, success: false, error: errorMessage });
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      results.push({
+        endpoint: targetEndpoint,
+        success: false,
+        error: errorMessage,
+      });
     }
 
     return {
       results,
-      successful: results.filter(r => r.success).length,
-      failed: results.filter(r => !r.success).length,
+      successful: results.filter((r) => r.success).length,
+      failed: results.filter((r) => !r.success).length,
       skipped: false,
     };
   }
 
-  const promises = Array.from(subscriptions.entries()).map(async ([endpoint, subscription]) => {
-    try {
-      await webPush.sendNotification(subscription as webPush.PushSubscription, JSON.stringify(notificationData));
-      return { endpoint, success: true } satisfies SendResult;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return { endpoint, success: false, error: errorMessage } satisfies SendResult;
-    }
-  });
+  const promises = Array.from(subscriptions.entries()).map(
+    async ([endpoint, subscription]) => {
+      try {
+        await webPush.sendNotification(
+          subscription as webPush.PushSubscription,
+          JSON.stringify(notificationData),
+        );
+        return { endpoint, success: true } satisfies SendResult;
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        return {
+          endpoint,
+          success: false,
+          error: errorMessage,
+        } satisfies SendResult;
+      }
+    },
+  );
 
   results.push(...(await Promise.all(promises)));
 
   return {
     results,
-    successful: results.filter(r => r.success).length,
-    failed: results.filter(r => !r.success).length,
+    successful: results.filter((r) => r.success).length,
+    failed: results.filter((r) => !r.success).length,
     skipped: false,
   };
 }
@@ -162,7 +206,12 @@ export async function sendPushNotification(params: {
 export async function sendPushNotificationToUser(params: {
   userId: string;
   payload: NotificationPayload;
-}): Promise<{ results: SendResult[]; successful: number; failed: number; skipped: boolean }> {
+}): Promise<{
+  results: SendResult[];
+  successful: number;
+  failed: number;
+  skipped: boolean;
+}> {
   const vapidOk = ensureVapidConfigured();
   if (!vapidOk) {
     return { results: [], successful: 0, failed: 0, skipped: true };
@@ -175,12 +224,12 @@ export async function sendPushNotificationToUser(params: {
 
   const notificationData = {
     title: params.payload.title,
-    body: params.payload.body || '',
-    icon: params.payload.icon || '/TRCLogo.webp',
-    badge: params.payload.badge || '/TRCLogo.webp',
+    body: params.payload.body || "",
+    icon: params.payload.icon || "/TRCLogo.webp",
+    badge: params.payload.badge || "/TRCLogo.webp",
     data: {
       ...params.payload.data,
-      url: params.payload.url || '/dashboard',
+      url: params.payload.url || "/dashboard",
     },
   };
 
@@ -188,19 +237,27 @@ export async function sendPushNotificationToUser(params: {
   await Promise.all(
     subs.map(async (sub) => {
       try {
-        await webPush.sendNotification(sub as webPush.PushSubscription, JSON.stringify(notificationData));
+        await webPush.sendNotification(
+          sub as webPush.PushSubscription,
+          JSON.stringify(notificationData),
+        );
         results.push({ endpoint: sub.endpoint, success: true });
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        results.push({ endpoint: sub.endpoint, success: false, error: errorMessage });
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        results.push({
+          endpoint: sub.endpoint,
+          success: false,
+          error: errorMessage,
+        });
       }
-    })
+    }),
   );
 
   return {
     results,
-    successful: results.filter(r => r.success).length,
-    failed: results.filter(r => !r.success).length,
+    successful: results.filter((r) => r.success).length,
+    failed: results.filter((r) => !r.success).length,
     skipped: false,
   };
 }

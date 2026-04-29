@@ -34,7 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { MatchEntry } from "@/lib/shared-types";
+import { MatchEntry } from "@/lib/types";
 
 interface MatchScoutingTableProps {
   data: MatchEntry[];
@@ -43,163 +43,193 @@ interface MatchScoutingTableProps {
   onDeleteSelected?: (ids: number[]) => void;
 }
 
-export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: MatchScoutingTableProps) {
+export const MatchScoutingTable = React.memo(function MatchScoutingTable({
+  data,
+  onEdit,
+  onDelete,
+  onDeleteSelected,
+}: MatchScoutingTableProps) {
   const [rowSelection, setRowSelection] = React.useState({});
 
   // Expose selected IDs
   const selectedIds = React.useMemo(() => {
     return Object.keys(rowSelection)
-      .filter(key => rowSelection[key as keyof typeof rowSelection])
-      .map(key => {
+      .filter((key) => rowSelection[key as keyof typeof rowSelection])
+      .map((key) => {
         const row = data[parseInt(key)];
         return row?.id;
       })
       .filter((id): id is number => id !== undefined && id !== null);
   }, [rowSelection, data]);
 
-  const columns = React.useMemo<ColumnDef<MatchEntry>[]>(() => [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <div className="ml-2">
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div className="ml-2">
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "matchNumber",
-    header: ({ column }) => (
-      <button
-        className="h-8 flex items-center hover:text-primary"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Match <ArrowUpDown className="p-1" />
-      </button>
-    ),
-    cell: ({ row }) => <div className="font-medium text-sm">#{row.getValue("matchNumber")}</div>,
-  },
-  {
-    accessorKey: "teamNumber",
-    header: ({ column }) => (
-      <button
-        className="h-8 flex items-center hover:text-primary"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Team <ArrowUpDown className="p-1" />
-      </button>
-    ),
-    cell: ({ row }) => <div className="font-medium text-sm">{row.getValue("teamNumber")}</div>,
-  },
-  {
-    accessorKey: "alliance",
-    header: "Alliance",
-    cell: ({ row }) => {
-      const alliance = row.getValue("alliance") as string;
-      return (
-        <div className="">
-          <Badge
-            variant={alliance === 'red' ? 'destructive' : 'default'}
-            className={`text-xs px-1.5 py-0 ${alliance === 'blue' ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}`}
+  const columns = React.useMemo<ColumnDef<MatchEntry>[]>(
+    () => [
+      {
+        id: "select",
+        header: ({ table }) => (
+          <div className="ml-2">
+            <Checkbox
+              checked={
+                table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && "indeterminate")
+              }
+              onCheckedChange={(value) =>
+                table.toggleAllPageRowsSelected(!!value)
+              }
+              aria-label="Select all"
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="ml-2">
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label="Select row"
+            />
+          </div>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
+      {
+        accessorKey: "matchNumber",
+        header: ({ column }) => (
+          <button
+            className="h-8 flex items-center hover:text-primary"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            {alliance.toUpperCase()}
-          </Badge>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "timestamp",
-    header: ({ column }) => (
-      <button
-        className="h-8 flex items-center hover:text-primary"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Time <ArrowUpDown className="p-1" />
-      </button>
-    ),
-    cell: ({ row }) => {
-      const timestamp = row.getValue("timestamp") as Date;
-      return <div className="text-xs">{timestamp.toLocaleString()}</div>;
-    },
-  },
-  {
-    accessorKey: "gameSpecificData",
-    header: "Performance",
-    cell: ({ row }) => {
-      const data = row.getValue("gameSpecificData") as MatchEntry['gameSpecificData'];
-      // Show some key metrics - this could be customized based on game
-      const metrics = [];
-      // Add some common scoring metrics
-      if (data.autoPoints !== undefined) metrics.push(`Auto: ${data.autoPoints}`);
-      if (data.teleopPoints !== undefined) metrics.push(`Teleop: ${data.teleopPoints}`);
-      if (data.totalPoints !== undefined) metrics.push(`Total: ${data.totalPoints}`);
-      return <div className="text-xs">{metrics.join(", ")}</div>;
-    },
-  },
-  {
-    accessorKey: "notes",
-    header: "Notes",
-    cell: ({ row }) => {
-      const notes = row.getValue("notes") as string;
-      return <div className="text-xs max-w-xs truncate" title={notes}>{notes}</div>;
-    },
-  },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const entry = row.original;
-
-      return (
-        <div className="text-right mr-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => entry.id && onEdit(entry)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => entry.id && onDelete(entry.id)}
-                className="text-destructive"
+            Match <ArrowUpDown className="p-1" />
+          </button>
+        ),
+        cell: ({ row }) => (
+          <div className="font-medium text-sm">
+            #{row.getValue("matchNumber")}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "teamNumber",
+        header: ({ column }) => (
+          <button
+            className="h-8 flex items-center hover:text-primary"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Team <ArrowUpDown className="p-1" />
+          </button>
+        ),
+        cell: ({ row }) => (
+          <div className="font-medium text-sm">
+            {row.getValue("teamNumber")}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "alliance",
+        header: "Alliance",
+        cell: ({ row }) => {
+          const alliance = row.getValue("alliance") as string;
+          return (
+            <div className="">
+              <Badge
+                variant={alliance === "red" ? "destructive" : "default"}
+                className={`text-xs px-1.5 py-0 ${alliance === "blue" ? "bg-blue-500 hover:bg-blue-600 text-white" : ""}`}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      );
-    },
-    },
-  ], [onEdit, onDelete]);
+                {alliance.toUpperCase()}
+              </Badge>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "timestamp",
+        header: ({ column }) => (
+          <button
+            className="h-8 flex items-center hover:text-primary"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Time <ArrowUpDown className="p-1" />
+          </button>
+        ),
+        cell: ({ row }) => {
+          const timestamp = row.getValue("timestamp") as Date;
+          return <div className="text-xs">{timestamp.toLocaleString()}</div>;
+        },
+      },
+      {
+        accessorKey: "gameSpecificData",
+        header: "Performance",
+        cell: ({ row }) => {
+          const data = row.getValue(
+            "gameSpecificData",
+          ) as MatchEntry["gameSpecificData"];
+          // Show some key metrics - this could be customized based on game
+          const metrics = [];
+          // Add some common scoring metrics
+          if (data.autoPoints !== undefined)
+            metrics.push(`Auto: ${data.autoPoints}`);
+          if (data.teleopPoints !== undefined)
+            metrics.push(`Teleop: ${data.teleopPoints}`);
+          if (data.totalPoints !== undefined)
+            metrics.push(`Total: ${data.totalPoints}`);
+          return <div className="text-xs">{metrics.join(", ")}</div>;
+        },
+      },
+      {
+        accessorKey: "notes",
+        header: "Notes",
+        cell: ({ row }) => {
+          const notes = row.getValue("notes") as string;
+          return (
+            <div className="text-xs max-w-xs truncate" title={notes}>
+              {notes}
+            </div>
+          );
+        },
+      },
+      {
+        id: "actions",
+        enableHiding: false,
+        cell: ({ row }) => {
+          const entry = row.original;
+
+          return (
+            <div className="text-right mr-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => entry.id && onEdit(entry)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => entry.id && onDelete(entry.id)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+      },
+    ],
+    [onEdit, onDelete],
+  );
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    [],
+  );
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
 
   const table = useReactTable({
     data,
@@ -225,7 +255,9 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
       <div className="flex justify-between items-center pb-2 gap-2">
         <Input
           placeholder="Filter teams..."
-          value={(table.getColumn("teamNumber")?.getFilterValue() as string) ?? ""}
+          value={
+            (table.getColumn("teamNumber")?.getFilterValue() as string) ?? ""
+          }
           onChange={(event) =>
             table.getColumn("teamNumber")?.setFilterValue(event.target.value)
           }
@@ -255,7 +287,7 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -274,7 +306,7 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({ data,
                     <TableCell key={cell.id} className="">
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}

@@ -95,7 +95,7 @@ export function MultiSelect({
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      selected.includes(option) ? "opacity-100" : "opacity-0"
+                      selected.includes(option) ? "opacity-100" : "opacity-0",
                     )}
                   />
                   {option}

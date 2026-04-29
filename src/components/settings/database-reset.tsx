@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog';
-import { AlertTriangle, Trash2, Loader2 } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import { AlertTriangle, Trash2, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 
 export function DatabaseResetComponent() {
   const [isResetting, setIsResetting] = useState(false);
@@ -20,7 +20,7 @@ export function DatabaseResetComponent() {
 
     // Simulate progress for the reset operation
     const progressInterval = setInterval(() => {
-      setResetProgress(prev => {
+      setResetProgress((prev) => {
         if (prev >= 90) {
           clearInterval(progressInterval);
           return prev;
@@ -30,24 +30,24 @@ export function DatabaseResetComponent() {
     }, 500);
 
     try {
-      const response = await fetch('/api/database/reset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/database/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to reset database');
+        throw new Error(errorData.error || "Failed to reset database");
       }
 
       setResetProgress(100);
-      toast.success('Database reset successfully', {
-        description: 'All scouting data has been permanently deleted.'
+      toast.success("Database reset successfully", {
+        description: "All scouting data has been permanently deleted.",
       });
     } catch (error) {
-      console.error('Reset error:', error);
-      toast.error('Failed to reset database', {
-        description: error instanceof Error ? error.message : 'Unknown error'
+      console.error("Reset error:", error);
+      toast.error("Failed to reset database", {
+        description: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
       setTimeout(() => {
@@ -78,8 +78,8 @@ export function DatabaseResetComponent() {
             </div>
           )}
           <p className="text-sm text-muted-foreground">
-            Permanently delete all scouting data including pit entries, match entries, and user data.
-            This action cannot be undone.
+            Permanently delete all scouting data including pit entries, match
+            entries, and user data. This action cannot be undone.
           </p>
         </div>
 
@@ -94,7 +94,7 @@ export function DatabaseResetComponent() {
           ) : (
             <Trash2 className="mr-2 h-4 w-4" />
           )}
-          {isResetting ? 'Resetting...' : 'Reset Database'}
+          {isResetting ? "Resetting..." : "Reset Database"}
         </Button>
 
         <DeleteConfirmationDialog
@@ -104,8 +104,8 @@ export function DatabaseResetComponent() {
           title="Are you absolutely sure?"
           description={
             <>
-              This action cannot be undone. This will permanently delete all scouting data
-              from the database, including:
+              This action cannot be undone. This will permanently delete all
+              scouting data from the database, including:
               <ul className="list-disc list-inside mt-2 space-y-1">
                 <li>All pit scouting entries</li>
                 <li>All match scouting entries</li>

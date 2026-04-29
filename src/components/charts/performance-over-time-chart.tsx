@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useState, useMemo } from "react";
 
 import {
@@ -17,14 +11,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import {
-  ChartContainer,
-  ChartTooltip,
-} from "@/components/ui/chart";
-
-import React from "react";
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { useIsMobile } from "@/hooks/use-mobile";
-import type { MatchEntry, YearConfig } from "@/lib/shared-types";
+import type { MatchEntry } from "@/lib/types";
+import type { YearConfig } from "@/lib/types";
 import { calculateEPA } from "@/lib/statistics";
 
 interface PerMatchEPA {
@@ -63,7 +53,11 @@ function CustomTooltipContent(props: TooltipProps) {
       {payload.map((entry: TooltipPayload) => (
         <div key={entry.dataKey} className="flex justify-between gap-4">
           <span style={{ color: entry.color }}>{entry.name}:</span>
-          <span>{typeof entry.value === "number" ? entry.value.toFixed(1) : entry.value}</span>
+          <span>
+            {typeof entry.value === "number"
+              ? entry.value.toFixed(1)
+              : entry.value}
+          </span>
         </div>
       ))}
       <div className="flex justify-between gap-4 mt-2 font-bold border-t pt-1">
@@ -100,7 +94,12 @@ function CustomLegend({
   visibleCategories: Record<string, boolean>;
   onToggle: (category: string) => void;
 }) {
-  const order: (keyof typeof chartConfig)[] = ["auto", "teleop", "endgame", "penalties"];
+  const order: (keyof typeof chartConfig)[] = [
+    "auto",
+    "teleop",
+    "endgame",
+    "penalties",
+  ];
   return (
     <div className="flex flex-wrap justify-center gap-4 mt-4">
       {order.map((key) => {
@@ -123,7 +122,9 @@ function CustomLegend({
             <span
               className="text-xs font-medium transition-all duration-200"
               style={{
-                color: isVisible ? "var(--foreground)" : "var(--muted-foreground)",
+                color: isVisible
+                  ? "var(--foreground)"
+                  : "var(--muted-foreground)",
                 textDecoration: isVisible ? "none" : "line-through",
               }}
             >
@@ -149,7 +150,9 @@ export function PerformanceOverTimeChart({
 }: PerformanceOverTimeChartProps) {
   const isMobile = useIsMobile();
 
-  const [visibleCategories, setVisibleCategories] = useState<Record<string, boolean>>({
+  const [visibleCategories, setVisibleCategories] = useState<
+    Record<string, boolean>
+  >({
     auto: true,
     teleop: true,
     endgame: true,
@@ -167,7 +170,9 @@ export function PerformanceOverTimeChart({
     if (!matchEntries || matchEntries.length === 0) return [];
 
     // Sort by match number ascending
-    const sorted = [...matchEntries].sort((a, b) => a.matchNumber - b.matchNumber);
+    const sorted = [...matchEntries].sort(
+      (a, b) => a.matchNumber - b.matchNumber,
+    );
 
     return sorted.map((match) => {
       const epa = calculateEPA([match], year, yearConfig);
@@ -195,7 +200,10 @@ export function PerformanceOverTimeChart({
       </CardHeader>
       <CardContent>
         <div className={isMobile ? "overflow-x-auto -mx-6 px-6" : ""}>
-          <ChartContainer config={chartConfig} className={isMobile ? "min-w-[600px]" : ""}>
+          <ChartContainer
+            config={chartConfig}
+            className={isMobile ? "min-w-[600px]" : ""}
+          >
             <AreaChart
               accessibilityLayer
               data={chartData}
@@ -208,7 +216,12 @@ export function PerformanceOverTimeChart({
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
-                label={{ value: "Qual Match", position: "insideBottom", offset: -5, className: "fill-muted-foreground text-xs" }}
+                label={{
+                  value: "Qual Match",
+                  position: "insideBottom",
+                  offset: -5,
+                  className: "fill-muted-foreground text-xs",
+                }}
               />
               <YAxis tickLine={false} axisLine={false} />
               <ChartTooltip content={<CustomTooltipContent />} />
@@ -260,7 +273,10 @@ export function PerformanceOverTimeChart({
             </AreaChart>
           </ChartContainer>
         </div>
-        <CustomLegend visibleCategories={visibleCategories} onToggle={toggleCategory} />
+        <CustomLegend
+          visibleCategories={visibleCategories}
+          onToggle={toggleCategory}
+        />
       </CardContent>
     </Card>
   );

@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import { lazy, Suspense, useMemo, ComponentType } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useTeamData } from '@/hooks/use-team-data';
-import Link from 'next/link';
-import { ExternalLink } from 'lucide-react';
-import type { CompetitionType } from '@/lib/shared-types';
+import { lazy, Suspense, useMemo, ComponentType } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useTeamData } from "@/hooks/use-team-data";
+import Link from "next/link";
+import { ExternalLink } from "lucide-react";
+import type { CompetitionType } from "@/lib/types";
 
 // Props for year-specific matchup card components
 export interface MatchupCardProps {
   teamNumber: string;
-  alliance: 'red' | 'blue';
+  alliance: "red" | "blue";
 }
 
 interface MatchupAlliancePanelProps {
-  alliance: 'red' | 'blue';
+  alliance: "red" | "blue";
   teamNumbers: number[];
   currentYear: number;
   competitionType: CompetitionType;
@@ -29,18 +29,17 @@ export default function MatchupAlliancePanel({
   competitionType,
 }: MatchupAlliancePanelProps) {
   const allianceColor =
-    alliance === 'red'
-      ? 'border-red-500/40 bg-red-50/50 dark:bg-red-950/20'
-      : 'border-blue-500/40 bg-blue-50/50 dark:bg-blue-950/20';
+    alliance === "red"
+      ? "border-red-500/40 bg-red-50/50 dark:bg-red-950/20"
+      : "border-blue-500/40 bg-blue-50/50 dark:bg-blue-950/20";
 
-  const allianceLabel =
-    alliance === 'red' ? 'Red Alliance' : 'Blue Alliance';
+  const allianceLabel = alliance === "red" ? "Red Alliance" : "Blue Alliance";
 
   return (
     <div className={`rounded-lg border-2 p-4 space-y-4 ${allianceColor}`}>
       <div className="flex items-center gap-2">
         <div
-          className={`h-3 w-3 rounded-full ${alliance === 'red' ? 'bg-red-500' : 'bg-blue-500'}`}
+          className={`h-3 w-3 rounded-full ${alliance === "red" ? "bg-red-500" : "bg-blue-500"}`}
         />
         <h2 className="text-lg font-bold">{allianceLabel}</h2>
         <Badge variant="secondary">{teamNumbers.length} robots</Badge>
@@ -74,7 +73,7 @@ function MatchupTeamCard({
   competitionType,
 }: {
   teamNumber: number;
-  alliance: 'red' | 'blue';
+  alliance: "red" | "blue";
   currentYear: number;
   competitionType: CompetitionType;
 }) {
@@ -98,7 +97,7 @@ function MatchupTeamCard({
                 <GenericMatchupCard teamNumber={tn} alliance={alliance} />
               ),
             };
-          })
+          }),
       );
     } catch {
       return lazy<ComponentType<MatchupCardProps>>(() =>
@@ -106,7 +105,7 @@ function MatchupTeamCard({
           default: ({ teamNumber: tn }: MatchupCardProps) => (
             <GenericMatchupCard teamNumber={tn} alliance={alliance} />
           ),
-        })
+        }),
       );
     }
   }, [currentYear, competitionType, alliance]);
@@ -136,15 +135,20 @@ function MatchupTeamCard({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <Link href={`/dashboard/team/${teamNumber}`} className="hover:underline font-bold">
+            <Link
+              href={`/dashboard/team/${teamNumber}`}
+              className="hover:underline font-bold"
+            >
               Team {teamNumber}
             </Link>
-            <Badge variant="destructive" className="text-xs">No Data</Badge>
+            <Badge variant="destructive" className="text-xs">
+              No Data
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            {error || 'No scouting data available for this team.'}
+            {error || "No scouting data available for this team."}
           </p>
         </CardContent>
       </Card>
@@ -167,16 +171,26 @@ function MatchupTeamCard({
 }
 
 // Generic fallback card when no year-specific component exists
-function GenericMatchupCard({ teamNumber, alliance }: { teamNumber: string; alliance: 'red' | 'blue' }) {
+function GenericMatchupCard({
+  teamNumber,
+  alliance,
+}: {
+  teamNumber: string;
+  alliance: "red" | "blue";
+}) {
   const { teamData } = useTeamData(teamNumber);
 
-  const borderColor = alliance === 'red' ? 'border-l-red-500' : 'border-l-blue-500';
+  const borderColor =
+    alliance === "red" ? "border-l-red-500" : "border-l-blue-500";
 
   return (
     <Card className={`border-l-4 ${borderColor}`}>
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center justify-between">
-          <Link href={`/dashboard/team/${teamNumber}`} className="hover:underline font-bold">
+          <Link
+            href={`/dashboard/team/${teamNumber}`}
+            className="hover:underline font-bold"
+          >
             Team {teamNumber}
           </Link>
           <Link href={`/dashboard/team/${teamNumber}`}>
@@ -191,7 +205,9 @@ function GenericMatchupCard({ teamNumber, alliance }: { teamNumber: string; alli
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">{teamData.pitEntry.driveTrain}</Badge>
                 {teamData.pitEntry.weight && (
-                  <Badge variant="outline">{teamData.pitEntry.weight} lbs</Badge>
+                  <Badge variant="outline">
+                    {teamData.pitEntry.weight} lbs
+                  </Badge>
                 )}
               </div>
             )}
@@ -202,7 +218,9 @@ function GenericMatchupCard({ teamNumber, alliance }: { teamNumber: string; alli
             {teamData.epa && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">EPA</span>
-                <span className="font-medium">{teamData.epa.totalEPA.toFixed(1)}</span>
+                <span className="font-medium">
+                  {teamData.epa.totalEPA.toFixed(1)}
+                </span>
               </div>
             )}
           </div>

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { DatabaseManager } from '@/db/database-manager';
+import { NextResponse } from "next/server";
+import { DatabaseManager } from "@/db/database-manager";
 
 export async function GET() {
   const manager = DatabaseManager.getInstance();
@@ -7,13 +7,13 @@ export async function GET() {
 
   return NextResponse.json({
     currentProvider: config.provider,
-    providers: ['azuresql', 'firebase', 'cosmos', 'local'],
+    providers: ["azuresql", "firebase", "cosmos", "local"],
     config: {
       provider: config.provider,
       hasAzureSql: !!config.azuresql,
       hasFirebase: !!config.firebase,
       hasCosmos: !!config.cosmos,
-      hasLocal: !!config.local
-    }
+      hasLocal: !!config.local,
+    },
   });
 }

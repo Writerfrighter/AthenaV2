@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,22 +30,34 @@ export default function SettingsPage() {
 
       <Tabs defaultValue="database" className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4 h-auto p-1">
-          <TabsTrigger value="database" className="flex items-center gap-2 text-xs sm:text-sm">
+          <TabsTrigger
+            value="database"
+            className="flex items-center gap-2 text-xs sm:text-sm"
+          >
             <Database className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Database</span>
             <span className="sm:hidden">DB</span>
           </TabsTrigger>
-          <TabsTrigger value="team" className="flex items-center gap-2 text-xs sm:text-sm">
+          <TabsTrigger
+            value="team"
+            className="flex items-center gap-2 text-xs sm:text-sm"
+          >
             <Users className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Team</span>
             <span className="sm:hidden">Team</span>
           </TabsTrigger>
-          <TabsTrigger value="about" className="flex items-center gap-2 text-xs sm:text-sm">
+          <TabsTrigger
+            value="about"
+            className="flex items-center gap-2 text-xs sm:text-sm"
+          >
             <Info className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">About</span>
             <span className="sm:hidden">About</span>
           </TabsTrigger>
-          <TabsTrigger value="notification-examples" className="flex items-center gap-2 text-xs sm:text-sm">
+          <TabsTrigger
+            value="notification-examples"
+            className="flex items-center gap-2 text-xs sm:text-sm"
+          >
             <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Notification</span>
             <span className="sm:hidden">Notif</span>
@@ -55,7 +67,9 @@ export default function SettingsPage() {
         <TabsContent value="database" className="space-y-4">
           <DatabaseSyncComponent />
           <OfflinePrecache />
-          <PermissionGuard permissions={[PERMISSIONS.IMPORT_DATA, PERMISSIONS.EXPORT_DATA]}>
+          <PermissionGuard
+            permissions={[PERMISSIONS.IMPORT_DATA, PERMISSIONS.EXPORT_DATA]}
+          >
             <DataExportImportComponent />
           </PermissionGuard>
           <PermissionGuard permission={PERMISSIONS.REVALIDATE_CACHE}>
@@ -64,7 +78,6 @@ export default function SettingsPage() {
           <PermissionGuard permission={PERMISSIONS.RESET_DATABASE}>
             <DatabaseResetComponent />
           </PermissionGuard>
-         
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">
@@ -93,16 +106,21 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h4 className="font-medium">Supported Games</h4>
-                <p className="text-sm text-muted-foreground">FRC 2026 (REBUILT)</p>
-                <p className="text-sm text-muted-foreground">FRC 2025 (REEFSCAPE)</p>
-                <p className="text-sm text-muted-foreground">FTC 2026 (DECODE)</p>
-                
+                <p className="text-sm text-muted-foreground">
+                  FRC 2026 (REBUILT)
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  FRC 2025 (REEFSCAPE)
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  FTC 2026 (DECODE)
+                </p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
         <TabsContent value="notification-examples" className="space-y-4">
-          <NotificationSender/>
+          <NotificationSender />
         </TabsContent>
       </Tabs>
     </div>

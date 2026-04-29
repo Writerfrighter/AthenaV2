@@ -21,7 +21,9 @@ export async function getEventStatus(eventKey: EventKey): Promise<EventStatus> {
   return getFromNexus<EventStatus>(`event/${eventKey}`);
 }
 
-export async function getPitAddresses(eventKey: EventKey): Promise<PitAddresses> {
+export async function getPitAddresses(
+  eventKey: EventKey,
+): Promise<PitAddresses> {
   return getFromNexus<PitAddresses>(`event/${eventKey}/pits`);
 }
 

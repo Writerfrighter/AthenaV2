@@ -1,16 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useSelectedEvent } from './use-event-config';
-import { useGameConfig } from './use-game-config';
+import { useState, useEffect, useCallback } from "react";
+import { useSelectedEvent } from "./use-event-config";
+import { useGameConfig } from "./use-game-config";
 
 const usersCache = new Map<string, UserWithPartners[]>();
 const matchCountCache = new Map<string, number>();
 const assignmentsCache = new Map<string, MatchAssignmentRow[]>();
 
-const getAssignmentsCacheKey = (eventCode: string, year: number) => `${eventCode}-${year}`;
-const getMatchCountCacheKey = (eventCode: string, year: number, competitionType: string) =>
-  `${eventCode}-${year}-${competitionType}`;
+const getAssignmentsCacheKey = (eventCode: string, year: number) =>
+  `${eventCode}-${year}`;
+const getMatchCountCacheKey = (
+  eventCode: string,
+  year: number,
+  competitionType: string,
+) => `${eventCode}-${year}-${competitionType}`;
 
 type ScheduleBlock = {
   id: number;
@@ -40,7 +44,7 @@ interface UserWithPartners extends User {
 
 type MatchAssignmentRow = {
   matchNumber: number;
-  alliance: 'red' | 'blue';
+  alliance: "red" | "blue";
   position: number;
   userId: string;
 };
@@ -52,7 +56,9 @@ export function useScheduleData() {
   // Core state
   const [users, setUsers] = useState<UserWithPartners[]>([]);
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
-  const [matchAssignments, setMatchAssignments] = useState<MatchAssignmentRow[]>([]);
+  const [matchAssignments, setMatchAssignments] = useState<
+    MatchAssignmentRow[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -61,65 +67,89 @@ export function useScheduleData() {
   const [blockSize, setBlockSize] = useState<number>(5);
   const [matchCount, setMatchCount] = useState<number>(0);
   const [apiMatchCount, setApiMatchCount] = useState<number>(0);
-  const [isApiMatchCountAvailable, setIsApiMatchCountAvailable] = useState(false);
+  const [isApiMatchCountAvailable, setIsApiMatchCountAvailable] =
+    useState(false);
 
-  const buildComputedBlocks = useCallback((matchCountValue: number, blockSizeValue: number) => {
-    const scoutsPerAlliance = competitionType === 'FTC' ? 2 : 3;
-    return Array.from({ length: Math.ceil(matchCountValue / blockSizeValue) }, (_, i) => {
-      const startMatch = i * blockSizeValue + 1;
-      const endMatch = Math.min(startMatch + blockSizeValue - 1, matchCountValue);
-      return {
-        id: i + 1,
-        eventCode: selectedEvent?.code || '',
-        year: currentYear,
-        blockNumber: i + 1,
-        startMatch,
-        endMatch,
-        created_at: undefined,
-        updated_at: undefined,
-        redScouts: Array(scoutsPerAlliance).fill(null),
-        blueScouts: Array(scoutsPerAlliance).fill(null),
-      };
-    });
-  }, [competitionType, currentYear, selectedEvent?.code]);
+  const buildComputedBlocks = useCallback(
+    (matchCountValue: number, blockSizeValue: number) => {
+      const scoutsPerAlliance = competitionType === "FTC" ? 2 : 3;
+      return Array.from(
+        { length: Math.ceil(matchCountValue / blockSizeValue) },
+        (_, i) => {
+          const startMatch = i * blockSizeValue + 1;
+          const endMatch = Math.min(
+            startMatch + blockSizeValue - 1,
+            matchCountValue,
+          );
+          return {
+            id: i + 1,
+            eventCode: selectedEvent?.eventCode || "",
+            year: currentYear,
+            blockNumber: i + 1,
+            startMatch,
+            endMatch,
+            created_at: undefined,
+            updated_at: undefined,
+            redScouts: Array(scoutsPerAlliance).fill(null),
+            blueScouts: Array(scoutsPerAlliance).fill(null),
+          };
+        },
+      );
+    },
+    [competitionType, currentYear, selectedEvent?.eventCode],
+  );
 
-  const hydrateBlocksFromRows = useCallback((computedBlocks: ScheduleBlock[], rows: MatchAssignmentRow[]) => {
-    const byMatch = new Map<number, Map<'red' | 'blue', Map<number, string>>>();
-    for (const r of rows) {
-      let byAlliance = byMatch.get(r.matchNumber);
-      if (!byAlliance) {
-        byAlliance = new Map();
-        byMatch.set(r.matchNumber, byAlliance);
-      }
-      let byPos = byAlliance.get(r.alliance);
-      if (!byPos) {
-        byPos = new Map();
-        byAlliance.set(r.alliance, byPos);
-      }
-      byPos.set(r.position, r.userId);
-    }
-
-    return computedBlocks.map(block => {
-      const getConsistent = (alliance: 'red' | 'blue', position: number): string | null => {
-        let value: string | null = null;
-        for (let matchNumber = block.startMatch; matchNumber <= block.endMatch; matchNumber++) {
-          const v = byMatch.get(matchNumber)?.get(alliance)?.get(position) ?? null;
-          if (matchNumber === block.startMatch) value = v;
-          else if (value !== v) return null;
+  const hydrateBlocksFromRows = useCallback(
+    (computedBlocks: ScheduleBlock[], rows: MatchAssignmentRow[]) => {
+      const byMatch = new Map<
+        number,
+        Map<"red" | "blue", Map<number, string>>
+      >();
+      for (const r of rows) {
+        let byAlliance = byMatch.get(r.matchNumber);
+        if (!byAlliance) {
+          byAlliance = new Map();
+          byMatch.set(r.matchNumber, byAlliance);
         }
-        return value;
-      };
-
-      const redScouts = [...block.redScouts];
-      const blueScouts = [...block.blueScouts];
-      for (let pos = 0; pos < redScouts.length; pos++) {
-        redScouts[pos] = getConsistent('red', pos);
-        blueScouts[pos] = getConsistent('blue', pos);
+        let byPos = byAlliance.get(r.alliance);
+        if (!byPos) {
+          byPos = new Map();
+          byAlliance.set(r.alliance, byPos);
+        }
+        byPos.set(r.position, r.userId);
       }
 
-      return { ...block, redScouts, blueScouts };
-    });
-  }, []);
+      return computedBlocks.map((block) => {
+        const getConsistent = (
+          alliance: "red" | "blue",
+          position: number,
+        ): string | null => {
+          let value: string | null = null;
+          for (
+            let matchNumber = block.startMatch;
+            matchNumber <= block.endMatch;
+            matchNumber++
+          ) {
+            const v =
+              byMatch.get(matchNumber)?.get(alliance)?.get(position) ?? null;
+            if (matchNumber === block.startMatch) value = v;
+            else if (value !== v) return null;
+          }
+          return value;
+        };
+
+        const redScouts = [...block.redScouts];
+        const blueScouts = [...block.blueScouts];
+        for (let pos = 0; pos < redScouts.length; pos++) {
+          redScouts[pos] = getConsistent("red", pos);
+          blueScouts[pos] = getConsistent("blue", pos);
+        }
+
+        return { ...block, redScouts, blueScouts };
+      });
+    },
+    [],
+  );
 
   // Reset event-specific state when event changes
   useEffect(() => {
@@ -128,21 +158,21 @@ export function useScheduleData() {
     setMatchCount(0);
     setApiMatchCount(0);
     setIsApiMatchCountAvailable(false);
-  }, [selectedEvent?.code, currentYear]);
+  }, [selectedEvent?.eventCode, currentYear]);
 
   // Fetch users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const cachedUsers = usersCache.get('users');
+        const cachedUsers = usersCache.get("users");
         if (cachedUsers) {
           setUsers(cachedUsers);
           return;
         }
 
-        const usersResponse = await fetch('/api/users');
+        const usersResponse = await fetch("/api/users");
         if (!usersResponse.ok) {
-          throw new Error('Failed to fetch users');
+          throw new Error("Failed to fetch users");
         }
         const usersData = await usersResponse.json();
 
@@ -150,12 +180,12 @@ export function useScheduleData() {
           (user: User & { preferredPartners?: string[] }) => ({
             ...user,
             preferredPartners: user.preferredPartners || [],
-          })
+          }),
         );
-        usersCache.set('users', usersWithPartners);
+        usersCache.set("users", usersWithPartners);
         setUsers(usersWithPartners);
       } catch (err) {
-        console.error('Error fetching users:', err);
+        console.error("Error fetching users:", err);
       }
     };
 
@@ -172,43 +202,52 @@ export function useScheduleData() {
       }
 
       try {
-        const cacheKey = getMatchCountCacheKey(selectedEvent.code, currentYear, competitionType);
+        const cacheKey = getMatchCountCacheKey(
+          selectedEvent.eventCode,
+          currentYear,
+          competitionType,
+        );
         const cachedCount = matchCountCache.get(cacheKey);
         if (cachedCount && cachedCount > 0) {
           setApiMatchCount(cachedCount);
           setIsApiMatchCountAvailable(true);
-          setMatchCount(prev => (prev === 0 ? cachedCount : prev));
+          setMatchCount((prev) => (prev === 0 ? cachedCount : prev));
           return;
         }
 
         const matchesResponse = await fetch(
-          `/api/event/matches?eventCode=${selectedEvent.code}&competitionType=${competitionType}&season=${currentYear}`
+          `/api/event/matches?eventCode=${selectedEvent.eventCode}&competitionType=${competitionType}&season=${currentYear}`,
         );
 
         if (matchesResponse.ok) {
           const matchesData = await matchesResponse.json();
-          const count = matchesData.qualMatchesCount || matchesData.totalMatches || 0;
+          const count =
+            matchesData.qualMatchesCount || matchesData.totalMatches || 0;
           matchCountCache.set(cacheKey, count);
           setApiMatchCount(count);
           setIsApiMatchCountAvailable(count > 0);
 
           // Auto-set match count if not already set and API has data
-          if (count > 0) setMatchCount(prev => (prev === 0 ? count : prev));
+          if (count > 0) setMatchCount((prev) => (prev === 0 ? count : prev));
         } else {
           // Try custom events fallback
-          const customResponse = await fetch(`/api/database/custom-events?year=${currentYear}`);
+          const customResponse = await fetch(
+            `/api/database/custom-events?year=${currentYear}`,
+          );
           if (customResponse.ok) {
             const customEvents = await customResponse.json();
-            const customEvent = customEvents.find((e: { eventCode: string }) => e.eventCode === selectedEvent.code);
+            const customEvent = customEvents.find(
+              (e: { eventCode: string }) => e.eventCode === selectedEvent.eventCode,
+            );
             const count = customEvent?.matchCount || 0;
             matchCountCache.set(cacheKey, count);
             setApiMatchCount(count);
             setIsApiMatchCountAvailable(count > 0);
-            if (count > 0) setMatchCount(prev => (prev === 0 ? count : prev));
+            if (count > 0) setMatchCount((prev) => (prev === 0 ? count : prev));
           }
         }
       } catch (error) {
-        console.error('Error fetching match count:', error);
+        console.error("Error fetching match count:", error);
         setIsApiMatchCountAvailable(false);
       }
     };
@@ -231,7 +270,10 @@ export function useScheduleData() {
         setError(null);
 
         const computedBlocks = buildComputedBlocks(matchCount, blockSize);
-        const assignmentCacheKey = getAssignmentsCacheKey(selectedEvent.code, currentYear);
+        const assignmentCacheKey = getAssignmentsCacheKey(
+          selectedEvent.eventCode,
+          currentYear,
+        );
         const cachedRows = assignmentsCache.get(assignmentCacheKey);
 
         if (cachedRows) {
@@ -243,7 +285,7 @@ export function useScheduleData() {
         // Hydrate from matchAssignments by collapsing match-level assignments to shift-level,
         // only when consistent across the whole shift range.
         const res = await fetch(
-          `/api/database/match-assignments?eventCode=${selectedEvent.code}&year=${currentYear}`
+          `/api/database/match-assignments?eventCode=${selectedEvent.eventCode}&year=${currentYear}`,
         );
 
         if (!res.ok) {
@@ -258,8 +300,8 @@ export function useScheduleData() {
 
         setBlocks(hydrateBlocksFromRows(computedBlocks, rows));
       } catch (err) {
-        console.error('Error hydrating schedule:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load data');
+        console.error("Error hydrating schedule:", err);
+        setError(err instanceof Error ? err.message : "Failed to load data");
         setBlocks([]);
         setMatchAssignments([]);
       } finally {
@@ -268,13 +310,22 @@ export function useScheduleData() {
     };
 
     hydrateBlocks();
-  }, [selectedEvent, currentYear, competitionType, matchCount, blockSize, refreshTrigger, buildComputedBlocks, hydrateBlocksFromRows]);
+  }, [
+    selectedEvent,
+    currentYear,
+    competitionType,
+    matchCount,
+    blockSize,
+    refreshTrigger,
+    buildComputedBlocks,
+    hydrateBlocksFromRows,
+  ]);
 
   // Generate blocks based on match count and block size
   // Blocks are virtual now; this just triggers a refresh.
   const generateBlocks = useCallback(async () => {
     if (!selectedEvent || matchCount <= 0 || blockSize <= 0) return;
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   }, [selectedEvent, matchCount, blockSize]);
 
   // Sync match count from API
@@ -283,12 +334,13 @@ export function useScheduleData() {
 
     try {
       const matchesResponse = await fetch(
-        `/api/event/matches?eventCode=${selectedEvent.code}&competitionType=${competitionType}&season=${currentYear}`
+        `/api/event/matches?eventCode=${selectedEvent.eventCode}&competitionType=${competitionType}&season=${currentYear}`,
       );
 
       if (matchesResponse.ok) {
         const matchesData = await matchesResponse.json();
-        const count = matchesData.qualMatchesCount || matchesData.totalMatches || 0;
+        const count =
+          matchesData.qualMatchesCount || matchesData.totalMatches || 0;
         if (count > 0) {
           setApiMatchCount(count);
           setIsApiMatchCountAvailable(true);
@@ -298,7 +350,7 @@ export function useScheduleData() {
       }
       return { success: false, count: 0 };
     } catch (error) {
-      console.error('Error syncing match count from API:', error);
+      console.error("Error syncing match count from API:", error);
       return { success: false, count: 0 };
     }
   }, [selectedEvent, competitionType, currentYear]);
@@ -310,17 +362,22 @@ export function useScheduleData() {
 
   // Assign scout to a virtual block position (range write)
   const assignScout = useCallback(
-    async (blockId: number, userId: string | null, alliance: 'red' | 'blue', position: number) => {
+    async (
+      blockId: number,
+      userId: string | null,
+      alliance: "red" | "blue",
+      position: number,
+    ) => {
       if (!selectedEvent) return;
 
-      const block = blocks.find(b => b.id === blockId);
+      const block = blocks.find((b) => b.id === blockId);
       if (!block) return;
 
-      const response = await fetch('/api/schedule/assignments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/schedule/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventCode: selectedEvent.code,
+          eventCode: selectedEvent.eventCode,
           year: currentYear,
           startMatch: block.startMatch,
           endMatch: block.endMatch,
@@ -331,22 +388,27 @@ export function useScheduleData() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save assignment');
+        throw new Error("Failed to save assignment");
       }
     },
-    [selectedEvent, currentYear, blocks]
+    [selectedEvent, currentYear, blocks],
   );
 
   // Assign scout to a single match/slot
   const assignMatchScout = useCallback(
-    async (matchNumber: number, userId: string | null, alliance: 'red' | 'blue', position: number) => {
+    async (
+      matchNumber: number,
+      userId: string | null,
+      alliance: "red" | "blue",
+      position: number,
+    ) => {
       if (!selectedEvent) return;
 
-      const response = await fetch('/api/schedule/assignments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/schedule/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventCode: selectedEvent.code,
+          eventCode: selectedEvent.eventCode,
           year: currentYear,
           startMatch: matchNumber,
           endMatch: matchNumber,
@@ -357,10 +419,10 @@ export function useScheduleData() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save assignment');
+        throw new Error("Failed to save assignment");
       }
     },
-    [selectedEvent, currentYear]
+    [selectedEvent, currentYear],
   );
 
   // Assign scout to a match range/slot in a single request
@@ -369,16 +431,16 @@ export function useScheduleData() {
       startMatch: number,
       endMatch: number,
       userId: string | null,
-      alliance: 'red' | 'blue',
-      position: number
+      alliance: "red" | "blue",
+      position: number,
     ) => {
       if (!selectedEvent) return;
 
-      const response = await fetch('/api/schedule/assignments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/schedule/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventCode: selectedEvent.code,
+          eventCode: selectedEvent.eventCode,
           year: currentYear,
           startMatch,
           endMatch,
@@ -389,25 +451,28 @@ export function useScheduleData() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save assignment range');
+        throw new Error("Failed to save assignment range");
       }
     },
-    [selectedEvent, currentYear]
+    [selectedEvent, currentYear],
   );
 
   // Clear all assignments for the event
   const clearAllAssignments = useCallback(async () => {
     if (!selectedEvent) return;
 
-    const response = await fetch(`/api/schedule/assignments?eventCode=${selectedEvent.code}&year=${currentYear}`, {
-      method: 'DELETE',
-    });
+    const response = await fetch(
+      `/api/schedule/assignments?eventCode=${selectedEvent.eventCode}&year=${currentYear}`,
+      {
+        method: "DELETE",
+      },
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to clear assignments');
+      throw new Error("Failed to clear assignments");
     }
 
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   }, [selectedEvent, currentYear]);
 
   // Delete all blocks (virtual) => clear all schedule data
@@ -418,16 +483,16 @@ export function useScheduleData() {
 
   // Add/delete single block are no longer supported; keep them as helpers that refresh.
   const addBlock = useCallback(async () => {
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   }, []);
 
   const deleteBlock = useCallback(async () => {
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   }, []);
 
   // Refresh data manually
   const refreshData = useCallback(() => {
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   }, []);
 
   return {

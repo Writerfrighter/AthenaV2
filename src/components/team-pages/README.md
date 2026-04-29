@@ -7,11 +7,13 @@ This directory contains year and competition-specific team analysis pages that a
 Team page components must follow this strict naming convention:
 
 ### File naming:
+
 ```
 {competitionType}-team-{year}-page.tsx
 ```
 
 ### Export naming:
+
 ```typescript
 export function {CompetitionType}Team{Year}Page({ teamNumber }: TeamPageProps) {
   // Component implementation
@@ -21,14 +23,17 @@ export function {CompetitionType}Team{Year}Page({ teamNumber }: TeamPageProps) {
 ## Examples
 
 ### FRC 2025 Page
+
 - **File**: `frc-team-2025-page.tsx`
 - **Export**: `export function FRCTeam2025Page({ teamNumber }: Team2025PageProps)`
 
 ### FTC 2025 Page (when implemented)
+
 - **File**: `ftc-team-2025-page.tsx`
 - **Export**: `export function FTCTeam2025Page({ teamNumber }: TeamPageProps)`
 
 ### FRC 2026 Page (when implemented)
+
 - **File**: `frc-team-2026-page.tsx`
 - **Export**: `export function FRCTeam2026Page({ teamNumber }: TeamPageProps)`
 
@@ -45,6 +50,7 @@ interface TeamPageProps {
 ## How It Works
 
 The `team-page-client.tsx` file automatically:
+
 1. Reads the current `competitionType` and `currentYear` from game config
 2. Constructs the component filename: `{competitionType.toLowerCase()}-team-{currentYear}-page`
 3. Dynamically imports the matching component

@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AnalysisMetricDefinition } from "@/lib/shared-types";
+import { AnalysisMetricDefinition } from "@/lib/types";
 
 interface AnalysisTableRow {
   team: string;
@@ -81,7 +81,9 @@ export const columns: ColumnDef<AnalysisTableRow>[] = [
       return a === b ? 0 : a > b ? 1 : -1;
     },
     cell: ({ row }) => (
-      <div className="text-center">{row.getValue("selectedMetric") as string}</div>
+      <div className="text-center">
+        {row.getValue("selectedMetric") as string}
+      </div>
     ),
   },
   {
@@ -159,9 +161,7 @@ export const columns: ColumnDef<AnalysisTableRow>[] = [
       </div>
     ),
     cell: ({ row }) => (
-      <div className="text-right">
-        {row.getValue("totalEPA")}
-      </div>
+      <div className="text-right">{row.getValue("totalEPA")}</div>
     ),
   },
 ];
@@ -173,10 +173,11 @@ export function EPATable({
   data?: AnalysisTableRow[];
   metrics?: AnalysisMetricDefinition[];
 }) {
-  const [selectedMetricKey, setSelectedMetricKey] = React.useState<string>("__none");
+  const [selectedMetricKey, setSelectedMetricKey] =
+    React.useState<string>("__none");
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    [],
   );
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -184,7 +185,9 @@ export function EPATable({
 
   const tableData = data || [];
   const availableMetrics = metrics || [];
-  const selectedMetric = availableMetrics.find((metric) => metric.key === selectedMetricKey);
+  const selectedMetric = availableMetrics.find(
+    (metric) => metric.key === selectedMetricKey,
+  );
 
   const selectedMetricType = selectedMetric?.valueType;
 
@@ -192,12 +195,14 @@ export function EPATable({
     if (!tableData.length) return tableData;
 
     return tableData.map((row) => {
-      const rawValue = selectedMetricKey === "__none"
-        ? row.totalEPA
-        : (row.detailMetrics?.[selectedMetricKey] ?? 0);
-      const displayValue = selectedMetricType === "rate"
-        ? `${formatToTenths(rawValue)}%`
-        : formatToTenths(rawValue);
+      const rawValue =
+        selectedMetricKey === "__none"
+          ? row.totalEPA
+          : (row.detailMetrics?.[selectedMetricKey] ?? 0);
+      const displayValue =
+        selectedMetricType === "rate"
+          ? `${formatToTenths(rawValue)}%`
+          : formatToTenths(rawValue);
 
       return {
         ...row,
@@ -262,7 +267,7 @@ export function EPATable({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
-                <Filter/> Column Filters <ChevronDown />
+                <Filter /> Column Filters <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -296,7 +301,7 @@ export function EPATable({
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                   </TableHead>
                 ))}
@@ -313,27 +318,40 @@ export function EPATable({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                        {cell.column.id === "auto" && (
-                          <div className="text-right">{formatToTenths(cell.getValue() as number)}</div>
+                      {cell.column.id === "auto" && (
+                        <div className="text-right">
+                          {formatToTenths(cell.getValue() as number)}
+                        </div>
+                      )}
+                      {cell.column.id === "teleop" && (
+                        <div className="text-right">
+                          {formatToTenths(cell.getValue() as number)}
+                        </div>
+                      )}
+                      {cell.column.id === "endgame" && (
+                        <div className="text-right">
+                          {formatToTenths(cell.getValue() as number)}
+                        </div>
+                      )}
+                      {cell.column.id === "penalties" && (
+                        <div className="text-right">
+                          {formatToTenths(cell.getValue() as number)}
+                        </div>
+                      )}
+                      {cell.column.id === "totalEPA" && (
+                        <div className="text-right">
+                          {formatToTenths(cell.getValue() as number)}
+                        </div>
+                      )}
+                      {cell.column.id !== "auto" &&
+                        cell.column.id !== "teleop" &&
+                        cell.column.id !== "endgame" &&
+                        cell.column.id !== "penalties" &&
+                        cell.column.id !== "totalEPA" &&
+                        flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
                         )}
-                        {cell.column.id === "teleop" && (
-                          <div className="text-right">{formatToTenths(cell.getValue() as number)}</div>
-                        )}
-                        {cell.column.id === "endgame" && (
-                          <div className="text-right">{formatToTenths(cell.getValue() as number)}</div>
-                        )}
-                        {cell.column.id === "penalties" && (
-                          <div className="text-right">{formatToTenths(cell.getValue() as number)}</div>
-                        )}
-                        {cell.column.id === "totalEPA" && (
-                          <div className="text-right">{formatToTenths(cell.getValue() as number)}</div>
-                        )}
-                        {cell.column.id !== "auto" &&
-                          cell.column.id !== "teleop" &&
-                          cell.column.id !== "endgame" &&
-                          cell.column.id !== "penalties" &&
-                          cell.column.id !== "totalEPA" &&
-                          flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>

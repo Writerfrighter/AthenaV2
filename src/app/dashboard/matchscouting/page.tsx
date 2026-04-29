@@ -1,12 +1,27 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, AlertCircle, Database, Trophy, Download, ChevronDown, WifiOff, Users } from "lucide-react";
+import {
+  Plus,
+  AlertCircle,
+  Database,
+  Trophy,
+  Download,
+  ChevronDown,
+  WifiOff,
+  Users,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +31,7 @@ import {
 import { toast } from "sonner";
 import { MatchScoutingTable } from "@/components/tables/match-scouting-table";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import { MatchEntry } from "@/lib/shared-types";
+import { MatchEntry } from "@/lib/types";
 import { useGameConfig } from "@/hooks/use-game-config";
 import { useEventConfig } from "@/hooks/use-event-config";
 import { indexedDBService } from "@/lib/indexeddb-service";
@@ -35,25 +50,25 @@ export default function MatchScoutingPage() {
   const { selectedEvent } = useEventConfig();
 
   // Handle export
-  const handleExport = async (format: 'json' | 'csv' | 'xlsx' = 'csv') => {
+  const handleExport = async (format: "json" | "csv" | "xlsx" = "csv") => {
     try {
       const params = new URLSearchParams();
-      params.append('year', currentYear.toString());
-      params.append('format', format);
-      params.append('types', 'match'); // Only export match data
-      if (selectedEvent?.code) {
-        params.append('eventCode', selectedEvent.code);
+      params.append("year", currentYear.toString());
+      params.append("format", format);
+      params.append("types", "match"); // Only export match data
+      if (selectedEvent?.eventCode) {
+        params.append("eventCode", selectedEvent.eventCode);
       }
-      params.append('competitionType', competitionType);
-      
+      params.append("competitionType", competitionType);
+
       const response = await fetch(`/api/database/export?${params.toString()}`);
       if (!response.ok) {
-        throw new Error('Failed to export data');
+        throw new Error("Failed to export data");
       }
 
       // Get filename from response headers or create default
-      const contentDisposition = response.headers.get('content-disposition');
-      let filename = `match-scouting-${currentYear}${selectedEvent ? `-${selectedEvent.code}` : ''}.${format}`;
+      const contentDisposition = response.headers.get("content-disposition");
+      let filename = `match-scouting-${currentYear}${selectedEvent ? `-${selectedEvent.eventCode}` : ""}.${format}`;
 
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="(.+)"/);
@@ -65,10 +80,10 @@ export default function MatchScoutingPage() {
       // Download the file
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = filename;
-      link.style.visibility = 'hidden';
+      link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -76,8 +91,8 @@ export default function MatchScoutingPage() {
 
       toast.success(`Data exported successfully as ${format.toUpperCase()}`);
     } catch (err) {
-      console.error('Error exporting data:', err);
-      toast.error('Failed to export data');
+      console.error("Error exporting data:", err);
+      toast.error("Failed to export data");
     }
   };
 
@@ -88,8 +103,9 @@ export default function MatchScoutingPage() {
       setError(null);
       setIsOfflineData(false);
 
-      const eventCode = selectedEvent?.code;
-      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      const eventCode = selectedEvent?.eventCode;
+      const isOnline =
+        typeof navigator !== "undefined" ? navigator.onLine : true;
 
       // If offline, go straight to IndexedDB
       if (!isOnline && eventCode) {
@@ -99,42 +115,47 @@ export default function MatchScoutingPage() {
           setIsOfflineData(true);
           return;
         }
-        setError('Offline — no cached match scouting data available. Use the pre-cache feature in Settings while online.');
+        setError(
+          "Offline — no cached match scouting data available. Use the pre-cache feature in Settings while online.",
+        );
         return;
       }
 
       const params = new URLSearchParams();
-      if (eventCode) params.append('eventCode', eventCode);
-      params.append('competitionType', competitionType);
-      
+      if (eventCode) params.append("eventCode", eventCode);
+      params.append("competitionType", competitionType);
+
       const url = `/api/database/match?${params.toString()}`;
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`Failed to fetch match entries: ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch match entries: ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
       setMatchEntries(data);
     } catch (err) {
-      console.error('Error fetching match entries:', err);
+      console.error("Error fetching match entries:", err);
 
       // Fallback to IndexedDB cache on network error
-      const eventCode = selectedEvent?.code;
+      const eventCode = selectedEvent?.eventCode;
       if (eventCode) {
         try {
-          const cached = await indexedDBService.getCachedMatchEntries(eventCode);
+          const cached =
+            await indexedDBService.getCachedMatchEntries(eventCode);
           if (cached && cached.entries.length > 0) {
             setMatchEntries(cached.entries);
             setIsOfflineData(true);
-            toast.info('Showing cached match scouting data (offline)');
+            toast.info("Showing cached match scouting data (offline)");
             return;
           }
         } catch (cacheErr) {
-          console.warn('Failed to read cached match entries:', cacheErr);
+          console.warn("Failed to read cached match entries:", cacheErr);
         }
       }
 
-      setError('Failed to load match scouting data');
+      setError("Failed to load match scouting data");
     } finally {
       setLoading(false);
     }
@@ -173,7 +194,7 @@ export default function MatchScoutingPage() {
       let failedCount = 0;
       for (const id of idsToDelete) {
         const response = await fetch(`/api/database/match?id=${id}`, {
-          method: 'DELETE',
+          method: "DELETE",
         });
         if (!response.ok) {
           failedCount++;
@@ -182,21 +203,25 @@ export default function MatchScoutingPage() {
 
       // Refresh data
       await fetchMatchEntries();
-      
+
       if (failedCount > 0) {
-        toast.warning(`Deleted ${idsToDelete.length - failedCount} of ${idsToDelete.length} entries. ${failedCount} failed.`);
+        toast.warning(
+          `Deleted ${idsToDelete.length - failedCount} of ${idsToDelete.length} entries. ${failedCount} failed.`,
+        );
       } else if (idsToDelete.length === 1) {
-        toast.success('Match entry deleted successfully');
+        toast.success("Match entry deleted successfully");
       } else {
-        toast.success(`${idsToDelete.length} match entries deleted successfully`);
+        toast.success(
+          `${idsToDelete.length} match entries deleted successfully`,
+        );
       }
-      
+
       setDeleteDialogOpen(false);
       setEntryToDelete(null);
       setEntriesToDelete([]);
     } catch (err) {
-      console.error('Error deleting match entries:', err);
-      toast.error('Failed to delete match entries');
+      console.error("Error deleting match entries:", err);
+      toast.error("Failed to delete match entries");
     } finally {
       setDeleteLoading(false);
     }
@@ -206,9 +231,7 @@ export default function MatchScoutingPage() {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          {error}
-        </AlertDescription>
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
@@ -219,7 +242,9 @@ export default function MatchScoutingPage() {
       <div className="grid grid-rows-2 md:grid-cols-2 gap-2 md:-mb-10">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Match Scouting</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Match Scouting
+            </h1>
             <p className="text-muted-foreground">
               View and manage match scouting data for teams
             </p>
@@ -241,18 +266,18 @@ export default function MatchScoutingPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport('csv')}>
+              <DropdownMenuItem onClick={() => handleExport("csv")}>
                 Export as CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('json')}>
+              <DropdownMenuItem onClick={() => handleExport("json")}>
                 Export as JSON
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+              <DropdownMenuItem onClick={() => handleExport("xlsx")}>
                 Export as Excel
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button onClick={() => window.open('/scout/matchscout', '_blank')}>
+          <Button onClick={() => window.open("/scout/matchscout", "_blank")}>
             <Plus className="mr-2 h-4 w-4" />
             Add New Entry
           </Button>
@@ -281,26 +306,24 @@ export default function MatchScoutingPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Set(matchEntries.map(entry => entry.teamNumber)).size}
+              {new Set(matchEntries.map((entry) => entry.teamNumber)).size}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Teams scouted
-            </p>
+            <p className="text-xs text-muted-foreground">Teams scouted</p>
           </CardContent>
         </Card>
 
         <Card className="gap-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Matches Played</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Matches Played
+            </CardTitle>
             <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Set(matchEntries.map(entry => entry.matchNumber)).size}
+              {new Set(matchEntries.map((entry) => entry.matchNumber)).size}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Unique matches
-            </p>
+            <p className="text-xs text-muted-foreground">Unique matches</p>
           </CardContent>
         </Card>
       </div>
@@ -310,7 +333,8 @@ export default function MatchScoutingPage() {
         <CardHeader>
           <CardTitle>Match Scouting Data</CardTitle>
           <CardDescription>
-            View and manage all match scouting entries. Click the actions menu to edit or delete entries.
+            View and manage all match scouting entries. Click the actions menu
+            to edit or delete entries.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -336,10 +360,15 @@ export default function MatchScoutingPage() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onConfirm={confirmDelete}
-        title={entriesToDelete.length > 1 ? `Delete ${entriesToDelete.length} Match Entries` : "Delete Match Entry"}
-        description={entriesToDelete.length > 1 
-          ? `Are you sure you want to delete ${entriesToDelete.length} match scouting entries? This action cannot be undone.`
-          : "Are you sure you want to delete this match scouting entry? This action cannot be undone."
+        title={
+          entriesToDelete.length > 1
+            ? `Delete ${entriesToDelete.length} Match Entries`
+            : "Delete Match Entry"
+        }
+        description={
+          entriesToDelete.length > 1
+            ? `Are you sure you want to delete ${entriesToDelete.length} match scouting entries? This action cannot be undone.`
+            : "Are you sure you want to delete this match scouting entry? This action cannot be undone."
         }
         loading={deleteLoading}
       />

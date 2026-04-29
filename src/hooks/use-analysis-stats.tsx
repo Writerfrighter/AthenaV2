@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSelectedEvent } from './use-event-config';
-import { useGameConfig } from './use-game-config';
-import { statsApi } from '@/lib/api/database-client';
-import { indexedDBService } from '@/lib/indexeddb-service';
-import { AnalysisMetricDefinition } from '@/lib/shared-types';
+import { useState, useEffect } from "react";
+import { useSelectedEvent } from "./use-event-config";
+import { useGameConfig } from "./use-game-config";
+import { statsApi } from "@/lib/api/database-client";
+import { indexedDBService } from "@/lib/indexeddb-service";
+import { AnalysisMetricDefinition } from "@/lib/types";
 
 export interface AnalysisStats {
   teamsAnalyzed: number;
@@ -25,18 +25,33 @@ export interface AnalysisStats {
   }>;
 }
 
-function transformToStats(apiStats: import('@/lib/shared-types').AnalysisData): AnalysisStats {
+function transformToStats(
+  apiStats: import("@/lib/types").AnalysisData,
+): AnalysisStats {
   return {
     teamsAnalyzed: apiStats.totalTeams,
-    highestEPA: apiStats.teamEPAData.length > 0 
-      ? parseFloat(Math.max(...apiStats.teamEPAData.map(team => team.totalEPA)).toFixed(3))
-      : 0,
-    averageEPA: apiStats.teamEPAData.length > 0
-      ? parseFloat((apiStats.teamEPAData.reduce((sum, team) => sum + team.totalEPA, 0) / apiStats.teamEPAData.length).toFixed(3))
-      : 0,
+    highestEPA:
+      apiStats.teamEPAData.length > 0
+        ? parseFloat(
+            Math.max(
+              ...apiStats.teamEPAData.map((team) => team.totalEPA),
+            ).toFixed(3),
+          )
+        : 0,
+    averageEPA:
+      apiStats.teamEPAData.length > 0
+        ? parseFloat(
+            (
+              apiStats.teamEPAData.reduce(
+                (sum, team) => sum + team.totalEPA,
+                0,
+              ) / apiStats.teamEPAData.length
+            ).toFixed(3),
+          )
+        : 0,
     dataPoints: apiStats.totalMatches,
     availableMetrics: apiStats.availableMetrics || [],
-    teamEPAData: apiStats.teamEPAData.map(team => ({
+    teamEPAData: apiStats.teamEPAData.map((team) => ({
       team: team.teamNumber.toString(),
       matchesPlayed: team.matchesPlayed,
       auto: parseFloat((team.autoEPA || 0).toFixed(3)),
@@ -44,14 +59,15 @@ function transformToStats(apiStats: import('@/lib/shared-types').AnalysisData): 
       endgame: parseFloat((team.endgameEPA || 0).toFixed(3)),
       penalties: parseFloat((team.penaltiesEPA || 0).toFixed(3)),
       totalEPA: parseFloat(team.totalEPA.toFixed(3)),
-      detailMetrics: team.detailMetrics || {}
-    }))
+      detailMetrics: team.detailMetrics || {},
+    })),
   };
 }
 
 export function useAnalysisStats() {
   const selectedEvent = useSelectedEvent();
-  const { currentYear, getCurrentYearConfig, competitionType } = useGameConfig();
+  const { currentYear, getCurrentYearConfig, competitionType } =
+    useGameConfig();
   const gameConfig = getCurrentYearConfig();
   const [stats, setStats] = useState<AnalysisStats>({
     teamsAnalyzed: 0,
@@ -59,7 +75,7 @@ export function useAnalysisStats() {
     averageEPA: 0,
     dataPoints: 0,
     availableMetrics: [],
-    teamEPAData: []
+    teamEPAData: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,41 +93,52 @@ export function useAnalysisStats() {
         setError(null);
         setIsOfflineData(false);
 
-        const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+        const isOnline =
+          typeof navigator !== "undefined" ? navigator.onLine : true;
 
         // If offline, go straight to IndexedDB
         if (!isOnline) {
-          const cached = await indexedDBService.getCachedAnalysisData(selectedEvent.code);
+          const cached = await indexedDBService.getCachedAnalysisData(
+            selectedEvent.eventCode,
+          );
           if (cached) {
             setStats(transformToStats(cached.data));
             setIsOfflineData(true);
             return;
           }
-          setError('Offline — no cached analysis data available. Use the pre-cache feature in Settings while online.');
+          setError(
+            "Offline — no cached analysis data available. Use the pre-cache feature in Settings while online.",
+          );
           return;
         }
 
         // Fetch analysis data from API
-        const apiStats = await statsApi.getAnalysisData(currentYear, selectedEvent.code, competitionType);
+        const apiStats = await statsApi.getAnalysisData(
+          currentYear,
+          selectedEvent.eventCode,
+          competitionType,
+        );
         setStats(transformToStats(apiStats));
       } catch (err) {
-        console.error('Error fetching analysis stats:', err);
+        console.error("Error fetching analysis stats:", err);
 
         // Fallback to IndexedDB cache on network error
-        if (selectedEvent?.code) {
+        if (selectedEvent?.eventCode) {
           try {
-            const cached = await indexedDBService.getCachedAnalysisData(selectedEvent.code);
+            const cached = await indexedDBService.getCachedAnalysisData(
+              selectedEvent.eventCode,
+            );
             if (cached) {
               setStats(transformToStats(cached.data));
               setIsOfflineData(true);
               return;
             }
           } catch (cacheErr) {
-            console.warn('Failed to read cached analysis data:', cacheErr);
+            console.warn("Failed to read cached analysis data:", cacheErr);
           }
         }
 
-        setError('Failed to load analysis statistics');
+        setError("Failed to load analysis statistics");
       } finally {
         setLoading(false);
       }

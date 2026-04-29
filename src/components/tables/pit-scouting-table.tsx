@@ -32,7 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PitEntry } from "@/lib/shared-types";
+import { PitEntry } from "@/lib/types";
 
 interface PitScoutingTableProps {
   data: PitEntry[];
@@ -41,14 +41,19 @@ interface PitScoutingTableProps {
   onDeleteSelected?: (ids: number[]) => void;
 }
 
-export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: PitScoutingTableProps) {
+export function PitScoutingTable({
+  data,
+  onEdit,
+  onDelete,
+  onDeleteSelected,
+}: PitScoutingTableProps) {
   const [rowSelection, setRowSelection] = React.useState({});
 
   // Expose selected IDs
   const selectedIds = React.useMemo(() => {
     return Object.keys(rowSelection)
-      .filter(key => rowSelection[key as keyof typeof rowSelection])
-      .map(key => {
+      .filter((key) => rowSelection[key as keyof typeof rowSelection])
+      .map((key) => {
         const row = data[parseInt(key)];
         return row?.id;
       })
@@ -56,128 +61,145 @@ export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: P
   }, [rowSelection, data]);
 
   const columns: ColumnDef<PitEntry>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <div className="">
+    {
+      id: "select",
+      header: ({ table }) => (
         <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
         />
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "teamNumber",
-    header: ({ column }) => (
-      <button
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="flex hover:text-primary"
-      >
-        Team <ArrowUpDown className="p-1"/>
-      </button>
-    ),
-    cell: ({ row }) => <div className="font-medium">{row.getValue("teamNumber")}</div>,
-  },
-  {
-    accessorKey: "driveTrain",
-    header: "Drive Train",
-    cell: ({ row }) => <div className="">{row.getValue("driveTrain")}</div>,
-  },
-  {
-    accessorKey: "weight",
-    header: ({ column }) => (
-      <button
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="flex hover:text-primary"
-      >
-        Weight (lbs) <ArrowUpDown className="p-1"/>
-      </button>
-    ),
-    cell: ({ row }) => {
-      const value = row.getValue("weight") as number | undefined;
-      return <div className="">{value !== undefined && value !== null ? value : '-'}</div>;
-    },
-  },
-  {
-    accessorKey: "length",
-    header: "Length (in)",
-    cell: ({ row }) => {
-      const value = row.getValue("length") as number | undefined;
-      return <div className="">{value !== undefined && value !== null ? value : '-'}</div>;
-    },
-  },
-  {
-    accessorKey: "width",
-    header: "Width (in)",
-    cell: ({ row }) => {
-      const value = row.getValue("width") as number | undefined;
-      return <div className="">{value !== undefined && value !== null ? value : '-'}</div>;
-    },
-  },
-  // {
-  //   accessorKey: "gameSpecificData",
-  //   header: "Capabilities",
-  //   cell: ({ row }) => {
-  //     const data = row.getValue("gameSpecificData") as PitEntry['gameSpecificData'];
-  //     const capabilities = [];
-  //     if (data.coralCapability) capabilities.push(`Coral: ${data.coralCapability}`);
-  //     if (data.algaeCapability) capabilities.push(`Algae: ${data.algaeCapability}`);
-  //     if (data.climbCapability) capabilities.push(`Climb: ${data.climbCapability}`);
-  //     return <div className="text-sm">{capabilities.join(", ")}</div>;
-  //   },
-  // },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const entry = row.original;
-
-      return (
-        <div className="text-right mr-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => entry.id && onEdit(entry)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => entry.id && onDelete(entry.id)}
-                className="text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      ),
+      cell: ({ row }) => (
+        <div className="">
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+          />
         </div>
-      );
+      ),
+      enableSorting: false,
+      enableHiding: false,
     },
+    {
+      accessorKey: "teamNumber",
+      header: ({ column }) => (
+        <button
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="flex hover:text-primary"
+        >
+          Team <ArrowUpDown className="p-1" />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <div className="font-medium">{row.getValue("teamNumber")}</div>
+      ),
+    },
+    {
+      accessorKey: "driveTrain",
+      header: "Drive Train",
+      cell: ({ row }) => <div className="">{row.getValue("driveTrain")}</div>,
+    },
+    {
+      accessorKey: "weight",
+      header: ({ column }) => (
+        <button
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="flex hover:text-primary"
+        >
+          Weight (lbs) <ArrowUpDown className="p-1" />
+        </button>
+      ),
+      cell: ({ row }) => {
+        const value = row.getValue("weight") as number | undefined;
+        return (
+          <div className="">
+            {value !== undefined && value !== null ? value : "-"}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "length",
+      header: "Length (in)",
+      cell: ({ row }) => {
+        const value = row.getValue("length") as number | undefined;
+        return (
+          <div className="">
+            {value !== undefined && value !== null ? value : "-"}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "width",
+      header: "Width (in)",
+      cell: ({ row }) => {
+        const value = row.getValue("width") as number | undefined;
+        return (
+          <div className="">
+            {value !== undefined && value !== null ? value : "-"}
+          </div>
+        );
+      },
+    },
+    // {
+    //   accessorKey: "gameSpecificData",
+    //   header: "Capabilities",
+    //   cell: ({ row }) => {
+    //     const data = row.getValue("gameSpecificData") as PitEntry['gameSpecificData'];
+    //     const capabilities = [];
+    //     if (data.coralCapability) capabilities.push(`Coral: ${data.coralCapability}`);
+    //     if (data.algaeCapability) capabilities.push(`Algae: ${data.algaeCapability}`);
+    //     if (data.climbCapability) capabilities.push(`Climb: ${data.climbCapability}`);
+    //     return <div className="text-sm">{capabilities.join(", ")}</div>;
+    //   },
+    // },
+    {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const entry = row.original;
+
+        return (
+          <div className="text-right mr-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => entry.id && onEdit(entry)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => entry.id && onDelete(entry.id)}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
     },
   ];
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    [],
+  );
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
 
   const table = useReactTable({
     data,
@@ -203,7 +225,9 @@ export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: P
       <div className="flex items-center pb-2 gap-2">
         <Input
           placeholder="Filter teams..."
-          value={(table.getColumn("teamNumber")?.getFilterValue() as string) ?? ""}
+          value={
+            (table.getColumn("teamNumber")?.getFilterValue() as string) ?? ""
+          }
           onChange={(event) =>
             table.getColumn("teamNumber")?.setFilterValue(event.target.value)
           }
@@ -232,7 +256,7 @@ export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: P
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -251,7 +275,7 @@ export function PitScoutingTable({ data, onEdit, onDelete, onDeleteSelected }: P
                     <TableCell key={cell.id} className="">
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}

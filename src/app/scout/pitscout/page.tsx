@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
@@ -28,7 +28,9 @@ export default function Page() {
                 </Button>
               </Link>
               <div className="h-6 w-px bg-border"></div>
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Pit Scouting</h1>
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Pit Scouting
+              </h1>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <ModeToggle />
@@ -49,7 +51,13 @@ export default function Page() {
         </div>
       </div>
 
-      <Suspense fallback={<div className="max-w-4xl mx-auto px-4 py-6 text-center">Loading...</div>}>
+      <Suspense
+        fallback={
+          <div className="max-w-4xl mx-auto px-4 py-6 text-center">
+            Loading...
+          </div>
+        }
+      >
         <DynamicPitScoutForm />
       </Suspense>
     </div>

@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Send, Users, AlertTriangle, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Send, Users, AlertTriangle, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
 
 interface SendResult {
   successful: number;
@@ -21,9 +27,9 @@ interface SendResult {
 }
 
 export function NotificationSender() {
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [url, setUrl] = useState('/dashboard');
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [url, setUrl] = useState("/dashboard");
   const [isLoading, setIsLoading] = useState(false);
   const [lastResult, setLastResult] = useState<SendResult | null>(null);
   const handleSendNotification = async () => {
@@ -36,18 +42,18 @@ export function NotificationSender() {
     setLastResult(null);
 
     try {
-      const response = await fetch('/api/notifications/send', {
-        method: 'POST',
+      const response = await fetch("/api/notifications/send", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           payload: {
             title: title.trim(),
             body: body.trim() || undefined,
-            url: url.trim() || '/dashboard',
-            icon: '/TRCLogo.webp',
-            badge: '/TRCLogo.webp',
+            url: url.trim() || "/dashboard",
+            icon: "/TRCLogo.webp",
+            badge: "/TRCLogo.webp",
             data: {
               timestamp: new Date().toISOString(),
             },
@@ -63,16 +69,22 @@ export function NotificationSender() {
       setLastResult(result);
 
       if (result.successful > 0) {
-        toast.success(`Notifications sent: Successfully sent to ${result.successful} device${result.successful !== 1 ? 's' : ''}`);
+        toast.success(
+          `Notifications sent: Successfully sent to ${result.successful} device${result.successful !== 1 ? "s" : ""}`,
+        );
         // Clear form on success
-        setTitle('');
-        setBody('');
+        setTitle("");
+        setBody("");
       } else {
-        toast.error("No notifications sent: No active subscriptions found or all sends failed.");
+        toast.error(
+          "No notifications sent: No active subscriptions found or all sends failed.",
+        );
       }
     } catch (error) {
-      console.error('Error sending notification:', error);
-      toast.error("Send failed: Failed to send notifications. Check console for details."); 
+      console.error("Error sending notification:", error);
+      toast.error(
+        "Send failed: Failed to send notifications. Check console for details.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -80,11 +92,12 @@ export function NotificationSender() {
 
   const handleTestNotification = async () => {
     const testTitle = "Test Notification";
-    const testBody = "This is a test notification from TRC Scouting admin panel.";
-    
+    const testBody =
+      "This is a test notification from TRC Scouting admin panel.";
+
     setTitle(testTitle);
     setBody(testBody);
-    
+
     // Trigger send with test data
     setTimeout(() => {
       handleSendNotification();
@@ -145,10 +158,10 @@ export function NotificationSender() {
             disabled={isLoading || !title.trim()}
             className="flex-1"
           >
-            {isLoading ? 'Sending...' : 'Send to All'}
+            {isLoading ? "Sending..." : "Send to All"}
             <Users className="ml-2 h-4 w-4" />
           </Button>
-          
+
           <Button
             onClick={handleTestNotification}
             disabled={isLoading}
@@ -159,7 +172,13 @@ export function NotificationSender() {
         </div>
 
         {lastResult && (
-          <Alert className={lastResult.successful > 0 ? 'border-primary/20 bg-primary/5' : 'border-destructive/20 bg-destructive/5'}>
+          <Alert
+            className={
+              lastResult.successful > 0
+                ? "border-primary/20 bg-primary/5"
+                : "border-destructive/20 bg-destructive/5"
+            }
+          >
             {lastResult.successful > 0 ? (
               <CheckCircle className="h-4 w-4 text-primary" />
             ) : (
@@ -168,10 +187,9 @@ export function NotificationSender() {
             <AlertDescription>
               <div className="space-y-1">
                 <div className="font-medium">
-                  {lastResult.successful > 0 
-                    ? `Successfully sent to ${lastResult.successful} device${lastResult.successful !== 1 ? 's' : ''}` 
-                    : 'No notifications sent'
-                  }
+                  {lastResult.successful > 0
+                    ? `Successfully sent to ${lastResult.successful} device${lastResult.successful !== 1 ? "s" : ""}`
+                    : "No notifications sent"}
                 </div>
                 {lastResult.failed > 0 && (
                   <div className="text-sm text-muted-foreground">

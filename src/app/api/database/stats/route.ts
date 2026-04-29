@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseManager } from '@/db/database-manager';
-import { CompetitionType } from '@/db/types';
-import { calculateEPA } from '@/lib/statistics';
-import gameConfig from '../../../../../config/game-config-loader';
-import { auth } from '@/lib/auth/config';
-import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
+import { NextRequest, NextResponse } from "next/server";
+import { DatabaseManager } from "@/db/database-manager";
+import { CompetitionType } from "@/lib/types";
+import { calculateEPA } from "@/lib/statistics";
+import gameConfig from "../../../../../config/game-config-loader";
+import { auth } from "@/lib/auth/config";
+import { hasPermission, PERMISSIONS } from "@/lib/auth/roles";
 
 // Get database service from manager
 function getDbService() {
@@ -15,14 +15,20 @@ function getDbService() {
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_DASHBOARD)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.VIEW_DASHBOARD)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
     // console.log('Stats API: Starting request processing');
     const { searchParams } = new URL(request.url);
-    const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
-    const eventCode = searchParams.get('eventCode') || undefined;
-    const competitionType = (searchParams.get('competitionType') as CompetitionType) || 'FRC';
+    const year = searchParams.get("year")
+      ? parseInt(searchParams.get("year")!)
+      : undefined;
+    const eventCode = searchParams.get("eventCode") || undefined;
+    const competitionType =
+      (searchParams.get("competitionType") as CompetitionType) || "FRC";
 
     // console.log('Stats API: Parameters -', { year, eventCode, competitionType });
 
@@ -31,35 +37,57 @@ export async function GET(request: NextRequest) {
 
     // Get all entries for the year and competition type
     // console.log('Stats API: Fetching pit entries...');
-    const pitEntries = await service.getAllPitEntries(year, eventCode, competitionType);
+    const pitEntries = await service.getAllPitEntries(
+      year,
+      eventCode,
+      competitionType,
+    );
     // console.log('Stats API: Pit entries count:', pitEntries.length, year, eventCode, competitionType);
-    
+
     // console.log('Stats API: Fetching match entries...');
-    const matchEntries = await service.getAllMatchEntries(year, eventCode, competitionType);
-    // console.log('Stats API: Match entries count:', matchEntries.length);  
+    const matchEntries = await service.getAllMatchEntries(
+      year,
+      eventCode,
+      competitionType,
+    );
+    // console.log('Stats API: Match entries count:', matchEntries.length);
     // Calculate statistics
     const uniqueTeams = new Set([
-      ...pitEntries.map(entry => entry.teamNumber),
-      ...matchEntries.map(entry => entry.teamNumber)
+      ...pitEntries.map((entry) => entry.teamNumber),
+      ...matchEntries.map((entry) => entry.teamNumber),
     ]);
-    const uniqueMatches = new Set(matchEntries.map(entry => entry.matchNumber)).size;
+    const uniqueMatches = new Set(
+      matchEntries.map((entry) => entry.matchNumber),
+    ).size;
     const totalMatches = matchEntries.length;
     const totalPitScouts = pitEntries.length;
     const uniqueTeamCount = uniqueTeams.size;
 
     // Calculate match completion (6 or 4 teams per match)
-    const teamsPerMatch = competitionType === 'FRC' ? 6 : 4;
-    const matchCompletion = uniqueMatches > 0 ? (totalMatches / (uniqueMatches * teamsPerMatch)) * 100 : 0;
+    const teamsPerMatch = competitionType === "FRC" ? 6 : 4;
+    const matchCompletion =
+      uniqueMatches > 0
+        ? (totalMatches / (uniqueMatches * teamsPerMatch)) * 100
+        : 0;
     // console.log(matchEntries);
     // Calculate EPA-like metrics using proper EPA calculation
-    const teamStats = Array.from(uniqueTeams).map(teamNumber => {
-      const teamMatches = matchEntries.filter(entry => entry.teamNumber === teamNumber);
-      const teamPit = pitEntries.find(entry => entry.teamNumber === teamNumber);
+    const teamStats = Array.from(uniqueTeams).map((teamNumber) => {
+      const teamMatches = matchEntries.filter(
+        (entry) => entry.teamNumber === teamNumber,
+      );
+      const teamPit = pitEntries.find(
+        (entry) => entry.teamNumber === teamNumber,
+      );
 
       // let avgEPA = 0;
       let totalEPA = 0;
 
-      if (teamMatches.length > 0 && year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()]) {
+      if (
+        teamMatches.length > 0 &&
+        year &&
+        gameConfig[competitionType] &&
+        gameConfig[competitionType][year.toString()]
+      ) {
         try {
           const yearConfig = gameConfig[competitionType][year.toString()];
           const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
@@ -68,10 +96,10 @@ export async function GET(request: NextRequest) {
         } catch (error) {
           console.error(`Error calculating EPA for team ${teamNumber}:`, error);
           // Fallback to simple calculation
-          teamMatches.forEach(match => {
+          teamMatches.forEach((match) => {
             if (match.gameSpecificData) {
-              Object.values(match.gameSpecificData).forEach(value => {
-                if (typeof value === 'number') {
+              Object.values(match.gameSpecificData).forEach((value) => {
+                if (typeof value === "number") {
                   totalEPA += value;
                 }
               });
@@ -81,10 +109,10 @@ export async function GET(request: NextRequest) {
         }
       } else {
         // Fallback to simple calculation if no year config
-        teamMatches.forEach(match => {
+        teamMatches.forEach((match) => {
           if (match.gameSpecificData) {
-            Object.values(match.gameSpecificData).forEach(value => {
-              if (typeof value === 'number') {
+            Object.values(match.gameSpecificData).forEach((value) => {
+              if (typeof value === "number") {
                 totalEPA += value;
               }
             });
@@ -98,7 +126,7 @@ export async function GET(request: NextRequest) {
         name: teamPit?.name || `Team ${teamNumber}`,
         matchesPlayed: teamMatches.length,
         // avgEPA: isNaN(avgEPA) ? 0 : avgEPA,
-        totalEPA: isNaN(totalEPA) ? 0 : totalEPA
+        totalEPA: isNaN(totalEPA) ? 0 : totalEPA,
       };
     });
 
@@ -113,18 +141,24 @@ export async function GET(request: NextRequest) {
       matchCompletion: Math.round(matchCompletion),
       teamStats: teamStats,
       recentActivity: matchEntries
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        )
         .slice(0, 5)
-        .map(entry => ({
+        .map((entry) => ({
           teamNumber: entry.teamNumber,
           matchNumber: entry.matchNumber,
-          timestamp: entry.timestamp
-        }))
+          timestamp: entry.timestamp,
+        })),
     };
 
     return NextResponse.json(stats);
   } catch (error) {
-    console.error('Error fetching statistics:', error);
-    return NextResponse.json({ error: 'Failed to fetch statistics' }, { status: 500 });
+    console.error("Error fetching statistics:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch statistics" },
+      { status: 500 },
+    );
   }
 }

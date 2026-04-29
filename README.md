@@ -7,33 +7,33 @@ AthenaV2 is a modern scouting and analytics platform designed for competitive ro
 ## Features
 
 - **Event & Team Management:**
-	- Switch between events and configure event-specific settings.
-	- Manage team lists, view detailed team pages, and analyze team performance.
+  - Switch between events and configure event-specific settings.
+  - Manage team lists, view detailed team pages, and analyze team performance.
 
 - **Scouting Forms:**
-	- Dynamic match and pit scouting forms that adapt to game configuration.
-	- Mobile-friendly UI for easy data entry at events.
+  - Dynamic match and pit scouting forms that adapt to game configuration.
+  - Mobile-friendly UI for easy data entry at events.
 
 - **Data Sync & Storage:**
-	- Supports local, Firebase, and Cosmos DB backends for flexible data storage.
-	- Offline support with automatic sync when connectivity is restored.
+  - Supports local, Firebase, and Cosmos DB backends for flexible data storage.
+  - Offline support with automatic sync when connectivity is restored.
 
 - **Analytics & Visualization:**
-	- EPA (Estimated Performance Average) tables and charts.
-	- Picklist generation and advanced statistics.
-	- Customizable dashboards for in-depth analysis.
+  - EPA (Estimated Performance Average) tables and charts.
+  - Picklist generation and advanced statistics.
+  - Customizable dashboards for in-depth analysis.
 
 - **User Management:**
-	- Secure login and signup flows.
-	- Account settings and role-based access.
+  - Secure login and signup flows.
+  - Account settings and role-based access.
 
 - **Customizable Themes:**
-	- Multiple color themes (Green, Blue, Purple, Rose, Orange) with light/dark mode support.
-	- User preference persists across sessions.
-	- See [THEME_SYSTEM.md](THEME_SYSTEM.md) for details.
+  - Multiple color themes (Green, Blue, Purple, Rose, Orange) with light/dark mode support.
+  - User preference persists across sessions.
+  - See [THEME_SYSTEM.md](THEME_SYSTEM.md) for details.
 
 - **Progressive Web App (PWA):**
-	- Installable on devices with offline caching and background sync.
+  - Installable on devices with offline caching and background sync.
 
 ## Tech Stack
 
@@ -45,40 +45,47 @@ AthenaV2 is a modern scouting and analytics platform designed for competitive ro
 ## Getting Started
 
 1. **Install dependencies:**
-	 ```sh
-	 pnpm install
-	 ```
+
+   ```sh
+   pnpm install
+   ```
 
 2. **Run the development server:**
-	 ```sh
-	 pnpm dev
-	 ```
-	 The app will be available at `http://localhost:3000`.
+
+   ```sh
+   pnpm dev
+   ```
+
+   The app will be available at `http://localhost:3000`.
 
 3. **Build for production:**
-	 ```sh
-	 pnpm build
-	 ```
+
+   ```sh
+   pnpm build
+   ```
 
 4. **Run unit tests:**
-	 ```sh
-	 pnpm test
-	 ```
+
+   ```sh
+   pnpm test
+   ```
 
 5. **Run integration tests:**
-	 ```sh
-	 pnpm test:integration
-	 ```
+
+   ```sh
+   pnpm test:integration
+   ```
 
 6. **Run e2e tests:**
-	 ```sh
-	 pnpm exec playwright install
-	 pnpm test:e2e
-	 ```
+
+   ```sh
+   pnpm exec playwright install
+   pnpm test:e2e
+   ```
 
 7. **Configuration:**
-	 - Edit `config/game-config.json` for game-specific settings.
-	 - Set up database credentials in environment variables as needed.
+   - Edit `config/game-config.json` for game-specific settings.
+   - Set up database credentials in environment variables as needed.
 
 ## Database Configuration
 

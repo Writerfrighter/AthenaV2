@@ -1,42 +1,57 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useGameConfig, useCurrentGameConfig } from '@/hooks/use-game-config';
-import { useSelectedEvent } from '@/hooks/use-event-config';
-import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
-import { useMatchScheduleTeams } from '@/hooks/use-match-schedule-teams';
-import { useScoutingAssignment } from '@/hooks/use-scouting-assignment';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Zap, Award, AlertTriangle, CheckCircle, Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
-import { matchApi } from '@/lib/api/database-client';
-import { ScoutSelector } from '@/components/scout-selector';
-import { MatchInfoSection } from '@/components/forms/match-info-section';
-import { ScoringSection } from '@/components/forms/scoring-section';
-import { FormSubmitButtons } from '@/components/forms/form-submit-buttons';
-import { defaultData, hideSpinnersStyle, initializeFormData, getLastSubmittedMatch, setLastSubmittedMatch } from '@/components/forms/match-form-utils';
-import type { DynamicMatchData, MatchEntry } from '@/lib/shared-types';
-
+import { useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useGameConfig, useCurrentGameConfig } from "@/hooks/use-game-config";
+import { useSelectedEvent } from "@/hooks/use-event-config";
+import { useEventTeamNumbers, useEventTeams } from "@/hooks/use-event-teams";
+import { useMatchScheduleTeams } from "@/hooks/use-match-schedule-teams";
+import { useScoutingAssignment } from "@/hooks/use-scouting-assignment";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Zap,
+  Award,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { toast } from "sonner";
+import { matchApi } from "@/lib/api/database-client";
+import { ScoutSelector } from "@/components/scout-selector";
+import { MatchInfoSection } from "@/components/forms/match-info-section";
+import { ScoringSection } from "@/components/forms/scoring-section";
+import { FormSubmitButtons } from "@/components/forms/form-submit-buttons";
+import {
+  defaultData,
+  hideSpinnersStyle,
+  initializeFormData,
+  getLastSubmittedMatch,
+  setLastSubmittedMatch,
+} from "@/components/forms/match-form-utils";
+import type { MatchEntry } from "@/lib/types";
+import type { DynamicMatchData } from "@/lib/types";
 export function DynamicMatchScoutForm() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editId = searchParams.get('editId');
+  const editId = searchParams.get("editId");
   const gameConfig = useCurrentGameConfig();
   const { competitionType, currentYear } = useGameConfig();
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
-  const { 
-    isLoading: scheduleLoading, 
-    hasScheduleData, 
-    getTeamForPosition 
+  const {
+    isLoading: scheduleLoading,
+    hasScheduleData,
+    getTeamForPosition,
   } = useMatchScheduleTeams();
   const {
     isLoading: assignmentLoading,
@@ -45,18 +60,19 @@ export function DynamicMatchScoutForm() {
     recommendedAlliance,
     recommendedPosition,
     getAssignmentForMatch,
-    getNextAssignment
+    getNextAssignment,
   } = useScoutingAssignment();
-  const [formData, setFormData] = useState<DynamicMatchData>(() => 
-    gameConfig ? initializeFormData(gameConfig) : defaultData
+  const [formData, setFormData] = useState<DynamicMatchData>(() =>
+    gameConfig ? initializeFormData(gameConfig) : defaultData,
   );
-  const [hasAppliedInitialAssignment, setHasAppliedInitialAssignment] = useState(false);
+  const [hasAppliedInitialAssignment, setHasAppliedInitialAssignment] =
+    useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedScoutId, setSelectedScoutId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
-  
+
   // Tabs state for swipeable interface
   const [activeTab, setActiveTab] = useState("auto");
   const touchStartX = useRef<number>(0);
@@ -64,66 +80,88 @@ export function DynamicMatchScoutForm() {
   const submitInFlightRef = useRef(false);
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(
+    null,
+  );
   const contentRef = useRef<HTMLDivElement>(null);
-  
+
   const tabs = [
     { id: "auto", label: "Auto", icon: <Zap className="h-4 w-4" /> },
     { id: "teleop", label: "Teleop", icon: <Award className="h-4 w-4" /> },
-    { id: "endgame", label: "Endgame", icon: <AlertTriangle className="h-4 w-4" /> },
+    {
+      id: "endgame",
+      label: "Endgame",
+      icon: <AlertTriangle className="h-4 w-4" />,
+    },
   ];
 
   // Fetch entry for editing
   useEffect(() => {
     let isMounted = true;
-    
+
     const fetchEntryForEdit = async () => {
       if (!editId || !gameConfig) return;
-      
+
       setIsLoadingEdit(true);
       try {
         const response = await fetch(`/api/database/match?id=${editId}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch entry for editing');
+          throw new Error("Failed to fetch entry for editing");
         }
-        
+
         const entry: MatchEntry = await response.json();
-        
+
         if (!isMounted) return;
-        
+
         // Populate form with existing data
         const populatedData: DynamicMatchData = {
           matchNumber: entry.matchNumber,
           teamNumber: entry.teamNumber,
           alliance: entry.alliance,
           alliancePosition: entry.alliancePosition,
-          autonomous: (entry.gameSpecificData?.autonomous as Record<string, number | string | boolean>) || {},
-          teleop: (entry.gameSpecificData?.teleop as Record<string, number | string | boolean>) || {},
-          endgame: (entry.gameSpecificData?.endgame as Record<string, number | string | boolean>) || {},
-          fouls: (entry.gameSpecificData?.fouls as Record<string, number | string | boolean>) || {},
-          notes: entry.notes || ''
+          autonomous:
+            (entry.gameSpecificData?.autonomous as Record<
+              string,
+              number | string | boolean
+            >) || {},
+          teleop:
+            (entry.gameSpecificData?.teleop as Record<
+              string,
+              number | string | boolean
+            >) || {},
+          endgame:
+            (entry.gameSpecificData?.endgame as Record<
+              string,
+              number | string | boolean
+            >) || {},
+          fouls:
+            (entry.gameSpecificData?.fouls as Record<
+              string,
+              number | string | boolean
+            >) || {},
+          notes: entry.notes || "",
         };
-        
+
         setFormData(populatedData);
         setIsEditMode(true);
         setEditingEntryId(entry.id ?? null);
-        
-        toast.info('Editing entry', {
-          description: `Match ${entry.matchNumber} - Team ${entry.teamNumber}`
+
+        toast.info("Editing entry", {
+          description: `Match ${entry.matchNumber} - Team ${entry.teamNumber}`,
         });
       } catch (error) {
         if (!isMounted) return;
-        console.error('Error fetching entry for edit:', error);
-        toast.error('Failed to load entry for editing');
+        console.error("Error fetching entry for edit:", error);
+        toast.error("Failed to load entry for editing");
       } finally {
         if (isMounted) {
           setIsLoadingEdit(false);
         }
       }
     };
-    
+
     fetchEntryForEdit();
-    
+
     return () => {
       isMounted = false;
     };
@@ -144,7 +182,7 @@ export function DynamicMatchScoutForm() {
     // Only apply if we have scouting assignments
     if (!hasAssignments) return;
 
-    const eventCode = selectedEvent?.code;
+    const eventCode = selectedEvent?.eventCode;
     const lastSubmitted = eventCode ? getLastSubmittedMatch(eventCode) : 0;
 
     if (lastSubmitted > 0) {
@@ -155,72 +193,104 @@ export function DynamicMatchScoutForm() {
       if (nextAssignment) {
         const resolvedMatch = nextAssignment.matchNumber;
 
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           matchNumber: resolvedMatch,
           alliance: nextAssignment.alliance,
-          alliancePosition: nextAssignment.position
+          alliancePosition: nextAssignment.position,
         }));
       } else {
         // No upcoming scheduled assignment – just bump the number
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          matchNumber: nextMatch
+          matchNumber: nextMatch,
         }));
       }
     } else {
       // No history – fall back to the first assignment (original behaviour)
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         matchNumber: recommendedStartMatch || prev.matchNumber,
         alliance: recommendedAlliance || prev.alliance,
-        alliancePosition: recommendedPosition || prev.alliancePosition
+        alliancePosition: recommendedPosition || prev.alliancePosition,
       }));
     }
 
     setHasAppliedInitialAssignment(true);
-  }, [hasAssignments, recommendedStartMatch, recommendedAlliance, recommendedPosition, assignmentLoading, isEditMode, hasAppliedInitialAssignment, selectedEvent?.code, getNextAssignment]);
+  }, [
+    hasAssignments,
+    recommendedStartMatch,
+    recommendedAlliance,
+    recommendedPosition,
+    assignmentLoading,
+    isEditMode,
+    hasAppliedInitialAssignment,
+    selectedEvent?.eventCode,
+    getNextAssignment,
+  ]);
 
   // Determine if current values match the scouting schedule assignment
-  const isMatchFromScoutingSchedule = hasAppliedInitialAssignment && 
-    hasAssignments && 
-    recommendedStartMatch !== null && 
+  const isMatchFromScoutingSchedule =
+    hasAppliedInitialAssignment &&
+    hasAssignments &&
+    recommendedStartMatch !== null &&
     Number(formData.matchNumber) === recommendedStartMatch;
-  
-  const isAllianceFromScoutingSchedule = hasAppliedInitialAssignment && 
-    hasAssignments && 
-    recommendedAlliance !== null && 
+
+  const isAllianceFromScoutingSchedule =
+    hasAppliedInitialAssignment &&
+    hasAssignments &&
+    recommendedAlliance !== null &&
     recommendedPosition !== null &&
-    formData.alliance === recommendedAlliance && 
+    formData.alliance === recommendedAlliance &&
     formData.alliancePosition === recommendedPosition;
 
-  const handleInputChange = (section: string, field: string, value: number | string | boolean) => {
-    setFormData(prev => ({
+  const handleInputChange = (
+    section: string,
+    field: string,
+    value: number | string | boolean,
+  ) => {
+    setFormData((prev) => ({
       ...prev,
       [section]: {
-        ...(prev[section as keyof DynamicMatchData] as Record<string, number | string | boolean> || {}),
-        [field]: value
-      }
+        ...((prev[section as keyof DynamicMatchData] as Record<
+          string,
+          number | string | boolean
+        >) || {}),
+        [field]: value,
+      },
     }));
   };
 
-  const handleBasicInputChange = (field: keyof DynamicMatchData, value: string | number) => {
-    setFormData(prev => ({
+  const handleBasicInputChange = (
+    field: keyof DynamicMatchData,
+    value: string | number,
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
-  const handleAllianceChange = (alliance: 'red' | 'blue', position: number) => {
-    setFormData(prev => ({
+  const handleAllianceChange = (alliance: "red" | "blue", position: number) => {
+    setFormData((prev) => ({
       ...prev,
       alliance,
-      alliancePosition: position
+      alliancePosition: position,
     }));
   };
 
-  const handleNumberChange = (section: string, field: string, increment: boolean) => {
-    const currentValue = (formData[section as keyof DynamicMatchData] as Record<string, number | string | boolean>)[field] as number || 0;
+  const handleNumberChange = (
+    section: string,
+    field: string,
+    increment: boolean,
+  ) => {
+    const currentValue =
+      ((
+        formData[section as keyof DynamicMatchData] as Record<
+          string,
+          number | string | boolean
+        >
+      )[field] as number) || 0;
     const newValue = Math.max(0, currentValue + (increment ? 1 : -1));
     handleInputChange(section, field, newValue);
   };
@@ -236,7 +306,7 @@ export function DynamicMatchScoutForm() {
     }
 
     // For tablet accounts, ensure a scout is selected
-    if (session?.user?.role === 'tablet' && !selectedScoutId && !isEditMode) {
+    if (session?.user?.role === "tablet" && !selectedScoutId && !isEditMode) {
       toast.error("Please select which scout you're entering data for");
       return;
     }
@@ -246,31 +316,31 @@ export function DynamicMatchScoutForm() {
 
     try {
       // Check for duplicate match scout entry (only for new entries, not edits)
-      if (!isEditMode && selectedEvent?.code) {
+      if (!isEditMode && selectedEvent?.eventCode) {
         try {
           const response = await fetch(
-            `/api/database/match/check?teamNumber=${formData.teamNumber}&matchNumber=${formData.matchNumber}&eventCode=${selectedEvent.code}`
+            `/api/database/match/check?teamNumber=${formData.teamNumber}&matchNumber=${formData.matchNumber}&eventCode=${selectedEvent.eventCode}`,
           );
           const data = await response.json();
-          
+
           if (data.exists) {
             toast.error("Duplicate entry detected", {
               description: `Team ${formData.teamNumber} has already been scouted for Match ${formData.matchNumber}. Please check existing entries or edit the existing entry.`,
-              icon: <AlertCircle className="h-4 w-4" />
+              icon: <AlertCircle className="h-4 w-4" />,
             });
             return;
           }
         } catch (error) {
-          console.error('Error checking for duplicate:', error);
+          console.error("Error checking for duplicate:", error);
         }
       }
 
       if (isEditMode && editingEntryId) {
         // Update existing entry
-        const response = await fetch('/api/database/match', {
-          method: 'PUT',
+        const response = await fetch("/api/database/match", {
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             id: editingEntryId,
@@ -280,28 +350,28 @@ export function DynamicMatchScoutForm() {
             competitionType: competitionType,
             alliance: formData.alliance,
             alliancePosition: formData.alliancePosition,
-            eventName: selectedEvent?.name || 'Unknown Event',
-            eventCode: selectedEvent?.code || 'Unknown Code',
+            eventName: selectedEvent?.name || "Unknown Event",
+            eventCode: selectedEvent?.eventCode || "Unknown Code",
             gameSpecificData: {
               autonomous: formData.autonomous,
               teleop: formData.teleop,
               endgame: formData.endgame,
-              fouls: formData.fouls
+              fouls: formData.fouls,
             },
             notes: formData.notes,
           }),
         });
 
         if (!response.ok) {
-          throw new Error('Failed to update match entry');
+          throw new Error("Failed to update match entry");
         }
 
         toast.success("Match entry updated!", {
           description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} updated successfully`,
-          icon: <CheckCircle className="h-4 w-4" />
+          icon: <CheckCircle className="h-4 w-4" />,
         });
 
-        router.push('/dashboard/matchscouting');
+        router.push("/dashboard/matchscouting");
       } else {
         // Create new entry
         const entryToSave = {
@@ -311,17 +381,19 @@ export function DynamicMatchScoutForm() {
           competitionType: competitionType,
           alliance: formData.alliance,
           alliancePosition: formData.alliancePosition,
-          eventName: selectedEvent?.name || 'Unknown Event',
-          eventCode: selectedEvent?.code || 'Unknown Code',
+          eventName: selectedEvent?.name || "Unknown Event",
+          eventCode: selectedEvent?.eventCode || "Unknown Code",
           gameSpecificData: {
             autonomous: formData.autonomous,
             teleop: formData.teleop,
             endgame: formData.endgame,
-            fouls: formData.fouls
+            fouls: formData.fouls,
           },
           notes: formData.notes,
           timestamp: new Date(),
-          ...(session?.user?.role === 'tablet' && selectedScoutId ? { scoutingForUserId: selectedScoutId } : {})
+          ...(session?.user?.role === "tablet" && selectedScoutId
+            ? { scoutingForUserId: selectedScoutId }
+            : {}),
         };
 
         const result = await matchApi.create(entryToSave);
@@ -329,30 +401,34 @@ export function DynamicMatchScoutForm() {
         if (result.isQueued) {
           toast.success("Data queued for sync", {
             description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} saved offline. Will sync when online.`,
-            icon: <Clock className="h-4 w-4" />
+            icon: <Clock className="h-4 w-4" />,
           });
         } else {
           toast.success("Match data saved!", {
             description: `Match ${formData.matchNumber} for Team ${formData.teamNumber} saved successfully`,
-            icon: <CheckCircle className="h-4 w-4" />
+            icon: <CheckCircle className="h-4 w-4" />,
           });
         }
-        
+
         // Persist last submitted match number for this event
         const submittedMatch = Number(formData.matchNumber);
-        if (selectedEvent?.code) {
-          setLastSubmittedMatch(selectedEvent.code, submittedMatch);
+        if (selectedEvent?.eventCode) {
+          setLastSubmittedMatch(selectedEvent.eventCode, submittedMatch);
         }
 
-          // Compute next scheduled assignment from scouting schedule
+        // Compute next scheduled assignment from scouting schedule
         const nextMatch = submittedMatch + 1;
-          const nextAssignment = hasAssignments ? getNextAssignment(submittedMatch) : null;
+        const nextAssignment = hasAssignments
+          ? getNextAssignment(submittedMatch)
+          : null;
 
-        const newFormData = gameConfig ? initializeFormData(gameConfig) : defaultData;
-          newFormData.matchNumber = nextAssignment?.matchNumber ?? nextMatch;
+        const newFormData = gameConfig
+          ? initializeFormData(gameConfig)
+          : defaultData;
+        newFormData.matchNumber = nextAssignment?.matchNumber ?? nextMatch;
 
-          let nextAlliance = formData.alliance;
-          let nextAlliancePosition = formData.alliancePosition || 1;
+        let nextAlliance = formData.alliance;
+        let nextAlliancePosition = formData.alliancePosition || 1;
 
         if (nextAssignment) {
           nextAlliance = nextAssignment.alliance;
@@ -364,7 +440,11 @@ export function DynamicMatchScoutForm() {
         newFormData.alliancePosition = nextAlliancePosition;
 
         // Auto-populate team number for the next selected match/alliance/position when schedule data is available
-        const nextTeamNumber = getTeamForPosition(newFormData.matchNumber, nextAlliance, nextAlliancePosition);
+        const nextTeamNumber = getTeamForPosition(
+          newFormData.matchNumber,
+          nextAlliance,
+          nextAlliancePosition,
+        );
         if (nextTeamNumber !== null) {
           newFormData.teamNumber = nextTeamNumber;
         }
@@ -375,7 +455,7 @@ export function DynamicMatchScoutForm() {
     } catch (error) {
       toast.error("Failed to save data", {
         description: error instanceof Error ? error.message : "Unknown error",
-        icon: <AlertCircle className="h-4 w-4" />
+        icon: <AlertCircle className="h-4 w-4" />,
       });
     } finally {
       setIsSubmitting(false);
@@ -392,13 +472,16 @@ export function DynamicMatchScoutForm() {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!contentRef.current) return;
-    
+
     touchEndX.current = e.touches[0].clientX;
     const diff = touchStartX.current - touchEndX.current;
-    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-    
+    const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+
     // Prevent swiping beyond boundaries
-    if ((currentIndex === 0 && diff < 0) || (currentIndex === tabs.length - 1 && diff > 0)) {
+    if (
+      (currentIndex === 0 && diff < 0) ||
+      (currentIndex === tabs.length - 1 && diff > 0)
+    ) {
       // Allow a small rubber band effect at boundaries
       setSwipeOffset(diff * 0.1);
     } else {
@@ -410,17 +493,17 @@ export function DynamicMatchScoutForm() {
   const handleTouchEnd = () => {
     const swipeThreshold = 75;
     const diff = touchStartX.current - touchEndX.current;
-    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+    const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
 
     if (Math.abs(diff) > swipeThreshold) {
       if (diff > 0 && currentIndex < tabs.length - 1) {
         // Swipe left - go to next tab
-        setSwipeDirection('left');
+        setSwipeDirection("left");
         setIsTransitioning(true);
         setActiveTab(tabs[currentIndex + 1].id);
       } else if (diff < 0 && currentIndex > 0) {
         // Swipe right - go to previous tab
-        setSwipeDirection('right');
+        setSwipeDirection("right");
         setIsTransitioning(true);
         setActiveTab(tabs[currentIndex - 1].id);
       } else {
@@ -434,7 +517,7 @@ export function DynamicMatchScoutForm() {
 
     // Reset swipe offset immediately
     setSwipeOffset(0);
-    
+
     // Clear transition state after animation completes
     setTimeout(() => {
       setIsTransitioning(false);
@@ -446,9 +529,9 @@ export function DynamicMatchScoutForm() {
   };
 
   const goToNextTab = () => {
-    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+    const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
     if (currentIndex < tabs.length - 1) {
-      setSwipeDirection('left');
+      setSwipeDirection("left");
       setIsTransitioning(true);
       setActiveTab(tabs[currentIndex + 1].id);
       setTimeout(() => {
@@ -459,9 +542,9 @@ export function DynamicMatchScoutForm() {
   };
 
   const goToPreviousTab = () => {
-    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+    const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
     if (currentIndex > 0) {
-      setSwipeDirection('right');
+      setSwipeDirection("right");
       setIsTransitioning(true);
       setActiveTab(tabs[currentIndex - 1].id);
       setTimeout(() => {
@@ -477,7 +560,7 @@ export function DynamicMatchScoutForm() {
       <style>{`
         .swipe-container {
           transform: translateX(${-swipeOffset}px);
-          transition: ${isTransitioning ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'};
+          transition: ${isTransitioning ? "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)" : "none"};
           will-change: transform;
         }
         
@@ -508,23 +591,30 @@ export function DynamicMatchScoutForm() {
           }
         }
         
-        ${swipeDirection ? `
+        ${
+          swipeDirection
+            ? `
           .tab-slide-animation[data-state="active"] {
-            animation: ${swipeDirection === 'left' ? 'slideInFromRight' : 'slideInFromLeft'} 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: ${swipeDirection === "left" ? "slideInFromRight" : "slideInFromLeft"} 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           }
-        ` : ''}
+        `
+            : ""
+        }
       `}</style>
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <div className="text-center">
           <Badge variant="outline" className="text-lg px-4 py-2">
-            {gameConfig?.gameName || 'Unknown Game'} - {isEditMode ? 'Edit Match Entry' : 'Match Scouting'}
+            {gameConfig?.gameName || "Unknown Game"} -{" "}
+            {isEditMode ? "Edit Match Entry" : "Match Scouting"}
           </Badge>
         </div>
 
         {isLoadingEdit && (
           <Card className="border rounded-xl shadow-sm">
             <CardContent className="pt-6 text-center">
-              <div className="text-muted-foreground">Loading entry for editing...</div>
+              <div className="text-muted-foreground">
+                Loading entry for editing...
+              </div>
             </CardContent>
           </Card>
         )}
@@ -533,21 +623,17 @@ export function DynamicMatchScoutForm() {
           <ScoutSelector
             selectedScoutId={selectedScoutId}
             onScoutChange={setSelectedScoutId}
-            currentUserId={session.user.id || ''}
+            currentUserId={session.user.id || ""}
             currentUserRole={session.user.role || null}
           />
         )}
 
-        <Tabs 
-          value={activeTab} 
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4">
             <TabsList className="w-full grid grid-cols-3 h-auto">
               {tabs.map((tab) => (
-                <TabsTrigger 
-                  key={tab.id} 
+                <TabsTrigger
+                  key={tab.id}
                   value={tab.id}
                   className="flex flex-col gap-1 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
@@ -566,93 +652,108 @@ export function DynamicMatchScoutForm() {
               onTouchEnd={handleTouchEnd}
               className="swipe-container relative touch-pan-y"
             >
-              <TabsContent value="auto" className="space-y-6 mt-0 tab-slide-animation">
-              <MatchInfoSection
-                formData={formData}
-                competitionType={competitionType}
-                eventTeamNumbers={eventTeamNumbers}
-                teamsLoading={teamsLoading}
-                onBasicInputChange={handleBasicInputChange}
-                onAllianceChange={handleAllianceChange}
-                scheduleLoading={scheduleLoading}
-                hasScheduleData={hasScheduleData}
-                getTeamForPosition={getTeamForPosition}
-                isMatchFromScoutingSchedule={isMatchFromScoutingSchedule}
-                isAllianceFromScoutingSchedule={isAllianceFromScoutingSchedule}
-                assignmentLoading={assignmentLoading}
-              />
-              
-              {gameConfig?.scoring?.autonomous && (
-                <ScoringSection
-                  title="Autonomous Period"
-                  description="Performance during the autonomous period"
-                  icon={<Zap className="h-5 w-5" />}
-                  section="autonomous"
-                  scoringConfig={gameConfig.scoring.autonomous}
+              <TabsContent
+                value="auto"
+                className="space-y-6 mt-0 tab-slide-animation"
+              >
+                <MatchInfoSection
                   formData={formData}
-                  gameConfig={gameConfig}
-                  showStartPosition={true}
-                  onInputChange={handleInputChange}
-                  onNumberChange={handleNumberChange}
+                  competitionType={competitionType}
+                  eventTeamNumbers={eventTeamNumbers}
+                  teamsLoading={teamsLoading}
+                  onBasicInputChange={handleBasicInputChange}
+                  onAllianceChange={handleAllianceChange}
+                  scheduleLoading={scheduleLoading}
+                  hasScheduleData={hasScheduleData}
+                  getTeamForPosition={getTeamForPosition}
+                  isMatchFromScoutingSchedule={isMatchFromScoutingSchedule}
+                  isAllianceFromScoutingSchedule={
+                    isAllianceFromScoutingSchedule
+                  }
+                  assignmentLoading={assignmentLoading}
                 />
-              )}
-            </TabsContent>
 
-            <TabsContent value="teleop" className="space-y-6 mt-0 tab-slide-animation">
-              {gameConfig?.scoring?.teleop && (
-                <ScoringSection
-                  title="Teleop Period"
-                  description="Driver-controlled period performance"
-                  icon={<Award className="h-5 w-5" />}
-                  section="teleop"
-                  scoringConfig={gameConfig.scoring.teleop}
-                  formData={formData}
-                  onInputChange={handleInputChange}
-                  onNumberChange={handleNumberChange}
-                />
-              )}
-            </TabsContent>
-
-            <TabsContent value="endgame" className="space-y-6 mt-0 tab-slide-animation">
-              {gameConfig?.scoring?.endgame && (
-                <ScoringSection
-                  title="Endgame"
-                  icon={<AlertTriangle className="h-5 w-5" />}
-                  section="endgame"
-                  scoringConfig={gameConfig.scoring.endgame}
-                  formData={formData}
-                  onInputChange={handleInputChange}
-                  onNumberChange={handleNumberChange}
-                />
-              )}
-              
-              {gameConfig?.scoring?.fouls && (
-                <ScoringSection
-                  title="Fouls & Penalties"
-                  description="Track penalties and fouls committed"
-                  icon={<AlertTriangle className="h-5 w-5" />}
-                  section="fouls"
-                  scoringConfig={gameConfig.scoring.fouls}
-                  formData={formData}
-                  onInputChange={handleInputChange}
-                  onNumberChange={handleNumberChange}
-                />
-              )}
-              
-              <Card className="border rounded-xl shadow-sm">
-                <CardContent className="space-y-2">
-                  <label className="font-medium text-primary/90 font-semibold">Additional Notes</label>
-                  <Textarea
-                    placeholder="Any additional observations about this match..."
-                    value={formData.notes}
-                    onChange={(e) => handleBasicInputChange('notes', e.target.value)}
-                    className="focus:border-green-500 min-h-[200px] mt-2"
-                    required={true} 
+                {gameConfig?.scoring?.autonomous && (
+                  <ScoringSection
+                    title="Autonomous Period"
+                    description="Performance during the autonomous period"
+                    icon={<Zap className="h-5 w-5" />}
+                    section="autonomous"
+                    scoringConfig={gameConfig.scoring.autonomous}
+                    formData={formData}
+                    gameConfig={gameConfig}
+                    showStartPosition={true}
+                    onInputChange={handleInputChange}
+                    onNumberChange={handleNumberChange}
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </div>
+                )}
+              </TabsContent>
+
+              <TabsContent
+                value="teleop"
+                className="space-y-6 mt-0 tab-slide-animation"
+              >
+                {gameConfig?.scoring?.teleop && (
+                  <ScoringSection
+                    title="Teleop Period"
+                    description="Driver-controlled period performance"
+                    icon={<Award className="h-5 w-5" />}
+                    section="teleop"
+                    scoringConfig={gameConfig.scoring.teleop}
+                    formData={formData}
+                    onInputChange={handleInputChange}
+                    onNumberChange={handleNumberChange}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent
+                value="endgame"
+                className="space-y-6 mt-0 tab-slide-animation"
+              >
+                {gameConfig?.scoring?.endgame && (
+                  <ScoringSection
+                    title="Endgame"
+                    icon={<AlertTriangle className="h-5 w-5" />}
+                    section="endgame"
+                    scoringConfig={gameConfig.scoring.endgame}
+                    formData={formData}
+                    onInputChange={handleInputChange}
+                    onNumberChange={handleNumberChange}
+                  />
+                )}
+
+                {gameConfig?.scoring?.fouls && (
+                  <ScoringSection
+                    title="Fouls & Penalties"
+                    description="Track penalties and fouls committed"
+                    icon={<AlertTriangle className="h-5 w-5" />}
+                    section="fouls"
+                    scoringConfig={gameConfig.scoring.fouls}
+                    formData={formData}
+                    onInputChange={handleInputChange}
+                    onNumberChange={handleNumberChange}
+                  />
+                )}
+
+                <Card className="border rounded-xl shadow-sm">
+                  <CardContent className="space-y-2">
+                    <label className="font-medium text-primary/90 font-semibold">
+                      Additional Notes
+                    </label>
+                    <Textarea
+                      placeholder="Any additional observations about this match..."
+                      value={formData.notes}
+                      onChange={(e) =>
+                        handleBasicInputChange("notes", e.target.value)
+                      }
+                      className="focus:border-green-500 min-h-[200px] mt-2"
+                      required={true}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </div>
           </div>
 
           {/* Navigation buttons */}
@@ -673,9 +774,9 @@ export function DynamicMatchScoutForm() {
                 <div
                   key={tab.id}
                   className={`h-2 w-2 rounded-full transition-all ${
-                    activeTab === tab.id 
-                      ? 'bg-primary w-6' 
-                      : 'bg-muted-foreground/30'
+                    activeTab === tab.id
+                      ? "bg-primary w-6"
+                      : "bg-muted-foreground/30"
                   }`}
                 />
               ))}
@@ -697,10 +798,12 @@ export function DynamicMatchScoutForm() {
         <FormSubmitButtons
           isEditMode={isEditMode}
           isSubmitting={isSubmitting}
-          onCancel={() => router.push('/dashboard/matchscouting')}
+          onCancel={() => router.push("/dashboard/matchscouting")}
           onClear={() => {
-            const freshData = gameConfig ? initializeFormData(gameConfig) : defaultData;
-            setFormData(prev => ({
+            const freshData = gameConfig
+              ? initializeFormData(gameConfig)
+              : defaultData;
+            setFormData((prev) => ({
               ...freshData,
               matchNumber: prev.matchNumber,
               teamNumber: prev.teamNumber,

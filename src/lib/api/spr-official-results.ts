@@ -1,15 +1,21 @@
-import { getEventMatches as getTbaEventMatches } from '@/lib/api/tba';
-import { getEventMatches as getFtcEventMatches } from '@/lib/api/ftcevents';
-import type { TbaMatch } from '@/lib/api/tba-types';
-import type { FtcMatchResult } from '@/lib/api/ftcevents-types';
-import type { CompetitionType } from '@/db/types';
+import { getEventMatches as getTbaEventMatches } from "@/lib/api/tba";
+import { getEventMatches as getFtcEventMatches } from "@/lib/api/ftcevents";
+import type { TbaMatch } from "@/lib/api/tba-types";
+import type { FtcMatchResult } from "@/lib/api/ftcevents-types";
+import type { CompetitionType } from "@/lib/types";
 
-export type OfficialAllianceResult = { officialScore: number; foulPoints: number };
+export type OfficialAllianceResult = {
+  officialScore: number;
+  foulPoints: number;
+};
 
-export type OfficialResultsMap = Record<number, {
-  red: OfficialAllianceResult;
-  blue: OfficialAllianceResult;
-}>;
+export type OfficialResultsMap = Record<
+  number,
+  {
+    red: OfficialAllianceResult;
+    blue: OfficialAllianceResult;
+  }
+>;
 
 export interface OfficialResultsResponse {
   results: OfficialResultsMap;
@@ -24,7 +30,7 @@ export class OfficialResultsError extends Error {
 
   constructor(message: string, status: number, details?: string) {
     super(message);
-    this.name = 'OfficialResultsError';
+    this.name = "OfficialResultsError";
     this.status = status;
     this.details = details;
   }
@@ -32,22 +38,26 @@ export class OfficialResultsError extends Error {
 
 export async function fetchOfficialResults(
   eventCode: string,
-  competitionType: CompetitionType = 'FRC',
-  year?: number
+  competitionType: CompetitionType = "FRC",
+  year?: number,
 ): Promise<OfficialResultsResponse> {
   try {
-    if (competitionType === 'FTC') {
+    if (competitionType === "FTC") {
       const ftcYear = year ?? new Date().getFullYear();
 
       try {
-        const matchData = await getFtcEventMatches(ftcYear, eventCode, 'qual');
+        const matchData = await getFtcEventMatches(ftcYear, eventCode, "qual");
 
-        if (!matchData || !matchData.matches || !Array.isArray(matchData.matches)) {
+        if (
+          !matchData ||
+          !matchData.matches ||
+          !Array.isArray(matchData.matches)
+        ) {
           return {
             results: {},
             matchCount: 0,
             eventCode,
-            message: 'No qualification matches found for this FTC event',
+            message: "No qualification matches found for this FTC event",
           };
         }
 
@@ -75,9 +85,9 @@ export async function fetchOfficialResults(
         };
       } catch (error) {
         throw new OfficialResultsError(
-          'Failed to fetch FTC match results. Check API key and event code.',
+          "Failed to fetch FTC match results. Check API key and event code.",
           502,
-          error instanceof Error ? error.message : 'Unknown error'
+          error instanceof Error ? error.message : "Unknown error",
         );
       }
     }
@@ -85,10 +95,10 @@ export async function fetchOfficialResults(
     const matches = await getTbaEventMatches(eventCode);
 
     if (!Array.isArray(matches)) {
-      throw new OfficialResultsError('Invalid response from TBA', 502);
+      throw new OfficialResultsError("Invalid response from TBA", 502);
     }
 
-    const qualMatches = matches.filter((m: TbaMatch) => m.comp_level === 'qm');
+    const qualMatches = matches.filter((m: TbaMatch) => m.comp_level === "qm");
     const results: OfficialResultsMap = {};
 
     for (const match of qualMatches) {
@@ -103,15 +113,15 @@ export async function fetchOfficialResults(
         const redBreakdown = match.score_breakdown.red;
         const blueBreakdown = match.score_breakdown.blue;
 
-        if (typeof blueBreakdown.foulPoints === 'number') {
+        if (typeof blueBreakdown.foulPoints === "number") {
           redFouls = blueBreakdown.foulPoints;
-        } else if (typeof blueBreakdown.foulCount === 'number') {
+        } else if (typeof blueBreakdown.foulCount === "number") {
           redFouls = blueBreakdown.foulCount * 5;
         }
 
-        if (typeof redBreakdown.foulPoints === 'number') {
+        if (typeof redBreakdown.foulPoints === "number") {
           blueFouls = redBreakdown.foulPoints;
-        } else if (typeof redBreakdown.foulCount === 'number') {
+        } else if (typeof redBreakdown.foulCount === "number") {
           blueFouls = redBreakdown.foulCount * 5;
         }
       }
@@ -139,9 +149,9 @@ export async function fetchOfficialResults(
     }
 
     throw new OfficialResultsError(
-      'Failed to fetch official match results',
+      "Failed to fetch official match results",
       500,
-      error instanceof Error ? error.message : 'Unknown error'
+      error instanceof Error ? error.message : "Unknown error",
     );
   }
 }

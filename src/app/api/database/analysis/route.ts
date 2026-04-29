@@ -1,11 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { databaseManager } from '@/db/database-manager';
-import { DatabaseService, CompetitionType } from '@/db/types';
-import { auth } from '@/lib/auth/config';
-import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
-import { calculateEPA } from '@/lib/statistics';
-import { AnalysisMetricDefinition, EPABreakdown, YearConfig } from '@/lib/shared-types';
-import gameConfig from '../../../../../config/game-config-loader';
+import { NextRequest, NextResponse } from "next/server";
+import { databaseManager } from "@/db/database-manager";
+import { DatabaseService, CompetitionType } from "@/lib/types";
+import { auth } from "@/lib/auth/config";
+import { hasPermission, PERMISSIONS } from "@/lib/auth/roles";
+import { calculateEPA } from "@/lib/statistics";
+import {
+  AnalysisMetricDefinition,
+  EPABreakdown,
+  YearConfig,
+} from "@/lib/types";
+import gameConfig from "../../../../../config/game-config-loader";
 
 // Initialize database service
 let dbService: DatabaseService;
@@ -17,30 +21,33 @@ function getDbService() {
   return dbService;
 }
 
-type MetricValueType = AnalysisMetricDefinition['valueType'];
+type MetricValueType = AnalysisMetricDefinition["valueType"];
 
 function flattenScoutingData(
   value: unknown,
-  prefix = '',
-  output: Record<string, boolean | number> = {}
+  prefix = "",
+  output: Record<string, boolean | number> = {},
 ): Record<string, boolean | number> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return output;
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return output;
 
-  for (const [rawKey, rawChild] of Object.entries(value as Record<string, unknown>)) {
-    const key = rawKey.replace(/\s+/g, '_');
+  for (const [rawKey, rawChild] of Object.entries(
+    value as Record<string, unknown>,
+  )) {
+    const key = rawKey.replace(/\s+/g, "_");
     const nextPrefix = prefix ? `${prefix}.${key}` : key;
 
-    if (typeof rawChild === 'boolean') {
+    if (typeof rawChild === "boolean") {
       output[nextPrefix] = rawChild;
       continue;
     }
 
-    if (typeof rawChild === 'number' && Number.isFinite(rawChild)) {
+    if (typeof rawChild === "number" && Number.isFinite(rawChild)) {
       output[nextPrefix] = rawChild;
       continue;
     }
 
-    if (rawChild && typeof rawChild === 'object' && !Array.isArray(rawChild)) {
+    if (rawChild && typeof rawChild === "object" && !Array.isArray(rawChild)) {
       flattenScoutingData(rawChild, nextPrefix, output);
     }
   }
@@ -50,28 +57,29 @@ function flattenScoutingData(
 
 function toLabelPart(segment: string): string {
   return segment
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[_.-]+/g, ' ')
-    .split(' ')
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_.-]+/g, " ")
+    .split(" ")
     .filter(Boolean)
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(' ');
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
 }
 
 function inferMetricCategory(key: string): string {
   const normalized = key.toLowerCase();
 
-  if (/(breakdown|disabled|dead|immobilized|died|stuck)/.test(normalized)) return 'Reliability';
-  if (/(foul|penalt)/.test(normalized)) return 'Penalties';
-  if (/(auto|autonomous)/.test(normalized)) return 'Autonomous';
-  if (/(teleop|tele|teleoperated)/.test(normalized)) return 'Teleop';
-  if (/(endgame|climb|hang|park)/.test(normalized)) return 'Endgame';
+  if (/(breakdown|disabled|dead|immobilized|died|stuck)/.test(normalized))
+    return "Reliability";
+  if (/(foul|penalt)/.test(normalized)) return "Penalties";
+  if (/(auto|autonomous)/.test(normalized)) return "Autonomous";
+  if (/(teleop|tele|teleoperated)/.test(normalized)) return "Teleop";
+  if (/(endgame|climb|hang|park)/.test(normalized)) return "Endgame";
 
-  return 'General';
+  return "General";
 }
 
 function toMetricLabel(key: string, valueType: MetricValueType): string {
-  const segments = key.split('.').filter(Boolean);
+  const segments = key.split(".").filter(Boolean);
 
   // Always drop the first overarching segment to avoid redundant scope prefixes
   // Example: `autonomous.autonomous.climb` -> `autonomous.climb` -> label `Climb`
@@ -79,38 +87,42 @@ function toMetricLabel(key: string, valueType: MetricValueType): string {
     segments.shift();
   }
 
-  const readableKey = segments.map(toLabelPart).join(' • ');
-  const suffix = valueType === 'rate' ? 'Rate' : 'Average';
+  const readableKey = segments.map(toLabelPart).join(" • ");
+  const suffix = valueType === "rate" ? "Rate" : "Average";
   return `${readableKey} ${suffix}`;
 }
 
 function formatCategory(period?: string): string {
-  if (!period) return 'General';
+  if (!period) return "General";
   const normalized = period.toLowerCase();
-  if (normalized === 'autonomous') return 'Autonomous';
-  if (normalized === 'teleop') return 'Teleop';
-  if (normalized === 'endgame') return 'Endgame';
-  if (normalized === 'fouls') return 'Fouls';
+  if (normalized === "autonomous") return "Autonomous";
+  if (normalized === "teleop") return "Teleop";
+  if (normalized === "endgame") return "Endgame";
+  if (normalized === "fouls") return "Fouls";
   return toLabelPart(period);
 }
 
 function buildMetricDefinition(
   key: string,
   valueType: MetricValueType,
-  yearConfig?: YearConfig
+  yearConfig?: YearConfig,
 ): AnalysisMetricDefinition {
-  const suffix = valueType === 'rate' ? 'Rate' : 'Average';
-  const segments = key.split('.').filter(Boolean);
+  const suffix = valueType === "rate" ? "Rate" : "Average";
+  const segments = key.split(".").filter(Boolean);
   const period = segments[0];
-  const metricKey = segments.slice(1).join('.');
+  const metricKey = segments.slice(1).join(".");
 
   const configLabel =
     yearConfig &&
     period &&
     metricKey &&
-    (yearConfig.scoring as Record<string, Record<string, { label?: string }>>)?.[period]?.[metricKey]?.label;
+    (
+      yearConfig.scoring as Record<string, Record<string, { label?: string }>>
+    )?.[period]?.[metricKey]?.label;
 
-  const label = configLabel ? `${configLabel} ${suffix}` : toMetricLabel(key, valueType);
+  const label = configLabel
+    ? `${configLabel} ${suffix}`
+    : toMetricLabel(key, valueType);
 
   return {
     key,
@@ -124,38 +136,48 @@ function buildMetricDefinition(
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_MATCH_SCOUTING)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.VIEW_MATCH_SCOUTING)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
     const { searchParams } = new URL(request.url);
-    const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
-    const eventCode = searchParams.get('eventCode');
-    const competitionType = (searchParams.get('competitionType') as CompetitionType) || 'FRC';
+    const year = searchParams.get("year")
+      ? parseInt(searchParams.get("year")!)
+      : undefined;
+    const eventCode = searchParams.get("eventCode");
+    const competitionType =
+      (searchParams.get("competitionType") as CompetitionType) || "FRC";
 
     const service = getDbService();
 
     // Get all match entries for analysis, filtered by competition type
-    const matchEntries = await service.getAllMatchEntries(year, undefined, competitionType);
+    const matchEntries = await service.getAllMatchEntries(
+      year,
+      undefined,
+      competitionType,
+    );
 
     // Filter by event if specified
     const filteredEntries = eventCode
-      ? matchEntries.filter(entry => entry.eventCode === eventCode)
+      ? matchEntries.filter((entry) => entry.eventCode === eventCode)
       : matchEntries;
 
     // Group by scoring categories (this is a simplified example)
-    const scoringCategories = ['auto', 'teleop', 'endgame', 'total'];
+    const scoringCategories = ["auto", "teleop", "endgame", "total"];
     const categoryData: Record<string, number[]> = {};
 
-    scoringCategories.forEach(category => {
+    scoringCategories.forEach((category) => {
       categoryData[category] = [];
     });
 
     // Process each match entry
-    filteredEntries.forEach(entry => {
+    filteredEntries.forEach((entry) => {
       if (entry.gameSpecificData) {
-        scoringCategories.forEach(category => {
+        scoringCategories.forEach((category) => {
           const value = entry.gameSpecificData[category];
-          if (typeof value === 'number') {
+          if (typeof value === "number") {
             categoryData[category].push(value);
           }
         });
@@ -163,39 +185,57 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculate averages for each category
-    const analysisData = scoringCategories.map(category => ({
+    const analysisData = scoringCategories.map((category) => ({
       category,
-      average: categoryData[category].length > 0
-        ? categoryData[category].reduce((sum, val) => sum + val, 0) / categoryData[category].length
-        : 0,
+      average:
+        categoryData[category].length > 0
+          ? categoryData[category].reduce((sum, val) => sum + val, 0) /
+            categoryData[category].length
+          : 0,
       count: categoryData[category].length,
-      data: categoryData[category]
+      data: categoryData[category],
     }));
 
     // Calculate team-specific EPA data using proper statistics
-    const teamEPAs: Record<number, { 
-      teamNumber: number; 
-      epaBreakdown: EPABreakdown; 
-      matches: number 
-    }> = {};
+    const teamEPAs: Record<
+      number,
+      {
+        teamNumber: number;
+        epaBreakdown: EPABreakdown;
+        matches: number;
+      }
+    > = {};
 
-    filteredEntries.forEach(entry => {
+    filteredEntries.forEach((entry) => {
       if (!teamEPAs[entry.teamNumber]) {
-        teamEPAs[entry.teamNumber] = { 
-          teamNumber: entry.teamNumber, 
-          epaBreakdown: { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA: 0 }, 
-          matches: 0 
+        teamEPAs[entry.teamNumber] = {
+          teamNumber: entry.teamNumber,
+          epaBreakdown: {
+            auto: 0,
+            teleop: 0,
+            endgame: 0,
+            penalties: 0,
+            totalEPA: 0,
+          },
+          matches: 0,
         };
       }
       teamEPAs[entry.teamNumber].matches += 1;
     });
 
     // Calculate EPA for each team using proper function
-    Object.keys(teamEPAs).forEach(teamNumberStr => {
+    Object.keys(teamEPAs).forEach((teamNumberStr) => {
       const teamNumber = parseInt(teamNumberStr);
-      const teamMatches = filteredEntries.filter(entry => entry.teamNumber === teamNumber);
+      const teamMatches = filteredEntries.filter(
+        (entry) => entry.teamNumber === teamNumber,
+      );
 
-      if (teamMatches.length > 0 && year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()]) {
+      if (
+        teamMatches.length > 0 &&
+        year &&
+        gameConfig[competitionType] &&
+        gameConfig[competitionType][year.toString()]
+      ) {
         try {
           const yearConfig = gameConfig[competitionType][year.toString()];
           const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
@@ -204,30 +244,42 @@ export async function GET(request: NextRequest) {
           console.error(`Error calculating EPA for team ${teamNumber}:`, error);
           // Fallback to simple calculation
           let totalEPA = 0;
-          teamMatches.forEach(match => {
+          teamMatches.forEach((match) => {
             if (match.gameSpecificData) {
-              Object.values(match.gameSpecificData).forEach(value => {
-                if (typeof value === 'number') {
+              Object.values(match.gameSpecificData).forEach((value) => {
+                if (typeof value === "number") {
                   totalEPA += value;
                 }
               });
             }
           });
-          teamEPAs[teamNumber].epaBreakdown = { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA };
+          teamEPAs[teamNumber].epaBreakdown = {
+            auto: 0,
+            teleop: 0,
+            endgame: 0,
+            penalties: 0,
+            totalEPA,
+          };
         }
       } else {
         // Fallback to simple calculation if no year config
         let totalEPA = 0;
-        teamMatches.forEach(match => {
+        teamMatches.forEach((match) => {
           if (match.gameSpecificData) {
-            Object.values(match.gameSpecificData).forEach(value => {
-              if (typeof value === 'number') {
+            Object.values(match.gameSpecificData).forEach((value) => {
+              if (typeof value === "number") {
                 totalEPA += value;
               }
             });
           }
         });
-        teamEPAs[teamNumber].epaBreakdown = { auto: 0, teleop: 0, endgame: 0, penalties: 0, totalEPA };
+        teamEPAs[teamNumber].epaBreakdown = {
+          auto: 0,
+          teleop: 0,
+          endgame: 0,
+          penalties: 0,
+          totalEPA,
+        };
       }
     });
 
@@ -248,17 +300,22 @@ export async function GET(request: NextRequest) {
     }
 
     const teamEPAData = Object.values(teamEPAs)
-      .map(team => {
+      .map((team) => {
         const detailMetrics: Record<string, number> = {};
-        const metricAccumulators: Record<string, {
-          boolCount: number;
-          trueCount: number;
-          numericCount: number;
-          numericSum: number;
-        }> = {};
+        const metricAccumulators: Record<
+          string,
+          {
+            boolCount: number;
+            trueCount: number;
+            numericCount: number;
+            numericSum: number;
+          }
+        > = {};
 
-        const teamMatches = filteredEntries.filter(entry => entry.teamNumber === team.teamNumber);
-        teamMatches.forEach(match => {
+        const teamMatches = filteredEntries.filter(
+          (entry) => entry.teamNumber === team.teamNumber,
+        );
+        teamMatches.forEach((match) => {
           const flattened = flattenScoutingData(match.gameSpecificData);
           Object.entries(flattened).forEach(([rawKey, value]) => {
             const normalizedKey = rawKey.toLowerCase();
@@ -277,10 +334,10 @@ export async function GET(request: NextRequest) {
               };
             }
 
-            if (typeof value === 'boolean') {
+            if (typeof value === "boolean") {
               metricAccumulators[canonicalKey].boolCount += 1;
               if (value) metricAccumulators[canonicalKey].trueCount += 1;
-            } else if (typeof value === 'number' && Number.isFinite(value)) {
+            } else if (typeof value === "number" && Number.isFinite(value)) {
               metricAccumulators[canonicalKey].numericCount += 1;
               metricAccumulators[canonicalKey].numericSum += value;
             }
@@ -290,13 +347,13 @@ export async function GET(request: NextRequest) {
         Object.entries(metricAccumulators).forEach(([key, agg]) => {
           if (agg.numericCount > 0) {
             detailMetrics[key] = agg.numericSum / agg.numericCount;
-            metricValueTypeByKey.set(key, 'average');
+            metricValueTypeByKey.set(key, "average");
             return;
           }
 
           if (agg.boolCount > 0) {
             detailMetrics[key] = (agg.trueCount / agg.boolCount) * 100;
-            metricValueTypeByKey.set(key, 'rate');
+            metricValueTypeByKey.set(key, "rate");
           }
         });
 
@@ -314,8 +371,12 @@ export async function GET(request: NextRequest) {
       })
       .sort((a, b) => b.totalEPA - a.totalEPA);
 
-    const availableMetrics: AnalysisMetricDefinition[] = Array.from(metricValueTypeByKey.entries())
-      .map(([key, valueType]) => buildMetricDefinition(key, valueType, yearConfig))
+    const availableMetrics: AnalysisMetricDefinition[] = Array.from(
+      metricValueTypeByKey.entries(),
+    )
+      .map(([key, valueType]) =>
+        buildMetricDefinition(key, valueType, yearConfig),
+      )
       .sort((a, b) => {
         const categoryCompare = a.category.localeCompare(b.category);
         if (categoryCompare !== 0) return categoryCompare;
@@ -327,10 +388,13 @@ export async function GET(request: NextRequest) {
       availableMetrics,
       teamEPAData: teamEPAData,
       totalMatches: filteredEntries.length,
-      totalTeams: Object.keys(teamEPAs).length
+      totalTeams: Object.keys(teamEPAs).length,
     });
   } catch (error) {
-    console.error('Error fetching analysis data:', error);
-    return NextResponse.json({ error: 'Failed to fetch analysis data' }, { status: 500 });
+    console.error("Error fetching analysis data:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch analysis data" },
+      { status: 500 },
+    );
   }
 }

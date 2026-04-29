@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle } from 'lucide-react';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { CheckCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +11,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 
 interface FormSubmitButtonsProps {
   isEditMode: boolean;
@@ -41,7 +41,8 @@ export function FormSubmitButtons({
           <AlertDialogHeader>
             <AlertDialogTitle>Clear form?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will reset all fields to their default values. This action cannot be undone.
+              This will reset all fields to their default values. This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -82,7 +83,9 @@ export function FormSubmitButtons({
                   className="min-w-[140px] h-10 bg-green-600 hover:bg-green-700 text-base"
                   size="lg"
                 >
-                  {isSubmitting ? "Updating..." : (
+                  {isSubmitting ? (
+                    "Updating..."
+                  ) : (
                     <>
                       <CheckCircle className="mr-2 h-5 w-5" />
                       {updateText}
@@ -114,7 +117,9 @@ export function FormSubmitButtons({
                   className="min-w-[140px] h-10 bg-green-600 hover:bg-green-700 text-base w-full md:w-auto"
                   size="lg"
                 >
-                  {isSubmitting ? "Saving..." : (
+                  {isSubmitting ? (
+                    "Saving..."
+                  ) : (
                     <>
                       <CheckCircle className="mr-2 h-5 w-5" />
                       {submitText}

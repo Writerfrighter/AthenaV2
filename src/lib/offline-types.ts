@@ -1,17 +1,17 @@
 // Offline data types for IndexedDB storage and synchronization
 // Handles caching of pit and match scouting data when offline
 
-import type { PitEntry, MatchEntry } from '@/lib/shared-types';
+import type { PitEntry, MatchEntry, Event } from "@/lib/types";
 
 // Status of a queued entry
-export type SyncStatus = 'pending' | 'syncing' | 'synced' | 'error';
+export type SyncStatus = "pending" | "syncing" | "synced" | "error";
 
 // Base interface for queued data entries
 export interface QueuedEntry {
   id: string; // UUID for the queued entry
-  type: 'pit' | 'match';
+  type: "pit" | "match";
   status: SyncStatus;
-  data: Omit<PitEntry, 'id'> | Omit<MatchEntry, 'id'>;
+  data: Omit<PitEntry, "id"> | Omit<MatchEntry, "id">;
   createdAt: Date;
   lastAttempt?: Date;
   attempts: number;
@@ -21,14 +21,14 @@ export interface QueuedEntry {
 
 // Queued pit scouting entry
 export interface QueuedPitEntry extends QueuedEntry {
-  type: 'pit';
-  data: Omit<PitEntry, 'id'>;
+  type: "pit";
+  data: Omit<PitEntry, "id">;
 }
 
 // Queued match scouting entry
 export interface QueuedMatchEntry extends QueuedEntry {
-  type: 'match';
-  data: Omit<MatchEntry, 'id'>;
+  type: "match";
+  data: Omit<MatchEntry, "id">;
 }
 
 // Sync configuration
@@ -84,11 +84,7 @@ export interface CachedEventList {
   teamNumber: number;
   competitionType: string;
   year: number;
-  events: Array<{
-    name: string;
-    region: string;
-    code: string;
-  }>;
+  events: Array<Event>;
   cachedAt: Date;
 }
 
@@ -139,24 +135,24 @@ export interface CachedMatchEntries {
 // Cached analysis data for an event
 export interface CachedAnalysisData {
   eventCode: string;
-  data: import('@/lib/shared-types').AnalysisData;
+  data: import("@/lib/types").AnalysisData;
   cachedAt: Date;
 }
 
 // IndexedDB schema version - increment when adding new stores
 export const DB_VERSION = 5;
-export const DB_NAME = 'athena-offline-cache';
+export const DB_NAME = "athena-offline-cache";
 
 // Store names
 export const STORES = {
-  QUEUE: 'queue',
-  SYNC_LOG: 'sync_log',
-  CONFIG: 'config',
-  EVENT_TEAMS: 'event_teams',
-  EVENT_LIST: 'event_list',
-  SCOUT_LIST: 'scout_list',
-  CACHED_PIT_ENTRIES: 'cached_pit_entries',
-  CACHED_MATCH_ENTRIES: 'cached_match_entries',
-  CACHED_ANALYSIS_DATA: 'cached_analysis_data',
-  EVENT_CACHE_STATUS: 'event_cache_status',
+  QUEUE: "queue",
+  SYNC_LOG: "sync_log",
+  CONFIG: "config",
+  EVENT_TEAMS: "event_teams",
+  EVENT_LIST: "event_list",
+  SCOUT_LIST: "scout_list",
+  CACHED_PIT_ENTRIES: "cached_pit_entries",
+  CACHED_MATCH_ENTRIES: "cached_match_entries",
+  CACHED_ANALYSIS_DATA: "cached_analysis_data",
+  EVENT_CACHE_STATUS: "event_cache_status",
 } as const;

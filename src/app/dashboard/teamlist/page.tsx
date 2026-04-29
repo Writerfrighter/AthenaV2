@@ -1,74 +1,72 @@
-import { Suspense } from 'react';
-import { Card, CardDescription, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Suspense } from "react";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTeamMedia, getEventTeams } from "@/lib/api/tba";
 import { TbaTeam } from "@/lib/api/tba-types";
 import { getSelectedEvent } from "@/lib/server-event-utils";
 import { DynamicTeamList } from "./dynamic-team-list";
-import { TeamCardSkeleton } from '@/components/team-card-skeleton';
-import type { TeamWithImages } from '@/lib/shared-types';
+import { TeamCardSkeleton } from "@/components/team-card-skeleton";
+import type { TeamWithImages } from "@/lib/types";
 
 // Server component to fetch initial teams and their images
 async function InitialTeamList() {
   const selectedEvent = await getSelectedEvent();
-  
-  if (!selectedEvent?.code) {
-    return (
-      <DynamicTeamList 
-        initialEvent={selectedEvent}
-        initialTeams={[]}
-      />
-    );
+
+  if (!selectedEvent?.eventCode) {
+    return <DynamicTeamList initialEvent={selectedEvent} initialTeams={[]} />;
   }
 
   try {
-    const teams = await getEventTeams(selectedEvent.code);
+    const teams = await getEventTeams(selectedEvent.eventCode);
 
     if (teams.length === 0) {
-      return (
-        <DynamicTeamList 
-          initialEvent={selectedEvent}
-          initialTeams={[]}
-        />
-      );
+      return <DynamicTeamList initialEvent={selectedEvent} initialTeams={[]} />;
     }
 
     // Fetch images for all teams in parallel
     const teamsWithImages = await Promise.all(
       teams.map(async (team): Promise<TeamWithImages> => {
         try {
-          const images = await getTeamMedia(team.team_number, Number(selectedEvent.code.slice(0, 4)));
+          const images = await getTeamMedia(
+            team.team_number,
+            Number(selectedEvent.eventCode.slice(0, 4)),
+          ); // This Number stuff gets the year from the event code, which is in the format "2024miket"
           return {
             ...team,
             images,
           };
         } catch (error) {
-          console.warn(`Failed to fetch images for team ${team.team_number}:`, error);
+          console.warn(
+            `Failed to fetch images for team ${team.team_number}:`,
+            error,
+          );
           return {
             ...team,
             images: [],
           };
         }
-      })
+      }),
     );
 
     // Sort teams by number
     teamsWithImages.sort((a, b) => a.team_number - b.team_number);
 
     return (
-      <DynamicTeamList 
+      <DynamicTeamList
         initialEvent={selectedEvent}
         initialTeams={teamsWithImages}
       />
     );
   } catch (error) {
-    console.error('Error fetching teams:', error);
-    return (
-      <DynamicTeamList 
-        initialEvent={selectedEvent}
-        initialTeams={[]}
-      />
-    );
+    console.error("Error fetching teams:", error);
+    return <DynamicTeamList initialEvent={selectedEvent} initialTeams={[]} />;
   }
 }
 

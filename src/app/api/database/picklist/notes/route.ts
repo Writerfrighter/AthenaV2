@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { databaseManager } from '@/db/database-manager';
-import { DatabaseService } from '@/db/types';
-import { auth } from '@/lib/auth/config';
-import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
+import { NextRequest, NextResponse } from "next/server";
+import { databaseManager } from "@/db/database-manager";
+import { DatabaseService } from "@/lib/types";
+import { auth } from "@/lib/auth/config";
+import { hasPermission, PERMISSIONS } from "@/lib/auth/roles";
 
 let dbService: DatabaseService;
 
@@ -17,34 +17,45 @@ function getDbService() {
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_PICKLIST)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.VIEW_PICKLIST)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
-    const picklistId = searchParams.get('picklistId');
-    const teamNumber = searchParams.get('teamNumber') ? parseInt(searchParams.get('teamNumber')!) : undefined;
+    const picklistId = searchParams.get("picklistId");
+    const teamNumber = searchParams.get("teamNumber")
+      ? parseInt(searchParams.get("teamNumber")!)
+      : undefined;
 
     if (!picklistId) {
       return NextResponse.json(
-        { error: 'Missing required parameter: picklistId' },
-        { status: 400 }
+        { error: "Missing required parameter: picklistId" },
+        { status: 400 },
       );
     }
 
     const service = getDbService();
-    const notes = await service.getPicklistNotes(parseInt(picklistId), teamNumber);
+    const notes = await service.getPicklistNotes(
+      parseInt(picklistId),
+      teamNumber,
+    );
 
     return NextResponse.json({
       picklistId,
       teamNumber,
       notes,
       count: notes.length,
-      success: true
+      success: true,
     });
   } catch (error) {
-    console.error('Error fetching picklist notes:', error);
-    return NextResponse.json({ error: 'Failed to fetch picklist notes' }, { status: 500 });
+    console.error("Error fetching picklist notes:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch picklist notes" },
+      { status: 500 },
+    );
   }
 }
 
@@ -52,8 +63,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -61,8 +75,8 @@ export async function POST(request: NextRequest) {
 
     if (!picklistId || !teamNumber || !note) {
       return NextResponse.json(
-        { error: 'Missing required fields: picklistId, teamNumber, note' },
-        { status: 400 }
+        { error: "Missing required fields: picklistId, teamNumber, note" },
+        { status: 400 },
       );
     }
 
@@ -70,7 +84,7 @@ export async function POST(request: NextRequest) {
     const noteId = await service.addPicklistNote({
       picklistId,
       teamNumber,
-      note
+      note,
     });
 
     return NextResponse.json({
@@ -79,11 +93,14 @@ export async function POST(request: NextRequest) {
       teamNumber,
       note,
       created_at: new Date().toISOString(),
-      success: true
+      success: true,
     });
   } catch (error) {
-    console.error('Error adding picklist note:', error);
-    return NextResponse.json({ error: 'Failed to add picklist note' }, { status: 500 });
+    console.error("Error adding picklist note:", error);
+    return NextResponse.json(
+      { error: "Failed to add picklist note" },
+      { status: 500 },
+    );
   }
 }
 
@@ -91,8 +108,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -100,8 +120,8 @@ export async function PUT(request: NextRequest) {
 
     if (!note) {
       return NextResponse.json(
-        { error: 'Missing required field: note' },
-        { status: 400 }
+        { error: "Missing required field: note" },
+        { status: 400 },
       );
     }
 
@@ -118,27 +138,40 @@ export async function PUT(request: NextRequest) {
       const pid = Number(picklistId);
       const tnum = Number(teamNumber);
       const existing = await service.getPicklistNotes(pid, tnum);
-      if (existing && existing.length > 0 && typeof existing[0].id === 'number') {
+      if (
+        existing &&
+        existing.length > 0 &&
+        typeof existing[0].id === "number"
+      ) {
         const idToUpdate = existing[0].id;
         await service.updatePicklistNote(idToUpdate, { note });
-        return NextResponse.json({ noteId: idToUpdate, updated: true, success: true });
+        return NextResponse.json({
+          noteId: idToUpdate,
+          updated: true,
+          success: true,
+        });
       }
 
       const createdId = await service.addPicklistNote({
         picklistId: pid,
         teamNumber: tnum,
-        note
+        note,
       });
       return NextResponse.json({ id: createdId, created: true, success: true });
     }
 
     return NextResponse.json(
-      { error: 'Missing required fields: noteId or (picklistId and teamNumber)' },
-      { status: 400 }
+      {
+        error: "Missing required fields: noteId or (picklistId and teamNumber)",
+      },
+      { status: 400 },
     );
   } catch (error) {
-    console.error('Error updating picklist note:', error);
-    return NextResponse.json({ error: 'Failed to update picklist note' }, { status: 500 });
+    console.error("Error updating picklist note:", error);
+    return NextResponse.json(
+      { error: "Failed to update picklist note" },
+      { status: 500 },
+    );
   }
 }
 
@@ -146,14 +179,17 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
-    const noteId = searchParams.get('noteId');
-    const picklistId = searchParams.get('picklistId');
-    const teamNumber = searchParams.get('teamNumber');
+    const noteId = searchParams.get("noteId");
+    const picklistId = searchParams.get("picklistId");
+    const teamNumber = searchParams.get("teamNumber");
 
     const service = getDbService();
 
@@ -169,19 +205,30 @@ export async function DELETE(request: NextRequest) {
       const tnum = parseInt(teamNumber);
       const existing = await service.getPicklistNotes(pid, tnum);
       for (const n of existing) {
-        if (typeof n.id === 'number') {
+        if (typeof n.id === "number") {
           await service.deletePicklistNote(n.id);
         }
       }
-      return NextResponse.json({ picklistId: pid, teamNumber: tnum, deleted: true, success: true });
+      return NextResponse.json({
+        picklistId: pid,
+        teamNumber: tnum,
+        deleted: true,
+        success: true,
+      });
     }
 
     return NextResponse.json(
-      { error: 'Missing required parameter: noteId or (picklistId and teamNumber)' },
-      { status: 400 }
+      {
+        error:
+          "Missing required parameter: noteId or (picklistId and teamNumber)",
+      },
+      { status: 400 },
     );
   } catch (error) {
-    console.error('Error deleting picklist note:', error);
-    return NextResponse.json({ error: 'Failed to delete picklist note' }, { status: 500 });
+    console.error("Error deleting picklist note:", error);
+    return NextResponse.json(
+      { error: "Failed to delete picklist note" },
+      { status: 500 },
+    );
   }
 }

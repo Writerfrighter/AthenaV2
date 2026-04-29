@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { databaseManager } from '@/db/database-manager';
-import { DatabaseService, CompetitionType } from '@/db/types';
-import { auth } from '@/lib/auth/config';
-import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
-import { calculateEPA } from '@/lib/statistics';
-import { getEventRankings } from '@/lib/api/tba';
-import gameConfig from '../../../../../config/game-config-loader';
+import { NextRequest, NextResponse } from "next/server";
+import { databaseManager } from "@/db/database-manager";
+import { DatabaseService, CompetitionType } from "@/lib/types";
+import { auth } from "@/lib/auth/config";
+import { hasPermission, PERMISSIONS } from "@/lib/auth/roles";
+import { calculateEPA } from "@/lib/statistics";
+import { getEventRankings } from "@/lib/api/tba";
+import gameConfig from "../../../../../config/game-config-loader";
 
 // Initialize database service
 let dbService: DatabaseService;
@@ -34,16 +34,22 @@ interface TeamPicklistData {
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_PICKLIST)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.VIEW_PICKLIST)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
     const { searchParams } = new URL(request.url);
-    const picklistId = searchParams.get('picklistId');
-    const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
-    const eventCode = searchParams.get('eventCode');
-    const competitionType = (searchParams.get('competitionType') as CompetitionType) || 'FRC';
-    const picklistType = searchParams.get('picklistType') || 'main';
-    const existingOnly = searchParams.get('existingOnly') === 'true';
+    const picklistId = searchParams.get("picklistId");
+    const year = searchParams.get("year")
+      ? parseInt(searchParams.get("year")!)
+      : undefined;
+    const eventCode = searchParams.get("eventCode");
+    const competitionType =
+      (searchParams.get("competitionType") as CompetitionType) || "FRC";
+    const picklistType = searchParams.get("picklistType") || "main";
+    const existingOnly = searchParams.get("existingOnly") === "true";
 
     const service = getDbService();
 
@@ -51,28 +57,36 @@ export async function GET(request: NextRequest) {
     if (picklistId) {
       const picklist = await service.getPicklist(parseInt(picklistId));
       if (!picklist) {
-        return NextResponse.json({ error: 'Picklist not found' }, { status: 404 });
+        return NextResponse.json(
+          { error: "Picklist not found" },
+          { status: 404 },
+        );
       }
 
       const entries = await service.getPicklistEntries(parseInt(picklistId));
-      
+
       return NextResponse.json({
         picklist,
         entries,
-        success: true
+        success: true,
       });
     }
 
     // Check if there's an existing picklist for this event/year/type combination
     if (eventCode && year && picklistType) {
       try {
-        const existing = await service.getPicklistByEvent(eventCode, year, competitionType, picklistType);
+        const existing = await service.getPicklistByEvent(
+          eventCode,
+          year,
+          competitionType,
+          picklistType,
+        );
         if (existing && existing.id) {
           const entries = await service.getPicklistEntries(existing.id);
           return NextResponse.json({
             picklist: existing,
             entries,
-            success: true
+            success: true,
           });
         }
 
@@ -80,35 +94,50 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({
             picklist: null,
             entries: [],
-            success: true
+            success: true,
           });
         }
       } catch (error) {
-        console.error('Error fetching existing picklist by event:', error);
+        console.error("Error fetching existing picklist by event:", error);
         if (existingOnly) {
-          return NextResponse.json({ error: 'Failed to fetch existing picklist' }, { status: 500 });
+          return NextResponse.json(
+            { error: "Failed to fetch existing picklist" },
+            { status: 500 },
+          );
         }
         // Continue to generate rankings if no existing picklist found
       }
     }
 
     // Otherwise, generate initial rankings from TBA qual rankings (FRC) or EPA data (FTC/fallback)
-    const pitEntries = await service.getAllPitEntries(year, undefined, competitionType);
-    const matchEntries = await service.getAllMatchEntries(year, undefined, competitionType);
+    const pitEntries = await service.getAllPitEntries(
+      year,
+      undefined,
+      competitionType,
+    );
+    const matchEntries = await service.getAllMatchEntries(
+      year,
+      undefined,
+      competitionType,
+    );
 
     // Filter by event if specified
     const filteredPitEntries = eventCode
-      ? pitEntries.filter(entry => entry.eventCode === eventCode)
+      ? pitEntries.filter((entry) => entry.eventCode === eventCode)
       : pitEntries;
     const filteredMatchEntries = eventCode
-      ? matchEntries.filter(entry => entry.eventCode === eventCode)
+      ? matchEntries.filter((entry) => entry.eventCode === eventCode)
       : matchEntries;
 
     // Try to use TBA rankings for FRC events
-    if (eventCode && competitionType === 'FRC') {
+    if (eventCode && competitionType === "FRC") {
       try {
         const tbaRankings = await getEventRankings(eventCode);
-        if (tbaRankings && Array.isArray(tbaRankings) && tbaRankings.length > 0) {
+        if (
+          tbaRankings &&
+          Array.isArray(tbaRankings) &&
+          tbaRankings.length > 0
+        ) {
           const rankingBlock = tbaRankings[0];
           const rankingItems = rankingBlock?.rankings || [];
 
@@ -117,10 +146,13 @@ export async function GET(request: NextRequest) {
             const teamMap: Record<number, TeamPicklistData> = {};
 
             rankingItems.forEach((item: any) => {
-              const teamNumber = parseInt(String(item.team_key).replace(/^frc/i, ''), 10);
+              const teamNumber = parseInt(
+                String(item.team_key).replace(/^frc/i, ""),
+                10,
+              );
               teamMap[teamNumber] = {
                 teamNumber,
-                driveTrain: 'Unknown',
+                driveTrain: "Unknown",
                 weight: undefined,
                 length: undefined,
                 width: undefined,
@@ -128,12 +160,12 @@ export async function GET(request: NextRequest) {
                 totalEPA: 0,
                 autoEPA: 0,
                 teleopEPA: 0,
-                endgameEPA: 0
+                endgameEPA: 0,
               };
             });
 
             // Merge pit scouting data
-            filteredPitEntries.forEach(pit => {
+            filteredPitEntries.forEach((pit) => {
               if (teamMap[pit.teamNumber]) {
                 teamMap[pit.teamNumber].driveTrain = pit.driveTrain;
                 teamMap[pit.teamNumber].weight = pit.weight ?? undefined;
@@ -143,54 +175,77 @@ export async function GET(request: NextRequest) {
             });
 
             // Calculate EPA from local match entries when available
-            Object.keys(teamMap).forEach(teamKey => {
+            Object.keys(teamMap).forEach((teamKey) => {
               const teamNumber = parseInt(teamKey, 10);
-              const teamMatches = filteredMatchEntries.filter(m => m.teamNumber === teamNumber);
-              
-              if (teamMatches.length > 0 && year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()]) {
+              const teamMatches = filteredMatchEntries.filter(
+                (m) => m.teamNumber === teamNumber,
+              );
+
+              if (
+                teamMatches.length > 0 &&
+                year &&
+                gameConfig[competitionType] &&
+                gameConfig[competitionType][year.toString()]
+              ) {
                 try {
-                  const yearConfig = gameConfig[competitionType][year.toString()];
-                  const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
+                  const yearConfig =
+                    gameConfig[competitionType][year.toString()];
+                  const epaBreakdown = calculateEPA(
+                    teamMatches,
+                    year,
+                    yearConfig,
+                  );
                   teamMap[teamNumber].autoEPA = epaBreakdown.auto;
                   teamMap[teamNumber].teleopEPA = epaBreakdown.teleop;
                   teamMap[teamNumber].endgameEPA = epaBreakdown.endgame;
                   teamMap[teamNumber].totalEPA = epaBreakdown.totalEPA;
                 } catch (error) {
-                  console.error(`Error calculating EPA for team ${teamNumber}:`, error);
+                  console.error(
+                    `Error calculating EPA for team ${teamNumber}:`,
+                    error,
+                  );
                 }
               }
             });
 
-            const picklistData = rankingItems.map((item: any, index: number) => {
-              const teamNumber = parseInt(String(item.team_key).replace(/^frc/i, ''), 10);
-              const td = teamMap[teamNumber] || {
-                teamNumber,
-                driveTrain: 'Unknown',
-                weight: undefined,
-                length: undefined,
-                width: undefined,
-                matchesPlayed: 0,
-                totalEPA: 0,
-                autoEPA: 0,
-                teleopEPA: 0,
-                endgameEPA: 0
-              };
-              return {
-                ...td,
-                rank: item.rank ?? index + 1
-              };
-            });
+            const picklistData = rankingItems.map(
+              (item: any, index: number) => {
+                const teamNumber = parseInt(
+                  String(item.team_key).replace(/^frc/i, ""),
+                  10,
+                );
+                const td = teamMap[teamNumber] || {
+                  teamNumber,
+                  driveTrain: "Unknown",
+                  weight: undefined,
+                  length: undefined,
+                  width: undefined,
+                  matchesPlayed: 0,
+                  totalEPA: 0,
+                  autoEPA: 0,
+                  teleopEPA: 0,
+                  endgameEPA: 0,
+                };
+                return {
+                  ...td,
+                  rank: item.rank ?? index + 1,
+                };
+              },
+            );
 
             return NextResponse.json({
               teams: picklistData,
               totalTeams: picklistData.length,
-              source: 'tba',
-              lastUpdated: new Date().toISOString()
+              source: "tba",
+              lastUpdated: new Date().toISOString(),
             });
           }
         }
       } catch (error) {
-        console.warn('TBA rankings unavailable, falling back to local EPA calculation:', error);
+        console.warn(
+          "TBA rankings unavailable, falling back to local EPA calculation:",
+          error,
+        );
       }
     }
 
@@ -198,7 +253,7 @@ export async function GET(request: NextRequest) {
     const teamData: Record<number, TeamPicklistData> = {};
 
     // Process pit scouting data
-    filteredPitEntries.forEach(pit => {
+    filteredPitEntries.forEach((pit) => {
       if (!teamData[pit.teamNumber]) {
         teamData[pit.teamNumber] = {
           teamNumber: pit.teamNumber,
@@ -210,17 +265,17 @@ export async function GET(request: NextRequest) {
           totalEPA: 0,
           autoEPA: 0,
           teleopEPA: 0,
-          endgameEPA: 0
+          endgameEPA: 0,
         };
       }
     });
 
     // Process match data
-    filteredMatchEntries.forEach(match => {
+    filteredMatchEntries.forEach((match) => {
       if (!teamData[match.teamNumber]) {
         teamData[match.teamNumber] = {
           teamNumber: match.teamNumber,
-          driveTrain: 'Unknown',
+          driveTrain: "Unknown",
           weight: 0,
           length: 0,
           width: 0,
@@ -228,7 +283,7 @@ export async function GET(request: NextRequest) {
           totalEPA: 0,
           autoEPA: 0,
           teleopEPA: 0,
-          endgameEPA: 0
+          endgameEPA: 0,
         };
       }
 
@@ -236,11 +291,18 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculate EPA using proper statistics functions
-    Object.keys(teamData).forEach(teamNumberStr => {
+    Object.keys(teamData).forEach((teamNumberStr) => {
       const teamNumber = parseInt(teamNumberStr);
-      const teamMatches = filteredMatchEntries.filter(entry => entry.teamNumber === teamNumber);
+      const teamMatches = filteredMatchEntries.filter(
+        (entry) => entry.teamNumber === teamNumber,
+      );
 
-      if (teamMatches.length > 0 && year && gameConfig[competitionType] && gameConfig[competitionType][year.toString()]) {
+      if (
+        teamMatches.length > 0 &&
+        year &&
+        gameConfig[competitionType] &&
+        gameConfig[competitionType][year.toString()]
+      ) {
         try {
           const yearConfig = gameConfig[competitionType][year.toString()];
           const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
@@ -253,10 +315,10 @@ export async function GET(request: NextRequest) {
           console.error(`Error calculating EPA for team ${teamNumber}:`, error);
           // Fallback to simple calculation
           let totalEPA = 0;
-          teamMatches.forEach(match => {
+          teamMatches.forEach((match) => {
             if (match.gameSpecificData) {
-              Object.values(match.gameSpecificData).forEach(value => {
-                if (typeof value === 'number') {
+              Object.values(match.gameSpecificData).forEach((value) => {
+                if (typeof value === "number") {
                   totalEPA += value;
                 }
               });
@@ -267,10 +329,10 @@ export async function GET(request: NextRequest) {
       } else {
         // Fallback to simple calculation if no year config
         let totalEPA = 0;
-        teamMatches.forEach(match => {
+        teamMatches.forEach((match) => {
           if (match.gameSpecificData) {
-            Object.values(match.gameSpecificData).forEach(value => {
-              if (typeof value === 'number') {
+            Object.values(match.gameSpecificData).forEach((value) => {
+              if (typeof value === "number") {
                 totalEPA += value;
               }
             });
@@ -282,21 +344,26 @@ export async function GET(request: NextRequest) {
 
     // Convert to array and sort by EPA
     const picklistData = Object.values(teamData)
-      .sort((a: TeamPicklistData, b: TeamPicklistData) => b.totalEPA - a.totalEPA)
+      .sort(
+        (a: TeamPicklistData, b: TeamPicklistData) => b.totalEPA - a.totalEPA,
+      )
       .map((team: TeamPicklistData, index: number) => ({
         ...team,
-        rank: index + 1
+        rank: index + 1,
       }));
 
     return NextResponse.json({
       teams: picklistData,
       totalTeams: picklistData.length,
-      source: 'scouting',
-      lastUpdated: new Date().toISOString()
+      source: "scouting",
+      lastUpdated: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error fetching picklist data:', error);
-    return NextResponse.json({ error: 'Failed to fetch picklist data' }, { status: 500 });
+    console.error("Error fetching picklist data:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch picklist data" },
+      { status: 500 },
+    );
   }
 }
 
@@ -304,15 +371,21 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const body = await request.json();
     const { eventCode, year, competitionType, picklistType, entries } = body;
 
     if (!eventCode || !year || !competitionType) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
     const service = getDbService();
@@ -322,7 +395,7 @@ export async function POST(request: NextRequest) {
       eventCode,
       year,
       competitionType,
-      picklistType: picklistType || 'main'
+      picklistType: picklistType || "main",
     });
 
     // Add entries if provided
@@ -331,7 +404,7 @@ export async function POST(request: NextRequest) {
         await service.addPicklistEntry({
           picklistId,
           teamNumber: entry.teamNumber,
-          rank: entry.rank
+          rank: entry.rank,
         });
       }
     }
@@ -339,11 +412,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       id: picklistId,
-      message: 'Picklist created successfully'
+      message: "Picklist created successfully",
     });
   } catch (error) {
-    console.error('Error creating picklist:', error);
-    return NextResponse.json({ error: 'Failed to create picklist' }, { status: 500 });
+    console.error("Error creating picklist:", error);
+    return NextResponse.json(
+      { error: "Failed to create picklist" },
+      { status: 500 },
+    );
   }
 }
 
@@ -351,15 +427,21 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const body = await request.json();
     const { picklistId, entries } = body;
 
     if (!picklistId || !entries || !Array.isArray(entries)) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
     const service = getDbService();
@@ -369,11 +451,14 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Picklist order updated successfully'
+      message: "Picklist order updated successfully",
     });
   } catch (error) {
-    console.error('Error updating picklist order:', error);
-    return NextResponse.json({ error: 'Failed to update picklist order' }, { status: 500 });
+    console.error("Error updating picklist order:", error);
+    return NextResponse.json(
+      { error: "Failed to update picklist order" },
+      { status: 500 },
+    );
   }
 }
 
@@ -381,15 +466,21 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.EDIT_PICKLIST)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
-    const picklistId = searchParams.get('picklistId');
+    const picklistId = searchParams.get("picklistId");
 
     if (!picklistId) {
-      return NextResponse.json({ error: 'Missing picklistId' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing picklistId" },
+        { status: 400 },
+      );
     }
 
     const service = getDbService();
@@ -397,10 +488,13 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Picklist deleted successfully'
+      message: "Picklist deleted successfully",
     });
   } catch (error) {
-    console.error('Error deleting picklist:', error);
-    return NextResponse.json({ error: 'Failed to delete picklist' }, { status: 500 });
+    console.error("Error deleting picklist:", error);
+    return NextResponse.json(
+      { error: "Failed to delete picklist" },
+      { status: 500 },
+    );
   }
 }

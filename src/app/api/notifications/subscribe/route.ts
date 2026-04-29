@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/config';
-import { databaseManager } from '@/db/database-manager';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth/config";
+import { databaseManager } from "@/db/database-manager";
 
 interface StoredSubscription {
   endpoint: string;
@@ -14,44 +14,50 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const subscription: StoredSubscription = await request.json();
-    
+
     if (!subscription || !subscription.endpoint) {
       return NextResponse.json(
-        { error: 'Invalid subscription data' },
-        { status: 400 }
+        { error: "Invalid subscription data" },
+        { status: 400 },
       );
     }
 
     const db = databaseManager.getService();
     if (!db.getPool) {
-      return NextResponse.json({ error: 'Database service does not support direct SQL queries' }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database service does not support direct SQL queries" },
+        { status: 500 },
+      );
     }
     const pool = await db.getPool();
 
     // Get current subscriptions for the user
-    const userResult = await pool.request()
-      .input('userId', session.user.id)
-      .query('SELECT push_subscriptions FROM users WHERE id = @userId');
+    const userResult = await pool
+      .request()
+      .input("userId", session.user.id)
+      .query("SELECT push_subscriptions FROM users WHERE id = @userId");
 
     let subscriptions: StoredSubscription[] = [];
-    if (userResult.recordset.length > 0 && userResult.recordset[0].push_subscriptions) {
+    if (
+      userResult.recordset.length > 0 &&
+      userResult.recordset[0].push_subscriptions
+    ) {
       try {
         subscriptions = JSON.parse(userResult.recordset[0].push_subscriptions);
       } catch (error) {
-        console.error('Error parsing existing subscriptions:', error);
+        console.error("Error parsing existing subscriptions:", error);
         subscriptions = [];
       }
     }
 
     // Check if subscription already exists
-    const existingIndex = subscriptions.findIndex(sub => sub.endpoint === subscription.endpoint);
+    const existingIndex = subscriptions.findIndex(
+      (sub) => sub.endpoint === subscription.endpoint,
+    );
     if (existingIndex >= 0) {
       // Update existing subscription
       subscriptions[existingIndex] = subscription;
@@ -61,22 +67,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Save back to database
-    await pool.request()
-      .input('userId', session.user.id)
-      .input('subscriptions', JSON.stringify(subscriptions))
-      .query('UPDATE users SET push_subscriptions = @subscriptions WHERE id = @userId');
-    
-    console.log('Push subscription saved for user:', session.user.id, subscription.endpoint);
-    
+    await pool
+      .request()
+      .input("userId", session.user.id)
+      .input("subscriptions", JSON.stringify(subscriptions))
+      .query(
+        "UPDATE users SET push_subscriptions = @subscriptions WHERE id = @userId",
+      );
+
+    console.log(
+      "Push subscription saved for user:",
+      session.user.id,
+      subscription.endpoint,
+    );
+
     return NextResponse.json(
-      { message: 'Subscription saved successfully' },
-      { status: 200 }
+      { message: "Subscription saved successfully" },
+      { status: 200 },
     );
   } catch (error) {
-    console.error('Error saving subscription:', error);
+    console.error("Error saving subscription:", error);
     return NextResponse.json(
-      { error: 'Failed to save subscription' },
-      { status: 500 }
+      { error: "Failed to save subscription" },
+      { status: 500 },
     );
   }
 }

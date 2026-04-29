@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { databaseManager } from '@/db/database-manager';
-import { CustomEvent, DatabaseService, CompetitionType } from '@/db/types';
-import { auth } from '@/lib/auth/config';
-import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
+import { NextRequest, NextResponse } from "next/server";
+import { databaseManager } from "@/db/database-manager";
+import { CustomEvent, DatabaseService, CompetitionType } from "@/lib/types";
+import { auth } from "@/lib/auth/config";
+import { hasPermission, PERMISSIONS } from "@/lib/auth/roles";
 
 // Initialize database service
 let dbService: DatabaseService;
@@ -18,20 +18,29 @@ function getDbService() {
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.VIEW_DASHBOARD)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.VIEW_DASHBOARD)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
     const { searchParams } = new URL(request.url);
-    const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined;
-    const eventCode = searchParams.get('eventCode') || undefined;
-    const competitionType = (searchParams.get('competitionType') as CompetitionType) || undefined;
+    const year = searchParams.get("year")
+      ? parseInt(searchParams.get("year")!)
+      : undefined;
+    const eventCode = searchParams.get("eventCode") || undefined;
+    const competitionType =
+      (searchParams.get("competitionType") as CompetitionType) || undefined;
 
     const service = getDbService();
 
     if (eventCode) {
       const event = await service.getCustomEvent(eventCode, competitionType);
       if (!event) {
-        return NextResponse.json({ error: 'Custom event not found' }, { status: 404 });
+        return NextResponse.json(
+          { error: "Custom event not found" },
+          { status: 404 },
+        );
       }
       return NextResponse.json(event);
     } else {
@@ -39,8 +48,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(events);
     }
   } catch (error) {
-    console.error('Error fetching custom events:', error);
-    return NextResponse.json({ error: 'Failed to fetch custom events' }, { status: 500 });
+    console.error("Error fetching custom events:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch custom events" },
+      { status: 500 },
+    );
   }
 }
 
@@ -48,17 +60,23 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.MANAGE_EVENT_SETTINGS)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const event: Omit<CustomEvent, 'id'> = await request.json();
+    const event: Omit<CustomEvent, "id"> = await request.json();
     const service = getDbService();
     const id = await service.addCustomEvent(event);
     return NextResponse.json({ id }, { status: 201 });
   } catch (error) {
-    console.error('Error adding custom event:', error);
-    return NextResponse.json({ error: 'Failed to add custom event' }, { status: 500 });
+    console.error("Error adding custom event:", error);
+    return NextResponse.json(
+      { error: "Failed to add custom event" },
+      { status: 500 },
+    );
   }
 }
 
@@ -66,22 +84,31 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.MANAGE_EVENT_SETTINGS)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { eventCode, ...updates } = await request.json();
 
     if (!eventCode) {
-      return NextResponse.json({ error: 'eventCode is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "eventCode is required" },
+        { status: 400 },
+      );
     }
 
     const service = getDbService();
     await service.updateCustomEvent(eventCode, updates);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error updating custom event:', error);
-    return NextResponse.json({ error: 'Failed to update custom event' }, { status: 500 });
+    console.error("Error updating custom event:", error);
+    return NextResponse.json(
+      { error: "Failed to update custom event" },
+      { status: 500 },
+    );
   }
 }
 
@@ -89,22 +116,31 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.MANAGE_EVENT_SETTINGS)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.MANAGE_EVENT_SETTINGS)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
-    const eventCode = searchParams.get('eventCode');
+    const eventCode = searchParams.get("eventCode");
 
     if (!eventCode) {
-      return NextResponse.json({ error: 'eventCode parameter is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "eventCode parameter is required" },
+        { status: 400 },
+      );
     }
 
     const service = getDbService();
     await service.deleteCustomEvent(eventCode);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting custom event:', error);
-    return NextResponse.json({ error: 'Failed to delete custom event' }, { status: 500 });
+    console.error("Error deleting custom event:", error);
+    return NextResponse.json(
+      { error: "Failed to delete custom event" },
+      { status: 500 },
+    );
   }
 }

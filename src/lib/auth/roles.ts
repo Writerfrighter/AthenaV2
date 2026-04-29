@@ -154,14 +154,14 @@ export const ROLE_PERMISSIONS = {
     // Very limited access, mainly for external teams - no comments due to GP concerns
     PERMISSIONS.VIEW_DASHBOARD,
     PERMISSIONS.VIEW_MATCH_SCOUTING, // Can see match data (no comments)
-    PERMISSIONS.VIEW_PIT_SCOUTING,   // Can see pit data (no comments)
+    PERMISSIONS.VIEW_PIT_SCOUTING, // Can see pit data (no comments)
   ],
 };
 
 // Helper functions
 export function hasPermission(
   userRole: string | null,
-  permission: string
+  permission: string,
 ): boolean {
   if (
     !userRole ||
@@ -176,14 +176,14 @@ export function hasPermission(
 
 export function hasAnyPermission(
   userRole: string | null,
-  permissions: string[]
+  permissions: string[],
 ): boolean {
   return permissions.some((permission) => hasPermission(userRole, permission));
 }
 
 export function hasAllPermissions(
   userRole: string | null,
-  permissions: string[]
+  permissions: string[],
 ): boolean {
   return permissions.every((permission) => hasPermission(userRole, permission));
 }

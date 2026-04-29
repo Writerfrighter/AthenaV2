@@ -1,29 +1,37 @@
-'use client';
+"use client";
 
-import dynamic from "next/dynamic"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import dynamic from "next/dynamic";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { BarChart3, Table2, TrendingUp, Activity } from "lucide-react"
-import { useAnalysisStats } from "@/hooks/use-analysis-stats"
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart3, Table2, TrendingUp, Activity } from "lucide-react";
+import { useAnalysisStats } from "@/hooks/use-analysis-stats";
 
 const StackedEPAChart = dynamic(
-  () => import("@/components/charts/stacked-epa-chart").then((mod) => mod.StackedEPAChart),
+  () =>
+    import("@/components/charts/stacked-epa-chart").then(
+      (mod) => mod.StackedEPAChart,
+    ),
   {
-    loading: () => <div className="text-sm text-muted-foreground">Loading chart...</div>,
-  }
-)
+    loading: () => (
+      <div className="text-sm text-muted-foreground">Loading chart...</div>
+    ),
+  },
+);
 
 const EPATable = dynamic(
   () => import("@/components/tables/epa-table").then((mod) => mod.EPATable),
   {
-    loading: () => <div className="text-sm text-muted-foreground">Loading table...</div>,
-  }
-)
+    loading: () => (
+      <div className="text-sm text-muted-foreground">Loading table...</div>
+    ),
+  },
+);
 
 export default function Page() {
   const { stats, loading } = useAnalysisStats();
@@ -33,18 +41,21 @@ export default function Page() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Analysis</h1>
         <p className="text-muted-foreground">
-          Analyze team performance with EPA (Expected Points Added) metrics and visualizations
+          Analyze team performance with EPA (Expected Points Added) metrics and
+          visualizations
         </p>
       </div>
 
       {/* Analysis Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent >
+          <CardContent>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Teams Analyzed</p>
-                <p className="text-2xl font-bold">{loading ? "..." : stats.teamsAnalyzed}</p>
+                <p className="text-2xl font-bold">
+                  {loading ? "..." : stats.teamsAnalyzed}
+                </p>
               </div>
               <div className="p-2 bg-muted rounded-lg">
                 <Activity className="h-5 w-5 text-muted-foreground" />
@@ -54,11 +65,17 @@ export default function Page() {
         </Card>
 
         <Card>
-          <CardContent >
+          <CardContent>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Highest EPA</p>
-                <p className="text-2xl font-bold">{loading ? "..." : (isNaN(stats.highestEPA) ? "N/A" : stats.highestEPA)}</p>
+                <p className="text-2xl font-bold">
+                  {loading
+                    ? "..."
+                    : isNaN(stats.highestEPA)
+                      ? "N/A"
+                      : stats.highestEPA}
+                </p>
               </div>
               <div className="p-2 bg-muted rounded-lg">
                 <TrendingUp className="h-5 w-5 text-muted-foreground" />
@@ -68,11 +85,17 @@ export default function Page() {
         </Card>
 
         <Card>
-          <CardContent >
+          <CardContent>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Average EPA</p>
-                <p className="text-2xl font-bold">{loading ? "..." : (isNaN(stats.averageEPA) ? "N/A" : stats.averageEPA)}</p>
+                <p className="text-2xl font-bold">
+                  {loading
+                    ? "..."
+                    : isNaN(stats.averageEPA)
+                      ? "N/A"
+                      : stats.averageEPA}
+                </p>
               </div>
               <div className="p-2 bg-muted rounded-lg">
                 <BarChart3 className="h-5 w-5 text-muted-foreground" />
@@ -82,11 +105,13 @@ export default function Page() {
         </Card>
 
         <Card>
-          <CardContent >
+          <CardContent>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Data Points</p>
-                <p className="text-2xl font-bold">{loading ? "..." : stats.dataPoints}</p>
+                <p className="text-2xl font-bold">
+                  {loading ? "..." : stats.dataPoints}
+                </p>
               </div>
               <div className="p-2 bg-muted rounded-lg">
                 <Table2 className="h-5 w-5 text-muted-foreground" />
@@ -101,23 +126,18 @@ export default function Page() {
         <CardHeader>
           <CardTitle>EPA Analysis</CardTitle>
           <CardDescription>
-            Switch between chart and table views to explore team performance data
+            Switch between chart and table views to explore team performance
+            data
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue='graph' className="space-y-6">
+          <Tabs defaultValue="graph" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger 
-                value="graph" 
-                className="flex items-center gap-2"
-              >
+              <TabsTrigger value="graph" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 Chart View
               </TabsTrigger>
-              <TabsTrigger 
-                value="table" 
-                className="flex items-center gap-2"
-              >
+              <TabsTrigger value="table" className="flex items-center gap-2">
                 <Table2 className="h-4 w-4" />
                 Table View
               </TabsTrigger>
@@ -128,11 +148,14 @@ export default function Page() {
             </TabsContent>
 
             <TabsContent value="table" className="space-y-4">
-              <EPATable data={stats.teamEPAData} metrics={stats.availableMetrics} />
+              <EPATable
+                data={stats.teamEPAData}
+                metrics={stats.availableMetrics}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -9,7 +9,7 @@ import {
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import type { TeamWithImages } from "@/lib/shared-types";
+import type { TeamWithImages } from "@/lib/types";
 import TeamCarousel from "./image-carousel";
 import { ExternalLink, MapPin, Calendar, Users, ImageIcon } from "lucide-react";
 
@@ -29,12 +29,15 @@ export function TeamCard({ team }: TeamCardProps) {
               <CardTitle className="text-xl font-bold">
                 {team.nickname}
               </CardTitle>
-              <Badge variant="secondary" className="w-fit bg-primary/10 text-primary border-primary/20">
+              <Badge
+                variant="secondary"
+                className="w-fit bg-primary/10 text-primary border-primary/20"
+              >
                 Team {team.team_number}
               </Badge>
             </div>
           </div>
-          
+
           <CardDescription className="flex items-center gap-2 text-muted-foreground">
             <MapPin className="h-3 w-3 flex-shrink-0" />
             <span className="text-sm">
@@ -54,7 +57,9 @@ export function TeamCard({ team }: TeamCardProps) {
               <div className="relative h-full w-full">
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-background/75">
                   <ImageIcon className="h-16 w-16 mb-4 opacity-50" />
-                  <p className="text-sm font-medium">No robot image available</p>
+                  <p className="text-sm font-medium">
+                    No robot image available
+                  </p>
                   <p className="text-xs">Team {team.team_number}</p>
                   {/* {team.yearLabel && <p className="text-xs mt-1">{team.yearLabel}</p>} */}
                 </div>
@@ -89,7 +94,7 @@ export function TeamCard({ team }: TeamCardProps) {
             View Scouting Data
           </Link>
         </Button>
-        
+
         {team.website ? (
           <Button asChild variant="outline" className="w-full group/website">
             <Link href={team.website} className="w-full" target="_blank">

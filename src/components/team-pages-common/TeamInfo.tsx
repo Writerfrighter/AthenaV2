@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface TeamInfoProps {
   teamNumber: string;
@@ -11,7 +11,12 @@ interface TeamInfoProps {
   matches?: number;
 }
 
-export function TeamInfo({ teamNumber, driveTrain, weight, matches }: TeamInfoProps) {
+export function TeamInfo({
+  teamNumber,
+  driveTrain,
+  weight,
+  matches,
+}: TeamInfoProps) {
   return (
     <Card>
       <CardHeader>
@@ -32,11 +37,13 @@ export function TeamInfo({ teamNumber, driveTrain, weight, matches }: TeamInfoPr
         </div> */}
         <div className="flex justify-between">
           <span className="text-sm text-muted-foreground">Drivetrain</span>
-          <span className="font-medium">{driveTrain ? driveTrain : 'Unknown'}</span>
+          <span className="font-medium">
+            {driveTrain ? driveTrain : "Unknown"}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-sm text-muted-foreground">Weight</span>
-          <span className="font-medium">{weight ? weight : 'Unknown'}</span>
+          <span className="font-medium">{weight ? weight : "Unknown"}</span>
         </div>
 
         <div className="flex justify-between">

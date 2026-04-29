@@ -18,7 +18,8 @@ export default function PicklistPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Team Picklist</h1>
           <p className="text-muted-foreground">
-            Create and manage your alliance selection preferences with drag-and-drop ranking.
+            Create and manage your alliance selection preferences with
+            drag-and-drop ranking.
           </p>
         </div>
 
@@ -29,7 +30,8 @@ export default function PicklistPage() {
               <div>
                 <h3 className="font-semibold text-lg">No Event Selected</h3>
                 <p className="text-muted-foreground">
-                  Please select an event from the event selector to view and manage picklists.
+                  Please select an event from the event selector to view and
+                  manage picklists.
                 </p>
               </div>
             </div>
@@ -45,10 +47,9 @@ export default function PicklistPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Team Picklist</h1>
         <p className="text-muted-foreground">
-          {competitionType === 'FRC' 
-            ? 'Drag and drop teams between 1st Pick, 2nd Pick, and Unlisted.'
-            : 'Create and manage your alliance selection preferences.'
-          }
+          {competitionType === "FRC"
+            ? "Drag and drop teams between 1st Pick, 2nd Pick, and Unlisted."
+            : "Create and manage your alliance selection preferences."}
         </p>
         <div className="flex items-center gap-2 mt-2">
           <Badge variant="outline">{selectedEvent.name}</Badge>
@@ -57,7 +58,7 @@ export default function PicklistPage() {
 
       {/* Always show draggable picklist */}
       <DraggablePicklist
-        eventCode={selectedEvent.code}
+        eventCode={selectedEvent.eventCode}
         year={currentYear}
         competitionType={competitionType}
       />

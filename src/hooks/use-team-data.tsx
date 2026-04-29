@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSelectedEvent } from './use-event-config';
-import { useGameConfig } from './use-game-config';
-import { teamApi } from '@/lib/api/database-client';
-import { indexedDBService } from '@/lib/indexeddb-service';
-import type { TeamData } from '@/lib/shared-types';
+import { useState, useEffect } from "react";
+import { useSelectedEvent } from "./use-event-config";
+import { useGameConfig } from "./use-game-config";
+import { teamApi } from "@/lib/api/database-client";
+import { indexedDBService } from "@/lib/indexeddb-service";
+import type { TeamData } from "@/lib/types";
 
 export function useTeamData(teamNumber: string) {
   const selectedEvent = useSelectedEvent();
@@ -22,49 +22,56 @@ export function useTeamData(teamNumber: string) {
         setError(null);
         setIsOfflineData(false);
 
-        const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
-        const eventCode = selectedEvent?.code;
+        const isOnline =
+          typeof navigator !== "undefined" ? navigator.onLine : true;
+        const eventCode = selectedEvent?.eventCode;
 
         // If offline, reconstruct from cached pit/match entries
         if (!isOnline && eventCode) {
-          const offlineData = await buildTeamDataFromCache(teamNumber, eventCode);
+          const offlineData = await buildTeamDataFromCache(
+            teamNumber,
+            eventCode,
+          );
           if (offlineData) {
             setTeamData(offlineData);
             setIsOfflineData(true);
             return;
           }
-          setError('Offline — no cached data available for this team');
+          setError("Offline — no cached data available for this team");
           return;
         }
 
         // Fetch team data from API
         const data = await teamApi.getTeamData(
-          parseInt(teamNumber), 
-          currentYear, 
+          parseInt(teamNumber),
+          currentYear,
           eventCode,
-          competitionType
+          competitionType,
         );
 
         setTeamData(data);
       } catch (err) {
-        console.error('Error fetching team data:', err);
+        console.error("Error fetching team data:", err);
 
         // Fallback to IndexedDB cache on network error
-        const eventCode = selectedEvent?.code;
+        const eventCode = selectedEvent?.eventCode;
         if (eventCode) {
           try {
-            const offlineData = await buildTeamDataFromCache(teamNumber, eventCode);
+            const offlineData = await buildTeamDataFromCache(
+              teamNumber,
+              eventCode,
+            );
             if (offlineData) {
               setTeamData(offlineData);
               setIsOfflineData(true);
               return;
             }
           } catch (cacheErr) {
-            console.warn('Failed to read cached team data:', cacheErr);
+            console.warn("Failed to read cached team data:", cacheErr);
           }
         }
 
-        setError('Failed to load team data');
+        setError("Failed to load team data");
       } finally {
         setLoading(false);
       }
@@ -75,7 +82,7 @@ export function useTeamData(teamNumber: string) {
     } else {
       setLoading(false);
     }
-  }, [teamNumber, currentYear, selectedEvent?.code, competitionType]);
+  }, [teamNumber, currentYear, selectedEvent?.eventCode, competitionType]);
 
   return { teamData, loading, error, isOfflineData };
 }
@@ -83,7 +90,7 @@ export function useTeamData(teamNumber: string) {
 /** Reconstruct a partial TeamData from cached pit/match entries */
 async function buildTeamDataFromCache(
   teamNumber: string,
-  eventCode: string
+  eventCode: string,
 ): Promise<TeamData | null> {
   const teamNum = parseInt(teamNumber);
 
@@ -92,8 +99,10 @@ async function buildTeamDataFromCache(
     indexedDBService.getCachedPitEntries(eventCode),
   ]);
 
-  const matchEntries = cachedMatch?.entries.filter(e => e.teamNumber === teamNum) ?? [];
-  const pitEntry = cachedPit?.entries.find(e => e.teamNumber === teamNum) ?? null;
+  const matchEntries =
+    cachedMatch?.entries.filter((e) => e.teamNumber === teamNum) ?? [];
+  const pitEntry =
+    cachedPit?.entries.find((e) => e.teamNumber === teamNum) ?? null;
 
   // Only return data if we have something useful
   if (matchEntries.length === 0 && !pitEntry) return null;

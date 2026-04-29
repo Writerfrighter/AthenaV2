@@ -1,48 +1,68 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-let authSession: any = { user: { id: 'user-1', role: 'admin' } };
+let authSession: any = { user: { id: "user-1", role: "admin" } };
 let permissionResult = true;
 
-vi.mock('@/lib/auth/config', () => ({
+vi.mock("@/lib/auth/config", () => ({
   auth: vi.fn(async () => authSession),
 }));
 
-vi.mock('@/lib/auth/roles', () => ({
+vi.mock("@/lib/auth/roles", () => ({
   hasPermission: vi.fn(() => permissionResult),
   PERMISSIONS: {
-    EXPORT_DATA: 'EXPORT_DATA',
-    IMPORT_DATA: 'IMPORT_DATA',
+    EXPORT_DATA: "EXPORT_DATA",
+    IMPORT_DATA: "IMPORT_DATA",
   },
 }));
 
-describe('/api/database/export and import', () => {
+describe("/api/database/export and import", () => {
   let service: any;
 
   beforeEach(() => {
     vi.resetModules();
     permissionResult = true;
-    authSession = { user: { id: 'user-1', role: 'admin' } };
+    authSession = { user: { id: "user-1", role: "admin" } };
 
     service = {
       exportData: vi.fn().mockResolvedValue({
         pitEntries: [
-          { id: 1, teamNumber: 1, year: 2025, competitionType: 'FRC', eventCode: 'EVT', gameSpecificData: {} },
+          {
+            id: 1,
+            teamNumber: 1,
+            year: 2025,
+            competitionType: "FRC",
+            eventCode: "EVT",
+            gameSpecificData: {},
+          },
         ],
         matchEntries: [
-          { id: 2, teamNumber: 1, matchNumber: 1, year: 2025, competitionType: 'FRC', eventCode: 'EVT', alliance: 'red', notes: '', timestamp: new Date(), gameSpecificData: {} },
+          {
+            id: 2,
+            teamNumber: 1,
+            matchNumber: 1,
+            year: 2025,
+            competitionType: "FRC",
+            eventCode: "EVT",
+            alliance: "red",
+            notes: "",
+            timestamp: new Date(),
+            gameSpecificData: {},
+          },
         ],
       }),
       importData: vi.fn().mockResolvedValue(undefined),
     };
 
-    vi.doMock('@/db/database-manager', () => ({
+    vi.doMock("@/db/database-manager", () => ({
       databaseManager: { getService: () => service },
     }));
   });
 
-  it('exports json and filters types', async () => {
-    const route = await import('@/app/api/database/export/route');
-    const req = new Request('http://test/api/database/export?format=json&types=pit');
+  it("exports json and filters types", async () => {
+    const route = await import("@/app/api/database/export/route");
+    const req = new Request(
+      "http://test/api/database/export?format=json&types=pit",
+    );
     const res = await route.GET(req as any);
     const body = await res.json();
 
@@ -51,11 +71,11 @@ describe('/api/database/export and import', () => {
     expect(body.matchEntries).toBeUndefined();
   });
 
-  it('imports json payload', async () => {
-    const route = await import('@/app/api/database/import/route');
-    const req = new Request('http://test/api/database/import', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
+  it("imports json payload", async () => {
+    const route = await import("@/app/api/database/import/route");
+    const req = new Request("http://test/api/database/import", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({ pitEntries: [], matchEntries: [] }),
     });
 
@@ -64,6 +84,9 @@ describe('/api/database/export and import', () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(service.importData).toHaveBeenCalledWith({ pitEntries: [], matchEntries: [] });
+    expect(service.importData).toHaveBeenCalledWith({
+      pitEntries: [],
+      matchEntries: [],
+    });
   });
 });

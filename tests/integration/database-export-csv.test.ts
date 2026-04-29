@@ -1,26 +1,26 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-let authSession: any = { user: { id: 'user-1', role: 'admin' } };
+let authSession: any = { user: { id: "user-1", role: "admin" } };
 let permissionResult = true;
 
-vi.mock('@/lib/auth/config', () => ({
+vi.mock("@/lib/auth/config", () => ({
   auth: vi.fn(async () => authSession),
 }));
 
-vi.mock('@/lib/auth/roles', () => ({
+vi.mock("@/lib/auth/roles", () => ({
   hasPermission: vi.fn(() => permissionResult),
   PERMISSIONS: {
-    EXPORT_DATA: 'EXPORT_DATA',
+    EXPORT_DATA: "EXPORT_DATA",
   },
 }));
 
-describe('export CSV integration', () => {
+describe("export CSV integration", () => {
   let service: any;
 
   beforeEach(() => {
     vi.resetModules();
     permissionResult = true;
-    authSession = { user: { id: 'user-1', role: 'admin' } };
+    authSession = { user: { id: "user-1", role: "admin" } };
 
     service = {
       exportData: vi.fn().mockResolvedValue({
@@ -29,13 +29,13 @@ describe('export CSV integration', () => {
             id: 1,
             teamNumber: 111,
             year: 2025,
-            competitionType: 'FRC',
-            driveTrain: 'Tank',
+            competitionType: "FRC",
+            driveTrain: "Tank",
             weight: 120,
             length: 30,
             width: 28,
-            eventName: 'Event',
-            eventCode: 'EVT',
+            eventName: "Event",
+            eventCode: "EVT",
             gameSpecificData: { auto: { left: 1 } },
           },
         ],
@@ -43,20 +43,22 @@ describe('export CSV integration', () => {
       }),
     };
 
-    vi.doMock('@/db/database-manager', () => ({
+    vi.doMock("@/db/database-manager", () => ({
       databaseManager: { getService: () => service },
     }));
   });
 
-  it('returns CSV content for pit export', async () => {
-    const route = await import('@/app/api/database/export/route');
-    const req = new Request('http://test/api/database/export?format=csv&types=pit');
+  it("returns CSV content for pit export", async () => {
+    const route = await import("@/app/api/database/export/route");
+    const req = new Request(
+      "http://test/api/database/export?format=csv&types=pit",
+    );
     const res = await route.GET(req as any);
     const text = await res.text();
 
     expect(res.status).toBe(200);
-    expect(res.headers.get('content-type')).toContain('text/csv');
-    expect(text).toContain('type');
-    expect(text).toContain('pit');
+    expect(res.headers.get("content-type")).toContain("text/csv");
+    expect(text).toContain("type");
+    expect(text).toContain("pit");
   });
 });
