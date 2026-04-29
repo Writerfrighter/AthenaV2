@@ -6,14 +6,12 @@ import {
   ChevronsUpDown,
   LogOut,
   Trophy,
-  Palette,
 } from "lucide-react";
 
 import { useAccountSettingsDialog } from "@/app/dashboard/dashboard-shell";
 import { useNotificationSettingsDialog } from "@/app/dashboard/dashboard-shell";
 import { signOut } from "next-auth/react";
 import { useGameConfig } from "@/hooks/use-game-config";
-import { ThemeSelector } from "@/components/settings/theme-selector";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {

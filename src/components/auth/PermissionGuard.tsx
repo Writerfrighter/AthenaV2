@@ -7,7 +7,6 @@ import {
   hasPermission,
   hasAnyPermission,
   hasAllPermissions,
-  PERMISSIONS,
 } from "@/lib/auth/roles";
 
 interface PermissionGuardProps {

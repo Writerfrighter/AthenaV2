@@ -1,15 +1,10 @@
 import { Suspense } from "react";
 import {
   Card,
-  CardDescription,
   CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTeamMedia, getEventTeams } from "@/lib/api/tba";
-import { TbaTeam } from "@/lib/api/tba-types";
 import { getSelectedEvent } from "@/lib/server-event-utils";
 import { DynamicTeamList } from "./dynamic-team-list";
 import { TeamCardSkeleton } from "@/components/team-card-skeleton";

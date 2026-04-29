@@ -15,7 +15,6 @@ import {
   Trophy,
   Target,
   Activity,
-  BarChart,
   Flame,
   AlertTriangle,
   Wrench,
