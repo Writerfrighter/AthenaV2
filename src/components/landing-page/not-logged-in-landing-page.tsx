@@ -164,7 +164,7 @@ export function NotLoggedInLandingPage() {
               </div>
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-end items-center sm:items-start">
                 <Link href="/signup">
-                  <Button size="xl" className="gap-2 text-lg">
+                  <Button size="lg" className="gap-2 text-lg">
                     <UserPlus className="h-10 w-10" />
                     Get Started
                   </Button>
