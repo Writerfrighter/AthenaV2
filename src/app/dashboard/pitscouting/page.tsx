@@ -1,12 +1,27 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, AlertCircle, Database, Download, Filter, ChevronDown, WifiOff, Users } from "lucide-react";
+import {
+  Plus,
+  AlertCircle,
+  Database,
+  Download,
+  Filter,
+  ChevronDown,
+  WifiOff,
+  Users,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +31,7 @@ import {
 import { toast } from "sonner";
 import { PitScoutingTable } from "@/components/tables/pit-scouting-table";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
-import { PitEntry } from "@/lib/shared-types";
+import { PitEntry } from "@/lib/types/db/entries";
 import { useGameConfig } from "@/hooks/use-game-config";
 import { useEventConfig } from "@/hooks/use-event-config";
 import { indexedDBService } from "@/lib/indexeddb-service";
@@ -31,29 +46,30 @@ export default function PitScoutingPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [isOfflineData, setIsOfflineData] = useState(false);
 
-  const { getCurrentYearConfig, currentYear, competitionType } = useGameConfig();
+  const { getCurrentYearConfig, currentYear, competitionType } =
+    useGameConfig();
   const gameConfig = getCurrentYearConfig();
   const { selectedEvent } = useEventConfig();
 
-  const handleExport = async (format: 'json' | 'csv' | 'xlsx' = 'csv') => {
+  const handleExport = async (format: "json" | "csv" | "xlsx" = "csv") => {
     try {
       const params = new URLSearchParams();
-      params.append('year', currentYear.toString());
-      params.append('format', format);
-      params.append('types', 'pit'); // Only export pit data
-      if (selectedEvent?.code) {
-        params.append('eventCode', selectedEvent.code);
+      params.append("year", currentYear.toString());
+      params.append("format", format);
+      params.append("types", "pit"); // Only export pit data
+      if (selectedEvent?.eventCode) {
+        params.append("eventCode", selectedEvent.eventCode);
       }
-      params.append('competitionType', competitionType);
-      
+      params.append("competitionType", competitionType);
+
       const response = await fetch(`/api/database/export?${params.toString()}`);
       if (!response.ok) {
-        throw new Error('Failed to export data');
+        throw new Error("Failed to export data");
       }
 
       // Get filename from response headers or create default
-      const contentDisposition = response.headers.get('content-disposition');
-      let filename = `pit-scouting-${currentYear}${selectedEvent ? `-${selectedEvent.code}` : ''}.${format}`;
+      const contentDisposition = response.headers.get("content-disposition");
+      let filename = `pit-scouting-${currentYear}${selectedEvent ? `-${selectedEvent.eventCode}` : ""}.${format}`;
 
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="(.+)"/);
@@ -65,10 +81,10 @@ export default function PitScoutingPage() {
       // Download the file
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = filename;
-      link.style.visibility = 'hidden';
+      link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -76,8 +92,8 @@ export default function PitScoutingPage() {
 
       toast.success(`Data exported successfully as ${format.toUpperCase()}`);
     } catch (err) {
-      console.error('Error exporting data:', err);
-      toast.error('Failed to export data');
+      console.error("Error exporting data:", err);
+      toast.error("Failed to export data");
     }
   };
 
@@ -88,8 +104,9 @@ export default function PitScoutingPage() {
       setError(null);
       setIsOfflineData(false);
 
-      const eventCode = selectedEvent?.code;
-      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      const eventCode = selectedEvent?.eventCode;
+      const isOnline =
+        typeof navigator !== "undefined" ? navigator.onLine : true;
 
       // If offline, go straight to IndexedDB
       if (!isOnline && eventCode) {
@@ -99,14 +116,16 @@ export default function PitScoutingPage() {
           setIsOfflineData(true);
           return;
         }
-        setError('Offline — no cached pit scouting data available. Use the pre-cache feature in Settings while online.');
+        setError(
+          "Offline — no cached pit scouting data available. Use the pre-cache feature in Settings while online.",
+        );
         return;
       }
 
       const params = new URLSearchParams();
-      if (eventCode) params.append('eventCode', eventCode);
-      params.append('competitionType', competitionType);
-      
+      if (eventCode) params.append("eventCode", eventCode);
+      params.append("competitionType", competitionType);
+
       const url = `/api/database/pit?${params.toString()}`;
       const response = await fetch(url);
       if (!response.ok) {
@@ -116,25 +135,25 @@ export default function PitScoutingPage() {
       const data = await response.json();
       setPitEntries(data);
     } catch (err) {
-      console.error('Error fetching pit entries:', err);
+      console.error("Error fetching pit entries:", err);
 
       // Fallback to IndexedDB cache on network error
-      const eventCode = selectedEvent?.code;
+      const eventCode = selectedEvent?.eventCode;
       if (eventCode) {
         try {
           const cached = await indexedDBService.getCachedPitEntries(eventCode);
           if (cached && cached.entries.length > 0) {
             setPitEntries(cached.entries);
             setIsOfflineData(true);
-            toast.info('Showing cached pit scouting data (offline)');
+            toast.info("Showing cached pit scouting data (offline)");
             return;
           }
         } catch (cacheErr) {
-          console.warn('Failed to read cached pit entries:', cacheErr);
+          console.warn("Failed to read cached pit entries:", cacheErr);
         }
       }
 
-      setError('Failed to load pit scouting data');
+      setError("Failed to load pit scouting data");
     } finally {
       setLoading(false);
     }
@@ -173,7 +192,7 @@ export default function PitScoutingPage() {
       let failedCount = 0;
       for (const id of idsToDelete) {
         const response = await fetch(`/api/database/pit?id=${id}`, {
-          method: 'DELETE',
+          method: "DELETE",
         });
         if (!response.ok) {
           failedCount++;
@@ -182,21 +201,23 @@ export default function PitScoutingPage() {
 
       // Refresh data
       await fetchPitEntries();
-      
+
       if (failedCount > 0) {
-        toast.warning(`Deleted ${idsToDelete.length - failedCount} of ${idsToDelete.length} entries. ${failedCount} failed.`);
+        toast.warning(
+          `Deleted ${idsToDelete.length - failedCount} of ${idsToDelete.length} entries. ${failedCount} failed.`,
+        );
       } else if (idsToDelete.length === 1) {
-        toast.success('Pit entry deleted successfully');
+        toast.success("Pit entry deleted successfully");
       } else {
         toast.success(`${idsToDelete.length} pit entries deleted successfully`);
       }
-      
+
       setDeleteDialogOpen(false);
       setEntryToDelete(null);
       setEntriesToDelete([]);
     } catch (err) {
-      console.error('Error deleting pit entries:', err);
-      toast.error('Failed to delete pit entries');
+      console.error("Error deleting pit entries:", err);
+      toast.error("Failed to delete pit entries");
     } finally {
       setDeleteLoading(false);
     }
@@ -206,9 +227,7 @@ export default function PitScoutingPage() {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          {error}
-        </AlertDescription>
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
@@ -241,18 +260,18 @@ export default function PitScoutingPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport('csv')}>
+              <DropdownMenuItem onClick={() => handleExport("csv")}>
                 Export as CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('json')}>
+              <DropdownMenuItem onClick={() => handleExport("json")}>
                 Export as JSON
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+              <DropdownMenuItem onClick={() => handleExport("xlsx")}>
                 Export as Excel
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button onClick={() => window.open('/scout/pitscout', '_blank')}>
+          <Button onClick={() => window.open("/scout/pitscout", "_blank")}>
             <Plus className="mr-2 h-4 w-4" />
             Add New Entry
           </Button>
@@ -281,11 +300,9 @@ export default function PitScoutingPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Set(pitEntries.map(entry => entry.teamNumber)).size}
+              {new Set(pitEntries.map((entry) => entry.teamNumber)).size}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Teams scouted
-            </p>
+            <p className="text-xs text-muted-foreground">Teams scouted</p>
           </CardContent>
         </Card>
 
@@ -295,10 +312,10 @@ export default function PitScoutingPage() {
             <Badge variant="outline">{currentYear}</Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{gameConfig?.gameName || 'REEFSCAPE'}</div>
-            <p className="text-xs text-muted-foreground">
-              Current season
-            </p>
+            <div className="text-2xl font-bold">
+              {gameConfig?.gameName || "REEFSCAPE"}
+            </div>
+            <p className="text-xs text-muted-foreground">Current season</p>
           </CardContent>
         </Card>
       </div>
@@ -308,7 +325,8 @@ export default function PitScoutingPage() {
         <CardHeader>
           <CardTitle>Pit Scouting Data</CardTitle>
           <CardDescription>
-            View and manage all pit scouting entries. Click the actions menu to edit or delete entries.
+            View and manage all pit scouting entries. Click the actions menu to
+            edit or delete entries.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -334,10 +352,15 @@ export default function PitScoutingPage() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onConfirm={confirmDelete}
-        title={entriesToDelete.length > 1 ? `Delete ${entriesToDelete.length} Pit Entries` : "Delete Pit Entry"}
-        description={entriesToDelete.length > 1
-          ? `Are you sure you want to delete ${entriesToDelete.length} pit scouting entries? This action cannot be undone.`
-          : "Are you sure you want to delete this pit scouting entry? This action cannot be undone."
+        title={
+          entriesToDelete.length > 1
+            ? `Delete ${entriesToDelete.length} Pit Entries`
+            : "Delete Pit Entry"
+        }
+        description={
+          entriesToDelete.length > 1
+            ? `Are you sure you want to delete ${entriesToDelete.length} pit scouting entries? This action cannot be undone.`
+            : "Are you sure you want to delete this pit scouting entry? This action cannot be undone."
         }
         loading={deleteLoading}
       />

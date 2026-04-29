@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog';
-import { RefreshCw, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import { RefreshCw, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export function CacheRevalidationComponent() {
   const [isRevalidating, setIsRevalidating] = useState(false);
@@ -15,25 +15,25 @@ export function CacheRevalidationComponent() {
     setIsRevalidating(true);
 
     try {
-      const response = await fetch('/api/revalidate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/revalidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to revalidate cache');
+        throw new Error(errorData.error || "Failed to revalidate cache");
       }
 
       const data = await response.json();
-      toast.success('Cache revalidated successfully', {
-        description: data.message || 'All cached routes have been cleared.'
+      toast.success("Cache revalidated successfully", {
+        description: data.message || "All cached routes have been cleared.",
       });
       setDialogOpen(false);
     } catch (error) {
-      console.error('Revalidation error:', error);
-      toast.error('Failed to revalidate cache', {
-        description: error instanceof Error ? error.message : 'Unknown error'
+      console.error("Revalidation error:", error);
+      toast.error("Failed to revalidate cache", {
+        description: error instanceof Error ? error.message : "Unknown error",
       });
     } finally {
       setIsRevalidating(false);
@@ -52,8 +52,9 @@ export function CacheRevalidationComponent() {
         <div className="space-y-2">
           <h4 className="font-medium">Revalidate Next.js Cache</h4>
           <p className="text-sm text-muted-foreground">
-            Force revalidation of all Next.js cached routes and data. Use this if you notice stale data
-            or after making configuration changes that aren&apos;t reflecting immediately.
+            Force revalidation of all Next.js cached routes and data. Use this
+            if you notice stale data or after making configuration changes that
+            aren&apos;t reflecting immediately.
           </p>
         </div>
 
@@ -68,7 +69,7 @@ export function CacheRevalidationComponent() {
           ) : (
             <RefreshCw className="mr-2 h-4 w-4" />
           )}
-          {isRevalidating ? 'Revalidating...' : 'Revalidate Cache'}
+          {isRevalidating ? "Revalidating..." : "Revalidate Cache"}
         </Button>
 
         <DeleteConfirmationDialog

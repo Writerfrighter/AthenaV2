@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   BadgeCheck,
@@ -7,19 +7,15 @@ import {
   LogOut,
   Trophy,
   Palette,
-} from "lucide-react"
+} from "lucide-react";
 
-import { useAccountSettingsDialog } from "@/app/dashboard/dashboard-shell"
-import { useNotificationSettingsDialog } from "@/app/dashboard/dashboard-shell"
-import { signOut } from "next-auth/react"
-import { useGameConfig } from "@/hooks/use-game-config"
-import { ThemeSelector } from "@/components/settings/theme-selector"
+import { useAccountSettingsDialog } from "@/app/dashboard/dashboard-shell";
+import { useNotificationSettingsDialog } from "@/app/dashboard/dashboard-shell";
+import { signOut } from "next-auth/react";
+import { useGameConfig } from "@/hooks/use-game-config";
+import { ThemeSelector } from "@/components/settings/theme-selector";
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,38 +24,39 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 export function NavUser({
   user,
 }: {
   user: {
-    name: string
-    username: string
-    avatar: string
-  }
+    name: string;
+    username: string;
+    avatar: string;
+  };
 }) {
-  const { isMobile } = useSidebar()
-  const { competitionType, setCompetitionType } = useGameConfig()
-  
+  const { isMobile } = useSidebar();
+  const { competitionType, setCompetitionType } = useGameConfig();
+
   // Call the hook unconditionally at the top level
   const accountSettingsDialog = useAccountSettingsDialog();
   const openAccountSettings = accountSettingsDialog?.openAccountSettings;
   const notificationSettingsDialog = useNotificationSettingsDialog();
-  const openNotificationSettings = notificationSettingsDialog?.openNotificationSettings;
+  const openNotificationSettings =
+    notificationSettingsDialog?.openNotificationSettings;
 
   const handleLogout = () => {
     signOut({ callbackUrl: "/" });
   };
 
   const handleSwitchProgram = () => {
-    const newType = competitionType === 'FRC' ? 'FTC' : 'FRC';
+    const newType = competitionType === "FRC" ? "FTC" : "FRC";
     setCompetitionType(newType);
   };
 
@@ -110,11 +107,17 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator /> */}
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => openAccountSettings && openAccountSettings()}>
+              <DropdownMenuItem
+                onClick={() => openAccountSettings && openAccountSettings()}
+              >
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => openNotificationSettings && openNotificationSettings()}>
+              <DropdownMenuItem
+                onClick={() =>
+                  openNotificationSettings && openNotificationSettings()
+                }
+              >
                 <Bell />
                 Notifications
               </DropdownMenuItem>
@@ -128,9 +131,21 @@ export function NavUser({
                 </div>
               </DropdownMenuItem> */}
               <DropdownMenuItem onClick={handleSwitchProgram}>
-                <Trophy className={competitionType === 'FTC' ? 'text-blue-500' : 'text-orange-500'} />
-                <span className={competitionType === 'FTC' ? 'text-blue-500' : 'text-orange-500'}>
-                  Switch to {competitionType === 'FRC' ? 'FTC' : 'FRC'}
+                <Trophy
+                  className={
+                    competitionType === "FTC"
+                      ? "text-blue-500"
+                      : "text-orange-500"
+                  }
+                />
+                <span
+                  className={
+                    competitionType === "FTC"
+                      ? "text-blue-500"
+                      : "text-orange-500"
+                  }
+                >
+                  Switch to {competitionType === "FRC" ? "FTC" : "FRC"}
                 </span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
@@ -143,5 +158,5 @@ export function NavUser({
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

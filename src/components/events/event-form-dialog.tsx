@@ -1,13 +1,24 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface EventFormDialogProps {
   open: boolean;
@@ -47,7 +58,7 @@ export function EventFormDialog({
   onFormChange,
   onSubmit,
   isSubmitting,
-  submitButtonText
+  submitButtonText,
 }: EventFormDialogProps) {
   const [dateOpen, setDateOpen] = React.useState(false);
   const [endDateOpen, setEndDateOpen] = React.useState(false);
@@ -67,7 +78,9 @@ export function EventFormDialog({
             <Input
               id="eventCode"
               value={formData.eventCode}
-              onChange={(e) => onFormChange({ ...formData, eventCode: e.target.value })}
+              onChange={(e) =>
+                onFormChange({ ...formData, eventCode: e.target.value })
+              }
               className="col-span-3"
               placeholder="2025-custom-001"
             />
@@ -79,7 +92,9 @@ export function EventFormDialog({
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => onFormChange({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                onFormChange({ ...formData, name: e.target.value })
+              }
               className="col-span-3"
               placeholder="My Custom Event"
             />
@@ -125,7 +140,9 @@ export function EventFormDialog({
                     className="w-full justify-start text-left font-normal"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.endDate ? formatDate(formData.endDate) : "Select end date"}
+                    {formData.endDate
+                      ? formatDate(formData.endDate)
+                      : "Select end date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -150,7 +167,12 @@ export function EventFormDialog({
               id="matchCount"
               type="number"
               value={formData.matchCount}
-              onChange={(e) => onFormChange({ ...formData, matchCount: parseInt(e.target.value) || 0 })}
+              onChange={(e) =>
+                onFormChange({
+                  ...formData,
+                  matchCount: parseInt(e.target.value) || 0,
+                })
+              }
               className="col-span-3"
               min="0"
             />
@@ -162,7 +184,9 @@ export function EventFormDialog({
             <Input
               id="location"
               value={formData.location}
-              onChange={(e) => onFormChange({ ...formData, location: e.target.value })}
+              onChange={(e) =>
+                onFormChange({ ...formData, location: e.target.value })
+              }
               className="col-span-3"
               placeholder="City, State"
             />
@@ -174,27 +198,25 @@ export function EventFormDialog({
             <Input
               id="region"
               value={formData.region}
-              onChange={(e) => onFormChange({ ...formData, region: e.target.value })}
+              onChange={(e) =>
+                onFormChange({ ...formData, region: e.target.value })
+              }
               className="col-span-3"
               placeholder="District/Region"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
           >
             Cancel
           </Button>
-          <Button 
-            type="button" 
-            onClick={onSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Submitting...' : submitButtonText}
+          <Button type="button" onClick={onSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : submitButtonText}
           </Button>
         </DialogFooter>
       </DialogContent>

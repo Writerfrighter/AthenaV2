@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useSelectedEvent } from "@/hooks/use-event-config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,14 +25,15 @@ export function EventInfoCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 -mb-4">
           Event Information
-          
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
           <div className="flex">
-            <p className="text-sm text-muted-foreground pr-4">{selectedEvent.name}</p>
-            <Badge variant="secondary">{selectedEvent.code}</Badge>
+            <p className="text-sm text-muted-foreground pr-4">
+              {selectedEvent.name}
+            </p>
+            <Badge variant="secondary">{selectedEvent.eventCode}</Badge>
           </div>
         </div>
       </CardContent>

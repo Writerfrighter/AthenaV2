@@ -1,82 +1,82 @@
-'use client'
+"use client";
 
-import { useState } from "react"
-import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { ModeToggle } from "@/components/ui/light-dark-toggle"
-import { ThemeSelector } from "@/components/settings/theme-selector"
-import { ArrowLeft, Users, UserRound } from "lucide-react"
-import Link from "next/link"
-import { toast } from "sonner"
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ModeToggle } from "@/components/ui/light-dark-toggle";
+import { ThemeSelector } from "@/components/settings/theme-selector";
+import { ArrowLeft, Users, UserRound } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 
 interface LoginFormData {
-  username: string
-  password: string
+  username: string;
+  password: string;
 }
 
 export default function Page() {
-  const router = useRouter()
+  const router = useRouter();
   const [formData, setFormData] = useState<LoginFormData>({
-    username: '',
-    password: '',
-  })
+    username: "",
+    password: "",
+  });
 
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (field: keyof LoginFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+    e.preventDefault();
+    setIsSubmitting(true);
 
     try {
-      console.log('Attempting login with username:', formData.username)
+      console.log("Attempting login with username:", formData.username);
       const result = await signIn("credentials", {
         username: formData.username,
         password: formData.password,
         redirect: false,
-      })
+      });
 
-      console.log('SignIn result:', result)
+      console.log("SignIn result:", result);
 
       if (result?.error) {
-        console.error('Login error:', result.error)
+        console.error("Login error:", result.error);
         toast.error("Login failed", {
-          description: "Invalid email or password"
-        })
+          description: "Invalid email or password",
+        });
       } else if (result?.ok) {
         toast.success("Login successful!", {
-          description: "Welcome back to TRC Athena Scouting!"
-        })
+          description: "Welcome back to TRC Athena Scouting!",
+        });
         // Use hard redirect to ensure session cookie is properly sent
-        window.location.href = "/dashboard"
+        window.location.href = "/dashboard";
       } else {
-        console.error('Unexpected login result:', result)
+        console.error("Unexpected login result:", result);
         toast.error("Login failed", {
-          description: "An unexpected error occurred"
-        })
+          description: "An unexpected error occurred",
+        });
       }
     } catch (error) {
-      console.error('Login exception:', error)
+      console.error("Login exception:", error);
       toast.error("Login failed", {
-        description: "An unexpected error occurred"
-      })
+        description: "An unexpected error occurred",
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background dark:bg-background">
@@ -89,18 +89,20 @@ export default function Page() {
             </Button>
           </Link>
         </div>
-        
+
         <div className="fixed top-4 right-4">
           <div className="flex gap-x-2">
             <ModeToggle />
             <ThemeSelector />
           </div>
         </div>
-        
+
         <div className="w-full max-w-md">
           <Card className="shadow-lg rounded-2xl backdrop-blur-sm">
             <CardHeader className="text-center mt-2">
-              <CardTitle className="text-2xl font-semibold text-primary">Log In</CardTitle>
+              <CardTitle className="text-2xl font-semibold text-primary">
+                Log In
+              </CardTitle>
               <CardDescription className="text-muted-foreground">
                 Log in to your TRC Athena account
               </CardDescription>
@@ -115,7 +117,9 @@ export default function Page() {
                     type="text"
                     placeholder="Enter your username"
                     value={formData.username}
-                    onChange={(e) => handleInputChange('username', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("username", e.target.value)
+                    }
                     className="focus:ring-2 focus:ring-primary/30"
                     required
                   />
@@ -127,16 +131,18 @@ export default function Page() {
                     id="password"
                     type="password"
                     value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
                     className="focus:ring-2 focus:ring-primary/30"
                     required
                   />
                 </div>
 
                 {/* Submit Button */}
-                <Button 
-                  type="submit" 
-                  className="w-full mt-6" 
+                <Button
+                  type="submit"
+                  className="w-full mt-6"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
@@ -189,7 +195,10 @@ export default function Page() {
 
               <div className="mt-6 text-center text-sm">
                 Don&apos;t have an account?{" "}
-                <Link href="/signup" className="underline underline-offset-4 hover:text-primary">
+                <Link
+                  href="/signup"
+                  className="underline underline-offset-4 hover:text-primary"
+                >
                   Sign up
                 </Link>
               </div>
@@ -198,5 +207,5 @@ export default function Page() {
         </div>
       </div>
     </div>
-  )
+  );
 }

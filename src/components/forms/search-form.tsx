@@ -1,26 +1,26 @@
-"use client"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-import { Search } from "lucide-react"
-import { Label } from "@/components/ui/label"
+"use client";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Search } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarInput,
-} from "@/components/ui/sidebar"
-import { useSidebar } from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export function SearchForm({ ...props }: React.ComponentProps<"form">) {
-  const { state } = useSidebar()
-  const router = useRouter()
-  const [teamId, setTeamId] = useState("")
+  const { state } = useSidebar();
+  const router = useRouter();
+  const [teamId, setTeamId] = useState("");
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+    e.preventDefault();
     if (teamId) {
-      router.push(`/dashboard/team/${teamId}`)
+      router.push(`/dashboard/team/${teamId}`);
     }
-  }
+  };
 
   return (
     <form {...props} onSubmit={handleSubmit}>
@@ -32,7 +32,7 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
           <SidebarInput
             id="search"
             placeholder="Search a team..."
-            className={state == "collapsed" ? "pl-5" : "pl-8" }
+            className={state == "collapsed" ? "pl-5" : "pl-8"}
             type="number"
             value={teamId}
             onChange={(e) => setTeamId(e.target.value)}
@@ -42,5 +42,5 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
         </SidebarGroupContent>
       </SidebarGroup>
     </form>
-  )
+  );
 }

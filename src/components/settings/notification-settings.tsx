@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Bell, Check, X, AlertTriangle, Smartphone } from 'lucide-react';
-import { useNotifications } from '@/hooks/use-notifications';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Bell, Check, X, AlertTriangle, Smartphone } from "lucide-react";
+import { useNotifications } from "@/hooks/use-notifications";
+import { toast } from "sonner";
 
 export function NotificationSettings() {
   const {
@@ -29,11 +29,13 @@ export function NotificationSettings() {
     setIsLoading(true);
     const granted = await requestPermission();
     setIsLoading(false);
-    
+
     if (granted) {
       toast.success("Notification permissions granted");
     } else {
-      toast.error("Permission denied: Notifications have been blocked. You can enable them in your browser settings.");
+      toast.error(
+        "Permission denied: Notifications have been blocked. You can enable them in your browser settings.",
+      );
     }
   };
 
@@ -41,9 +43,11 @@ export function NotificationSettings() {
     setIsLoading(true);
     const subscription = await subscribe();
     setIsLoading(false);
-    
+
     if (subscription) {
-      toast.success("Notifications enabled: You're now subscribed to push notifications.");
+      toast.success(
+        "Notifications enabled: You're now subscribed to push notifications.",
+      );
     }
   };
 
@@ -51,32 +55,48 @@ export function NotificationSettings() {
     setIsLoading(true);
     const success = await unsubscribe();
     setIsLoading(false);
-    
+
     if (success) {
-      toast.success("Notifications disabled: You've unsubscribed from push notifications.");
+      toast.success(
+        "Notifications disabled: You've unsubscribed from push notifications.",
+      );
     }
   };
 
   const handleTestNotification = async () => {
     const success = await showNotification({
-      title: 'Test Notification',
-      body: 'This is a test notification from TRC Scouting!',
-      data: { url: '/dashboard' },
+      title: "Test Notification",
+      body: "This is a test notification from TRC Scouting!",
+      data: { url: "/dashboard" },
     });
 
     if (success) {
-      toast.success("Test notification sent: Check your notification area to see it.");
+      toast.success(
+        "Test notification sent: Check your notification area to see it.",
+      );
     }
   };
 
   const getPermissionStatus = () => {
     switch (permission) {
-      case 'granted':
-        return { icon: <Check className="h-4 w-4 text-primary" />, text: 'Granted', color: 'text-primary' };
-      case 'denied':
-        return { icon: <X className="h-4 w-4 text-destructive" />, text: 'Denied', color: 'text-destructive' };
+      case "granted":
+        return {
+          icon: <Check className="h-4 w-4 text-primary" />,
+          text: "Granted",
+          color: "text-primary",
+        };
+      case "denied":
+        return {
+          icon: <X className="h-4 w-4 text-destructive" />,
+          text: "Denied",
+          color: "text-destructive",
+        };
       default:
-        return { icon: <AlertTriangle className="h-4 w-4 text-chart-4" />, text: 'Not requested', color: 'text-chart-4' };
+        return {
+          icon: <AlertTriangle className="h-4 w-4 text-chart-4" />,
+          text: "Not requested",
+          color: "text-chart-4",
+        };
     }
   };
 
@@ -103,9 +123,7 @@ export function NotificationSettings() {
         {error && (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              {error}
-            </AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
@@ -129,14 +147,18 @@ export function NotificationSettings() {
             </div>
           </div>
 
-          {permission !== 'granted' && (
+          {permission !== "granted" && (
             <Button
               onClick={handlePermissionRequest}
-              disabled={isLoading || permission === 'denied'}
-              variant={permission === 'denied' ? 'secondary' : 'default'}
+              disabled={isLoading || permission === "denied"}
+              variant={permission === "denied" ? "secondary" : "default"}
               className="w-full"
             >
-              {isLoading ? 'Requesting...' : permission === 'denied' ? 'Blocked (Check Browser Settings)' : 'Request Permission'}
+              {isLoading
+                ? "Requesting..."
+                : permission === "denied"
+                  ? "Blocked (Check Browser Settings)"
+                  : "Request Permission"}
             </Button>
           )}
         </div>
@@ -144,7 +166,7 @@ export function NotificationSettings() {
         <Separator />
 
         {/* Push Notification Subscription */}
-        {permission === 'granted' && (
+        {permission === "granted" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -158,7 +180,9 @@ export function NotificationSettings() {
               </div>
               <Switch
                 checked={isSubscribed}
-                onCheckedChange={isSubscribed ? handleUnsubscribe : handleSubscribe}
+                onCheckedChange={
+                  isSubscribed ? handleUnsubscribe : handleSubscribe
+                }
                 disabled={isLoading}
               />
             </div>
@@ -173,12 +197,15 @@ export function NotificationSettings() {
                 >
                   Send Test Notification
                 </Button>
-                
+
                 <Alert>
                   <Check className="h-4 w-4" />
                   <AlertDescription>
                     <div>
-                      <p>You&apos;re subscribed to push notifications. You&apos;ll receive notifications about:</p>
+                      <p>
+                        You&apos;re subscribed to push notifications.
+                        You&apos;ll receive notifications about:
+                      </p>
                       <ul className="list-disc list-inside mt-2 text-sm space-y-1">
                         <li>Scouting Schedule Reminders</li>
                         <li>Important Announcements</li>

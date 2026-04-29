@@ -1,14 +1,19 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { Picklist, PicklistEntry, PicklistNote, CompetitionType } from '@/lib/shared-types';
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
+  Picklist,
+  PicklistEntry,
+  PicklistNote,
+  CompetitionType,
+} from "@/lib/types";
 
 interface UsePicklistOptions {
   eventCode: string;
   year: number;
   competitionType: CompetitionType;
-  picklistType?: 'pick1' | 'pick2' | 'blacklist' | 'main';
+  picklistType?: "pick1" | "pick2" | "blacklist" | "main";
 }
 
 interface TeamPicklistData {
@@ -40,17 +45,17 @@ export function usePicklist(options: UsePicklistOptions) {
       const params = new URLSearchParams({
         eventCode: options.eventCode,
         year: options.year.toString(),
-        competitionType: options.competitionType
+        competitionType: options.competitionType,
       });
 
       const response = await fetch(`/api/database/picklist?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch initial ranking');
+      if (!response.ok) throw new Error("Failed to fetch initial ranking");
 
       const data = await response.json();
       setInitialRanking(data.teams);
     } catch (error) {
-      console.error('Error fetching initial ranking:', error);
-      toast.error('Failed to load ranking data');
+      console.error("Error fetching initial ranking:", error);
+      toast.error("Failed to load ranking data");
     } finally {
       setIsLoading(false);
     }
@@ -64,8 +69,8 @@ export function usePicklist(options: UsePicklistOptions) {
         eventCode: options.eventCode,
         year: options.year.toString(),
         competitionType: options.competitionType,
-        picklistType: options.picklistType || 'main',
-        existingOnly: 'true'
+        picklistType: options.picklistType || "main",
+        existingOnly: "true",
       });
 
       // First get the picklist metadata
@@ -87,12 +92,16 @@ export function usePicklist(options: UsePicklistOptions) {
 
         // Fallback for older/alternate response shapes.
         const entriesParams = new URLSearchParams({
-          picklistId: picklistData.picklist.id.toString()
+          picklistId: picklistData.picklist.id.toString(),
         });
-        const entriesResponse = await fetch(`/api/database/picklist/entries?${entriesParams}`);
+        const entriesResponse = await fetch(
+          `/api/database/picklist/entries?${entriesParams}`,
+        );
         if (entriesResponse.ok) {
           const entriesData = await entriesResponse.json();
-          setEntries(Array.isArray(entriesData.entries) ? entriesData.entries : []);
+          setEntries(
+            Array.isArray(entriesData.entries) ? entriesData.entries : [],
+          );
         } else {
           setEntries([]);
         }
@@ -101,30 +110,40 @@ export function usePicklist(options: UsePicklistOptions) {
         setEntries([]);
       }
     } catch (error) {
-      console.error('Error fetching existing picklist:', error);
+      console.error("Error fetching existing picklist:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [options.eventCode, options.year, options.competitionType, options.picklistType]);
+  }, [
+    options.eventCode,
+    options.year,
+    options.competitionType,
+    options.picklistType,
+  ]);
 
   // Create a new picklist
   const createPicklist = useCallback(
-    async (picklistEntries: Omit<PicklistEntry, 'id' | 'created_at' | 'updated_at'>[]) => {
+    async (
+      picklistEntries: Omit<
+        PicklistEntry,
+        "id" | "created_at" | "updated_at"
+      >[],
+    ) => {
       try {
         setIsSaving(true);
-        const response = await fetch('/api/database/picklist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/database/picklist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             eventCode: options.eventCode,
             year: options.year,
             competitionType: options.competitionType,
-            picklistType: options.picklistType || 'main',
-            entries: picklistEntries
-          })
+            picklistType: options.picklistType || "main",
+            entries: picklistEntries,
+          }),
         });
 
-        if (!response.ok) throw new Error('Failed to create picklist');
+        if (!response.ok) throw new Error("Failed to create picklist");
 
         const data = await response.json();
         setPicklist({
@@ -132,18 +151,23 @@ export function usePicklist(options: UsePicklistOptions) {
           eventCode: options.eventCode,
           year: options.year,
           competitionType: options.competitionType,
-          picklistType: options.picklistType || 'main'
+          picklistType: options.picklistType || "main",
         });
         setEntries(picklistEntries as PicklistEntry[]);
         return data.id;
       } catch (error) {
-        console.error('Error creating picklist:', error);
+        console.error("Error creating picklist:", error);
         throw error;
       } finally {
         setIsSaving(false);
       }
     },
-    [options.eventCode, options.year, options.competitionType, options.picklistType]
+    [
+      options.eventCode,
+      options.year,
+      options.competitionType,
+      options.picklistType,
+    ],
   );
 
   // Update picklist entry order
@@ -159,104 +183,110 @@ export function usePicklist(options: UsePicklistOptions) {
         }
 
         if (!picklistId) {
-          throw new Error('Failed to resolve picklist ID for save');
+          throw new Error("Failed to resolve picklist ID for save");
         }
-        
-        const response = await fetch('/api/database/picklist', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+
+        const response = await fetch("/api/database/picklist", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             picklistId,
-            entries: newEntries
-          })
+            entries: newEntries,
+          }),
         });
 
-        if (!response.ok) throw new Error('Failed to update picklist order');
+        if (!response.ok) throw new Error("Failed to update picklist order");
 
         // Rebuild the entries array to trigger React update
-        const updatedEntries: PicklistEntry[] = newEntries.map(newEntry => {
-          const existingEntry = entries.find(e => e.teamNumber === newEntry.teamNumber);
+        const updatedEntries: PicklistEntry[] = newEntries.map((newEntry) => {
+          const existingEntry = entries.find(
+            (e) => e.teamNumber === newEntry.teamNumber,
+          );
           return {
             id: existingEntry?.id || 0,
             picklistId,
             teamNumber: newEntry.teamNumber,
             rank: newEntry.rank,
-            created_at: existingEntry?.created_at ? (typeof existingEntry.created_at === 'string' ? new Date(existingEntry.created_at) : existingEntry.created_at) : new Date(),
-            updated_at: new Date()
+            created_at: existingEntry?.created_at
+              ? typeof existingEntry.created_at === "string"
+                ? new Date(existingEntry.created_at)
+                : existingEntry.created_at
+              : new Date(),
+            updated_at: new Date(),
           };
         });
         setEntries(updatedEntries.sort((a, b) => a.rank - b.rank));
       } catch (error) {
-        console.error('Error updating picklist order:', error);
-        toast.error('Failed to update picklist order');
+        console.error("Error updating picklist order:", error);
+        toast.error("Failed to update picklist order");
         throw error;
       } finally {
         setIsSaving(false);
       }
     },
-    [picklist?.id, entries, createPicklist]
+    [picklist?.id, entries, createPicklist],
   );
 
   // Reset/delete picklist
-  const resetPicklist = useCallback(
-    async () => {
-      if (!picklist?.id) return;
+  const resetPicklist = useCallback(async () => {
+    if (!picklist?.id) return;
 
-      try {
-        setIsSaving(true);
-        const response = await fetch(`/api/database/picklist?picklistId=${picklist.id}`, {
-          method: 'DELETE'
-        });
+    try {
+      setIsSaving(true);
+      const response = await fetch(
+        `/api/database/picklist?picklistId=${picklist.id}`,
+        {
+          method: "DELETE",
+        },
+      );
 
-        if (!response.ok) throw new Error('Failed to delete picklist');
+      if (!response.ok) throw new Error("Failed to delete picklist");
 
-        setPicklist(null);
-        setEntries([]);
-        toast.success('Picklist reset successfully');
-      } catch (error) {
-        console.error('Error resetting picklist:', error);
-        toast.error('Failed to reset picklist');
-        throw error;
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [picklist?.id]
-  );
+      setPicklist(null);
+      setEntries([]);
+      toast.success("Picklist reset successfully");
+    } catch (error) {
+      console.error("Error resetting picklist:", error);
+      toast.error("Failed to reset picklist");
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [picklist?.id]);
 
   // Add a note for a team
   const addNote = useCallback(
     async (teamNumber: number, note: string) => {
       if (!picklist?.id) {
-        toast.error('No picklist selected');
+        toast.error("No picklist selected");
         return;
       }
 
       try {
-        const response = await fetch('/api/database/picklist/notes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/database/picklist/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             picklistId: picklist.id,
             teamNumber,
-            note
-          })
+            note,
+          }),
         });
 
-        if (!response.ok) throw new Error('Failed to add note');
+        if (!response.ok) throw new Error("Failed to add note");
 
         const data = await response.json();
         const teamNotes = notes.get(teamNumber) || [];
         teamNotes.push(data);
         setNotes(new Map(notes).set(teamNumber, teamNotes));
-        toast.success('Note added');
+        toast.success("Note added");
       } catch (error) {
-        console.error('Error adding note:', error);
-        toast.error('Failed to add note');
+        console.error("Error adding note:", error);
+        toast.error("Failed to add note");
         throw error;
       }
     },
-    [picklist?.id, notes]
+    [picklist?.id, notes],
   );
 
   // Get notes for a team
@@ -267,94 +297,102 @@ export function usePicklist(options: UsePicklistOptions) {
       try {
         const params = new URLSearchParams({
           picklistId: picklist.id.toString(),
-          teamNumber: teamNumber.toString()
+          teamNumber: teamNumber.toString(),
         });
 
         const response = await fetch(`/api/database/picklist/notes?${params}`);
-        if (!response.ok) throw new Error('Failed to fetch notes');
+        if (!response.ok) throw new Error("Failed to fetch notes");
 
         const data = await response.json();
         setNotes(new Map(notes).set(teamNumber, data.notes));
         return data.notes;
       } catch (error) {
-        console.error('Error fetching team notes:', error);
+        console.error("Error fetching team notes:", error);
         return [];
       }
     },
-    [picklist?.id, notes]
+    [picklist?.id, notes],
   );
 
   // Update a note
   const updateNote = useCallback(
     async (noteId: number, teamNumber: number, newText: string) => {
       try {
-        const response = await fetch('/api/database/picklist/notes', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/database/picklist/notes", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             noteId,
-            note: newText
-          })
+            note: newText,
+          }),
         });
 
-        if (!response.ok) throw new Error('Failed to update note');
+        if (!response.ok) throw new Error("Failed to update note");
 
         const teamNotes = notes.get(teamNumber) || [];
-        const updatedNotes = teamNotes.map(n => (n.id === noteId ? { ...n, note: newText } : n));
+        const updatedNotes = teamNotes.map((n) =>
+          n.id === noteId ? { ...n, note: newText } : n,
+        );
         setNotes(new Map(notes).set(teamNumber, updatedNotes));
-        toast.success('Note updated');
+        toast.success("Note updated");
       } catch (error) {
-        console.error('Error updating note:', error);
-        toast.error('Failed to update note');
+        console.error("Error updating note:", error);
+        toast.error("Failed to update note");
         throw error;
       }
     },
-    [notes]
+    [notes],
   );
 
   // Delete a note
   const deleteNote = useCallback(
     async (noteId: number, teamNumber: number) => {
       try {
-        const response = await fetch(`/api/database/picklist/notes?noteId=${noteId}`, {
-          method: 'DELETE'
-        });
+        const response = await fetch(
+          `/api/database/picklist/notes?noteId=${noteId}`,
+          {
+            method: "DELETE",
+          },
+        );
 
-        if (!response.ok) throw new Error('Failed to delete note');
+        if (!response.ok) throw new Error("Failed to delete note");
 
         const teamNotes = notes.get(teamNumber) || [];
-        const updatedNotes = teamNotes.filter(n => n.id !== noteId);
+        const updatedNotes = teamNotes.filter((n) => n.id !== noteId);
         setNotes(new Map(notes).set(teamNumber, updatedNotes));
-        toast.success('Note deleted');
+        toast.success("Note deleted");
       } catch (error) {
-        console.error('Error deleting note:', error);
-        toast.error('Failed to delete note');
+        console.error("Error deleting note:", error);
+        toast.error("Failed to delete note");
         throw error;
       }
     },
-    [notes]
+    [notes],
   );
 
   // Delete picklist
   const deletePicklist = useCallback(async () => {
     if (!picklist?.id) {
-      toast.error('No picklist to delete');
+      toast.error("No picklist to delete");
       return;
     }
 
     try {
       setIsSaving(true);
-      const response = await fetch(`/api/database/picklist?picklistId=${picklist.id}`, {
-        method: 'DELETE'
-      });
+      const response = await fetch(
+        `/api/database/picklist?picklistId=${picklist.id}`,
+        {
+          method: "DELETE",
+        },
+      );
 
-      if (!response.ok) throw new Error('Failed to delete picklist');
+      if (!response.ok) throw new Error("Failed to delete picklist");
 
       setPicklist(null);
       setEntries([]);
       setNotes(new Map());
     } catch (error) {
-      console.error('Error deleting picklist:', error);
+      console.error("Error deleting picklist:", error);
       throw error;
     } finally {
       setIsSaving(false);
@@ -385,6 +423,6 @@ export function usePicklist(options: UsePicklistOptions) {
     deleteNote,
     deletePicklist,
     fetchInitialRanking,
-    fetchExistingPicklist
+    fetchExistingPicklist,
   };
 }

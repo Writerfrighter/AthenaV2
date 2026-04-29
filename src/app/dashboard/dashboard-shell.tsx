@@ -14,31 +14,48 @@ import { ThemeSelector } from "@/components/settings/theme-selector";
 
 const AccountSettingsDialog = dynamic(
   () => import("./account-settings").then((mod) => mod.AccountSettingsDialog),
-  { ssr: false }
+  { ssr: false },
 );
 
 const NotificationSettingsDialog = dynamic(
-  () => import("./notification-settings-dialog").then((mod) => mod.NotificationSettingsDialog),
-  { ssr: false }
+  () =>
+    import("./notification-settings-dialog").then(
+      (mod) => mod.NotificationSettingsDialog,
+    ),
+  { ssr: false },
 );
 
-const AccountSettingsContext = createContext<{ openAccountSettings: () => void } | undefined>(undefined);
+const AccountSettingsContext = createContext<
+  { openAccountSettings: () => void } | undefined
+>(undefined);
 
 export function useAccountSettingsDialog() {
   const ctx = useContext(AccountSettingsContext);
-  if (!ctx) throw new Error("useAccountSettingsDialog must be used within AccountSettingsContext");
+  if (!ctx)
+    throw new Error(
+      "useAccountSettingsDialog must be used within AccountSettingsContext",
+    );
   return ctx;
 }
 
-const NotificationSettingsContext = createContext<{ openNotificationSettings: () => void } | undefined>(undefined);
+const NotificationSettingsContext = createContext<
+  { openNotificationSettings: () => void } | undefined
+>(undefined);
 
 export function useNotificationSettingsDialog() {
   const ctx = useContext(NotificationSettingsContext);
-  if (!ctx) throw new Error("useNotificationSettingsDialog must be used within NotificationSettingsContext");
+  if (!ctx)
+    throw new Error(
+      "useNotificationSettingsDialog must be used within NotificationSettingsContext",
+    );
   return ctx;
 }
 
-export default function DashboardShell({ children }: { children: React.ReactNode }) {
+export default function DashboardShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [accountOpen, setAccountOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const openAccountSettings = () => setAccountOpen(true);
@@ -46,7 +63,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   return (
     <AccountSettingsContext.Provider value={{ openAccountSettings }}>
-      <NotificationSettingsContext.Provider value={{ openNotificationSettings }}>
+      <NotificationSettingsContext.Provider
+        value={{ openNotificationSettings }}
+      >
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
@@ -61,12 +80,20 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 <ThemeSelector />
               </div>
             </header>
-            <div className="flex flex-1 flex-col gap-4 p-4">
-              {children}
-            </div>
+            <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
           </SidebarInset>
-          {accountOpen && <AccountSettingsDialog open={accountOpen} onOpenChange={setAccountOpen} />}
-          {notificationOpen && <NotificationSettingsDialog open={notificationOpen} onOpenChange={setNotificationOpen} />}
+          {accountOpen && (
+            <AccountSettingsDialog
+              open={accountOpen}
+              onOpenChange={setAccountOpen}
+            />
+          )}
+          {notificationOpen && (
+            <NotificationSettingsDialog
+              open={notificationOpen}
+              onOpenChange={setNotificationOpen}
+            />
+          )}
         </SidebarProvider>
       </NotificationSettingsContext.Provider>
     </AccountSettingsContext.Provider>

@@ -1,26 +1,31 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import { TeamCard } from "@/components/team-card";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Trophy, MapPin, AlertCircle, Loader2 } from "lucide-react";
 import { useSelectedEvent } from "@/hooks/use-event-config";
-import { TeamWithImages } from "@/lib/shared-types";
-import { TeamCardSkeleton } from '@/components/team-card-skeleton';
+import { TeamWithImages } from "@/lib/types/team/team";
+import { TeamCardSkeleton } from "@/components/team-card-skeleton";
+import { Event } from "@/lib/types";
 
 interface DynamicTeamListProps {
-  initialEvent: {
-    name: string;
-    number: string;
-    code: string;
-  };
+  initialEvent: Event;
   initialTeams: TeamWithImages[];
 }
 
-export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListProps) {
+export function DynamicTeamList({
+  initialEvent,
+  initialTeams,
+}: DynamicTeamListProps) {
   const selectedEvent = useSelectedEvent();
   const [teams, setTeams] = useState<TeamWithImages[]>(initialTeams);
   const [loading, setLoading] = useState(false);
@@ -29,27 +34,32 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
   // Update teams when event changes
   useEffect(() => {
     async function fetchTeams() {
-      if (!selectedEvent?.code) {
+      if (!selectedEvent?.eventCode) {
         setTeams([]);
         return;
       }
 
       // If the event hasn't changed, don't refetch
-      if (selectedEvent.code === initialEvent.code && teams.length > 0) {
+      if (
+        selectedEvent.eventCode === initialEvent.eventCode &&
+        teams.length > 0
+      ) {
         return;
       }
 
       try {
         setLoading(true);
         setError(null);
-        
+
         // Use API route instead of direct TBA calls to avoid CORS
-        const response = await fetch(`/api/events/${selectedEvent.code}/teams`);
-        
+        const response = await fetch(
+          `/api/events/${selectedEvent.eventCode}/teams`,
+        );
+
         if (!response.ok) {
           throw new Error(`Failed to fetch teams: ${response.statusText}`);
         }
-        
+
         const teamsWithImages = await response.json();
 
         if (teamsWithImages.length === 0) {
@@ -59,24 +69,25 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
 
         setTeams(teamsWithImages);
       } catch (err) {
-        console.error('Error fetching teams:', err);
-        setError('Failed to load teams for this event');
+        console.error("Error fetching teams:", err);
+        setError("Failed to load teams for this event");
       } finally {
         setLoading(false);
       }
     }
 
     fetchTeams();
-  }, [selectedEvent?.code, initialEvent.code, teams.length]);
+  }, [selectedEvent?.eventCode, initialEvent.eventCode, teams.length]);
 
   const currentEvent = selectedEvent || initialEvent;
 
-  if (!currentEvent?.code) {
+  if (!currentEvent?.eventCode) {
     return (
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          No event selected. Please select an event from the sidebar to view teams.
+          No event selected. Please select an event from the sidebar to view
+          teams.
         </AlertDescription>
       </Alert>
     );
@@ -86,9 +97,7 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          {error}
-        </AlertDescription>
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
@@ -134,7 +143,7 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Region</p>
-                <p className="text-sm font-semibold">{(currentEvent as { number: string }).number}</p>
+                <p className="text-sm font-semibold">{currentEvent.region}</p>
               </div>
               <div className="p-2 bg-muted rounded-lg">
                 <MapPin className="h-5 w-5 text-muted-foreground" />
@@ -149,9 +158,7 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Teams ({teams.length})
-            {loading && (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            )}
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           </CardTitle>
           <CardDescription>
             Click on any team to view detailed information
@@ -167,7 +174,9 @@ export function DynamicTeamList({ initialEvent, initialTeams }: DynamicTeamListP
           ) : teams.length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No teams found for this event.</p>
+              <p className="text-muted-foreground">
+                No teams found for this event.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

@@ -147,7 +147,12 @@
       "reliability": {
         "label": "Robot Reliability",
         "type": "select",
-        "options": ["Very Reliable", "Mostly Reliable", "Somewhat Reliable", "Unreliable"]
+        "options": [
+          "Very Reliable",
+          "Mostly Reliable",
+          "Somewhat Reliable",
+          "Unreliable"
+        ]
       }
     },
     "endgame": {
@@ -158,7 +163,12 @@
       "climbCapability": {
         "label": "Climbing Capability",
         "type": "select",
-        "options": ["No climb", "Shallow cage only", "Deep cage only", "Both cages"],
+        "options": [
+          "No climb",
+          "Shallow cage only",
+          "Deep cage only",
+          "Both cages"
+        ],
         "dependsOn": "hasClimb"
       },
       "climbTime": {
@@ -169,7 +179,12 @@
       "climbReliability": {
         "label": "Climb Success Rate",
         "type": "select",
-        "options": ["Very Reliable (90%+)", "Mostly Reliable (70-90%)", "Somewhat Reliable (40-70%)", "Unreliable (<40%)"],
+        "options": [
+          "Very Reliable (90%+)",
+          "Mostly Reliable (70-90%)",
+          "Somewhat Reliable (40-70%)",
+          "Unreliable (<40%)"
+        ],
         "dependsOn": "hasClimb"
       }
     }

@@ -1,15 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { useSelectedEvent } from '@/hooks/use-event-config';
-import { useGameConfig } from '@/hooks/use-game-config';
-import { indexedDBService } from '@/lib/indexeddb-service';
+import { useState, useCallback, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { useSelectedEvent } from "@/hooks/use-event-config";
+import { useGameConfig } from "@/hooks/use-game-config";
+import { indexedDBService } from "@/lib/indexeddb-service";
 import {
   buildSteps,
   SCOUT_STEPS,
@@ -17,8 +23,8 @@ import {
   runEventCache,
   type CacheStep,
   type CacheStepId,
-} from '@/lib/event-cache-manager';
-import type { EventCacheStatus } from '@/lib/offline-types';
+} from "@/lib/event-cache-manager";
+import type { EventCacheStatus } from "@/lib/offline-types";
 import {
   Download,
   HardDriveDownload,
@@ -35,22 +41,31 @@ import {
   Shield,
   Layout,
   BarChart3,
-} from 'lucide-react';
-import { toast } from 'sonner';
+} from "lucide-react";
+import { toast } from "sonner";
 
-type CacheMode = 'scout' | 'full';
+type CacheMode = "scout" | "full";
 
 function stepIcon(id: CacheStepId) {
   switch (id) {
-    case 'session': return Shield;
-    case 'pages': return Layout;
-    case 'teams': return Users;
-    case 'schedule': return Calendar;
-    case 'scoutSchedule': return ClipboardList;
-    case 'scoutList': return Users;
-    case 'pitEntries': return FileText;
-    case 'matchEntries': return Database;
-    case 'analysisData': return BarChart3;
+    case "session":
+      return Shield;
+    case "pages":
+      return Layout;
+    case "teams":
+      return Users;
+    case "schedule":
+      return Calendar;
+    case "scoutSchedule":
+      return ClipboardList;
+    case "scoutList":
+      return Users;
+    case "pitEntries":
+      return FileText;
+    case "matchEntries":
+      return Database;
+    case "analysisData":
+      return BarChart3;
   }
 }
 
@@ -61,13 +76,13 @@ function StepRow({ step }: { step: CacheStep }) {
     <div className="flex items-center gap-3 text-sm py-1.5 px-3 rounded-md bg-muted/40">
       <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
       <span className="truncate flex-1">{step.label}</span>
-      {step.status === 'pending' && (
+      {step.status === "pending" && (
         <span className="text-muted-foreground text-xs shrink-0">Waiting</span>
       )}
-      {step.status === 'loading' && (
+      {step.status === "loading" && (
         <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
       )}
-      {step.status === 'success' && (
+      {step.status === "success" && (
         <div className="flex items-center gap-1.5 shrink-0">
           {step.detail && (
             <span className="text-xs text-muted-foreground">{step.detail}</span>
@@ -75,13 +90,13 @@ function StepRow({ step }: { step: CacheStep }) {
           <CheckCircle className="h-3.5 w-3.5 text-green-500" />
         </div>
       )}
-      {step.status === 'error' && (
+      {step.status === "error" && (
         <div className="flex items-center gap-1.5 text-destructive shrink-0">
-          <span className="text-xs">{step.error || 'Failed'}</span>
+          <span className="text-xs">{step.error || "Failed"}</span>
           <AlertCircle className="h-3.5 w-3.5" />
         </div>
       )}
-      {step.status === 'skipped' && (
+      {step.status === "skipped" && (
         <span className="text-muted-foreground text-xs shrink-0">Skipped</span>
       )}
     </div>
@@ -92,7 +107,7 @@ function formatTimeSince(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - new Date(date).getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'just now';
+  if (diffMin < 1) return "just now";
   if (diffMin < 60) return `${diffMin}m ago`;
   const diffHr = Math.floor(diffMin / 60);
   if (diffHr < 24) return `${diffHr}h ago`;
@@ -105,46 +120,46 @@ export function OfflinePrecache({ className }: { className?: string }) {
   const selectedEvent = useSelectedEvent();
   const { competitionType, currentYear } = useGameConfig();
 
-  const [mode, setMode] = useState<CacheMode>('scout');
+  const [mode, setMode] = useState<CacheMode>("scout");
   const [isCaching, setIsCaching] = useState(false);
   const [steps, setSteps] = useState<CacheStep[]>([]);
   const [progress, setProgress] = useState(0);
   const [cacheStatus, setCacheStatus] = useState<EventCacheStatus | null>(null);
   const [isClearing, setIsClearing] = useState(false);
 
-  const hasEvent = !!selectedEvent?.code;
+  const hasEvent = !!selectedEvent?.eventCode;
 
   // Load existing cache status for the selected event
   useEffect(() => {
-    if (!selectedEvent?.code) {
+    if (!selectedEvent?.eventCode) {
       setCacheStatus(null);
       return;
     }
     indexedDBService
-      .getEventCacheStatus(selectedEvent.code)
+      .getEventCacheStatus(selectedEvent.eventCode)
       .then(setCacheStatus)
       .catch(() => setCacheStatus(null));
-  }, [selectedEvent?.code]);
+  }, [selectedEvent?.eventCode]);
 
-  const currentStepIds = mode === 'full' ? FULL_CACHE_STEPS : SCOUT_STEPS;
+  const currentStepIds = mode === "full" ? FULL_CACHE_STEPS : SCOUT_STEPS;
 
   const handleStepUpdate = useCallback(
     (stepId: CacheStepId, update: Partial<CacheStep>) => {
-      setSteps(prev =>
-        prev.map(s => (s.id === stepId ? { ...s, ...update } : s))
+      setSteps((prev) =>
+        prev.map((s) => (s.id === stepId ? { ...s, ...update } : s)),
       );
     },
-    []
+    [],
   );
 
   const handleCache = async () => {
     if (!navigator.onLine) {
-      toast.error('You must be online to cache data');
+      toast.error("You must be online to cache data");
       return;
     }
 
-    if (!selectedEvent?.code) {
-      toast.error('Select an event first');
+    if (!selectedEvent?.eventCode) {
+      toast.error("Select an event first");
       return;
     }
 
@@ -157,9 +172,16 @@ export function OfflinePrecache({ className }: { className?: string }) {
     let completedCount = 0;
     const totalSteps = stepList.length;
 
-    const trackingUpdate = (stepId: CacheStepId, update: Partial<CacheStep>) => {
+    const trackingUpdate = (
+      stepId: CacheStepId,
+      update: Partial<CacheStep>,
+    ) => {
       handleStepUpdate(stepId, update);
-      if (update.status === 'success' || update.status === 'error' || update.status === 'skipped') {
+      if (
+        update.status === "success" ||
+        update.status === "error" ||
+        update.status === "skipped"
+      ) {
         completedCount++;
         setProgress(Math.round((completedCount / totalSteps) * 100));
       }
@@ -167,8 +189,8 @@ export function OfflinePrecache({ className }: { className?: string }) {
 
     try {
       const result = await runEventCache(mode, {
-        eventCode: selectedEvent.code,
-        eventName: selectedEvent.name || selectedEvent.code,
+        eventCode: selectedEvent.eventCode,
+        eventName: selectedEvent.name || selectedEvent.eventCode,
         competitionType,
         year: currentYear,
         userRole: session?.user?.role || undefined,
@@ -179,52 +201,55 @@ export function OfflinePrecache({ className }: { className?: string }) {
 
       if (result.success) {
         toast.success(
-          mode === 'full'
-            ? 'Full event data cached for offline use'
-            : 'Scout mode data cached for offline use',
+          mode === "full"
+            ? "Full event data cached for offline use"
+            : "Scout mode data cached for offline use",
           {
-            description: mode === 'full'
-              ? `${result.pitEntryCount} pit + ${result.matchEntryCount} match entries saved`
-              : `${result.teamCount} teams + schedules cached`,
-          }
+            description:
+              mode === "full"
+                ? `${result.pitEntryCount} pit + ${result.matchEntryCount} match entries saved`
+                : `${result.teamCount} teams + schedules cached`,
+          },
         );
       } else {
-        toast.warning('Some items failed to cache', {
-          description: 'Check the status below for details',
+        toast.warning("Some items failed to cache", {
+          description: "Check the status below for details",
         });
       }
 
       // Refresh cache status
-      if (mode === 'full') {
-        const status = await indexedDBService.getEventCacheStatus(selectedEvent.code);
+      if (mode === "full") {
+        const status = await indexedDBService.getEventCacheStatus(
+          selectedEvent.eventCode,
+        );
         setCacheStatus(status);
       }
     } catch {
-      toast.error('Caching failed unexpectedly');
+      toast.error("Caching failed unexpectedly");
     } finally {
       setIsCaching(false);
     }
   };
 
   const handleClearCache = async () => {
-    if (!selectedEvent?.code) return;
+    if (!selectedEvent?.eventCode) return;
 
     setIsClearing(true);
     try {
-      await indexedDBService.clearEventCache(selectedEvent.code);
+      await indexedDBService.clearEventCache(selectedEvent.eventCode);
       setCacheStatus(null);
       setSteps([]);
       setProgress(0);
-      toast.success('Event cache cleared');
+      toast.success("Event cache cleared");
     } catch {
-      toast.error('Failed to clear cache');
+      toast.error("Failed to clear cache");
     } finally {
       setIsClearing(false);
     }
   };
 
-  const successCount = steps.filter(s => s.status === 'success').length;
-  const errorCount = steps.filter(s => s.status === 'error').length;
+  const successCount = steps.filter((s) => s.status === "success").length;
+  const errorCount = steps.filter((s) => s.status === "error").length;
 
   return (
     <Card className={className}>
@@ -234,8 +259,9 @@ export function OfflinePrecache({ className }: { className?: string }) {
           Offline Caching
         </CardTitle>
         <CardDescription>
-          Download data for offline use at competitions. Choose between lightweight
-          scouting mode or a full event cache with all scouting data.
+          Download data for offline use at competitions. Choose between
+          lightweight scouting mode or a full event cache with all scouting
+          data.
         </CardDescription>
       </CardHeader>
 
@@ -264,13 +290,13 @@ export function OfflinePrecache({ className }: { className?: string }) {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => !isCaching && setMode('scout')}
+              onClick={() => !isCaching && setMode("scout")}
               disabled={isCaching}
               className={`relative rounded-lg border-2 p-4 text-left transition-all ${
-                mode === 'scout'
-                  ? 'border-primary bg-primary/5'
-                  : 'border-muted hover:border-muted-foreground/30'
-              } ${isCaching ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                mode === "scout"
+                  ? "border-primary bg-primary/5"
+                  : "border-muted hover:border-muted-foreground/30"
+              } ${isCaching ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
             >
               <div className="flex items-center gap-2 font-medium text-sm">
                 <Download className="h-4 w-4" />
@@ -279,7 +305,7 @@ export function OfflinePrecache({ className }: { className?: string }) {
               <p className="mt-1 text-xs text-muted-foreground">
                 Pages, teams &amp; schedules. Enough to scout matches offline.
               </p>
-              {mode === 'scout' && (
+              {mode === "scout" && (
                 <div className="absolute right-2 top-2">
                   <div className="h-2 w-2 rounded-full bg-primary" />
                 </div>
@@ -288,22 +314,23 @@ export function OfflinePrecache({ className }: { className?: string }) {
 
             <button
               type="button"
-              onClick={() => !isCaching && setMode('full')}
+              onClick={() => !isCaching && setMode("full")}
               disabled={isCaching}
               className={`relative rounded-lg border-2 p-4 text-left transition-all ${
-                mode === 'full'
-                  ? 'border-primary bg-primary/5'
-                  : 'border-muted hover:border-muted-foreground/30'
-              } ${isCaching ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                mode === "full"
+                  ? "border-primary bg-primary/5"
+                  : "border-muted hover:border-muted-foreground/30"
+              } ${isCaching ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
             >
               <div className="flex items-center gap-2 font-medium text-sm">
                 <HardDriveDownload className="h-4 w-4" />
                 Full Event Cache
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Everything above + all pit &amp; match scouting entries for analysis.
+                Everything above + all pit &amp; match scouting entries for
+                analysis.
               </p>
-              {mode === 'full' && (
+              {mode === "full" && (
                 <div className="absolute right-2 top-2">
                   <div className="h-2 w-2 rounded-full bg-primary" />
                 </div>
@@ -360,7 +387,7 @@ export function OfflinePrecache({ className }: { className?: string }) {
               <div className="space-y-1.5">
                 <Progress value={progress} className="h-2" />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{isCaching ? 'Downloading...' : 'Complete'}</span>
+                  <span>{isCaching ? "Downloading..." : "Complete"}</span>
                   <span>
                     {successCount}/{steps.length} done
                     {errorCount > 0 && ` · ${errorCount} failed`}
@@ -370,7 +397,7 @@ export function OfflinePrecache({ className }: { className?: string }) {
 
               {/* Step list */}
               <div className="space-y-1 max-h-52 overflow-y-auto">
-                {steps.map(step => (
+                {steps.map((step) => (
                   <StepRow key={step.id} step={step} />
                 ))}
               </div>
@@ -389,19 +416,21 @@ export function OfflinePrecache({ className }: { className?: string }) {
             {isCaching ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Caching {mode === 'full' ? 'Event Data' : 'Scout Data'}...
+                Caching {mode === "full" ? "Event Data" : "Scout Data"}...
               </>
             ) : !navigator.onLine ? (
               <>
                 <WifiOff className="mr-2 h-4 w-4" />
                 Offline — Connect to Cache
               </>
-            ) : steps.length > 0 && errorCount === 0 && successCount === steps.length ? (
+            ) : steps.length > 0 &&
+              errorCount === 0 &&
+              successCount === steps.length ? (
               <>
                 <CheckCircle className="mr-2 h-4 w-4" />
                 Cached — Re-download
               </>
-            ) : mode === 'full' ? (
+            ) : mode === "full" ? (
               <>
                 <HardDriveDownload className="mr-2 h-4 w-4" />
                 Cache Full Event Data

@@ -1,46 +1,46 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Check, Palette } from "lucide-react"
-import { useTheme } from "next-themes"
+import * as React from "react";
+import { Check, Palette } from "lucide-react";
+import { useTheme } from "next-themes";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { themes, applyTheme } from "@/lib/theme-config"
+} from "@/components/ui/dropdown-menu";
+import { themes, applyTheme } from "@/lib/theme-config";
 
 export function ThemeSelector() {
-  const [colorTheme, setColorTheme] = React.useState("green")
-  const [mounted, setMounted] = React.useState(false)
+  const [colorTheme, setColorTheme] = React.useState("green");
+  const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
-    setMounted(true)
-    const savedTheme = localStorage.getItem("color-theme") || "green"
-    setColorTheme(savedTheme)
-  }, [])
+    setMounted(true);
+    const savedTheme = localStorage.getItem("color-theme") || "green";
+    setColorTheme(savedTheme);
+  }, []);
 
   React.useEffect(() => {
-    if (!mounted) return
-    applyTheme(colorTheme)
-  }, [colorTheme, mounted])
+    if (!mounted) return;
+    applyTheme(colorTheme);
+  }, [colorTheme, mounted]);
 
   const handleThemeChange = (themeName: string) => {
-    setColorTheme(themeName)
-    localStorage.setItem("color-theme", themeName)
-    applyTheme(themeName)
-  }
+    setColorTheme(themeName);
+    localStorage.setItem("color-theme", themeName);
+    applyTheme(themeName);
+  };
 
   if (!mounted) {
     return (
       <Button variant="outline" size="icon" disabled>
         <Palette className="h-5 w-5" />
       </Button>
-    )
+    );
   }
 
   return (
@@ -64,5 +64,5 @@ export function ThemeSelector() {
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

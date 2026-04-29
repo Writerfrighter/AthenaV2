@@ -13,10 +13,11 @@ declare global {
   }
 }
 
-declare const self: WorkerGlobalScope & typeof globalThis & {
-  registration: ServiceWorkerRegistration;
-  clients: any;
-};
+declare const self: WorkerGlobalScope &
+  typeof globalThis & {
+    registration: ServiceWorkerRegistration;
+    clients: any;
+  };
 
 // Offline fallback page HTML served when navigation fails offline
 const OFFLINE_FALLBACK_HTML = `<!DOCTYPE html>
@@ -53,8 +54,13 @@ const appRuntimeCaching = [
   // Auth session endpoint — cache so offline relaunches preserve the logged-in session.
   // Short timeout so the cached session is returned quickly when offline.
   {
-    matcher: ({ url: { pathname }, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
-      sameOrigin && pathname === "/api/auth/session",
+    matcher: ({
+      url: { pathname },
+      sameOrigin,
+    }: {
+      url: URL;
+      sameOrigin: boolean;
+    }) => sameOrigin && pathname === "/api/auth/session",
     handler: new NetworkFirst({
       cacheName: "auth-session",
       networkTimeoutSeconds: 1,
@@ -72,7 +78,13 @@ const appRuntimeCaching = [
   // navigations AND programmatic fetch() calls from OfflinePrecache
   // populate the same cache.
   {
-    matcher: ({ url: { pathname }, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
+    matcher: ({
+      url: { pathname },
+      sameOrigin,
+    }: {
+      url: URL;
+      sameOrigin: boolean;
+    }) =>
       sameOrigin &&
       !pathname.startsWith("/api/") &&
       !pathname.startsWith("/_next/") &&
@@ -90,8 +102,13 @@ const appRuntimeCaching = [
   },
   // Event teams API — needed offline for scouting form dropdowns
   {
-    matcher: ({ url: { pathname }, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
-      sameOrigin && /^\/api\/events\/[^/]+\/teams/.test(pathname),
+    matcher: ({
+      url: { pathname },
+      sameOrigin,
+    }: {
+      url: URL;
+      sameOrigin: boolean;
+    }) => sameOrigin && /^\/api\/events\/[^/]+\/teams/.test(pathname),
     handler: new NetworkFirst({
       cacheName: "event-teams-api",
       networkTimeoutSeconds: 5,
@@ -105,8 +122,13 @@ const appRuntimeCaching = [
   },
   // Event schedule API — needed offline for team auto-assign
   {
-    matcher: ({ url: { pathname }, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
-      sameOrigin && pathname.startsWith("/api/event/schedule"),
+    matcher: ({
+      url: { pathname },
+      sameOrigin,
+    }: {
+      url: URL;
+      sameOrigin: boolean;
+    }) => sameOrigin && pathname.startsWith("/api/event/schedule"),
     handler: new NetworkFirst({
       cacheName: "event-schedule-api",
       networkTimeoutSeconds: 5,
@@ -148,9 +170,9 @@ self.addEventListener("install", (event: any) => {
         new Request("/~offline"),
         new Response(OFFLINE_FALLBACK_HTML, {
           headers: { "Content-Type": "text/html; charset=utf-8" },
-        })
-      )
-    )
+        }),
+      ),
+    ),
   );
 });
 
@@ -158,14 +180,14 @@ serwist.addEventListeners();
 
 // Background sync tags
 const SYNC_TAGS = {
-  OFFLINE_DATA: 'offline-data-sync',
-  RETRY_FAILED: 'retry-failed-sync'
+  OFFLINE_DATA: "offline-data-sync",
+  RETRY_FAILED: "retry-failed-sync",
 } as const;
 
 // Handle background sync events
-self.addEventListener('sync', function(event: any) {
-  console.log('[Service Worker] Background sync event:', event.tag);
-  
+self.addEventListener("sync", function (event: any) {
+  console.log("[Service Worker] Background sync event:", event.tag);
+
   if (event.tag === SYNC_TAGS.OFFLINE_DATA) {
     event.waitUntil(syncOfflineData());
   } else if (event.tag === SYNC_TAGS.RETRY_FAILED) {
@@ -175,159 +197,162 @@ self.addEventListener('sync', function(event: any) {
 
 // Sync offline data
 async function syncOfflineData() {
-  console.log('[Service Worker] Syncing offline data...');
-  
+  console.log("[Service Worker] Syncing offline data...");
+
   try {
     // Import the queue manager in the service worker context
-    const { offlineQueueManager } = await import('../lib/offline-queue-manager');
+    const { offlineQueueManager } =
+      await import("../lib/offline-queue-manager");
     const result = await offlineQueueManager.syncPendingEntries();
-    
-    console.log('[Service Worker] Sync completed:', result);
-    
+
+    console.log("[Service Worker] Sync completed:", result);
+
     // Notify all clients about sync completion
     const clients = await self.clients.matchAll();
     clients.forEach((client: any) => {
       client.postMessage({
-        type: 'SYNC_COMPLETED',
-        result
+        type: "SYNC_COMPLETED",
+        result,
       });
     });
-    
+
     // Show notification if there were sync errors
     if (!result.success && result.errors.length > 0) {
-      await self.registration.showNotification('Sync Issues', {
+      await self.registration.showNotification("Sync Issues", {
         body: `${result.failedCount} entries failed to sync. Check the app for details.`,
-        icon: '/TRCLogo.webp',
-        badge: '/TRCLogo.webp',
-        tag: 'sync-error',
+        icon: "/TRCLogo.webp",
+        badge: "/TRCLogo.webp",
+        tag: "sync-error",
         requireInteraction: true,
-        data: { url: '/dashboard' }
+        data: { url: "/dashboard" },
       });
     } else if (result.syncedCount > 0) {
-      await self.registration.showNotification('Data Synced', {
+      await self.registration.showNotification("Data Synced", {
         body: `${result.syncedCount} scouting entries synced successfully.`,
-        icon: '/TRCLogo.webp',
-        badge: '/TRCLogo.webp',
-        tag: 'sync-success',
+        icon: "/TRCLogo.webp",
+        badge: "/TRCLogo.webp",
+        tag: "sync-success",
         requireInteraction: false,
-        data: { url: '/dashboard' }
+        data: { url: "/dashboard" },
       });
     }
-    
   } catch (error) {
-    console.error('[Service Worker] Sync failed:', error);
-    
+    console.error("[Service Worker] Sync failed:", error);
+
     // Show error notification
-    await self.registration.showNotification('Sync Failed', {
-      body: 'Failed to sync offline data. Please try again manually.',
-      icon: '/TRCLogo.webp',
-      badge: '/TRCLogo.webp',
-      tag: 'sync-error',
+    await self.registration.showNotification("Sync Failed", {
+      body: "Failed to sync offline data. Please try again manually.",
+      icon: "/TRCLogo.webp",
+      badge: "/TRCLogo.webp",
+      tag: "sync-error",
       requireInteraction: true,
-      data: { url: '/dashboard' }
+      data: { url: "/dashboard" },
     });
   }
 }
 
 // Retry failed entries
 async function retryFailedEntries() {
-  console.log('[Service Worker] Retrying failed entries...');
-  
+  console.log("[Service Worker] Retrying failed entries...");
+
   try {
-    const { offlineQueueManager } = await import('../lib/offline-queue-manager');
+    const { offlineQueueManager } =
+      await import("../lib/offline-queue-manager");
     const result = await offlineQueueManager.retryFailedEntries();
-    
-    console.log('[Service Worker] Retry completed:', result);
-    
+
+    console.log("[Service Worker] Retry completed:", result);
+
     // Notify all clients
     const clients = await self.clients.matchAll();
     clients.forEach((client: any) => {
       client.postMessage({
-        type: 'RETRY_COMPLETED',
-        result
+        type: "RETRY_COMPLETED",
+        result,
       });
     });
-    
   } catch (error) {
-    console.error('[Service Worker] Retry failed:', error);
+    console.error("[Service Worker] Retry failed:", error);
   }
 }
 
 // Handle messages from the main app
-self.addEventListener('message', async function(event: any) {
-  console.log('[Service Worker] Received message:', event.data);
-  
-  if (event.data?.type === 'REGISTER_SYNC') {
+self.addEventListener("message", async function (event: any) {
+  console.log("[Service Worker] Received message:", event.data);
+
+  if (event.data?.type === "REGISTER_SYNC") {
     // Register background sync
     try {
       await self.registration.sync.register(SYNC_TAGS.OFFLINE_DATA);
-      console.log('[Service Worker] Background sync registered');
+      console.log("[Service Worker] Background sync registered");
     } catch (error) {
-      console.error('[Service Worker] Failed to register background sync:', error);
+      console.error(
+        "[Service Worker] Failed to register background sync:",
+        error,
+      );
     }
-  } else if (event.data?.type === 'REGISTER_RETRY_SYNC') {
+  } else if (event.data?.type === "REGISTER_RETRY_SYNC") {
     // Register retry sync
     try {
       await self.registration.sync.register(SYNC_TAGS.RETRY_FAILED);
-      console.log('[Service Worker] Retry sync registered');
+      console.log("[Service Worker] Retry sync registered");
     } catch (error) {
-      console.error('[Service Worker] Failed to register retry sync:', error);
+      console.error("[Service Worker] Failed to register retry sync:", error);
     }
   }
 });
 
 // Add notification event listeners
-self.addEventListener('push', function(event: any) {
-  console.log('[Service Worker] Push Received.');
-  
+self.addEventListener("push", function (event: any) {
+  console.log("[Service Worker] Push Received.");
+
   if (!event.data) {
     return;
   }
 
   const data = event.data.json();
-  const title = data.title || 'TRC Scouting';
+  const title = data.title || "TRC Scouting";
   const options = {
-    body: data.body || 'New notification',
-    icon: '/TRCLogo.webp',
-    badge: '/TRCLogo.webp',
+    body: data.body || "New notification",
+    icon: "/TRCLogo.webp",
+    badge: "/TRCLogo.webp",
     data: data.data || {},
     requireInteraction: false,
     silent: false,
   };
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
-self.addEventListener('notificationclick', function(event: any) {
-  console.log('[Service Worker] Notification click Received.');
-  
+self.addEventListener("notificationclick", function (event: any) {
+  console.log("[Service Worker] Notification click Received.");
+
   event.notification.close();
 
-  const urlToOpen = event.notification.data?.url || '/dashboard';
-  
+  const urlToOpen = event.notification.data?.url || "/dashboard";
+
   event.waitUntil(
-    self.clients.matchAll({
-      type: 'window',
-      includeUncontrolled: true
-    }).then(function(clientList: any[]) {
-      // Check if there's already a window/tab open with the target URL
-      for (let i = 0; i < clientList.length; i++) {
-        const client = clientList[i];
-        if (client.url === urlToOpen && 'focus' in client) {
-          return client.focus();
+    self.clients
+      .matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      })
+      .then(function (clientList: any[]) {
+        // Check if there's already a window/tab open with the target URL
+        for (let i = 0; i < clientList.length; i++) {
+          const client = clientList[i];
+          if (client.url === urlToOpen && "focus" in client) {
+            return client.focus();
+          }
         }
-      }
-      
-      // If no existing window/tab, open a new one
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(urlToOpen);
-      }
-    })
+
+        // If no existing window/tab, open a new one
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(urlToOpen);
+        }
+      }),
   );
 });
 
-self.addEventListener('notificationclose', function(event: any) {
-  console.log('[Service Worker] Notification closed.', event);
+self.addEventListener("notificationclose", function (event: any) {
+  console.log("[Service Worker] Notification closed.", event);
 });

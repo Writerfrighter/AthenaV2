@@ -215,7 +215,12 @@ export interface FtcAdvancementSlot {
 }
 
 /** Advancement Status Types */
-export type FtcAdvancementStatus = "NULL" | "FIRST" | "ALREADY_ADVANCING" | "ADVANCING_ABOVE" | "INELIGIBLE";
+export type FtcAdvancementStatus =
+  | "NULL"
+  | "FIRST"
+  | "ALREADY_ADVANCING"
+  | "ADVANCING_ABOVE"
+  | "INELIGIBLE";
 
 /** Advancement Source */
 export interface FtcAdvancementSource {
@@ -277,7 +282,10 @@ export interface FtcChampionship {
 }
 
 /** Score breakdown per alliance may vary by year—so use generic fallback */
-export type FtcScoreBreakdownAlliance = Record<string, number | string | boolean>;
+export type FtcScoreBreakdownAlliance = Record<
+  string,
+  number | string | boolean
+>;
 
 /** Overall score breakdown structure (two alliances + extras) */
 export interface FtcScoreBreakdown {
@@ -295,7 +303,13 @@ export interface FtcScoreDetails {
 }
 
 /** Event Level Types */
-export type FtcEventLevel = "PRACTICE" | "QUALIFICATION" | "SEMIFINAL" | "FINAL" | "PLAYOFF" | "OTHER";
+export type FtcEventLevel =
+  | "PRACTICE"
+  | "QUALIFICATION"
+  | "SEMIFINAL"
+  | "FINAL"
+  | "PLAYOFF"
+  | "OTHER";
 
 /** Tournament Level Types */
 export type FtcTournamentLevel = "qual" | "playoff";

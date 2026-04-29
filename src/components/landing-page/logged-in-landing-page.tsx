@@ -1,78 +1,84 @@
-'use client'
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Hammer, Zap, BarChart3, ArrowRight } from "lucide-react"
-import { ModeToggle } from "@/components/ui/light-dark-toggle"
-import Link from "next/link"
-import Image from "next/image"
-import { useEffect, useState } from "react"
-import { signOut, useSession } from "next-auth/react"
-import { useScheduleData } from "@/hooks/use-schedule-data"
-import { EventInfoCard } from "@/components/events/event-info-card"
-import { OfflineStatusWidget } from "@/components/sync/offline-status-widget"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Hammer, Zap, BarChart3, ArrowRight } from "lucide-react";
+import { ModeToggle } from "@/components/ui/light-dark-toggle";
+import Link from "next/link";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { signOut, useSession } from "next-auth/react";
+import { useScheduleData } from "@/hooks/use-schedule-data";
+import { EventInfoCard } from "@/components/events/event-info-card";
+import { OfflineStatusWidget } from "@/components/sync/offline-status-widget";
 
 interface MatchItem {
-  matchNumber: number
-  teamNumber: number
-  alliance: 'red' | 'blue'
+  matchNumber: number;
+  teamNumber: number;
+  alliance: "red" | "blue";
 }
 
 export function LoggedInLandingPage() {
-  const { data: session } = useSession()
-  const [isDark, setIsDark] = useState(false)
-  const { blocks, isLoading, error } = useScheduleData()
-  const [upcomingMatches, setUpcomingMatches] = useState<MatchItem[]>([])
+  const { data: session } = useSession();
+  const [isDark, setIsDark] = useState(false);
+  const { blocks, isLoading, error } = useScheduleData();
+  const [upcomingMatches, setUpcomingMatches] = useState<MatchItem[]>([]);
 
   useEffect(() => {
     // Check for dark mode
     const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'))
-    }
+      setIsDark(document.documentElement.classList.contains("dark"));
+    };
 
-    checkDarkMode()
-    const observer = new MutationObserver(checkDarkMode)
-    observer.observe(document.documentElement, { attributes: true })
+    checkDarkMode();
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { attributes: true });
 
     return () => {
-      observer.disconnect()
-    }
-  }, [])
+      observer.disconnect();
+    };
+  }, []);
 
   // Extract upcoming matches from blocks where user is assigned
   useEffect(() => {
     if (blocks && blocks.length > 0 && session?.user?.id) {
-      const matches: MatchItem[] = []
-      const userId = session.user.id
-      
+      const matches: MatchItem[] = [];
+      const userId = session.user.id;
+
       blocks.forEach((block) => {
         // Check if user is assigned to red alliance
-        const redIndex = block.redScouts?.indexOf(userId)
+        const redIndex = block.redScouts?.indexOf(userId);
         if (redIndex !== undefined && redIndex !== -1) {
           matches.push({
             matchNumber: block.startMatch,
             teamNumber: 0, // Placeholder - could be derived from position
-            alliance: 'red'
-          })
+            alliance: "red",
+          });
         }
-        
+
         // Check if user is assigned to blue alliance
-        const blueIndex = block.blueScouts?.indexOf(userId)
+        const blueIndex = block.blueScouts?.indexOf(userId);
         if (blueIndex !== undefined && blueIndex !== -1) {
           matches.push({
             matchNumber: block.startMatch,
             teamNumber: 0,
-            alliance: 'blue'
-          })
+            alliance: "blue",
+          });
         }
-      })
-      
+      });
+
       // Only show next 3 upcoming assignments
-      setUpcomingMatches(matches.slice(0, 3))
+      setUpcomingMatches(matches.slice(0, 3));
     } else {
-      setUpcomingMatches([])
+      setUpcomingMatches([]);
     }
-  }, [blocks, session?.user?.id])
+  }, [blocks, session?.user?.id]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
@@ -100,7 +106,11 @@ export function LoggedInLandingPage() {
           <div className="flex items-center gap-3">
             <OfflineStatusWidget showSyncButton className="hidden sm:flex" />
             <ModeToggle />
-            <Button variant="outline" size="lg" onClick={() => signOut({ callbackUrl: '/login' })}>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
               Logout
             </Button>
           </div>
@@ -113,7 +123,10 @@ export function LoggedInLandingPage() {
           {/* Welcome Section */}
           <section className="mb-8">
             <h1 className="text-4xl sm:text-5xl font-bold mb-2">
-              Welcome, <span className="text-primary">{session?.user?.name || 'Scout'}</span>
+              Welcome,{" "}
+              <span className="text-primary">
+                {session?.user?.name || "Scout"}
+              </span>
             </h1>
             <p className="text-lg text-muted-foreground mb-8">
               Ready to scout? Here's your quick access to key features.
@@ -126,11 +139,11 @@ export function LoggedInLandingPage() {
               <Card className="hover:shadow-lg transition-shadow h-full">
                 <CardHeader>
                   <CardTitle className="flex justify-between gap-2">
-                      <div className="flex justify-start gap-6 items-center">
-                        <Hammer className="h-5 w-5 text-primary" />
-                        Pit Scouting
-                      </div>
-                      <ArrowRight className="h-5 w-5 ml-2 mt-1 group-hover:translate-x-1 transition-transform" />
+                    <div className="flex justify-start gap-6 items-center">
+                      <Hammer className="h-5 w-5 text-primary" />
+                      Pit Scouting
+                    </div>
+                    <ArrowRight className="h-5 w-5 ml-2 mt-1 group-hover:translate-x-1 transition-transform" />
                   </CardTitle>
                 </CardHeader>
               </Card>
@@ -140,11 +153,11 @@ export function LoggedInLandingPage() {
               <Card className="hover:shadow-lg transition-shadow h-full">
                 <CardHeader>
                   <CardTitle className="flex justify-between gap-2">
-                      <div className="flex justify-start gap-6 items-center">
-                        <Zap className="h-5 w-5 text-primary" />
-                        Match Scouting
-                      </div>
-                      <ArrowRight className="h-5 w-5 ml-2 mt-1 group-hover:translate-x-1 transition-transform" />
+                    <div className="flex justify-start gap-6 items-center">
+                      <Zap className="h-5 w-5 text-primary" />
+                      Match Scouting
+                    </div>
+                    <ArrowRight className="h-5 w-5 ml-2 mt-1 group-hover:translate-x-1 transition-transform" />
                   </CardTitle>
                 </CardHeader>
               </Card>
@@ -154,11 +167,11 @@ export function LoggedInLandingPage() {
               <Card className="hover:shadow-lg transition-shadow h-full">
                 <CardHeader>
                   <CardTitle className="flex justify-between gap-2">
-                      <div className="flex justify-start gap-6 items-center">
-                        <BarChart3 className="h-5 w-5 text-primary" />
-                        Dashboard
-                      </div>
-                      <ArrowRight className="h-5 w-5 ml-2 mt-1 group-hover:translate-x-1 transition-transform" />
+                    <div className="flex justify-start gap-6 items-center">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      Dashboard
+                    </div>
+                    <ArrowRight className="h-5 w-5 ml-2 mt-1 group-hover:translate-x-1 transition-transform" />
                   </CardTitle>
                 </CardHeader>
               </Card>
@@ -192,12 +205,17 @@ export function LoggedInLandingPage() {
                     <Card key={idx}>
                       <CardContent className="flex items-center justify-between">
                         <div>
-                          <p className="font-semibold">Match {match.matchNumber}</p>
+                          <p className="font-semibold">
+                            Match {match.matchNumber}
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            {match.alliance && `${match.alliance.toUpperCase()} Alliance`}
+                            {match.alliance &&
+                              `${match.alliance.toUpperCase()} Alliance`}
                           </p>
                         </div>
-                        <Link href={`/scout/matchscout?match=${match.matchNumber}`}>
+                        <Link
+                          href={`/scout/matchscout?match=${match.matchNumber}`}
+                        >
                           <Button variant="outline" size="sm">
                             Scout
                           </Button>
@@ -214,10 +232,9 @@ export function LoggedInLandingPage() {
                 </Card>
               )}
             </div>
-
           </section>
         </div>
       </main>
     </div>
-  )
+  );
 }

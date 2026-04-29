@@ -1,30 +1,36 @@
 // Offline Sync Management Component
 // Provides UI controls for managing offline data queue and sync operations
 
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useOffline } from '@/hooks/use-offline';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { 
-  RefreshCw, 
-  Trash2, 
-  WifiOff, 
-  Wifi, 
-  CheckCircle, 
+import { useState } from "react";
+import { useOffline } from "@/hooks/use-offline";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  RefreshCw,
+  Trash2,
+  WifiOff,
+  Wifi,
+  CheckCircle,
   AlertCircle,
   Download,
   Upload,
-  Settings
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { offlineApi } from '@/lib/api/database-client';
-import type { QueuedEntry } from '@/lib/offline-types';
+  Settings,
+} from "lucide-react";
+import { toast } from "sonner";
+import { offlineApi } from "@/lib/api/database-client";
+import type { QueuedEntry } from "@/lib/offline-types";
 
 interface OfflineSyncManagerProps {
   className?: string;
@@ -55,24 +61,24 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
       setQueuedEntries(entries);
       setShowQueueDetails(true);
     } catch (error) {
-      toast.error('Failed to load queued entries');
-      console.error('Error loading queued entries:', error);
+      toast.error("Failed to load queued entries");
+      console.error("Error loading queued entries:", error);
     }
   };
 
   // Handle manual sync
   const handleSync = async () => {
     if (!isOnline) {
-      toast.error('Cannot sync while offline');
+      toast.error("Cannot sync while offline");
       return;
     }
 
     try {
       await triggerSync();
-      toast.success('Sync completed successfully');
+      toast.success("Sync completed successfully");
     } catch (error) {
-      toast.error('Sync failed', {
-        description: error instanceof Error ? error.message : 'Unknown error'
+      toast.error("Sync failed", {
+        description: error instanceof Error ? error.message : "Unknown error",
       });
     }
   };
@@ -80,16 +86,16 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
   // Handle retry failed entries
   const handleRetry = async () => {
     if (!isOnline) {
-      toast.error('Cannot retry while offline');
+      toast.error("Cannot retry while offline");
       return;
     }
 
     try {
       await retryFailedEntries();
-      toast.success('Retry completed successfully');
+      toast.success("Retry completed successfully");
     } catch (error) {
-      toast.error('Retry failed', {
-        description: error instanceof Error ? error.message : 'Unknown error'
+      toast.error("Retry failed", {
+        description: error instanceof Error ? error.message : "Unknown error",
       });
     }
   };
@@ -104,8 +110,8 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
         await loadQueuedEntries(); // Refresh the display
       }
     } catch (error) {
-      toast.error('Failed to clear synced entries');
-      console.error('Error clearing synced entries:', error);
+      toast.error("Failed to clear synced entries");
+      console.error("Error clearing synced entries:", error);
     } finally {
       setIsClearing(false);
     }
@@ -115,24 +121,43 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
   const handleAutoSyncToggle = async (enabled: boolean) => {
     try {
       await setAutoSyncEnabled(enabled);
-      toast.success(`Auto-sync ${enabled ? 'enabled' : 'disabled'}`);
+      toast.success(`Auto-sync ${enabled ? "enabled" : "disabled"}`);
     } catch (error) {
-      toast.error('Failed to update auto-sync setting');
-      console.error('Error updating auto-sync:', error);
+      toast.error("Failed to update auto-sync setting");
+      console.error("Error updating auto-sync:", error);
     }
   };
 
   // Get status badge for queue entry
   const getStatusBadge = (entry: QueuedEntry) => {
     switch (entry.status) {
-      case 'pending':
-        return <Badge variant="outline" className="text-chart-5 border-chart-5">Pending</Badge>;
-      case 'syncing':
-        return <Badge variant="outline" className="text-chart-2 border-chart-2">Syncing</Badge>;
-      case 'synced':
-        return <Badge variant="outline" className="text-primary border-primary">Synced</Badge>;
-      case 'error':
-        return <Badge variant="outline" className="text-destructive border-destructive">Error</Badge>;
+      case "pending":
+        return (
+          <Badge variant="outline" className="text-chart-5 border-chart-5">
+            Pending
+          </Badge>
+        );
+      case "syncing":
+        return (
+          <Badge variant="outline" className="text-chart-2 border-chart-2">
+            Syncing
+          </Badge>
+        );
+      case "synced":
+        return (
+          <Badge variant="outline" className="text-primary border-primary">
+            Synced
+          </Badge>
+        );
+      case "error":
+        return (
+          <Badge
+            variant="outline"
+            className="text-destructive border-destructive"
+          >
+            Error
+          </Badge>
+        );
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
@@ -165,7 +190,7 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
               </>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Label htmlFor="auto-sync">Auto-sync</Label>
             <Switch
@@ -181,7 +206,9 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
         {/* Queue Status */}
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold text-chart-5">{pendingCount}</div>
+            <div className="text-2xl font-bold text-chart-5">
+              {pendingCount}
+            </div>
             <div className="text-sm text-muted-foreground">Pending</div>
           </div>
           <div className="text-center p-4 bg-muted/50 rounded-lg">
@@ -202,7 +229,8 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
               )}
             </div>
             <div className="text-xs text-muted-foreground">
-              {lastSyncResult.syncedCount} synced, {lastSyncResult.failedCount} failed
+              {lastSyncResult.syncedCount} synced, {lastSyncResult.failedCount}{" "}
+              failed
             </div>
             <div className="text-xs text-muted-foreground">
               {lastSyncResult.timestamp.toLocaleString()}
@@ -290,7 +318,7 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
                   Hide
                 </Button>
               </div>
-              
+
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {queuedEntries.length === 0 ? (
                   <div className="text-center text-sm text-muted-foreground py-4">
@@ -298,16 +326,18 @@ export function OfflineSyncManager({ className }: OfflineSyncManagerProps) {
                   </div>
                 ) : (
                   queuedEntries.map((entry) => (
-                    <div key={entry.id} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+                    <div
+                      key={entry.id}
+                      className="flex items-center justify-between p-2 bg-muted/30 rounded"
+                    >
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs">
                           {entry.type}
                         </Badge>
                         <span className="text-sm">
-                          {entry.type === 'pit' 
-                            ? `Team ${entry.data.teamNumber}` 
-                            : `Match ${(entry.data as { matchNumber?: number }).matchNumber} - Team ${entry.data.teamNumber}`
-                          }
+                          {entry.type === "pit"
+                            ? `Team ${entry.data.teamNumber}`
+                            : `Match ${(entry.data as { matchNumber?: number }).matchNumber} - Team ${entry.data.teamNumber}`}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">

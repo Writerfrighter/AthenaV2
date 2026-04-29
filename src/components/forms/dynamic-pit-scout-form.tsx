@@ -1,39 +1,48 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useGameConfig, useCurrentGameConfig } from '@/hooks/use-game-config';
-import { useSelectedEvent } from '@/hooks/use-event-config';
-import { useEventTeamNumbers, useEventTeams } from '@/hooks/use-event-teams';
-import { useUnscoutedEventTeamNumbers } from '@/hooks/use-unscouted-event-teams';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { MultiSelect } from '@/components/ui/multi-select';
-import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { pitApi } from '@/lib/api/database-client';
-import { ScoutSelector } from '@/components/scout-selector';
-import { FieldDrawingCanvas } from '@/components/forms/field-drawing-canvas';
-import type { DynamicPitData, PitEntry } from '@/lib/shared-types';
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useGameConfig, useCurrentGameConfig } from "@/hooks/use-game-config";
+import { useSelectedEvent } from "@/hooks/use-event-config";
+import { useEventTeamNumbers, useEventTeams } from "@/hooks/use-event-teams";
+import { useUnscoutedEventTeamNumbers } from "@/hooks/use-unscouted-event-teams";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+import { pitApi } from "@/lib/api/database-client";
+import { ScoutSelector } from "@/components/scout-selector";
+import { FieldDrawingCanvas } from "@/components/forms/field-drawing-canvas";
+import type { PitEntry } from "@/lib/types";
+import type { DynamicPitData } from "@/lib/types";
 
 export function DynamicPitScoutForm() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const editId = searchParams.get('editId');
+  const editId = searchParams.get("editId");
   const gameConfig = useCurrentGameConfig();
   const { competitionType, currentYear } = useGameConfig();
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
   const { loading: teamsLoading } = useEventTeams();
-  const { teamNumbers: unscoutedTeamNumbers, loading: unscoutedLoading } = useUnscoutedEventTeamNumbers();
+  const { teamNumbers: unscoutedTeamNumbers, loading: unscoutedLoading } =
+    useUnscoutedEventTeamNumbers();
   const [selectedScoutId, setSelectedScoutId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
@@ -45,112 +54,133 @@ export function DynamicPitScoutForm() {
   const initializePitFormData = (config: any): DynamicPitData => {
     const data: DynamicPitData = {
       team: 0,
-      drivetrain: '',
-      weight: '',
-      length: '',
-      width: '',
+      drivetrain: "",
+      weight: "",
+      length: "",
+      width: "",
       hasAuto: false,
-      autoDrawing: '',
-      notes: '',
-      gameSpecificData: {}
+      autoDrawing: "",
+      notes: "",
+      gameSpecificData: {},
     };
 
     // Initialize fields for each category
-    ['autonomous', 'teleoperated', 'driveTeam', 'endgame'].forEach(category => {
-      if (config?.pitScouting?.[category]) {
-        Object.entries(config.pitScouting[category]).forEach(([fieldName, fieldConfig]: [string, any]) => {
-          switch (fieldConfig.type) {
-            case 'text':
-              data.gameSpecificData[`${category}_${fieldName}`] = '';
-              break;
-            case 'number':
-              data.gameSpecificData[`${category}_${fieldName}`] = 0;
-              break;
-            case 'boolean':
-              data.gameSpecificData[`${category}_${fieldName}`] = false;
-              break;
-            case 'select':
-              data.gameSpecificData[`${category}_${fieldName}`] = fieldConfig.options && fieldConfig.options.length > 0 ? fieldConfig.options[0] : '';
-              break;
-            default:
-              data.gameSpecificData[`${category}_${fieldName}`] = '';
-          }
-        });
-      }
-    });
+    ["autonomous", "teleoperated", "driveTeam", "endgame"].forEach(
+      (category) => {
+        if (config?.pitScouting?.[category]) {
+          Object.entries(config.pitScouting[category]).forEach(
+            ([fieldName, fieldConfig]: [string, any]) => {
+              switch (fieldConfig.type) {
+                case "text":
+                  data.gameSpecificData[`${category}_${fieldName}`] = "";
+                  break;
+                case "number":
+                  data.gameSpecificData[`${category}_${fieldName}`] = 0;
+                  break;
+                case "boolean":
+                  data.gameSpecificData[`${category}_${fieldName}`] = false;
+                  break;
+                case "select":
+                  data.gameSpecificData[`${category}_${fieldName}`] =
+                    fieldConfig.options && fieldConfig.options.length > 0
+                      ? fieldConfig.options[0]
+                      : "";
+                  break;
+                default:
+                  data.gameSpecificData[`${category}_${fieldName}`] = "";
+              }
+            },
+          );
+        }
+      },
+    );
 
     return data;
   };
 
-  const [formData, setFormData] = useState<DynamicPitData>(() => 
-    gameConfig ? initializePitFormData(gameConfig) : {
-      team: 0,
-      drivetrain: '',
-      weight: '',
-      length: '',
-      width: '',
-      hasAuto: false,
-      autoDrawing: '',
-      notes: '',
-      gameSpecificData: {}
-    }
+  const [formData, setFormData] = useState<DynamicPitData>(() =>
+    gameConfig
+      ? initializePitFormData(gameConfig)
+      : {
+          team: 0,
+          drivetrain: "",
+          weight: "",
+          length: "",
+          width: "",
+          hasAuto: false,
+          autoDrawing: "",
+          notes: "",
+          gameSpecificData: {},
+        },
   );
 
   // Fetch entry for editing
   useEffect(() => {
     let isMounted = true;
-    
+
     const fetchEntryForEdit = async () => {
       if (!editId || !gameConfig) return;
-      
+
       setIsLoadingEdit(true);
       try {
         const response = await fetch(`/api/database/pit?id=${editId}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch entry for editing');
+          throw new Error("Failed to fetch entry for editing");
         }
-        
+
         const entry: PitEntry = await response.json();
-        
+
         if (!isMounted) return;
-        
+
         // Populate form with existing data
         const gameData = { ...entry.gameSpecificData };
         const hasAuto = Boolean(gameData.hasAuto);
         delete gameData.hasAuto; // Remove hasAuto from gameSpecificData
-        
+
         const populatedData: DynamicPitData = {
           team: entry.teamNumber,
           drivetrain: entry.driveTrain.toLowerCase(),
-          weight: entry.weight !== null && entry.weight !== undefined ? String(entry.weight) : '',
-          length: entry.length !== null && entry.length !== undefined ? String(entry.length) : '',
-          width: entry.width !== null && entry.width !== undefined ? String(entry.width) : '',
+          weight:
+            entry.weight !== null && entry.weight !== undefined
+              ? String(entry.weight)
+              : "",
+          length:
+            entry.length !== null && entry.length !== undefined
+              ? String(entry.length)
+              : "",
+          width:
+            entry.width !== null && entry.width !== undefined
+              ? String(entry.width)
+              : "",
           hasAuto,
-          autoDrawing: entry.autoDrawing || '',
-          notes: typeof entry.notes === 'string' ? entry.notes : '',
-          gameSpecificData: gameData as Record<string, number | string | boolean>
+          autoDrawing: entry.autoDrawing || "",
+          notes: typeof entry.notes === "string" ? entry.notes : "",
+          gameSpecificData: gameData as Record<
+            string,
+            number | string | boolean
+          >,
         };
-        
+
         setFormData(populatedData);
         setIsEditMode(true);
         setEditingEntryId(entry.id ?? null);
-        
-        toast.info('Editing entry', {
-          description: `Team ${entry.teamNumber}`
+
+        toast.info("Editing entry", {
+          description: `Team ${entry.teamNumber}`,
         });
       } catch (error) {
         if (!isMounted) return;
-        console.error('Error fetching entry for edit:', error);
-        toast.error('Failed to load entry for editing');
+        console.error("Error fetching entry for edit:", error);
+        toast.error("Failed to load entry for editing");
       } finally {
         if (isMounted) {
           setIsLoadingEdit(false);
         }
       }
     };
-    
+
     fetchEntryForEdit();
-    
+
     return () => {
       isMounted = false;
     };
@@ -163,9 +193,11 @@ export function DynamicPitScoutForm() {
     }
   }, [gameConfig, isEditMode]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
-    if (name === 'team') {
+    if (name === "team") {
       setFormData((f) => ({ ...f, [name]: Number(value) }));
     } else {
       setFormData((f) => ({ ...f, [name]: value }));
@@ -173,17 +205,20 @@ export function DynamicPitScoutForm() {
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    if (name === 'team') {
+    if (name === "team") {
       setFormData((f) => ({ ...f, [name]: Number(value) }));
     } else {
       setFormData((f) => ({ ...f, [name]: value }));
     }
   };
 
-  const handleGameSpecificChange = (field: string, value: number | string | boolean | string[]) => {
-    setFormData((f) => ({ 
-      ...f, 
-      gameSpecificData: { ...f.gameSpecificData, [field]: value }
+  const handleGameSpecificChange = (
+    field: string,
+    value: number | string | boolean | string[],
+  ) => {
+    setFormData((f) => ({
+      ...f,
+      gameSpecificData: { ...f.gameSpecificData, [field]: value },
     }));
   };
 
@@ -199,7 +234,7 @@ export function DynamicPitScoutForm() {
     }
 
     // For tablet accounts, ensure a scout is selected
-    if (session?.user?.role === 'tablet' && !selectedScoutId && !isEditMode) {
+    if (session?.user?.role === "tablet" && !selectedScoutId && !isEditMode) {
       toast.error("Please select which scout you're entering data for");
       return;
     }
@@ -208,116 +243,145 @@ export function DynamicPitScoutForm() {
 
     try {
       // Check for duplicate pit scout entry (only for new entries, not edits)
-      if (!isEditMode && selectedEvent?.code) {
+      if (!isEditMode && selectedEvent?.eventCode) {
         try {
           const response = await fetch(
-            `/api/database/pit/check?teamNumber=${formData.team}&eventCode=${selectedEvent.code}`
+            `/api/database/pit/check?teamNumber=${formData.team}&eventCode=${selectedEvent.eventCode}`,
           );
           const data = await response.json();
-          
+
           if (data.exists) {
             toast.error("Duplicate entry detected", {
               description: `Team ${formData.team} has already been pit scouted for this event. Please check existing entries or edit the existing entry.`,
-              icon: <AlertCircle className="h-4 w-4" />
+              icon: <AlertCircle className="h-4 w-4" />,
             });
             return;
           }
         } catch (error) {
-          console.error('Error checking for duplicate:', error);
+          console.error("Error checking for duplicate:", error);
           // Continue with submission even if check fails
         }
       }
 
       if (isEditMode && editingEntryId) {
         // Update existing entry
-        const response = await fetch('/api/database/pit', {
-          method: 'PUT',
+        const response = await fetch("/api/database/pit", {
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             id: editingEntryId,
             teamNumber: Number(formData.team),
             year: currentYear,
             competitionType: competitionType,
-            driveTrain: formData.drivetrain.charAt(0).toUpperCase() + formData.drivetrain.slice(1) as "Swerve" | "Mecanum" | "Tank" | "Other",
-            weight: formData.weight ? parseFloat(formData.weight as string) : undefined,
-            length: formData.length ? parseFloat(formData.length as string) : undefined,
-            width: formData.width ? parseFloat(formData.width as string) : undefined,
-            eventName: selectedEvent?.name || 'Unknown Event',
-            eventCode: selectedEvent?.code || 'Unknown Code',
-            notes: formData.notes || '',
-            autoDrawing: formData.autoDrawing || '',
+            driveTrain: (formData.drivetrain.charAt(0).toUpperCase() +
+              formData.drivetrain.slice(1)) as
+              | "Swerve"
+              | "Mecanum"
+              | "Tank"
+              | "Other",
+            weight: formData.weight
+              ? parseFloat(formData.weight as string)
+              : undefined,
+            length: formData.length
+              ? parseFloat(formData.length as string)
+              : undefined,
+            width: formData.width
+              ? parseFloat(formData.width as string)
+              : undefined,
+            eventName: selectedEvent?.name || "Unknown Event",
+            eventCode: selectedEvent?.eventCode || "Unknown Code",
+            notes: formData.notes || "",
+            autoDrawing: formData.autoDrawing || "",
             gameSpecificData: {
               hasAuto: formData.hasAuto,
-              ...formData.gameSpecificData
+              ...formData.gameSpecificData,
             },
           }),
         });
 
         if (!response.ok) {
-          throw new Error('Failed to update pit entry');
+          throw new Error("Failed to update pit entry");
         }
 
         toast("Pit entry updated!", {
           description: `Team ${formData.team} updated successfully.`,
-          icon: <CheckCircle className="h-4 w-4" />
+          icon: <CheckCircle className="h-4 w-4" />,
         });
 
         // Navigate back to dashboard
-        router.push('/dashboard/pitscouting');
+        router.push("/dashboard/pitscouting");
       } else {
         // Create new entry
         const entryToSave = {
           teamNumber: Number(formData.team),
           year: currentYear,
           competitionType: competitionType,
-          driveTrain: formData.drivetrain as "Swerve" | "Mecanum" | "Tank" | "Other",
-          weight: formData.weight ? parseFloat(formData.weight as string) : undefined,
-          length: formData.length ? parseFloat(formData.length as string) : undefined,
-          width: formData.width ? parseFloat(formData.width as string) : undefined,
-          eventName: selectedEvent?.name || 'Unknown Event',
-          eventCode: selectedEvent?.code || 'Unknown Code',
-          notes: formData.notes || '',
-          autoDrawing: formData.autoDrawing || '',
+          driveTrain: formData.drivetrain as
+            | "Swerve"
+            | "Mecanum"
+            | "Tank"
+            | "Other",
+          weight: formData.weight
+            ? parseFloat(formData.weight as string)
+            : undefined,
+          length: formData.length
+            ? parseFloat(formData.length as string)
+            : undefined,
+          width: formData.width
+            ? parseFloat(formData.width as string)
+            : undefined,
+          eventName: selectedEvent?.name || "Unknown Event",
+          eventCode: selectedEvent?.eventCode || "Unknown Code",
+          notes: formData.notes || "",
+          autoDrawing: formData.autoDrawing || "",
           gameSpecificData: {
             hasAuto: formData.hasAuto,
-            ...formData.gameSpecificData
+            ...formData.gameSpecificData,
           },
           // Include scout ID for tablet accounts
-          ...(session?.user?.role === 'tablet' && selectedScoutId ? { scoutingForUserId: selectedScoutId } : {})
+          ...(session?.user?.role === "tablet" && selectedScoutId
+            ? { scoutingForUserId: selectedScoutId }
+            : {}),
         };
 
         const result = await pitApi.create(entryToSave);
-        
+
         if (result.isQueued) {
           toast("Data queued for sync", {
             description: `Team ${formData.team} entry saved offline. Will sync when online.`,
-            icon: <Clock className="h-4 w-4" />
+            icon: <Clock className="h-4 w-4" />,
           });
         } else {
           toast("Scouting data saved!", {
             description: `Team ${formData.team} entry stored successfully.`,
-            icon: <CheckCircle className="h-4 w-4" />
+            icon: <CheckCircle className="h-4 w-4" />,
           });
         }
-        
+
         // Reset form
-        setFormData(gameConfig ? initializePitFormData(gameConfig) : {
-          team: 0,
-          drivetrain: '',
-          weight: '',
-          length: '',
-          width: '',
-          hasAuto: false,
-          autoDrawing: '',
-          notes: '',
-          gameSpecificData: {}
-        });
+        setFormData(
+          gameConfig
+            ? initializePitFormData(gameConfig)
+            : {
+                team: 0,
+                drivetrain: "",
+                weight: "",
+                length: "",
+                width: "",
+                hasAuto: false,
+                autoDrawing: "",
+                notes: "",
+                gameSpecificData: {},
+              },
+        );
         // Notify local listeners (including our hook) that a pit entry was created so dropdown updates
         try {
-          if (typeof window !== 'undefined') {
-            const ev = new CustomEvent('pitEntryCreated', { detail: { teamNumber: entryToSave.teamNumber } });
+          if (typeof window !== "undefined") {
+            const ev = new CustomEvent("pitEntryCreated", {
+              detail: { teamNumber: entryToSave.teamNumber },
+            });
             window.dispatchEvent(ev);
           }
         } catch (err) {
@@ -327,19 +391,24 @@ export function DynamicPitScoutForm() {
     } catch (error) {
       toast("Failed to save data", {
         description: error instanceof Error ? error.message : "Unknown error",
-        icon: <AlertCircle className="h-4 w-4" />
+        icon: <AlertCircle className="h-4 w-4" />,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const renderCustomField = (field: { name: string; label: string; type: string; options?: string[] }) => {
-    const value = formData.gameSpecificData[field.name] || '';
-    
+  const renderCustomField = (field: {
+    name: string;
+    label: string;
+    type: string;
+    options?: string[];
+  }) => {
+    const value = formData.gameSpecificData[field.name] || "";
+
     switch (field.type) {
-      case 'text':
-      case 'number':
+      case "text":
+      case "number":
         return (
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name} className="text-base font-medium">
@@ -349,40 +418,51 @@ export function DynamicPitScoutForm() {
               id={field.name}
               name={field.name}
               type={field.type}
-              value={String(value || '')}
-              onChange={(e) => handleGameSpecificChange(field.name, e.target.value)}
+              value={String(value || "")}
+              onChange={(e) =>
+                handleGameSpecificChange(field.name, e.target.value)
+              }
               className="h-12 text-base"
             />
           </div>
         );
-      
-      case 'boolean':
+
+      case "boolean":
         return (
           <div key={field.name} className="flex items-center space-x-4">
             <Switch
               id={field.name}
               checked={Boolean(value)}
-              onCheckedChange={(checked) => handleGameSpecificChange(field.name, checked)}
+              onCheckedChange={(checked) =>
+                handleGameSpecificChange(field.name, checked)
+              }
               className="scale-125"
             />
-            <Label htmlFor={field.name} className="text-base font-medium cursor-pointer">
+            <Label
+              htmlFor={field.name}
+              className="text-base font-medium cursor-pointer"
+            >
               {field.label}
             </Label>
           </div>
         );
-      
-      case 'select':
+
+      case "select":
         return (
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name} className="text-base font-medium">
               {field.label}
             </Label>
-            <Select 
-              value={String(value || '')} 
-              onValueChange={(value) => handleGameSpecificChange(field.name, value)}
+            <Select
+              value={String(value || "")}
+              onValueChange={(value) =>
+                handleGameSpecificChange(field.name, value)
+              }
             >
               <SelectTrigger className="h-12 text-base">
-                <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+                <SelectValue
+                  placeholder={`Select ${field.label.toLowerCase()}`}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
@@ -396,8 +476,8 @@ export function DynamicPitScoutForm() {
             </Select>
           </div>
         );
-      
-      case 'multiselect':
+
+      case "multiselect":
         return (
           <div key={field.name} className="space-y-2">
             <Label htmlFor={field.name} className="text-base font-medium">
@@ -406,13 +486,15 @@ export function DynamicPitScoutForm() {
             <MultiSelect
               options={field.options || []}
               selected={Array.isArray(value) ? value : []}
-              onChange={(selected) => handleGameSpecificChange(field.name, selected)}
+              onChange={(selected) =>
+                handleGameSpecificChange(field.name, selected)
+              }
               placeholder={`Select ${field.label.toLowerCase()}`}
               className="w-full"
             />
           </div>
         );
-      
+
       default:
         return null;
     }
@@ -423,7 +505,8 @@ export function DynamicPitScoutForm() {
       {/* Game Title */}
       <div className="text-center">
         <Badge variant="outline" className="text-lg px-4 py-2">
-          {gameConfig?.gameName || 'Unknown Game'} - {isEditMode ? 'Edit Pit Entry' : 'Pit Scouting'}
+          {gameConfig?.gameName || "Unknown Game"} -{" "}
+          {isEditMode ? "Edit Pit Entry" : "Pit Scouting"}
         </Badge>
       </div>
 
@@ -431,7 +514,9 @@ export function DynamicPitScoutForm() {
       {isLoadingEdit && (
         <Card className="border rounded-xl shadow-sm">
           <CardContent className="pt-6 text-center">
-            <div className="text-muted-foreground">Loading entry for editing...</div>
+            <div className="text-muted-foreground">
+              Loading entry for editing...
+            </div>
           </CardContent>
         </Card>
       )}
@@ -441,7 +526,7 @@ export function DynamicPitScoutForm() {
         <ScoutSelector
           selectedScoutId={selectedScoutId}
           onScoutChange={setSelectedScoutId}
-          currentUserId={session.user.id || ''}
+          currentUserId={session.user.id || ""}
           currentUserRole={session.user.role || null}
         />
       )}
@@ -462,13 +547,23 @@ export function DynamicPitScoutForm() {
                     {isEditMode ? (
                       // In edit mode, show the team number as read-only or allow selection from all teams
                       eventTeamNumbers.length > 0 ? (
-                        <Select value={formData.team === 0 ? '' : String(formData.team)} onValueChange={(value) => handleSelectChange('team', value)}>
+                        <Select
+                          value={
+                            formData.team === 0 ? "" : String(formData.team)
+                          }
+                          onValueChange={(value) =>
+                            handleSelectChange("team", value)
+                          }
+                        >
                           <SelectTrigger className="h-12 text-base">
                             <SelectValue placeholder="Select team number" />
                           </SelectTrigger>
                           <SelectContent>
                             {eventTeamNumbers.map((teamNumber) => (
-                              <SelectItem key={teamNumber} value={String(teamNumber)}>
+                              <SelectItem
+                                key={teamNumber}
+                                value={String(teamNumber)}
+                              >
                                 Team {teamNumber}
                               </SelectItem>
                             ))}
@@ -487,19 +582,30 @@ export function DynamicPitScoutForm() {
                         />
                       )
                     ) : unscoutedTeamNumbers.length > 0 ? (
-                      <Select value={formData.team === 0 ? '' : String(formData.team)} onValueChange={(value) => handleSelectChange('team', value)}>
+                      <Select
+                        value={formData.team === 0 ? "" : String(formData.team)}
+                        onValueChange={(value) =>
+                          handleSelectChange("team", value)
+                        }
+                      >
                         <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder="Select team number" />
                         </SelectTrigger>
                         <SelectContent>
                           {unscoutedTeamNumbers.map((teamNumber) => (
-                            <SelectItem key={teamNumber} value={String(teamNumber)}>
+                            <SelectItem
+                              key={teamNumber}
+                              value={String(teamNumber)}
+                            >
                               Team {teamNumber}
                             </SelectItem>
                           ))}
-                          {unscoutedTeamNumbers.length === 0 && eventTeamNumbers.length > 0 && (
-                            <SelectItem value="-" disabled>All teams have pit entries</SelectItem>
-                          )}
+                          {unscoutedTeamNumbers.length === 0 &&
+                            eventTeamNumbers.length > 0 && (
+                              <SelectItem value="-" disabled>
+                                All teams have pit entries
+                              </SelectItem>
+                            )}
                         </SelectContent>
                       </Select>
                     ) : unscoutedLoading || teamsLoading ? (
@@ -527,15 +633,22 @@ export function DynamicPitScoutForm() {
 
               {/* Robot Information */}
               <div className="border-b pb-4">
-                <h3 className="text-lg font-semibold mb-4">Robot Information</h3>
+                <h3 className="text-lg font-semibold mb-4">
+                  Robot Information
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="drivetrain" className="text-base font-medium">
+                    <Label
+                      htmlFor="drivetrain"
+                      className="text-base font-medium"
+                    >
                       Drivetrain
                     </Label>
-                    <Select 
-                      value={formData.drivetrain} 
-                      onValueChange={(value) => handleSelectChange('drivetrain', value)}
+                    <Select
+                      value={formData.drivetrain}
+                      onValueChange={(value) =>
+                        handleSelectChange("drivetrain", value)
+                      }
                     >
                       <SelectTrigger className="h-12 text-base">
                         <SelectValue placeholder="Select drivetrain" />
@@ -545,7 +658,9 @@ export function DynamicPitScoutForm() {
                           <SelectItem value="tank">Tank Drive</SelectItem>
                           <SelectItem value="mecanum">Mecanum Drive</SelectItem>
                           <SelectItem value="swerve">Swerve Drive</SelectItem>
-                          <SelectItem value="west-coast">West Coast Drive</SelectItem>
+                          <SelectItem value="west-coast">
+                            West Coast Drive
+                          </SelectItem>
                           <SelectItem value="omni">Omni Drive</SelectItem>
                           <SelectItem value="other">Other</SelectItem>
                         </SelectGroup>
@@ -557,7 +672,9 @@ export function DynamicPitScoutForm() {
 
               {/* Robot Specifications */}
               <div className="border-b pb-4">
-                <h3 className="text-lg font-semibold mb-4">Robot Specifications</h3>
+                <h3 className="text-lg font-semibold mb-4">
+                  Robot Specifications
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="length" className="text-base font-medium">
@@ -608,7 +725,9 @@ export function DynamicPitScoutForm() {
               </div>
 
               {/* Autonomous Capabilities */}
-              <div className={`space-y-6 ${!formData.hasAuto ? 'border-b pb-4' : ''}`}>
+              <div
+                className={`space-y-6 ${!formData.hasAuto ? "border-b pb-4" : ""}`}
+              >
                 <div className="flex items-center space-x-4">
                   <Switch
                     id="hasAuto"
@@ -616,7 +735,10 @@ export function DynamicPitScoutForm() {
                     onCheckedChange={handleToggleAuto}
                     className="scale-125"
                   />
-                  <Label htmlFor="hasAuto" className="text-base font-medium cursor-pointer">
+                  <Label
+                    htmlFor="hasAuto"
+                    className="text-base font-medium cursor-pointer"
+                  >
                     Has Autonomous Capabilities
                   </Label>
                 </div>
@@ -626,96 +748,134 @@ export function DynamicPitScoutForm() {
               {gameConfig?.pitScouting && (
                 <>
                   {/* Autonomous */}
-                  {gameConfig.pitScouting.autonomous && Object.keys(gameConfig.pitScouting.autonomous).length > 0 && formData.hasAuto && (
-                    <div className="border-b pb-4">
-                      <h3 className="text-lg font-semibold mb-4">Autonomous Capabilities</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {Object.entries(gameConfig.pitScouting.autonomous).map(([name, field]: [string, any]) => 
-                          renderCustomField({
-                            name: `autonomous_${name}`,
-                            label: field.label,
-                            type: field.type,
-                            options: field.options
-                          })
-                        )}
+                  {gameConfig.pitScouting.autonomous &&
+                    Object.keys(gameConfig.pitScouting.autonomous).length > 0 &&
+                    formData.hasAuto && (
+                      <div className="border-b pb-4">
+                        <h3 className="text-lg font-semibold mb-4">
+                          Autonomous Capabilities
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {Object.entries(
+                            gameConfig.pitScouting.autonomous,
+                          ).map(([name, field]: [string, any]) =>
+                            renderCustomField({
+                              name: `autonomous_${name}`,
+                              label: field.label,
+                              type: field.type,
+                              options: field.options,
+                            }),
+                          )}
+                        </div>
+                        {/* Field Drawing Canvas for Autonomous Path */}
+                        <div className="mt-6">
+                          <FieldDrawingCanvas
+                            initialData={formData.autoDrawing}
+                            onChange={(strokeJson) =>
+                              setFormData((f) => ({
+                                ...f,
+                                autoDrawing: strokeJson,
+                              }))
+                            }
+                          />
+                        </div>
                       </div>
-                      {/* Field Drawing Canvas for Autonomous Path */}
-                      <div className="mt-6">
-                        <FieldDrawingCanvas
-                          initialData={formData.autoDrawing}
-                          onChange={(strokeJson) => setFormData(f => ({ ...f, autoDrawing: strokeJson }))}
-                        />
-                      </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Autonomous path drawing when no autonomous fields configured */}
-                  {(!gameConfig.pitScouting.autonomous || Object.keys(gameConfig.pitScouting.autonomous).length === 0) && formData.hasAuto && (
-                    <div className="border-b pb-4">
-                      <h3 className="text-lg font-semibold mb-4">Autonomous Path</h3>
-                      <FieldDrawingCanvas
-                        initialData={formData.autoDrawing}
-                        onChange={(strokeJson) => setFormData(f => ({ ...f, autoDrawing: strokeJson }))}
-                      />
-                    </div>
-                  )}
+                  {(!gameConfig.pitScouting.autonomous ||
+                    Object.keys(gameConfig.pitScouting.autonomous).length ===
+                      0) &&
+                    formData.hasAuto && (
+                      <div className="border-b pb-4">
+                        <h3 className="text-lg font-semibold mb-4">
+                          Autonomous Path
+                        </h3>
+                        <FieldDrawingCanvas
+                          initialData={formData.autoDrawing}
+                          onChange={(strokeJson) =>
+                            setFormData((f) => ({
+                              ...f,
+                              autoDrawing: strokeJson,
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
 
                   {/* Teleoperated */}
-                  {gameConfig.pitScouting.teleoperated && Object.keys(gameConfig.pitScouting.teleoperated).length > 0 && (
-                    <div className="border-b pb-4">
-                      <h3 className="text-lg font-semibold mb-4">Teleop Capabilities</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {Object.entries(gameConfig.pitScouting.teleoperated).map(([name, field]: [string, any]) => 
-                          renderCustomField({
-                            name: `teleoperated_${name}`,
-                            label: field.label,
-                            type: field.type,
-                            options: field.options
-                          })
-                        )}
+                  {gameConfig.pitScouting.teleoperated &&
+                    Object.keys(gameConfig.pitScouting.teleoperated).length >
+                      0 && (
+                      <div className="border-b pb-4">
+                        <h3 className="text-lg font-semibold mb-4">
+                          Teleop Capabilities
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {Object.entries(
+                            gameConfig.pitScouting.teleoperated,
+                          ).map(([name, field]: [string, any]) =>
+                            renderCustomField({
+                              name: `teleoperated_${name}`,
+                              label: field.label,
+                              type: field.type,
+                              options: field.options,
+                            }),
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Drive Team */}
-                  {gameConfig.pitScouting.driveTeam && Object.keys(gameConfig.pitScouting.driveTeam).length > 0 && (
-                    <div className="border-b pb-4">
-                      <h3 className="text-lg font-semibold mb-4">Drive Team</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {Object.entries(gameConfig.pitScouting.driveTeam).map(([name, field]: [string, any]) => 
-                          renderCustomField({
-                            name: `driveTeam_${name}`,
-                            label: field.label,
-                            type: field.type,
-                            options: field.options
-                          })
-                        )}
+                  {gameConfig.pitScouting.driveTeam &&
+                    Object.keys(gameConfig.pitScouting.driveTeam).length >
+                      0 && (
+                      <div className="border-b pb-4">
+                        <h3 className="text-lg font-semibold mb-4">
+                          Drive Team
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {Object.entries(gameConfig.pitScouting.driveTeam).map(
+                            ([name, field]: [string, any]) =>
+                              renderCustomField({
+                                name: `driveTeam_${name}`,
+                                label: field.label,
+                                type: field.type,
+                                options: field.options,
+                              }),
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Endgame */}
-                  {gameConfig.pitScouting.endgame && Object.keys(gameConfig.pitScouting.endgame).length > 0 && (
-                    <div className="border-b pb-4">
-                      <h3 className="text-lg font-semibold mb-4">Endgame Capabilities</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {Object.entries(gameConfig.pitScouting.endgame)
-                          .filter(([, field]: [string, any]) => {
-                            if (!field.dependsOn) return true;
-                            const dependencyValue = formData.gameSpecificData[`endgame_${field.dependsOn}`];
-                            return Boolean(dependencyValue);
-                          })
-                          .map(([name, field]: [string, any]) => 
-                          renderCustomField({
-                            name: `endgame_${name}`,
-                            label: field.label,
-                            type: field.type,
-                            options: field.options
-                          })
-                        )}
+                  {gameConfig.pitScouting.endgame &&
+                    Object.keys(gameConfig.pitScouting.endgame).length > 0 && (
+                      <div className="border-b pb-4">
+                        <h3 className="text-lg font-semibold mb-4">
+                          Endgame Capabilities
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {Object.entries(gameConfig.pitScouting.endgame)
+                            .filter(([, field]: [string, any]) => {
+                              if (!field.dependsOn) return true;
+                              const dependencyValue =
+                                formData.gameSpecificData[
+                                  `endgame_${field.dependsOn}`
+                                ];
+                              return Boolean(dependencyValue);
+                            })
+                            .map(([name, field]: [string, any]) =>
+                              renderCustomField({
+                                name: `endgame_${name}`,
+                                label: field.label,
+                                type: field.type,
+                                options: field.options,
+                              }),
+                            )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </>
               )}
 
@@ -727,7 +887,7 @@ export function DynamicPitScoutForm() {
                 <Textarea
                   id="notes"
                   name="notes"
-                  value={formData.notes || ''}
+                  value={formData.notes || ""}
                   onChange={handleChange}
                   placeholder="Any additional observations about this team..."
                   className="min-h-[4rem]"
@@ -738,24 +898,24 @@ export function DynamicPitScoutForm() {
               <div className="pt-4">
                 {isEditMode ? (
                   <div className="flex flex-col md:flex-row gap-3">
-                    <Button 
+                    <Button
                       type="button"
                       variant="outline"
-                      onClick={() => router.push('/dashboard/pitscouting')}
-                      size="lg" 
+                      onClick={() => router.push("/dashboard/pitscouting")}
+                      size="lg"
                       disabled={isSubmitting}
                       className="flex-1 h-12 text-base"
                     >
                       Cancel
                     </Button>
-                    <Button 
-                      type="submit" 
-                      size="lg" 
+                    <Button
+                      type="submit"
+                      size="lg"
                       disabled={isSubmitting}
                       className="flex-1 h-12 text-base"
                     >
                       {isSubmitting ? (
-                        'Updating...'
+                        "Updating..."
                       ) : (
                         <>
                           <CheckCircle className="mr-2 h-5 w-5" />
@@ -765,14 +925,14 @@ export function DynamicPitScoutForm() {
                     </Button>
                   </div>
                 ) : (
-                  <Button 
-                    type="submit" 
-                    size="lg" 
+                  <Button
+                    type="submit"
+                    size="lg"
                     disabled={isSubmitting}
                     className="w-full h-12 text-base"
                   >
                     {isSubmitting ? (
-                      'Saving...'
+                      "Saving..."
                     ) : (
                       <>
                         <CheckCircle className="mr-2 h-5 w-5" />

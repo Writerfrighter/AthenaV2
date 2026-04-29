@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
-import { databaseManager } from '@/db/database-manager';
-import { sendPushNotificationToUser } from '@/lib/notifications';
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import { databaseManager } from "@/db/database-manager";
+import { sendPushNotificationToUser } from "@/lib/notifications";
 
 type VerificationPayload = {
-  message_type: 'verification';
+  message_type: "verification";
   message_data: { verification_key: string };
 };
 
 type UpcomingMatchPayload = {
-  message_type: 'upcoming_match';
+  message_type: "upcoming_match";
   message_data: {
     event_key: string;
     match_key: string;
@@ -21,11 +21,15 @@ type UpcomingMatchPayload = {
 };
 
 type PingPayload = {
-  message_type: 'ping';
+  message_type: "ping";
   message_data: { title?: string; desc?: string };
 };
 
-type TbaWebhookPayload = VerificationPayload | UpcomingMatchPayload | PingPayload | Record<string, unknown>;
+type TbaWebhookPayload =
+  | VerificationPayload
+  | UpcomingMatchPayload
+  | PingPayload
+  | Record<string, unknown>;
 
 function constantTimeEquals(a: string, b: string) {
   const aBuf = Buffer.from(a);
@@ -45,31 +49,41 @@ function getMatchNumberFromMatchKey(matchKey: string): number | null {
 export async function POST(req: NextRequest) {
   const secret = process.env.TBA_WEBHOOK_SECRET;
   if (!secret) {
-    return NextResponse.json({ error: 'TBA_WEBHOOK_SECRET not configured' }, { status: 500 });
+    return NextResponse.json(
+      { error: "TBA_WEBHOOK_SECRET not configured" },
+      { status: 500 },
+    );
   }
 
   const rawBody = await req.text();
-  const signatureHeader = req.headers.get('x-tba-hmac') ?? '';
-  const computed = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  const signatureHeader = req.headers.get("x-tba-hmac") ?? "";
+  const computed = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody)
+    .digest("hex");
 
   if (!signatureHeader || !constantTimeEquals(signatureHeader, computed)) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   let payload: TbaWebhookPayload;
   try {
     payload = JSON.parse(rawBody);
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
   // Always respond quickly (TBA timeout is 10s)
-  if ((payload as any)?.message_type === 'verification') {
-    const verificationKey = (payload as VerificationPayload).message_data?.verification_key;
-    return NextResponse.json({ ok: true, verification_key: verificationKey ?? null }, { status: 200 });
+  if ((payload as any)?.message_type === "verification") {
+    const verificationKey = (payload as VerificationPayload).message_data
+      ?.verification_key;
+    return NextResponse.json(
+      { ok: true, verification_key: verificationKey ?? null },
+      { status: 200 },
+    );
   }
 
-  if ((payload as any)?.message_type !== 'upcoming_match') {
+  if ((payload as any)?.message_type !== "upcoming_match") {
     return NextResponse.json({ ok: true }, { status: 200 });
   }
 
@@ -88,35 +102,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    const mssql = await import('mssql');
+    const mssql = await import("mssql");
     const result = await pool
       .request()
-      .input('eventCode', mssql.NVarChar, data.event_key)
-      .input('matchNumber', mssql.Int, notifyMatch)
-      .query(`
+      .input("eventCode", mssql.NVarChar, data.event_key)
+      .input("matchNumber", mssql.Int, notifyMatch).query(`
         SELECT DISTINCT userId
         FROM matchAssignments
         WHERE eventCode = @eventCode
           AND matchNumber = @matchNumber
       `);
 
-    const userIds: string[] = result.recordset?.map((r: any) => r.userId).filter(Boolean) ?? [];
+    const userIds: string[] =
+      result.recordset?.map((r: any) => r.userId).filter(Boolean) ?? [];
 
     await Promise.all(
       userIds.map((userId) =>
         sendPushNotificationToUser({
           userId,
           payload: {
-            title: 'Scouting Match Coming Up in 2 Matches',
+            title: "Scouting Match Coming Up in 2 Matches",
             body: `${data.event_name}: Get ready for match ${notifyMatch}.`,
-            url: '/dashboard/matchscouting',
+            url: "/dashboard/matchscouting",
             data: { timestamp: new Date().toISOString() },
           },
-        })
-      )
+        }),
+      ),
     );
   } catch (err) {
-    console.error('Error handling TBA upcoming_match webhook:', err);
+    console.error("Error handling TBA upcoming_match webhook:", err);
   }
 
   return NextResponse.json({ ok: true }, { status: 200 });

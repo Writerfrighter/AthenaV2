@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { databaseManager } from '@/db/database-manager';
-import { PitEntry, MatchEntry, DatabaseService } from '@/db/types';
-import { auth } from '@/lib/auth/config';
-import { hasPermission, PERMISSIONS } from '@/lib/auth/roles';
+import { NextRequest, NextResponse } from "next/server";
+import { databaseManager } from "@/db/database-manager";
+import { PitEntry, MatchEntry, DatabaseService } from "@/lib/types";
+import { auth } from "@/lib/auth/config";
+import { hasPermission, PERMISSIONS } from "@/lib/auth/roles";
 
 // Initialize database service
 let dbService: DatabaseService;
@@ -18,31 +18,40 @@ function getDbService() {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.IMPORT_DATA)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.IMPORT_DATA)
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
-    const contentType = request.headers.get('content-type') || '';
+    const contentType = request.headers.get("content-type") || "";
 
-    let data: { pitEntries: PitEntry[], matchEntries: MatchEntry[] };
+    let data: { pitEntries: PitEntry[]; matchEntries: MatchEntry[] };
 
-    if (contentType.includes('multipart/form-data')) {
+    if (contentType.includes("multipart/form-data")) {
       // Handle file upload
       const formData = await request.formData();
-      const file = formData.get('file') as File;
+      const file = formData.get("file") as File;
 
       if (!file) {
-        return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+        return NextResponse.json(
+          { error: "No file provided" },
+          { status: 400 },
+        );
       }
 
-      if (file.name.endsWith('.json')) {
+      if (file.name.endsWith(".json")) {
         const text = await file.text();
         data = JSON.parse(text);
-      } else if (file.name.endsWith('.csv')) {
+      } else if (file.name.endsWith(".csv")) {
         data = await parseCSV(file);
-      } else if (file.name.endsWith('.xlsx')) {
+      } else if (file.name.endsWith(".xlsx")) {
         data = await parseXLSX(file);
       } else {
-        return NextResponse.json({ error: 'Unsupported file format' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Unsupported file format" },
+          { status: 400 },
+        );
       }
     } else {
       // Handle JSON data
@@ -53,13 +62,18 @@ export async function POST(request: NextRequest) {
     await service.importData(data);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error importing data:', error);
-    return NextResponse.json({ error: 'Failed to import data' }, { status: 500 });
+    console.error("Error importing data:", error);
+    return NextResponse.json(
+      { error: "Failed to import data" },
+      { status: 500 },
+    );
   }
 }
 
-async function parseCSV(file: File): Promise<{ pitEntries: PitEntry[], matchEntries: MatchEntry[] }> {
-  const Papa = await import('papaparse');
+async function parseCSV(
+  file: File,
+): Promise<{ pitEntries: PitEntry[]; matchEntries: MatchEntry[] }> {
+  const Papa = await import("papaparse");
   const text = await file.text();
 
   return new Promise((resolve, reject) => {
@@ -72,8 +86,30 @@ async function parseCSV(file: File): Promise<{ pitEntries: PitEntry[], matchEntr
         const matchEntries: MatchEntry[] = [];
 
         // Define standard fields for pit and match entries
-        const pitStandardFields = new Set(['type', 'id', 'teamNumber', 'year', 'driveTrain', 'weight', 'length', 'width', 'eventName', 'eventCode']);
-        const matchStandardFields = new Set(['type', 'id', 'matchNumber', 'teamNumber', 'year', 'alliance', 'eventName', 'eventCode', 'notes', 'timestamp']);
+        const pitStandardFields = new Set([
+          "type",
+          "id",
+          "teamNumber",
+          "year",
+          "driveTrain",
+          "weight",
+          "length",
+          "width",
+          "eventName",
+          "eventCode",
+        ]);
+        const matchStandardFields = new Set([
+          "type",
+          "id",
+          "matchNumber",
+          "teamNumber",
+          "year",
+          "alliance",
+          "eventName",
+          "eventCode",
+          "notes",
+          "timestamp",
+        ]);
 
         allRows.forEach((row: Record<string, unknown>) => {
           const { type, ...entryData } = row;
@@ -83,13 +119,15 @@ async function parseCSV(file: File): Promise<{ pitEntries: PitEntry[], matchEntr
           const gameSpecificData: Record<string, any> = {};
 
           for (const [key, value] of Object.entries(entryData)) {
-            if ((type === 'pit' && !pitStandardFields.has(key)) ||
-                (type === 'match' && !matchStandardFields.has(key))) {
+            if (
+              (type === "pit" && !pitStandardFields.has(key)) ||
+              (type === "match" && !matchStandardFields.has(key))
+            ) {
               // This is a game-specific field, reconstruct the nested structure
-              const parts = key.split('_');
+              const parts = key.split("_");
               if (parts.length >= 2) {
                 const mainKey = parts[0];
-                const subKey = parts.slice(1).join('_');
+                const subKey = parts.slice(1).join("_");
 
                 if (!gameSpecificData[mainKey]) {
                   gameSpecificData[mainKey] = {};
@@ -102,46 +140,54 @@ async function parseCSV(file: File): Promise<{ pitEntries: PitEntry[], matchEntr
             }
           }
 
-          if (type === 'pit') {
+          if (type === "pit") {
             pitEntries.push({
               id: entryData.id ? parseInt(entryData.id as string) : undefined,
               teamNumber: parseInt(entryData.teamNumber as string),
               year: parseInt(entryData.year as string),
-              driveTrain: entryData.driveTrain as "Swerve" | "Mecanum" | "Tank" | "Other",
+              driveTrain: entryData.driveTrain as
+                | "Swerve"
+                | "Mecanum"
+                | "Tank"
+                | "Other",
               weight: parseFloat(entryData.weight as string),
               length: parseFloat(entryData.length as string),
               width: parseFloat(entryData.width as string),
               eventName: (entryData.eventName as string) || undefined,
               eventCode: (entryData.eventCode as string) || undefined,
-              gameSpecificData
+              gameSpecificData,
             } as PitEntry);
-          } else if (type === 'match') {
+          } else if (type === "match") {
             matchEntries.push({
               id: entryData.id ? parseInt(entryData.id as string) : undefined,
               matchNumber: parseInt(entryData.matchNumber as string),
               teamNumber: parseInt(entryData.teamNumber as string),
               year: parseInt(entryData.year as string),
-              alliance: entryData.alliance as 'red' | 'blue',
+              alliance: entryData.alliance as "red" | "blue",
               eventName: (entryData.eventName as string) || undefined,
               eventCode: (entryData.eventCode as string) || undefined,
-              notes: (entryData.notes as string) || '',
-              timestamp: entryData.timestamp ? new Date(entryData.timestamp as string) : new Date(),
-              gameSpecificData
+              notes: (entryData.notes as string) || "",
+              timestamp: entryData.timestamp
+                ? new Date(entryData.timestamp as string)
+                : new Date(),
+              gameSpecificData,
             } as MatchEntry);
           }
         });
 
         resolve({ pitEntries, matchEntries });
       },
-      error: reject
+      error: reject,
     });
   });
 }
 
-async function parseXLSX(file: File): Promise<{ pitEntries: PitEntry[], matchEntries: MatchEntry[] }> {
-  const XLSX = await import('xlsx-js-style');
+async function parseXLSX(
+  file: File,
+): Promise<{ pitEntries: PitEntry[]; matchEntries: MatchEntry[] }> {
+  const XLSX = await import("xlsx-js-style");
   const arrayBuffer = await file.arrayBuffer();
-  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  const workbook = XLSX.read(arrayBuffer, { type: "array" });
 
   // Use the first sheet (should be 'Scouting Data')
   const sheetName = workbook.SheetNames[0];
@@ -156,8 +202,30 @@ async function parseXLSX(file: File): Promise<{ pitEntries: PitEntry[], matchEnt
   const matchEntries: MatchEntry[] = [];
 
   // Define standard fields for pit and match entries
-  const pitStandardFields = new Set(['type', 'id', 'teamNumber', 'year', 'driveTrain', 'weight', 'length', 'width', 'eventName', 'eventCode']);
-  const matchStandardFields = new Set(['type', 'id', 'matchNumber', 'teamNumber', 'year', 'alliance', 'eventName', 'eventCode', 'notes', 'timestamp']);
+  const pitStandardFields = new Set([
+    "type",
+    "id",
+    "teamNumber",
+    "year",
+    "driveTrain",
+    "weight",
+    "length",
+    "width",
+    "eventName",
+    "eventCode",
+  ]);
+  const matchStandardFields = new Set([
+    "type",
+    "id",
+    "matchNumber",
+    "teamNumber",
+    "year",
+    "alliance",
+    "eventName",
+    "eventCode",
+    "notes",
+    "timestamp",
+  ]);
 
   rows.forEach((row: Record<string, unknown>) => {
     const { type, ...entryData } = row;
@@ -167,13 +235,15 @@ async function parseXLSX(file: File): Promise<{ pitEntries: PitEntry[], matchEnt
     const gameSpecificData: Record<string, any> = {};
 
     for (const [key, value] of Object.entries(entryData)) {
-      if ((type === 'pit' && !pitStandardFields.has(key)) ||
-          (type === 'match' && !matchStandardFields.has(key))) {
+      if (
+        (type === "pit" && !pitStandardFields.has(key)) ||
+        (type === "match" && !matchStandardFields.has(key))
+      ) {
         // This is a game-specific field, reconstruct the nested structure
-        const parts = key.split('_');
+        const parts = key.split("_");
         if (parts.length >= 2) {
           const mainKey = parts[0];
-          const subKey = parts.slice(1).join('_');
+          const subKey = parts.slice(1).join("_");
 
           if (!gameSpecificData[mainKey]) {
             gameSpecificData[mainKey] = {};
@@ -186,31 +256,37 @@ async function parseXLSX(file: File): Promise<{ pitEntries: PitEntry[], matchEnt
       }
     }
 
-    if (type === 'pit') {
+    if (type === "pit") {
       pitEntries.push({
         id: entryData.id ? parseInt(entryData.id as string) : undefined,
         teamNumber: parseInt(entryData.teamNumber as string),
         year: parseInt(entryData.year as string),
-        driveTrain: entryData.driveTrain as "Swerve" | "Mecanum" | "Tank" | "Other",
+        driveTrain: entryData.driveTrain as
+          | "Swerve"
+          | "Mecanum"
+          | "Tank"
+          | "Other",
         weight: parseFloat(entryData.weight as string),
         length: parseFloat(entryData.length as string),
         width: parseFloat(entryData.width as string),
         eventName: (entryData.eventName as string) || undefined,
         eventCode: (entryData.eventCode as string) || undefined,
-        gameSpecificData
+        gameSpecificData,
       } as PitEntry);
-    } else if (type === 'match') {
+    } else if (type === "match") {
       matchEntries.push({
         id: entryData.id ? parseInt(entryData.id as string) : undefined,
         matchNumber: parseInt(entryData.matchNumber as string),
         teamNumber: parseInt(entryData.teamNumber as string),
         year: parseInt(entryData.year as string),
-        alliance: entryData.alliance as 'red' | 'blue',
+        alliance: entryData.alliance as "red" | "blue",
         eventName: (entryData.eventName as string) || undefined,
         eventCode: (entryData.eventCode as string) || undefined,
-        notes: (entryData.notes as string) || '',
-        timestamp: entryData.timestamp ? new Date(entryData.timestamp as string) : new Date(),
-        gameSpecificData
+        notes: (entryData.notes as string) || "",
+        timestamp: entryData.timestamp
+          ? new Date(entryData.timestamp as string)
+          : new Date(),
+        gameSpecificData,
       } as MatchEntry);
     }
   });

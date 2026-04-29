@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useSelectedEvent } from './use-event-config';
-import { useGameConfig } from './use-game-config';
+import { useState, useEffect, useCallback } from "react";
+import { useSelectedEvent } from "./use-event-config";
+import { useGameConfig } from "./use-game-config";
 
 export interface ScouterSPR {
   scouterId: string;
@@ -15,7 +15,7 @@ export interface ScouterSPR {
 
 export interface SPRVerboseEquation {
   matchNumber: number;
-  alliance: 'red' | 'blue';
+  alliance: "red" | "blue";
   scouterIds: string[];
   scouterNames?: string[];
   robotCount: number;
@@ -69,27 +69,31 @@ export function useSPRData(options?: { verbose?: boolean }) {
     try {
       const params = new URLSearchParams({
         year: currentYear.toString(),
-        eventCode: selectedEvent.code,
+        eventCode: selectedEvent.eventCode,
         competitionType: competitionType,
-        verbose: verbose ? 'true' : 'false',
+        verbose: verbose ? "true" : "false",
       });
 
       const response = await fetch(`/api/database/spr?${params}`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to fetch SPR data (${response.status})`);
+        throw new Error(
+          errorData.error || `Failed to fetch SPR data (${response.status})`,
+        );
       }
 
       const json = await response.json();
 
       if (!json.success) {
-        throw new Error(json.data?.message || 'SPR calculation did not converge');
+        throw new Error(
+          json.data?.message || "SPR calculation did not converge",
+        );
       }
 
       setData(json.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : "Unknown error");
       setData(null);
     } finally {
       setLoading(false);

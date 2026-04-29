@@ -1,17 +1,26 @@
-'use client';
+"use client";
 
-import { useCurrentGameConfig, useGameConfig } from '@/hooks/use-game-config';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { BarChart, Bar, XAxis, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
+import { useCurrentGameConfig, useGameConfig } from "@/hooks/use-game-config";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/components/ui/chart';
-import { useState, useEffect } from 'react';
-import { MatchEntry, PitEntry } from '@/lib/shared-types';
+} from "@/components/ui/chart";
+import { useState, useEffect } from "react";
+import { MatchEntry, PitEntry } from "@/lib/types";
 
 interface DynamicTeamPageProps {
   teamNumber: string;
@@ -24,7 +33,7 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
   const [pitEntry, setPitEntry] = useState<PitEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
@@ -33,24 +42,27 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
         setError(null);
 
         // Fetch match entries
-        const matchResponse = await fetch(`/api/database/match?teamNumber=${teamNumber}&year=${currentYear}`);
+        const matchResponse = await fetch(
+          `/api/database/match?teamNumber=${teamNumber}&year=${currentYear}`,
+        );
         if (!matchResponse.ok) {
-          throw new Error('Failed to fetch match entries');
+          throw new Error("Failed to fetch match entries");
         }
         const matchData = await matchResponse.json();
         setMatchEntries(matchData);
 
         // Fetch pit entry
-        const pitResponse = await fetch(`/api/database/pit?teamNumber=${teamNumber}&year=${currentYear}`);
+        const pitResponse = await fetch(
+          `/api/database/pit?teamNumber=${teamNumber}&year=${currentYear}`,
+        );
         if (!pitResponse.ok) {
-          throw new Error('Failed to fetch pit entry');
+          throw new Error("Failed to fetch pit entry");
         }
         const pitData = await pitResponse.json();
         setPitEntry(pitData);
-
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-        console.error('Error fetching team data:', err);
+        setError(err instanceof Error ? err.message : "Failed to fetch data");
+        console.error("Error fetching team data:", err);
       } finally {
         setLoading(false);
       }
@@ -79,20 +91,24 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
 
     const autoStats: Record<string, number> = {};
     const teleopStats: Record<string, number> = {};
-    
+
     // Calculate averages for each scoring category
-    Object.keys(gameConfig.scoring.autonomous).forEach(key => {
+    Object.keys(gameConfig.scoring.autonomous).forEach((key) => {
       const total = matchEntries.reduce((sum, match) => {
-        const autonomousData = match.gameSpecificData?.autonomous as Record<string, number> | undefined;
-        return sum + (autonomousData?.[key] as number || 0);
+        const autonomousData = match.gameSpecificData?.autonomous as
+          | Record<string, number>
+          | undefined;
+        return sum + ((autonomousData?.[key] as number) || 0);
       }, 0);
       autoStats[key] = total / matchEntries.length;
     });
 
-    Object.keys(gameConfig.scoring.teleop).forEach(key => {
+    Object.keys(gameConfig.scoring.teleop).forEach((key) => {
       const total = matchEntries.reduce((sum, match) => {
-        const teleopData = match.gameSpecificData?.teleop as Record<string, number> | undefined;
-        return sum + (teleopData?.[key] as number || 0);
+        const teleopData = match.gameSpecificData?.teleop as
+          | Record<string, number>
+          | undefined;
+        return sum + ((teleopData?.[key] as number) || 0);
       }, 0);
       teleopStats[key] = total / matchEntries.length;
     });
@@ -103,22 +119,26 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
   const stats = calculateStats();
 
   // Prepare chart data
-  const chartData = stats ? Object.entries(gameConfig.scoring.autonomous).map(([key, config]) => ({
-    name: (config as { label: string }).label,
-    autonomous: stats.autoStats[key] || 0,
-    teleop: stats.teleopStats[key] || 0,
-  })) : [];
+  const chartData = stats
+    ? Object.entries(gameConfig.scoring.autonomous).map(([key, config]) => ({
+        name: (config as { label: string }).label,
+        autonomous: stats.autoStats[key] || 0,
+        teleop: stats.teleopStats[key] || 0,
+      }))
+    : [];
 
-  const pieData = stats ? [
-    {
-      scoring: 'auto',
-      points: Object.values(stats.autoStats).reduce((a, b) => a + b, 0),
-    },
-    {
-      scoring: 'teleop',
-      points: Object.values(stats.teleopStats).reduce((a, b) => a + b, 0),
-    },
-  ] : [];
+  const pieData = stats
+    ? [
+        {
+          scoring: "auto",
+          points: Object.values(stats.autoStats).reduce((a, b) => a + b, 0),
+        },
+        {
+          scoring: "teleop",
+          points: Object.values(stats.teleopStats).reduce((a, b) => a + b, 0),
+        },
+      ]
+    : [];
 
   const pieChartConfig = {
     auto: {
@@ -129,7 +149,8 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
       label: "Teleop",
       color: "var(--chart-2)",
     },
-  } satisfies ChartConfig;  const barChartConfig = {
+  } satisfies ChartConfig;
+  const barChartConfig = {
     autonomous: {
       label: "Autonomous",
       color: "var(--chart-1)",
@@ -159,41 +180,65 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <span className="font-semibold text-muted-foreground">Drivetrain:</span>
+                <span className="font-semibold text-muted-foreground">
+                  Drivetrain:
+                </span>
                 <p className="text-lg">{pitEntry.driveTrain}</p>
               </div>
               <div>
-                <span className="font-semibold text-muted-foreground">Weight:</span>
-                <p className="text-lg">{pitEntry.weight !== undefined && pitEntry.weight !== null ? `${pitEntry.weight} lbs` : 'Not recorded'}</p>
+                <span className="font-semibold text-muted-foreground">
+                  Weight:
+                </span>
+                <p className="text-lg">
+                  {pitEntry.weight !== undefined && pitEntry.weight !== null
+                    ? `${pitEntry.weight} lbs`
+                    : "Not recorded"}
+                </p>
               </div>
               <div>
-                <span className="font-semibold text-muted-foreground">Dimensions:</span>
+                <span className="font-semibold text-muted-foreground">
+                  Dimensions:
+                </span>
                 <p className="text-lg">
-                  {pitEntry.length !== undefined && pitEntry.length !== null && pitEntry.width !== undefined && pitEntry.width !== null 
-                    ? `${pitEntry.length}" × ${pitEntry.width}"` 
-                    : 'Not recorded'}
+                  {pitEntry.length !== undefined &&
+                  pitEntry.length !== null &&
+                  pitEntry.width !== undefined &&
+                  pitEntry.width !== null
+                    ? `${pitEntry.length}" × ${pitEntry.width}"`
+                    : "Not recorded"}
                 </p>
               </div>
             </div>
-            
+
             {/* Game-specific capabilities */}
-            {pitEntry.gameSpecificData && Object.keys(pitEntry.gameSpecificData).length > 0 && (
-              <div className="mt-4">
-                <h4 className="font-semibold mb-2">{gameConfig.gameName} Capabilities</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {Object.entries(pitEntry.gameSpecificData).map(([key, value]) => (
-                    <div key={key}>
-                      <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
-                      <span className="ml-2">
-                        {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : 
-                         typeof value === 'object' ? JSON.stringify(value) : 
-                         String(value)}
-                      </span>
-                    </div>
-                  ))}
+            {pitEntry.gameSpecificData &&
+              Object.keys(pitEntry.gameSpecificData).length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-semibold mb-2">
+                    {gameConfig.gameName} Capabilities
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {Object.entries(pitEntry.gameSpecificData).map(
+                      ([key, value]) => (
+                        <div key={key}>
+                          <span className="font-medium capitalize">
+                            {key.replace(/([A-Z])/g, " $1")}:
+                          </span>
+                          <span className="ml-2">
+                            {typeof value === "boolean"
+                              ? value
+                                ? "Yes"
+                                : "No"
+                              : typeof value === "object"
+                                ? JSON.stringify(value)
+                                : String(value)}
+                          </span>
+                        </div>
+                      ),
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </CardContent>
         </Card>
       )}
@@ -215,7 +260,10 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
                     tickMargin={10}
                     axisLine={false}
                   />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dashed" />} />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="dashed" />}
+                  />
                   <Bar dataKey="autonomous" fill="var(--chart-1)" radius={4} />
                   <Bar dataKey="teleop" fill="var(--chart-2)" radius={4} />
                 </BarChart>
@@ -233,16 +281,14 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
                 className="mx-auto aspect-square max-h-[300px]"
               >
                 <PieChart>
-                  <Pie
-                    data={pieData}
-                    dataKey="points"
-                    nameKey="scoring"
-                  >
+                  <Pie data={pieData} dataKey="points" nameKey="scoring">
                     <Cell fill="var(--chart-1)" />
                     <Cell fill="var(--chart-2)" />
                   </Pie>
-                  <Legend 
-                    formatter={(value) => value === 'auto' ? 'Auto' : 'Teleop'}
+                  <Legend
+                    formatter={(value) =>
+                      value === "auto" ? "Auto" : "Teleop"
+                    }
                   />
                 </PieChart>
               </ChartContainer>
@@ -260,12 +306,21 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
           {matchEntries.length > 0 ? (
             <div className="space-y-2">
               {matchEntries.slice(0, 10).map((match, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded">
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 border rounded"
+                >
                   <div className="flex items-center gap-4">
-                    <Badge variant={match.alliance === 'red' ? 'destructive' : 'default'}>
+                    <Badge
+                      variant={
+                        match.alliance === "red" ? "destructive" : "default"
+                      }
+                    >
                       {match.alliance.toUpperCase()}
                     </Badge>
-                    <span className="font-medium">Match {match.matchNumber}</span>
+                    <span className="font-medium">
+                      Match {match.matchNumber}
+                    </span>
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {new Date(match.timestamp).toLocaleDateString()}
@@ -279,7 +334,9 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
               )}
             </div>
           ) : (
-            <p className="text-muted-foreground">No match data available for {currentYear}</p>
+            <p className="text-muted-foreground">
+              No match data available for {currentYear}
+            </p>
           )}
         </CardContent>
       </Card>

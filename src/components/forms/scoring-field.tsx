@@ -1,19 +1,29 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Minus, CheckCircle } from 'lucide-react';
-import { getFieldType } from './match-form-utils';
-import type { ScoringDefinition } from '@/lib/shared-types';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Minus, CheckCircle } from "lucide-react";
+import { getFieldType } from "./match-form-utils";
+import type { ScoringDefinition } from "@/lib/types";
 
 interface ScoringFieldProps {
-  section: 'autonomous' | 'teleop' | 'endgame' | 'fouls';
+  section: "autonomous" | "teleop" | "endgame" | "fouls";
   fieldKey: string;
   fieldConfig: ScoringDefinition;
   currentValue: number | string | boolean;
-  onValueChange: (section: string, field: string, value: number | string | boolean) => void;
+  onValueChange: (
+    section: string,
+    field: string,
+    value: number | string | boolean,
+  ) => void;
   onNumberChange: (section: string, field: string, increment: boolean) => void;
 }
 
@@ -23,12 +33,12 @@ export function ScoringField({
   fieldConfig,
   currentValue,
   onValueChange,
-  onNumberChange
+  onNumberChange,
 }: ScoringFieldProps) {
   const fieldType = getFieldType(fieldConfig);
-  
+
   switch (fieldType) {
-    case 'boolean':
+    case "boolean":
       return (
         <div className="space-y-2">
           <Label className="text-sm font-medium">{fieldConfig.label}</Label>
@@ -36,7 +46,9 @@ export function ScoringField({
             <Button
               variant={Boolean(currentValue) ? "default" : "outline"}
               size="lg"
-              onClick={() => onValueChange(section, fieldKey, !Boolean(currentValue))}
+              onClick={() =>
+                onValueChange(section, fieldKey, !Boolean(currentValue))
+              }
               className="h-16 w-full font-semibold transition-all duration-200 border-2"
             >
               {Boolean(currentValue) ? (
@@ -59,14 +71,16 @@ export function ScoringField({
           ) : null}
         </div>
       );
-      
-    case 'select':
-      const selectValue = String(currentValue || Object.keys(fieldConfig.pointValues || {})[0]);
+
+    case "select":
+      const selectValue = String(
+        currentValue || Object.keys(fieldConfig.pointValues || {})[0],
+      );
       return (
         <div className="space-y-2">
           <Label className="text-sm font-medium">{fieldConfig.label}</Label>
           <div className="flex items-center justify-center">
-            <Select 
+            <Select
               value={selectValue}
               onValueChange={(value) => onValueChange(section, fieldKey, value)}
             >
@@ -74,33 +88,49 @@ export function ScoringField({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(fieldConfig.pointValues || {}).map(([option, points]) => (
-                  <SelectItem key={option} value={option} className="text-base py-3">
-                    <div className="flex justify-between items-center w-full">
-                      <span className="font-medium">{option.charAt(0).toUpperCase() + option.slice(1)}</span>
-                      {Number(points) !== 0 && (
-                        <span className="text-muted-foreground ml-4 text-sm">({String(points)} pts)</span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
+                {Object.entries(fieldConfig.pointValues || {}).map(
+                  ([option, points]) => (
+                    <SelectItem
+                      key={option}
+                      value={option}
+                      className="text-base py-3"
+                    >
+                      <div className="flex justify-between items-center w-full">
+                        <span className="font-medium">
+                          {option.charAt(0).toUpperCase() + option.slice(1)}
+                        </span>
+                        {Number(points) !== 0 && (
+                          <span className="text-muted-foreground ml-4 text-sm">
+                            ({String(points)} pts)
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ),
+                )}
               </SelectContent>
             </Select>
           </div>
-          {Object.values(fieldConfig.pointValues || {}).some(p => Number(p) !== 0) && (
+          {Object.values(fieldConfig.pointValues || {}).some(
+            (p) => Number(p) !== 0,
+          ) && (
             <div className="text-xs text-center text-muted-foreground">
               Points vary by selection
             </div>
           )}
         </div>
       );
-      
-    case 'number':
+
+    case "number":
     default:
       const numValue = Number(currentValue) || 0;
 
       // Check if this field has custom increments configured
-      if (fieldConfig.increments && Array.isArray(fieldConfig.increments) && fieldConfig.increments.length > 0) {
+      if (
+        fieldConfig.increments &&
+        Array.isArray(fieldConfig.increments) &&
+        fieldConfig.increments.length > 0
+      ) {
         const increments = fieldConfig.increments;
         const decrements = [...increments].reverse();
         const handleIncrementChange = (amount: number) => {
@@ -127,9 +157,15 @@ export function ScoringField({
                 type="number"
                 min={0}
                 value={numValue}
-                onChange={e => onValueChange(section, fieldKey, Math.max(0, Number(e.target.value)))}
+                onChange={(e) =>
+                  onValueChange(
+                    section,
+                    fieldKey,
+                    Math.max(0, Number(e.target.value)),
+                  )
+                }
                 className="hide-spinners w-12 sm:w-28 flex-shrink-0 text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-primary/20"
-                style={{height: '3.5rem'}}
+                style={{ height: "3.5rem" }}
               />
               {increments.map((inc) => (
                 <Button
@@ -169,9 +205,15 @@ export function ScoringField({
                 type="number"
                 min={0}
                 value={numValue}
-                onChange={e => onValueChange(section, fieldKey, Math.max(0, Number(e.target.value)))}
+                onChange={(e) =>
+                  onValueChange(
+                    section,
+                    fieldKey,
+                    Math.max(0, Number(e.target.value)),
+                  )
+                }
                 className="hide-spinners min-w-[4rem] w-full text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-primary/20"
-                style={{height: '4rem'}}
+                style={{ height: "4rem" }}
               />
             </div>
             <Button

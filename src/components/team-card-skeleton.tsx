@@ -20,7 +20,7 @@ export function TeamCardSkeleton() {
             <Skeleton className="h-5 w-20 rounded-full" />
           </div>
         </div>
-        
+
         {/* Location skeleton */}
         <div className="flex items-center gap-2">
           <Skeleton className="h-3 w-3 rounded-full" />

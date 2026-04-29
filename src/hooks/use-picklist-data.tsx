@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSelectedEvent } from './use-event-config';
-import { useGameConfig } from './use-game-config';
-import { statsApi } from '@/lib/api/database-client';
+import { useState, useEffect } from "react";
+import { useSelectedEvent } from "./use-event-config";
+import { useGameConfig } from "./use-game-config";
+import { statsApi } from "@/lib/api/database-client";
 
 export interface PicklistTeam {
   id: string;
@@ -17,7 +17,8 @@ export interface PicklistTeam {
 
 export function usePicklistData() {
   const selectedEvent = useSelectedEvent();
-  const { currentYear, getCurrentYearConfig, competitionType } = useGameConfig();
+  const { currentYear, getCurrentYearConfig, competitionType } =
+    useGameConfig();
   const gameConfig = getCurrentYearConfig();
   const [teams, setTeams] = useState<PicklistTeam[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,30 +36,34 @@ export function usePicklistData() {
         setError(null);
 
         // Fetch picklist data from API
-        const apiData = await statsApi.getPicklistData(currentYear, selectedEvent.code, competitionType);
+        const apiData = await statsApi.getPicklistData(
+          currentYear,
+          selectedEvent.eventCode,
+          competitionType,
+        );
 
         // Transform API response to hook format
-        const transformedTeams: PicklistTeam[] = apiData.teams.map(team => ({
+        const transformedTeams: PicklistTeam[] = apiData.teams.map((team) => ({
           id: team.teamNumber.toString(),
           name: team.name,
           rank: team.rank,
           autoEPA: parseFloat(team.autoEPA.toFixed(3)),
           teleopEPA: parseFloat(team.teleopEPA.toFixed(3)),
           endgameEPA: parseFloat(team.endgameEPA.toFixed(3)),
-          totalEPA: parseFloat(team.totalEPA.toFixed(3))
+          totalEPA: parseFloat(team.totalEPA.toFixed(3)),
         }));
 
         setTeams(transformedTeams);
       } catch (err) {
-        console.error('Error fetching picklist data:', err);
-        setError('Failed to load picklist data');
+        console.error("Error fetching picklist data:", err);
+        setError("Failed to load picklist data");
       } finally {
         setLoading(false);
       }
     }
 
     fetchPicklistData();
-  }, [selectedEvent?.code, currentYear, gameConfig, competitionType]);
+  }, [selectedEvent?.eventCode, currentYear, gameConfig, competitionType]);
 
   return { teams, loading, error };
 }

@@ -1,209 +1,236 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog'
-import { PermissionGuard } from '@/components/auth/PermissionGuard'
-import { PERMISSIONS, ROLES } from '@/lib/auth/roles'
-import { Plus, Edit, Trash2, Users } from 'lucide-react'
-import { toast } from 'sonner'
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
+import { PERMISSIONS, ROLES } from "@/lib/auth/roles";
+import { Plus, Edit, Trash2, Users } from "lucide-react";
+import { toast } from "sonner";
 interface User {
-  id: string
-  name: string
-  username: string
-  role: string
-  createdAt: string
-  updatedAt: string
+  id: string;
+  name: string;
+  username: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface CreateUserData {
-  name: string
-  username: string
-  password: string
-  role: string
+  name: string;
+  username: string;
+  password: string;
+  role: string;
 }
 
 interface UpdateUserData {
-  name?: string
-  username?: string
-  password?: string
-  role?: string
+  name?: string;
+  username?: string;
+  password?: string;
+  role?: string;
 }
 
 export function TeamManagement() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [createForm, setCreateForm] = useState<CreateUserData>({
-    name: '',
-    username: '',
-    password: '',
-    role: 'scout'
-  })
+    name: "",
+    username: "",
+    password: "",
+    role: "scout",
+  });
   const [editForm, setEditForm] = useState<UpdateUserData>({
-    role: 'scout'
-  })
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+    role: "scout",
+  });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await fetch('/api/users')
+      const response = await fetch("/api/users");
       if (!response.ok) {
-        throw new Error('Failed to fetch users')
+        throw new Error("Failed to fetch users");
       }
-      const data = await response.json()
-      setUsers(data.users)
+      const data = await response.json();
+      setUsers(data.users);
     } catch (error) {
-      console.error('Error fetching users:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to fetch users')
+      console.error("Error fetching users:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to fetch users",
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [toast])
+  }, [toast]);
 
   useEffect(() => {
-    fetchUsers()
-  }, [fetchUsers])
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleCreateUser = async () => {
     try {
-      const response = await fetch('/api/users', {
-        method: 'POST',
+      const response = await fetch("/api/users", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(createForm)
-      })
+        body: JSON.stringify(createForm),
+      });
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create user')
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create user");
       }
 
-      toast.success('User created successfully')
+      toast.success("User created successfully");
 
       setCreateForm({
-        name: '',
-        username: '',
-        password: '',
-        role: 'scout'
-      })
-      setCreateDialogOpen(false)
-      fetchUsers()
+        name: "",
+        username: "",
+        password: "",
+        role: "scout",
+      });
+      setCreateDialogOpen(false);
+      fetchUsers();
     } catch (error) {
-      console.error('Error creating user:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to create user')
+      console.error("Error creating user:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create user",
+      );
     }
-  }
+  };
 
   const handleUpdateUser = async () => {
-    if (!editingUser) return
+    if (!editingUser) return;
 
     try {
       const response = await fetch(`/api/users/${editingUser.id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(editForm)
-      })
+        body: JSON.stringify(editForm),
+      });
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to update user')
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update user");
       }
 
-      toast.success('User updated successfully')
+      toast.success("User updated successfully");
 
-      setEditDialogOpen(false)
-      setEditingUser(null)
-      setEditForm({ role: 'scout' })
-      fetchUsers()
+      setEditDialogOpen(false);
+      setEditingUser(null);
+      setEditForm({ role: "scout" });
+      fetchUsers();
     } catch (error) {
-      console.error('Error updating user:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to update user')
+      console.error("Error updating user:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update user",
+      );
     }
-  }
+  };
 
   const handleDeleteUser = async () => {
-    if (!userToDelete) return
+    if (!userToDelete) return;
 
     try {
       const response = await fetch(`/api/users/${userToDelete.id}`, {
-        method: 'DELETE'
-      })
+        method: "DELETE",
+      });
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to delete user')
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete user");
       }
 
-      toast.success('User deleted successfully')
-      setDeleteDialogOpen(false)
-      setUserToDelete(null)
-      fetchUsers()
+      toast.success("User deleted successfully");
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+      fetchUsers();
     } catch (error) {
-      console.error('Error deleting user:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to delete user')
+      console.error("Error deleting user:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete user",
+      );
     }
-  }
+  };
 
   const openEditDialog = (user: User) => {
-    setEditingUser(user)
+    setEditingUser(user);
     setEditForm({
       name: user.name,
       username: user.username,
-      role: user.role
-    })
-    setEditDialogOpen(true)
-  }
+      role: user.role,
+    });
+    setEditDialogOpen(true);
+  };
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
       case ROLES.ADMIN:
-        return 'destructive'
+        return "destructive";
       case ROLES.LEAD_SCOUT:
-        return 'default'
+        return "default";
       case ROLES.SCOUT:
-        return 'secondary'
+        return "secondary";
       case ROLES.TABLET:
-        return 'default'
+        return "default";
       case ROLES.VIEWER:
-        return 'outline'
+        return "outline";
       case ROLES.EXTERNAL:
-        return 'outline'
+        return "outline";
       default:
-        return 'secondary'
+        return "secondary";
     }
-  }
+  };
 
   const formatRoleName = (role: string) => {
     switch (role) {
       case ROLES.ADMIN:
-        return 'Admin'
+        return "Admin";
       case ROLES.LEAD_SCOUT:
-        return 'Lead Scout'
+        return "Lead Scout";
       case ROLES.SCOUT:
-        return 'Scout'
+        return "Scout";
       case ROLES.TABLET:
-        return 'Tablet'
+        return "Tablet";
       case ROLES.VIEWER:
-        return 'Viewer'
+        return "Viewer";
       case ROLES.EXTERNAL:
-        return 'External'
+        return "External";
       default:
-        return role
+        return role;
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -220,7 +247,7 @@ export function TeamManagement() {
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -233,7 +260,10 @@ export function TeamManagement() {
               Team Management
             </CardTitle>
             <PermissionGuard permission={PERMISSIONS.CREATE_USERS}>
-              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <Dialog
+                open={createDialogOpen}
+                onOpenChange={setCreateDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
@@ -250,7 +280,9 @@ export function TeamManagement() {
                       <Input
                         id="create-name"
                         value={createForm.name}
-                        onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                        onChange={(e) =>
+                          setCreateForm({ ...createForm, name: e.target.value })
+                        }
                         placeholder="Enter full name"
                       />
                     </div>
@@ -259,7 +291,12 @@ export function TeamManagement() {
                       <Input
                         id="create-username"
                         value={createForm.username}
-                        onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
+                        onChange={(e) =>
+                          setCreateForm({
+                            ...createForm,
+                            username: e.target.value,
+                          })
+                        }
                         placeholder="Enter username"
                       />
                     </div>
@@ -269,13 +306,23 @@ export function TeamManagement() {
                         id="create-password"
                         type="password"
                         value={createForm.password}
-                        onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                        onChange={(e) =>
+                          setCreateForm({
+                            ...createForm,
+                            password: e.target.value,
+                          })
+                        }
                         placeholder="Enter password"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="create-role">Role</Label>
-                      <Select value={createForm.role} onValueChange={(value) => setCreateForm({ ...createForm, role: value })}>
+                      <Select
+                        value={createForm.role}
+                        onValueChange={(value) =>
+                          setCreateForm({ ...createForm, role: value })
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -290,12 +337,13 @@ export function TeamManagement() {
                       </Select>
                     </div>
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => setCreateDialogOpen(false)}
+                      >
                         Cancel
                       </Button>
-                      <Button onClick={handleCreateUser}>
-                        Create User
-                      </Button>
+                      <Button onClick={handleCreateUser}>Create User</Button>
                     </div>
                   </div>
                 </DialogContent>
@@ -339,12 +387,12 @@ export function TeamManagement() {
                         </Button>
                       </PermissionGuard>
                       <PermissionGuard permission={PERMISSIONS.DELETE_USERS}>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => {
-                            setUserToDelete(user)
-                            setDeleteDialogOpen(true)
+                            setUserToDelete(user);
+                            setDeleteDialogOpen(true);
                           }}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -373,7 +421,9 @@ export function TeamManagement() {
         description={
           userToDelete ? (
             <span>
-              Are you sure you want to delete <strong>{userToDelete.name}</strong>? This action cannot be undone.
+              Are you sure you want to delete{" "}
+              <strong>{userToDelete.name}</strong>? This action cannot be
+              undone.
             </span>
           ) : null
         }
@@ -392,8 +442,10 @@ export function TeamManagement() {
               <Label htmlFor="edit-name">Full Name</Label>
               <Input
                 id="edit-name"
-                value={editForm.name || ''}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                value={editForm.name || ""}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, name: e.target.value })
+                }
                 placeholder="Enter full name"
               />
             </div>
@@ -401,24 +453,35 @@ export function TeamManagement() {
               <Label htmlFor="edit-username">Username</Label>
               <Input
                 id="edit-username"
-                value={editForm.username || ''}
-                onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                value={editForm.username || ""}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, username: e.target.value })
+                }
                 placeholder="Enter username"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-password">New Password (leave blank to keep current)</Label>
+              <Label htmlFor="edit-password">
+                New Password (leave blank to keep current)
+              </Label>
               <Input
                 id="edit-password"
                 type="password"
-                value={editForm.password || ''}
-                onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                value={editForm.password || ""}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, password: e.target.value })
+                }
                 placeholder="Enter new password"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-role">Role</Label>
-              <Select value={editForm.role || 'scout'} onValueChange={(value) => setEditForm({ ...editForm, role: value })}>
+              <Select
+                value={editForm.role || "scout"}
+                onValueChange={(value) =>
+                  setEditForm({ ...editForm, role: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -433,16 +496,17 @@ export function TeamManagement() {
               </Select>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleUpdateUser}>
-                Update User
-              </Button>
+              <Button onClick={handleUpdateUser}>Update User</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

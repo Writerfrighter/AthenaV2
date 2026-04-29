@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { useEventTeams } from './use-event-teams';
-import { useSelectedEvent } from './use-event-config';
-import { useGameConfig } from './use-game-config';
-import { offlineQueueManager } from '@/lib/offline-queue-manager';
+import { useEffect, useState, useCallback } from "react";
+import { useEventTeams } from "./use-event-teams";
+import { useSelectedEvent } from "./use-event-config";
+import { useGameConfig } from "./use-game-config";
+import { offlineQueueManager } from "@/lib/offline-queue-manager";
 
 // Hook returns team numbers for the event that have NOT yet had a pit entry
-export function useUnscoutedEventTeamNumbers(): { teamNumbers: number[]; loading: boolean; refresh: () => Promise<void> } {
+export function useUnscoutedEventTeamNumbers(): {
+  teamNumbers: number[];
+  loading: boolean;
+  refresh: () => Promise<void>;
+} {
   const { teams, loading: teamsLoading } = useEventTeams();
   const selectedEvent = useSelectedEvent();
   const { currentYear, competitionType } = useGameConfig();
@@ -19,17 +23,19 @@ export function useUnscoutedEventTeamNumbers(): { teamNumbers: number[]; loading
     setLoading(true);
 
     try {
-      const allTeamNumbers = teams.map(t => t.teamNumber).filter(n => !!n) as number[];
+      const allTeamNumbers = teams
+        .map((t) => t.teamNumber)
+        .filter((n) => !!n) as number[];
 
       // Build params for server fetch
       const params = new URLSearchParams();
-      if (currentYear) params.append('year', String(currentYear));
-      if (selectedEvent?.code) params.append('eventCode', selectedEvent.code);
-      if (competitionType) params.append('competitionType', competitionType);
+      if (currentYear) params.append("year", String(currentYear));
+      if (selectedEvent?.eventCode) params.append("eventCode", selectedEvent.eventCode);
+      if (competitionType) params.append("competitionType", competitionType);
 
       // Fetch pit entries for this event/year from server
       const resp = await fetch(`/api/database/pit?${params.toString()}`);
-      let serverEntries: Array<{ teamNumber: number }>; 
+      let serverEntries: Array<{ teamNumber: number }>;
       if (resp.ok) {
         serverEntries = await resp.json();
       } else {
@@ -38,39 +44,51 @@ export function useUnscoutedEventTeamNumbers(): { teamNumbers: number[]; loading
 
       const submittedSet = new Set<number>();
       serverEntries.forEach((e: any) => {
-        if (e && typeof e.teamNumber === 'number') submittedSet.add(e.teamNumber);
+        if (e && typeof e.teamNumber === "number")
+          submittedSet.add(e.teamNumber);
       });
 
       // Include queued (offline) pit entries
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         try {
           const queued = await offlineQueueManager.getAllQueuedEntries();
-          queued.forEach(q => {
-            if (q.type === 'pit' && q.data && typeof (q.data as any).teamNumber === 'number') {
+          queued.forEach((q) => {
+            if (
+              q.type === "pit" &&
+              q.data &&
+              typeof (q.data as any).teamNumber === "number"
+            ) {
               const d = q.data as any;
               // Match by year/eventCode/competitionType when available
-              if ((currentYear == null || d.year === currentYear) &&
-                  (!selectedEvent?.code || d.eventCode === selectedEvent.code) &&
-                  (!competitionType || d.competitionType === competitionType)) {
+              if (
+                (currentYear == null || d.year === currentYear) &&
+                (!selectedEvent?.eventCode || d.eventCode === selectedEvent.eventCode) &&
+                (!competitionType || d.competitionType === competitionType)
+              ) {
                 submittedSet.add(d.teamNumber);
               }
             }
           });
         } catch (err) {
           // ignore indexeddb errors and continue
-          console.warn('Failed to read queued entries for unscouted teams:', err);
+          console.warn(
+            "Failed to read queued entries for unscouted teams:",
+            err,
+          );
         }
       }
 
-      const unscouted = allTeamNumbers.filter(n => !submittedSet.has(n)).sort((a, b) => a - b);
+      const unscouted = allTeamNumbers
+        .filter((n) => !submittedSet.has(n))
+        .sort((a, b) => a - b);
       setTeamNumbers(unscouted);
     } catch (error) {
-      console.error('Failed to compute unscouted team numbers:', error);
-      setTeamNumbers(teams.map(t => t.teamNumber));
+      console.error("Failed to compute unscouted team numbers:", error);
+      setTeamNumbers(teams.map((t) => t.teamNumber));
     } finally {
       setLoading(false);
     }
-  }, [teams, selectedEvent?.code, currentYear, competitionType]);
+  }, [teams, selectedEvent?.eventCode, currentYear, competitionType]);
 
   useEffect(() => {
     // initial load
@@ -82,9 +100,9 @@ export function useUnscoutedEventTeamNumbers(): { teamNumbers: number[]; loading
       await refresh();
     };
 
-    window.addEventListener('pitEntryCreated', handler as EventListener);
+    window.addEventListener("pitEntryCreated", handler as EventListener);
     return () => {
-      window.removeEventListener('pitEntryCreated', handler as EventListener);
+      window.removeEventListener("pitEntryCreated", handler as EventListener);
     };
   }, [refresh]);
 

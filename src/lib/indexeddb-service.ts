@@ -1,11 +1,9 @@
 // IndexedDB service for offline data caching
 // Manages storage and retrieval of pit and match scouting data when offline
 
-import type { 
-  QueuedEntry, 
-  QueuedPitEntry, 
-  QueuedMatchEntry, 
-  SyncResult, 
+import type {
+  QueuedEntry,
+  SyncResult,
   SyncConfig,
   SyncStatus,
   CachedEventTeams,
@@ -15,10 +13,10 @@ import type {
   CachedPitEntries,
   CachedMatchEntries,
   CachedAnalysisData,
-  EventCacheStatus
-} from '@/lib/offline-types';
-import { DB_NAME, DB_VERSION, STORES } from '@/lib/offline-types';
-import type { PitEntry, MatchEntry } from '@/lib/shared-types';
+  EventCacheStatus,
+} from "@/lib/offline-types";
+import { DB_NAME, DB_VERSION, STORES } from "@/lib/offline-types";
+import type { PitEntry, MatchEntry, Event } from "@/lib/types";
 
 class IndexedDBService {
   private db: IDBDatabase | null = null;
@@ -27,15 +25,15 @@ class IndexedDBService {
 
   // Initialize IndexedDB connection
   async init(): Promise<void> {
-    if (typeof window === 'undefined') {
-      throw new Error('IndexedDB is only available in browser environment');
+    if (typeof window === "undefined") {
+      throw new Error("IndexedDB is only available in browser environment");
     }
 
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        reject(new Error('Failed to open IndexedDB'));
+        reject(new Error("Failed to open IndexedDB"));
       };
 
       request.onsuccess = () => {
@@ -45,66 +43,86 @@ class IndexedDBService {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        
+
         // Create queue store for pending entries
         if (!db.objectStoreNames.contains(STORES.QUEUE)) {
-          const queueStore = db.createObjectStore(STORES.QUEUE, { keyPath: 'id' });
-          queueStore.createIndex('type', 'type');
-          queueStore.createIndex('status', 'status');
-          queueStore.createIndex('createdAt', 'createdAt');
+          const queueStore = db.createObjectStore(STORES.QUEUE, {
+            keyPath: "id",
+          });
+          queueStore.createIndex("type", "type");
+          queueStore.createIndex("status", "status");
+          queueStore.createIndex("createdAt", "createdAt");
         }
 
         // Create sync log store for tracking sync operations
         if (!db.objectStoreNames.contains(STORES.SYNC_LOG)) {
-          const syncStore = db.createObjectStore(STORES.SYNC_LOG, { keyPath: 'id', autoIncrement: true });
-          syncStore.createIndex('timestamp', 'timestamp');
+          const syncStore = db.createObjectStore(STORES.SYNC_LOG, {
+            keyPath: "id",
+            autoIncrement: true,
+          });
+          syncStore.createIndex("timestamp", "timestamp");
         }
 
         // Create config store for sync settings
         if (!db.objectStoreNames.contains(STORES.CONFIG)) {
-          db.createObjectStore(STORES.CONFIG, { keyPath: 'key' });
+          db.createObjectStore(STORES.CONFIG, { keyPath: "key" });
         }
 
         // Create event teams cache store for offline scouting
         if (!db.objectStoreNames.contains(STORES.EVENT_TEAMS)) {
-          const eventTeamsStore = db.createObjectStore(STORES.EVENT_TEAMS, { keyPath: 'eventCode' });
-          eventTeamsStore.createIndex('cachedAt', 'cachedAt');
+          const eventTeamsStore = db.createObjectStore(STORES.EVENT_TEAMS, {
+            keyPath: "eventCode",
+          });
+          eventTeamsStore.createIndex("cachedAt", "cachedAt");
         }
 
         // Create event list cache store for offline scouting
         if (!db.objectStoreNames.contains(STORES.EVENT_LIST)) {
-          const eventListStore = db.createObjectStore(STORES.EVENT_LIST, { keyPath: ['teamNumber', 'competitionType', 'year'] });
-          eventListStore.createIndex('cachedAt', 'cachedAt');
+          const eventListStore = db.createObjectStore(STORES.EVENT_LIST, {
+            keyPath: ["teamNumber", "competitionType", "year"],
+          });
+          eventListStore.createIndex("cachedAt", "cachedAt");
         }
 
         // Create scout list cache store for tablet offline support
         if (!db.objectStoreNames.contains(STORES.SCOUT_LIST)) {
-          const scoutListStore = db.createObjectStore(STORES.SCOUT_LIST, { keyPath: 'id' });
-          scoutListStore.createIndex('cachedAt', 'cachedAt');
+          const scoutListStore = db.createObjectStore(STORES.SCOUT_LIST, {
+            keyPath: "id",
+          });
+          scoutListStore.createIndex("cachedAt", "cachedAt");
         }
 
         // Create cached pit entries store for full event cache
         if (!db.objectStoreNames.contains(STORES.CACHED_PIT_ENTRIES)) {
-          const pitStore = db.createObjectStore(STORES.CACHED_PIT_ENTRIES, { keyPath: 'eventCode' });
-          pitStore.createIndex('cachedAt', 'cachedAt');
+          const pitStore = db.createObjectStore(STORES.CACHED_PIT_ENTRIES, {
+            keyPath: "eventCode",
+          });
+          pitStore.createIndex("cachedAt", "cachedAt");
         }
 
         // Create cached match entries store for full event cache
         if (!db.objectStoreNames.contains(STORES.CACHED_MATCH_ENTRIES)) {
-          const matchStore = db.createObjectStore(STORES.CACHED_MATCH_ENTRIES, { keyPath: 'eventCode' });
-          matchStore.createIndex('cachedAt', 'cachedAt');
+          const matchStore = db.createObjectStore(STORES.CACHED_MATCH_ENTRIES, {
+            keyPath: "eventCode",
+          });
+          matchStore.createIndex("cachedAt", "cachedAt");
         }
 
         // Create cached analysis data store for offline analysis page
         if (!db.objectStoreNames.contains(STORES.CACHED_ANALYSIS_DATA)) {
-          const analysisStore = db.createObjectStore(STORES.CACHED_ANALYSIS_DATA, { keyPath: 'eventCode' });
-          analysisStore.createIndex('cachedAt', 'cachedAt');
+          const analysisStore = db.createObjectStore(
+            STORES.CACHED_ANALYSIS_DATA,
+            { keyPath: "eventCode" },
+          );
+          analysisStore.createIndex("cachedAt", "cachedAt");
         }
 
         // Create event cache status store for tracking what's cached
         if (!db.objectStoreNames.contains(STORES.EVENT_CACHE_STATUS)) {
-          const statusStore = db.createObjectStore(STORES.EVENT_CACHE_STATUS, { keyPath: 'eventCode' });
-          statusStore.createIndex('cachedAt', 'cachedAt');
+          const statusStore = db.createObjectStore(STORES.EVENT_CACHE_STATUS, {
+            keyPath: "eventCode",
+          });
+          statusStore.createIndex("cachedAt", "cachedAt");
         }
       };
     });
@@ -125,41 +143,41 @@ class IndexedDBService {
 
   // Build a stable key for queue entry deduplication.
   private getQueueDedupeKey(
-    type: QueuedEntry['type'],
-    data: QueuedEntry['data']
+    type: QueuedEntry["type"],
+    data: QueuedEntry["data"],
   ): string {
     const base = [
       type,
       String(data.year),
       String(data.competitionType),
-      String(data.eventCode ?? ''),
+      String(data.eventCode ?? ""),
       String(data.teamNumber),
     ];
 
-    if (type === 'match') {
-      base.push(String((data as Omit<MatchEntry, 'id'>).matchNumber));
+    if (type === "match") {
+      base.push(String((data as Omit<MatchEntry, "id">).matchNumber));
     }
 
-    return base.join('|');
+    return base.join("|");
   }
 
   // Queue a scouting entry, replacing an existing unsynced duplicate instead of appending.
   private async queueEntry(
-    type: QueuedEntry['type'],
-    data: QueuedEntry['data']
+    type: QueuedEntry["type"],
+    data: QueuedEntry["data"],
   ): Promise<string> {
     const db = await this.ensureDb();
     const dedupeKey = this.getQueueDedupeKey(type, data);
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.QUEUE], 'readwrite');
+      const transaction = db.transaction([STORES.QUEUE], "readwrite");
       const store = transaction.objectStore(STORES.QUEUE);
       const getAllRequest = store.getAll();
 
       getAllRequest.onsuccess = () => {
         const entries = getAllRequest.result as QueuedEntry[];
-        const existingUnsynced = entries.find(entry => {
-          if (entry.status === 'synced') {
+        const existingUnsynced = entries.find((entry) => {
+          if (entry.status === "synced") {
             return false;
           }
 
@@ -169,7 +187,7 @@ class IndexedDBService {
         if (existingUnsynced) {
           const updatedEntry: QueuedEntry = {
             ...existingUnsynced,
-            status: 'pending',
+            status: "pending",
             data,
             attempts: 0,
             error: undefined,
@@ -178,7 +196,8 @@ class IndexedDBService {
 
           const updateRequest = store.put(updatedEntry);
           updateRequest.onsuccess = () => resolve(existingUnsynced.id);
-          updateRequest.onerror = () => reject(new Error('Failed to update queued entry'));
+          updateRequest.onerror = () =>
+            reject(new Error("Failed to update queued entry"));
           return;
         }
 
@@ -186,7 +205,7 @@ class IndexedDBService {
         const queuedEntry: QueuedEntry = {
           id,
           type,
-          status: 'pending',
+          status: "pending",
           data,
           createdAt: new Date(),
           attempts: 0,
@@ -194,21 +213,23 @@ class IndexedDBService {
 
         const addRequest = store.add(queuedEntry);
         addRequest.onsuccess = () => resolve(id);
-        addRequest.onerror = () => reject(new Error(`Failed to queue ${type} entry`));
+        addRequest.onerror = () =>
+          reject(new Error(`Failed to queue ${type} entry`));
       };
 
-      getAllRequest.onerror = () => reject(new Error('Failed to inspect existing queue entries'));
+      getAllRequest.onerror = () =>
+        reject(new Error("Failed to inspect existing queue entries"));
     });
   }
 
   // Add pit entry to offline queue
-  async queuePitEntry(data: Omit<PitEntry, 'id'>): Promise<string> {
-    return this.queueEntry('pit', data);
+  async queuePitEntry(data: Omit<PitEntry, "id">): Promise<string> {
+    return this.queueEntry("pit", data);
   }
 
   // Add match entry to offline queue
-  async queueMatchEntry(data: Omit<MatchEntry, 'id'>): Promise<string> {
-    return this.queueEntry('match', data);
+  async queueMatchEntry(data: Omit<MatchEntry, "id">): Promise<string> {
+    return this.queueEntry("match", data);
   }
 
   // Get all pending entries
@@ -216,13 +237,14 @@ class IndexedDBService {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.QUEUE], 'readonly');
+      const transaction = db.transaction([STORES.QUEUE], "readonly");
       const store = transaction.objectStore(STORES.QUEUE);
-      const index = store.index('status');
-      const request = index.getAll('pending');
+      const index = store.index("status");
+      const request = index.getAll("pending");
 
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(new Error('Failed to get pending entries'));
+      request.onerror = () =>
+        reject(new Error("Failed to get pending entries"));
     });
   }
 
@@ -231,54 +253,56 @@ class IndexedDBService {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.QUEUE], 'readonly');
+      const transaction = db.transaction([STORES.QUEUE], "readonly");
       const store = transaction.objectStore(STORES.QUEUE);
       const request = store.getAll();
 
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(new Error('Failed to get queued entries'));
+      request.onerror = () => reject(new Error("Failed to get queued entries"));
     });
   }
 
   // Update entry status
   async updateEntryStatus(
-    id: string, 
-    status: SyncStatus, 
-    remoteId?: number, 
-    error?: string
+    id: string,
+    status: SyncStatus,
+    remoteId?: number,
+    error?: string,
   ): Promise<void> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.QUEUE], 'readwrite');
+      const transaction = db.transaction([STORES.QUEUE], "readwrite");
       const store = transaction.objectStore(STORES.QUEUE);
       const getRequest = store.get(id);
 
       getRequest.onsuccess = () => {
         const entry = getRequest.result;
         if (!entry) {
-          reject(new Error('Entry not found'));
+          reject(new Error("Entry not found"));
           return;
         }
 
         entry.status = status;
         entry.lastAttempt = new Date();
         entry.attempts += 1;
-        
+
         if (remoteId) {
           entry.remoteId = remoteId;
         }
-        
+
         if (error) {
           entry.error = error;
         }
 
         const putRequest = store.put(entry);
         putRequest.onsuccess = () => resolve();
-        putRequest.onerror = () => reject(new Error('Failed to update entry status'));
+        putRequest.onerror = () =>
+          reject(new Error("Failed to update entry status"));
       };
 
-      getRequest.onerror = () => reject(new Error('Failed to get entry for update'));
+      getRequest.onerror = () =>
+        reject(new Error("Failed to get entry for update"));
     });
   }
 
@@ -287,12 +311,12 @@ class IndexedDBService {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.QUEUE], 'readwrite');
+      const transaction = db.transaction([STORES.QUEUE], "readwrite");
       const store = transaction.objectStore(STORES.QUEUE);
       const request = store.delete(id);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to remove entry'));
+      request.onerror = () => reject(new Error("Failed to remove entry"));
     });
   }
 
@@ -306,13 +330,13 @@ class IndexedDBService {
 
     return new Promise((resolve, reject) => {
       let deletedCount = 0;
-      const transaction = db.transaction([STORES.QUEUE], 'readwrite');
+      const transaction = db.transaction([STORES.QUEUE], "readwrite");
       const store = transaction.objectStore(STORES.QUEUE);
 
       transaction.oncomplete = () => resolve(deletedCount);
-      transaction.onerror = () => reject(new Error('Failed to remove entries'));
+      transaction.onerror = () => reject(new Error("Failed to remove entries"));
 
-      ids.forEach(id => {
+      ids.forEach((id) => {
         const request = store.delete(id);
         request.onsuccess = () => {
           deletedCount += 1;
@@ -327,10 +351,10 @@ class IndexedDBService {
     let deletedCount = 0;
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.QUEUE], 'readwrite');
+      const transaction = db.transaction([STORES.QUEUE], "readwrite");
       const store = transaction.objectStore(STORES.QUEUE);
-      const index = store.index('status');
-      const request = index.openCursor('synced');
+      const index = store.index("status");
+      const request = index.openCursor("synced");
 
       request.onsuccess = () => {
         const cursor = request.result;
@@ -343,7 +367,8 @@ class IndexedDBService {
         }
       };
 
-      request.onerror = () => reject(new Error('Failed to clear synced entries'));
+      request.onerror = () =>
+        reject(new Error("Failed to clear synced entries"));
     });
   }
 
@@ -352,19 +377,19 @@ class IndexedDBService {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.QUEUE], 'readonly');
+      const transaction = db.transaction([STORES.QUEUE], "readonly");
       const store = transaction.objectStore(STORES.QUEUE);
-      
+
       let request: IDBRequest;
       if (status) {
-        const index = store.index('status');
+        const index = store.index("status");
         request = index.count(status);
       } else {
         request = store.count();
       }
 
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(new Error('Failed to get entry count'));
+      request.onerror = () => reject(new Error("Failed to get entry count"));
     });
   }
 
@@ -373,12 +398,12 @@ class IndexedDBService {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.SYNC_LOG], 'readwrite');
+      const transaction = db.transaction([STORES.SYNC_LOG], "readwrite");
       const store = transaction.objectStore(STORES.SYNC_LOG);
       const request = store.add(result);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to log sync result'));
+      request.onerror = () => reject(new Error("Failed to log sync result"));
     });
   }
 
@@ -387,13 +412,13 @@ class IndexedDBService {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.SYNC_LOG], 'readonly');
+      const transaction = db.transaction([STORES.SYNC_LOG], "readonly");
       const store = transaction.objectStore(STORES.SYNC_LOG);
-      const index = store.index('timestamp');
-      const request = index.openCursor(null, 'prev');
-      
+      const index = store.index("timestamp");
+      const request = index.openCursor(null, "prev");
+
       const results: SyncResult[] = [];
-      
+
       request.onsuccess = () => {
         const cursor = request.result;
         if (cursor && results.length < limit) {
@@ -404,7 +429,7 @@ class IndexedDBService {
         }
       };
 
-      request.onerror = () => reject(new Error('Failed to get sync logs'));
+      request.onerror = () => reject(new Error("Failed to get sync logs"));
     });
   }
 
@@ -413,12 +438,12 @@ class IndexedDBService {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.CONFIG], 'readwrite');
+      const transaction = db.transaction([STORES.CONFIG], "readwrite");
       const store = transaction.objectStore(STORES.CONFIG);
-      const request = store.put({ key: 'syncConfig', value: config });
+      const request = store.put({ key: "syncConfig", value: config });
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to save sync config'));
+      request.onerror = () => reject(new Error("Failed to save sync config"));
     });
   }
 
@@ -427,15 +452,15 @@ class IndexedDBService {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.CONFIG], 'readonly');
+      const transaction = db.transaction([STORES.CONFIG], "readonly");
       const store = transaction.objectStore(STORES.CONFIG);
-      const request = store.get('syncConfig');
+      const request = store.get("syncConfig");
 
       request.onsuccess = () => {
         const result = request.result;
         resolve(result ? result.value : null);
       };
-      request.onerror = () => reject(new Error('Failed to get sync config'));
+      request.onerror = () => reject(new Error("Failed to get sync config"));
     });
   }
 
@@ -445,26 +470,34 @@ class IndexedDBService {
 
     return new Promise((resolve, reject) => {
       const storeNames = [
-        STORES.QUEUE, STORES.SYNC_LOG, STORES.CONFIG,
-        STORES.EVENT_TEAMS, STORES.EVENT_LIST, STORES.SCOUT_LIST, STORES.CACHED_ANALYSIS_DATA,
-        STORES.CACHED_PIT_ENTRIES, STORES.CACHED_MATCH_ENTRIES, STORES.EVENT_CACHE_STATUS
+        STORES.QUEUE,
+        STORES.SYNC_LOG,
+        STORES.CONFIG,
+        STORES.EVENT_TEAMS,
+        STORES.EVENT_LIST,
+        STORES.SCOUT_LIST,
+        STORES.CACHED_ANALYSIS_DATA,
+        STORES.CACHED_PIT_ENTRIES,
+        STORES.CACHED_MATCH_ENTRIES,
+        STORES.EVENT_CACHE_STATUS,
       ];
-      const transaction = db.transaction(storeNames, 'readwrite');
-      
+      const transaction = db.transaction(storeNames, "readwrite");
+
       let completed = 0;
-      
-      storeNames.forEach(storeName => {
+
+      storeNames.forEach((storeName) => {
         const store = transaction.objectStore(storeName);
         const request = store.clear();
-        
+
         request.onsuccess = () => {
           completed++;
           if (completed === storeNames.length) {
             resolve();
           }
         };
-        
-        request.onerror = () => reject(new Error(`Failed to clear ${storeName}`));
+
+        request.onerror = () =>
+          reject(new Error(`Failed to clear ${storeName}`));
       });
     });
   }
@@ -478,7 +511,7 @@ class IndexedDBService {
     eventCode: string,
     competitionType: string,
     year: number,
-    teams: CachedTeamInfo[]
+    teams: CachedTeamInfo[],
   ): Promise<void> {
     const db = await this.ensureDb();
 
@@ -487,25 +520,27 @@ class IndexedDBService {
       competitionType,
       year,
       teams,
-      cachedAt: new Date()
+      cachedAt: new Date(),
     };
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.EVENT_TEAMS], 'readwrite');
+      const transaction = db.transaction([STORES.EVENT_TEAMS], "readwrite");
       const store = transaction.objectStore(STORES.EVENT_TEAMS);
       const request = store.put(cachedData);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to cache event teams'));
+      request.onerror = () => reject(new Error("Failed to cache event teams"));
     });
   }
 
   // Get cached event teams
-  async getCachedEventTeams(eventCode: string): Promise<CachedEventTeams | null> {
+  async getCachedEventTeams(
+    eventCode: string,
+  ): Promise<CachedEventTeams | null> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.EVENT_TEAMS], 'readonly');
+      const transaction = db.transaction([STORES.EVENT_TEAMS], "readonly");
       const store = transaction.objectStore(STORES.EVENT_TEAMS);
       const request = store.get(eventCode);
 
@@ -513,7 +548,8 @@ class IndexedDBService {
         const result = request.result;
         resolve(result || null);
       };
-      request.onerror = () => reject(new Error('Failed to get cached event teams'));
+      request.onerror = () =>
+        reject(new Error("Failed to get cached event teams"));
     });
   }
 
@@ -526,7 +562,7 @@ class IndexedDBService {
     teamNumber: number,
     competitionType: string,
     year: number,
-    events: Array<{ name: string; region: string; code: string }>
+    events: Array<Event>,
   ): Promise<void> {
     const db = await this.ensureDb();
 
@@ -535,16 +571,16 @@ class IndexedDBService {
       competitionType,
       year,
       events,
-      cachedAt: new Date()
+      cachedAt: new Date(),
     };
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.EVENT_LIST], 'readwrite');
+      const transaction = db.transaction([STORES.EVENT_LIST], "readwrite");
       const store = transaction.objectStore(STORES.EVENT_LIST);
       const request = store.put(cachedData);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to cache event list'));
+      request.onerror = () => reject(new Error("Failed to cache event list"));
     });
   }
 
@@ -552,12 +588,12 @@ class IndexedDBService {
   async getCachedEventList(
     teamNumber: number,
     competitionType: string,
-    year: number
+    year: number,
   ): Promise<CachedEventList | null> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.EVENT_LIST], 'readonly');
+      const transaction = db.transaction([STORES.EVENT_LIST], "readonly");
       const store = transaction.objectStore(STORES.EVENT_LIST);
       const request = store.get([teamNumber, competitionType, year]);
 
@@ -565,7 +601,8 @@ class IndexedDBService {
         const result = request.result;
         resolve(result || null);
       };
-      request.onerror = () => reject(new Error('Failed to get cached event list'));
+      request.onerror = () =>
+        reject(new Error("Failed to get cached event list"));
     });
   }
 
@@ -580,22 +617,22 @@ class IndexedDBService {
       name: string;
       username: string;
       role: string;
-    }>
+    }>,
   ): Promise<void> {
     const db = await this.ensureDb();
 
     const cachedData: CachedScoutList = {
       scouts,
-      cachedAt: new Date()
+      cachedAt: new Date(),
     };
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.SCOUT_LIST], 'readwrite');
+      const transaction = db.transaction([STORES.SCOUT_LIST], "readwrite");
       const store = transaction.objectStore(STORES.SCOUT_LIST);
-      const request = store.put({ ...cachedData, id: 'scout_list' });
+      const request = store.put({ ...cachedData, id: "scout_list" });
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to cache scout list'));
+      request.onerror = () => reject(new Error("Failed to cache scout list"));
     });
   }
 
@@ -604,15 +641,16 @@ class IndexedDBService {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.SCOUT_LIST], 'readonly');
+      const transaction = db.transaction([STORES.SCOUT_LIST], "readonly");
       const store = transaction.objectStore(STORES.SCOUT_LIST);
-      const request = store.get('scout_list');
+      const request = store.get("scout_list");
 
       request.onsuccess = () => {
         const result = request.result;
         resolve(result || null);
       };
-      request.onerror = () => reject(new Error('Failed to get cached scout list'));
+      request.onerror = () =>
+        reject(new Error("Failed to get cached scout list"));
     });
   }
 
@@ -627,64 +665,86 @@ class IndexedDBService {
     const cachedData: CachedPitEntries = {
       eventCode,
       entries,
-      cachedAt: new Date()
+      cachedAt: new Date(),
     };
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.CACHED_PIT_ENTRIES], 'readwrite');
+      const transaction = db.transaction(
+        [STORES.CACHED_PIT_ENTRIES],
+        "readwrite",
+      );
       const store = transaction.objectStore(STORES.CACHED_PIT_ENTRIES);
       const request = store.put(cachedData);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to cache pit entries'));
+      request.onerror = () => reject(new Error("Failed to cache pit entries"));
     });
   }
 
   // Get cached pit entries for an event
-  async getCachedPitEntries(eventCode: string): Promise<CachedPitEntries | null> {
+  async getCachedPitEntries(
+    eventCode: string,
+  ): Promise<CachedPitEntries | null> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.CACHED_PIT_ENTRIES], 'readonly');
+      const transaction = db.transaction(
+        [STORES.CACHED_PIT_ENTRIES],
+        "readonly",
+      );
       const store = transaction.objectStore(STORES.CACHED_PIT_ENTRIES);
       const request = store.get(eventCode);
 
       request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(new Error('Failed to get cached pit entries'));
+      request.onerror = () =>
+        reject(new Error("Failed to get cached pit entries"));
     });
   }
 
   // Cache match entries for an event
-  async cacheMatchEntries(eventCode: string, entries: MatchEntry[]): Promise<void> {
+  async cacheMatchEntries(
+    eventCode: string,
+    entries: MatchEntry[],
+  ): Promise<void> {
     const db = await this.ensureDb();
 
     const cachedData: CachedMatchEntries = {
       eventCode,
       entries,
-      cachedAt: new Date()
+      cachedAt: new Date(),
     };
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.CACHED_MATCH_ENTRIES], 'readwrite');
+      const transaction = db.transaction(
+        [STORES.CACHED_MATCH_ENTRIES],
+        "readwrite",
+      );
       const store = transaction.objectStore(STORES.CACHED_MATCH_ENTRIES);
       const request = store.put(cachedData);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to cache match entries'));
+      request.onerror = () =>
+        reject(new Error("Failed to cache match entries"));
     });
   }
 
   // Get cached match entries for an event
-  async getCachedMatchEntries(eventCode: string): Promise<CachedMatchEntries | null> {
+  async getCachedMatchEntries(
+    eventCode: string,
+  ): Promise<CachedMatchEntries | null> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.CACHED_MATCH_ENTRIES], 'readonly');
+      const transaction = db.transaction(
+        [STORES.CACHED_MATCH_ENTRIES],
+        "readonly",
+      );
       const store = transaction.objectStore(STORES.CACHED_MATCH_ENTRIES);
       const request = store.get(eventCode);
 
       request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(new Error('Failed to get cached match entries'));
+      request.onerror = () =>
+        reject(new Error("Failed to get cached match entries"));
     });
   }
 
@@ -693,12 +753,16 @@ class IndexedDBService {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.EVENT_CACHE_STATUS], 'readwrite');
+      const transaction = db.transaction(
+        [STORES.EVENT_CACHE_STATUS],
+        "readwrite",
+      );
       const store = transaction.objectStore(STORES.EVENT_CACHE_STATUS);
       const request = store.put(status);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to save event cache status'));
+      request.onerror = () =>
+        reject(new Error("Failed to save event cache status"));
     });
   }
 
@@ -709,7 +773,7 @@ class IndexedDBService {
   // Cache analysis data for an event
   async cacheAnalysisData(
     eventCode: string,
-    data: import('@/lib/shared-types').AnalysisData
+    data: import("@/lib/types").AnalysisData,
   ): Promise<void> {
     const db = await this.ensureDb();
 
@@ -720,42 +784,56 @@ class IndexedDBService {
     };
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.CACHED_ANALYSIS_DATA], 'readwrite');
+      const transaction = db.transaction(
+        [STORES.CACHED_ANALYSIS_DATA],
+        "readwrite",
+      );
       const store = transaction.objectStore(STORES.CACHED_ANALYSIS_DATA);
       const request = store.put(cachedData);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to cache analysis data'));
+      request.onerror = () =>
+        reject(new Error("Failed to cache analysis data"));
     });
   }
 
   // Get cached analysis data for an event
   async getCachedAnalysisData(
-    eventCode: string
+    eventCode: string,
   ): Promise<CachedAnalysisData | null> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.CACHED_ANALYSIS_DATA], 'readonly');
+      const transaction = db.transaction(
+        [STORES.CACHED_ANALYSIS_DATA],
+        "readonly",
+      );
       const store = transaction.objectStore(STORES.CACHED_ANALYSIS_DATA);
       const request = store.get(eventCode);
 
       request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(new Error('Failed to get cached analysis data'));
+      request.onerror = () =>
+        reject(new Error("Failed to get cached analysis data"));
     });
   }
 
   // Get event cache status
-  async getEventCacheStatus(eventCode: string): Promise<EventCacheStatus | null> {
+  async getEventCacheStatus(
+    eventCode: string,
+  ): Promise<EventCacheStatus | null> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.EVENT_CACHE_STATUS], 'readonly');
+      const transaction = db.transaction(
+        [STORES.EVENT_CACHE_STATUS],
+        "readonly",
+      );
       const store = transaction.objectStore(STORES.EVENT_CACHE_STATUS);
       const request = store.get(eventCode);
 
       request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(new Error('Failed to get event cache status'));
+      request.onerror = () =>
+        reject(new Error("Failed to get event cache status"));
     });
   }
 
@@ -764,12 +842,16 @@ class IndexedDBService {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORES.EVENT_CACHE_STATUS], 'readonly');
+      const transaction = db.transaction(
+        [STORES.EVENT_CACHE_STATUS],
+        "readonly",
+      );
       const store = transaction.objectStore(STORES.EVENT_CACHE_STATUS);
       const request = store.getAll();
 
       request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(new Error('Failed to get event cache statuses'));
+      request.onerror = () =>
+        reject(new Error("Failed to get event cache statuses"));
     });
   }
 
@@ -777,13 +859,18 @@ class IndexedDBService {
   async clearEventCache(eventCode: string): Promise<void> {
     const db = await this.ensureDb();
 
-    const storeNames = [STORES.CACHED_PIT_ENTRIES, STORES.CACHED_MATCH_ENTRIES, STORES.CACHED_ANALYSIS_DATA, STORES.EVENT_CACHE_STATUS];
+    const storeNames = [
+      STORES.CACHED_PIT_ENTRIES,
+      STORES.CACHED_MATCH_ENTRIES,
+      STORES.CACHED_ANALYSIS_DATA,
+      STORES.EVENT_CACHE_STATUS,
+    ];
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(storeNames, 'readwrite');
+      const transaction = db.transaction(storeNames, "readwrite");
       let completed = 0;
 
-      storeNames.forEach(storeName => {
+      storeNames.forEach((storeName) => {
         const store = transaction.objectStore(storeName);
         const request = store.delete(eventCode);
 
@@ -791,7 +878,8 @@ class IndexedDBService {
           completed++;
           if (completed === storeNames.length) resolve();
         };
-        request.onerror = () => reject(new Error(`Failed to clear ${storeName} for ${eventCode}`));
+        request.onerror = () =>
+          reject(new Error(`Failed to clear ${storeName} for ${eventCode}`));
       });
     });
   }

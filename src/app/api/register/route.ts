@@ -1,112 +1,120 @@
-import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
-import { databaseManager } from '@/db/database-manager'
-import { DatabaseService } from '@/db/types'
-import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit'
+import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { databaseManager } from "@/db/database-manager";
+import { DatabaseService } from "@/lib/types";
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 
-const REGISTER_WINDOW_MS = 60 * 1000
-const REGISTER_MAX_REQUESTS = 20
+const REGISTER_WINDOW_MS = 60 * 1000;
+const REGISTER_MAX_REQUESTS = 20;
 
 // Initialize database service
-let dbService: DatabaseService
+let dbService: DatabaseService;
 
 function getDbService() {
   if (!dbService) {
-    dbService = databaseManager.getService()
+    dbService = databaseManager.getService();
   }
-  return dbService
+  return dbService;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const rateLimit = checkRateLimit(request, {
-      keyPrefix: 'register',
+      keyPrefix: "register",
       windowMs: REGISTER_WINDOW_MS,
       maxRequests: REGISTER_MAX_REQUESTS,
-    })
+    });
 
     if (rateLimit.limited) {
       return NextResponse.json(
-        { error: 'Too many account creation attempts. Please try again later.' },
+        {
+          error: "Too many account creation attempts. Please try again later.",
+        },
         {
           status: 429,
           headers: getRateLimitHeaders(rateLimit, REGISTER_MAX_REQUESTS),
-        }
-      )
+        },
+      );
     }
 
-    const { name, username, password } = await request.json()
+    const { name, username, password } = await request.json();
 
     // Validate required fields
     if (!name || !username || !password) {
       return NextResponse.json(
-        { error: 'All fields are required' },
-        { status: 400 }
-      )
+        { error: "All fields are required" },
+        { status: 400 },
+      );
     }
 
     // Validate username format (alphanumeric, underscore, dash, 3-20 chars)
-    const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/
+    const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
     if (!usernameRegex.test(username)) {
       return NextResponse.json(
-        { error: 'Username must be 3-20 characters and contain only letters, numbers, underscores, or dashes' },
-        { status: 400 }
-      )
+        {
+          error:
+            "Username must be 3-20 characters and contain only letters, numbers, underscores, or dashes",
+        },
+        { status: 400 },
+      );
     }
 
     // Validate password strength
     if (password.length < 8) {
       return NextResponse.json(
-        { error: 'Password must be at least 8 characters long' },
-        { status: 400 }
-      )
+        { error: "Password must be at least 8 characters long" },
+        { status: 400 },
+      );
     }
 
-    const db = getDbService()
+    const db = getDbService();
     if (!db.getPool) {
-      return NextResponse.json({ error: 'Database service does not support direct SQL queries' }, { status: 500 })
+      return NextResponse.json(
+        { error: "Database service does not support direct SQL queries" },
+        { status: 500 },
+      );
     }
-    const pool = await db.getPool()
+    const pool = await db.getPool();
 
     // Check if user already exists
-    const existingUserResult = await pool.request()
-      .input('username', username)
-      .query('SELECT id FROM users WHERE username = @username')
+    const existingUserResult = await pool
+      .request()
+      .input("username", username)
+      .query("SELECT id FROM users WHERE username = @username");
 
     if (existingUserResult.recordset.length > 0) {
       return NextResponse.json(
-        { error: 'User with this username already exists' },
-        { status: 409 }
-      )
+        { error: "User with this username already exists" },
+        { status: 409 },
+      );
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12)
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     // Generate unique ID for user
-    const userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+    const userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
     // Create user
-    await pool.request()
-      .input('id', userId)
-      .input('name', name)
-      .input('username', username)
-      .input('passwordHash', hashedPassword)
-      .query(`
+    await pool
+      .request()
+      .input("id", userId)
+      .input("name", name)
+      .input("username", username)
+      .input("passwordHash", hashedPassword).query(`
         INSERT INTO users (id, name, username, password_hash, role, created_at, updated_at)
         VALUES (@id, @name, @username, @passwordHash, 'scout', GETDATE(), GETDATE())
-      `)
+      `);
 
     return NextResponse.json(
-      { message: 'User created successfully' },
-      { status: 201 }
-    )
-
+      { message: "User created successfully" },
+      { status: 201 },
+    );
   } catch (error) {
-    console.error('Registration error:', error)
+    console.error("Registration error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

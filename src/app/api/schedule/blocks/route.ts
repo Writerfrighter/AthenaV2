@@ -1,9 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 function gone() {
   return NextResponse.json(
-    { error: 'Schedule blocks have been removed. Use match assignments instead.' },
-    { status: 410 }
+    {
+      error:
+        "Schedule blocks have been removed. Use match assignments instead.",
+    },
+    { status: 410 },
   );
 }
 
