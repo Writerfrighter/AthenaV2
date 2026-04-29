@@ -17,7 +17,6 @@ import {
   AlertCircle,
   Database,
   Download,
-  Filter,
   ChevronDown,
   WifiOff,
   Users,

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTeamMatchesForEvent as getFrcTeamMatches } from "@/lib/api/tba";
 import { getEventMatches as getFtcEventMatches } from "@/lib/api/ftcevents";
 import type { TbaMatchSimple } from "@/lib/api/tba-types";
-import type { FtcMatchResult } from "@/lib/api/ftcevents-types";
 
 /**
  * GET /api/team/[teamNumber]/average-score

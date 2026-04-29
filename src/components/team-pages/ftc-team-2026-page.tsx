@@ -16,8 +16,6 @@ import {
   Target,
   Activity,
   BarChart,
-  Package,
-  AlertTriangle,
   Wrench,
 } from "lucide-react";
 import TeamInfo from "@/components/team-pages-common/TeamInfo";
@@ -32,8 +30,6 @@ import {
   YAxis,
   CartesianGrid,
   Cell,
-  ResponsiveContainer,
-  Legend,
 } from "recharts";
 import {
   ChartConfig,

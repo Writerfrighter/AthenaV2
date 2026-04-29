@@ -6,8 +6,6 @@ interface TeamInfoProps {
   teamNumber: string;
   driveTrain?: string;
   weight?: string | number;
-  // location?: string;
-  // rookieYear?: number;
   matches?: number;
 }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { databaseManager } from "@/db/database-manager";
-import { PitEntry, DatabaseService, CompetitionType } from "@/lib/types";
+import { DatabaseService, CompetitionType } from "@/lib/types";
 import { auth } from "@/lib/auth/config";
 import { hasPermission, PERMISSIONS } from "@/lib/auth/roles";
 

@@ -12,13 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   ExternalLink,
-  Search,
   Trophy,
   Target,
   Activity,
   BarChart,
-  MapPin,
-  AlertTriangle,
   Wrench,
 } from "lucide-react";
 import TeamInfo from "@/components/team-pages-common/TeamInfo";
@@ -33,7 +30,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
 } from "recharts";
 import {
   ChartConfig,
