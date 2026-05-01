@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useSelectedEvent } from "@/hooks/use-event-config";
 import { useSPRData, type ScouterSPR } from "@/hooks/use-spr-data";
-import { useScouterMedals } from "@/hooks/use-scouter-medals";
+import { get } from "http";
 
 function getPerformanceBadge(percentile: number) {
   if (percentile >= 75) {
@@ -100,7 +100,6 @@ export default function SPRPage() {
   const [verbose, setVerbose] = useState(false);
   const selectedEvent = useSelectedEvent();
   const { data, loading, error, refetch } = useSPRData({ verbose });
-  const { medalsByScouterId } = useScouterMedals();
 
   if (!selectedEvent) {
     return (
@@ -322,18 +321,7 @@ export default function SPRPage() {
                       </TableCell>
                       <TableCell>
                         <div className="font-medium my-1">
-                          {(() => {
-                            const base = getDisplayName(scouter);
-                            const rank = index + 1;
-                            if (rank === 1) return `🥇 ${base} 🥇`;
-                            if (rank === 2) return `🥈 ${base} 🥈`;
-                            if (rank === 3) return `🥉 ${base} 🥉`;
-                            const medal = medalsByScouterId[scouter.scouterId];
-                            if (medal === "gold") return `🥇 ${base} 🥇`;
-                            if (medal === "silver") return `🥈 ${base} 🥈`;
-                            if (medal === "bronze") return `🥉 ${base} 🥉`;
-                            return base;
-                          })()}
+                           {getDisplayName(scouter)}
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-mono my-1">
@@ -375,14 +363,7 @@ export default function SPRPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg font-bold">
-                    {(() => {
-                      const base = getDisplayName(data.scouters[0]);
-                      const medal = medalsByScouterId[data.scouters[0].scouterId];
-                      if (medal === "gold") return `🥇 ${base} 🥇`;
-                      if (medal === "silver") return `🥈 ${base} 🥈`;
-                      if (medal === "bronze") return `🥉 ${base} 🥉`;
-                      return base;
-                    })()}
+                    {getDisplayName(data.scouters[0])}
                   </div>
                   <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                     <p>
@@ -427,15 +408,7 @@ export default function SPRPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg font-bold">
-                    {(() => {
-                      const worst = data.scouters[data.scouters.length - 1];
-                      const base = getDisplayName(worst);
-                      const medal = medalsByScouterId[worst.scouterId];
-                      if (medal === "gold") return `🥇 ${base} 🥇`;
-                      if (medal === "silver") return `🥈 ${base} 🥈`;
-                      if (medal === "bronze") return `🥉 ${base} 🥉`;
-                      return base;
-                    })()}
+                    {getDisplayName(data.scouters[data.scouters.length - 1])}
                   </div>
                   <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                     <p>
