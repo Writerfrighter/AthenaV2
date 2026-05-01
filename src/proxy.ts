@@ -12,12 +12,13 @@ export default auth((req) => {
   const isSEO =
     req.nextUrl.pathname === "/robots.txt" ||
     req.nextUrl.pathname === "/sitemap.xml";
+  const isAsset = req.nextUrl.pathname.startsWith("/_next/static") || req.nextUrl.pathname.startsWith("/assets");
 
   // Debug logging
   // console.log(`Middleware - Path: ${req.nextUrl.pathname}, IsAuth: ${isAuth}, IsAuthPage: ${isAuthPage}`)
 
   // Allow access to auth pages, API routes, and home page
-  if (isAuthPage || isApiAuth || isApiRegister || isHomePage || isSEO) {
+  if (isAuthPage || isApiAuth || isApiRegister || isHomePage || isSEO || isAsset) {
     return NextResponse.next();
   }
 
