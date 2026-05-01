@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Hammer, Zap, BarChart3, ArrowRight } from "lucide-react";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
+import { ThemeSelector } from "../settings/theme-selector";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -104,8 +105,10 @@ export function LoggedInLandingPage() {
             <span className="font-bold text-lg">Athena</span>
           </div>
           <div className="flex items-center gap-3">
-            <OfflineStatusWidget showSyncButton className="hidden sm:flex" />
-            <ModeToggle />
+            <div className="flex gap-x-2">
+              <ModeToggle />
+              <ThemeSelector />
+            </div>
             <Button
               variant="outline"
               size="lg"

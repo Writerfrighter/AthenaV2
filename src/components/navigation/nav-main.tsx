@@ -1,7 +1,11 @@
 "use client";
 
-import { type LucideIcon } from "lucide-react";
-
+import { type LucideIcon, ChevronRight } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarMenu,
@@ -29,33 +33,61 @@ export function NavMain({
 }) {
   return (
     <SidebarGroup>
-      {/* <SidebarGroupLabel>Platform</SidebarGroupLabel> */}
       <SidebarMenu>
-        {items.map((item) => (
-          <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton tooltip={item.title}>
-              {item.icon && <item.icon />}
-              {item?.url ? (
-                <Link href={item.url} className="w-full">
-                  {item.title}
-                </Link>
-              ) : (
-                <span>{item.title}</span>
-              )}
-            </SidebarMenuButton>
-            {item.items?.length ? (
-              <SidebarMenuSub>
-                {item.items.map((item) => (
-                  <SidebarMenuSubItem key={item.title}>
-                    <SidebarMenuSubButton asChild isActive={item.isActive}>
-                      <Link href={item.url}>{item.title}</Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                ))}
-              </SidebarMenuSub>
-            ) : null}
-          </SidebarMenuItem>
-        ))}
+        {items.map((item) => {
+          const hasChildren = !!item.items?.length;
+
+          if (hasChildren) {
+            return (
+              <Collapsible key={item.title} defaultOpen={false} className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip={item.title}>
+                      {item.icon && <item.icon />}
+                      <span className="flex w-full items-center">
+                        {item.title}
+                        <ChevronRight className="p-1 ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                      </span>
+                    </SidebarMenuButton>       
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {item.items!.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={subItem.isActive}
+                          >
+                            <Link href={subItem.url}>
+                              {subItem.title}
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>     
+              </Collapsible>
+            );
+          }
+
+          // no children
+          return (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton tooltip={item.title}>
+                {item?.url ? (
+                  <Link href={item.url} className="flex items-center w-full">
+                    {item.icon && <item.icon className="p-1"/>}
+                    {item.title}
+                  </Link>
+                ) : (
+                  <span>{item.title}</span>
+                )}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          );
+        })}
       </SidebarMenu>
     </SidebarGroup>
   );

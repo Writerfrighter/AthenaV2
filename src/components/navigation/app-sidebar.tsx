@@ -38,19 +38,24 @@ const data = {
     { title: "Home", url: "/", icon: Home },
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     {
-      title: "Matchup",
+      title: "Team List",
+      url: "/dashboard/teamlist",
+      icon: Table,
+    },
+    {
+      title: "Match Matchup",
       url: "/dashboard/matchup",
       icon: Swords,
     },
     {
-      title: "Analysis",
-      url: "/dashboard/analysis",
-      icon: ChartColumnIncreasing,
-    },
-    {
-      title: "Data",
+      title: "Scouting",
       icon: Database,
       items: [
+        {
+          title: "Schedule",
+          url: "/dashboard/schedule",
+          icon: CalendarClock,
+        },
         {
           title: "Pit Scouting",
           url: "/dashboard/pitscouting",
@@ -59,27 +64,22 @@ const data = {
           title: "Match Scouting",
           url: "/dashboard/matchscouting",
         },
+        {
+          title: "Scouter Performance",
+          url: "/dashboard/spr",
+          icon: UserCheck,
+        },
       ],
     },
     {
-      title: "Team List",
-      url: "/dashboard/teamlist",
-      icon: Table,
+      title: "Analysis",
+      url: "/dashboard/analysis",
+      icon: ChartColumnIncreasing,
     },
     {
       title: "Picklist",
       url: "/dashboard/picklist",
       icon: ListOrdered,
-    },
-    {
-      title: "Schedule",
-      url: "/dashboard/schedule",
-      icon: CalendarClock,
-    },
-    {
-      title: "Scouter Performance",
-      url: "/dashboard/spr",
-      icon: UserCheck,
     },
     {
       title: "Settings",
