@@ -52,6 +52,7 @@ export default function MatchupPage() {
   } = useMatchScheduleTeams();
 
   const [matchNumber, setMatchNumber] = useState<number>(1);
+  const [matchNumberInput, setMatchNumberInput] = useState("1");
   const [matchType, setMatchType] = useState<MatchType>("qualification");
   const [manualTeams, setManualTeams] = useState<{
     red: string[];
@@ -223,6 +224,10 @@ export default function MatchupPage() {
     );
   }, [maxMatchNumber]);
 
+  useEffect(() => {
+    setMatchNumberInput(matchNumber.toString());
+  }, [matchNumber]);
+
   const updateManualTeam = (
     alliance: "red" | "blue",
     index: number,
@@ -317,12 +322,24 @@ export default function MatchupPage() {
                       type="number"
                       min={1}
                       max={maxMatchNumber || undefined}
-                      value={matchNumber}
-                      onChange={(e) =>
-                        setMatchNumber(
-                          Math.max(1, parseInt(e.target.value) || 1),
-                        )
-                      }
+                      value={matchNumberInput}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setMatchNumberInput(value);
+
+                        const parsed = parseInt(value, 10);
+                        if (!Number.isNaN(parsed)) {
+                          const clamped = maxMatchNumber
+                            ? Math.min(maxMatchNumber, Math.max(1, parsed))
+                            : Math.max(1, parsed);
+                          setMatchNumber(clamped);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (matchNumberInput.trim() === "") {
+                          setMatchNumberInput(matchNumber.toString());
+                        }
+                      }}
                       className="w-20 text-center"
                     />
                     <Button
