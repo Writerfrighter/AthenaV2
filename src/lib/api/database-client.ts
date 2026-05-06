@@ -255,11 +255,13 @@ export const statsApi = {
     year?: number,
     eventCode?: string,
     competitionType?: string,
+    includeBoxPlot?: boolean,
   ): Promise<AnalysisData> {
     const params = new URLSearchParams();
     if (year) params.append("year", year.toString());
     if (eventCode) params.append("eventCode", eventCode);
     if (competitionType) params.append("competitionType", competitionType);
+    if (includeBoxPlot) params.append("includeBoxPlot", "true");
 
     const response = await fetch(`${API_BASE}/analysis?${params}`);
     if (!response.ok) throw new Error("Failed to fetch analysis data");

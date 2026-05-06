@@ -325,7 +325,7 @@ async function cacheAnalysisData(opts: CacheOptions): Promise<void> {
     detail: "Downloading analysis data...",
   });
   try {
-    const url = `/api/database/analysis?eventCode=${opts.eventCode}&year=${opts.year}&competitionType=${opts.competitionType}`;
+    const url = `/api/database/analysis?eventCode=${opts.eventCode}&year=${opts.year}&competitionType=${opts.competitionType}&includeBoxPlot=true`;
     const res = await fetchAndCache(url);
     const data: AnalysisData = await res.json();
 

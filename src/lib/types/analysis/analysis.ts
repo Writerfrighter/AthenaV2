@@ -22,6 +22,13 @@ export interface AnalysisData {
     teleopEPA: number;
     endgameEPA: number;
     penaltiesEPA: number;
+    totalEPAStats?: {
+      min: number;
+      q1: number;
+      median: number;
+      q3: number;
+      max: number;
+    };
     detailMetrics?: Record<string, number>;
   }>;
   totalMatches: number;

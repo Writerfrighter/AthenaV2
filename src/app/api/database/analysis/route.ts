@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { databaseManager } from "@/db/database-manager";
-import { DatabaseService, CompetitionType } from "@/lib/types";
+import { DatabaseService, CompetitionType, MatchEntry } from "@/lib/types";
 import { auth } from "@/lib/auth/config";
 import { hasPermission, PERMISSIONS } from "@/lib/auth/roles";
 import { calculateEPA } from "@/lib/statistics";
 import {
   AnalysisMetricDefinition,
   EPABreakdown,
+  ScoringDefinition,
   YearConfig,
 } from "@/lib/types";
 import gameConfig from "../../../../../config/game-config-loader";
@@ -132,6 +133,89 @@ function buildMetricDefinition(
   };
 }
 
+function calculatePeriodPoints(
+  periodData: Record<string, number | string | boolean>,
+  periodConfig: Record<string, ScoringDefinition>,
+): number {
+  let points = 0;
+
+  for (const [key, value] of Object.entries(periodData)) {
+    const configKey = Object.keys(periodConfig).find(
+      (config) => config.toLowerCase() === key.toLowerCase(),
+    );
+    if (!configKey) continue;
+    const scoringDef = periodConfig[configKey];
+
+    if (typeof value === "number") {
+      const multiplier = scoringDef.points || 0;
+      if (!isNaN(multiplier) && !isNaN(value)) {
+        points += value * multiplier;
+      }
+    } else if (typeof value === "boolean" && value) {
+      const pts = scoringDef.points || 0;
+      if (!isNaN(pts)) {
+        points += pts;
+      }
+    } else if (typeof value === "string" && value !== "" && value !== "none") {
+      if (
+        scoringDef.pointValues &&
+        scoringDef.pointValues[value] !== undefined
+      ) {
+        const pts = scoringDef.pointValues[value];
+        if (!isNaN(pts)) {
+          points += pts;
+        }
+      } else if (scoringDef.points) {
+        const pts = scoringDef.points;
+        if (!isNaN(pts)) {
+          points += pts;
+        }
+      }
+    }
+  }
+
+  return points;
+}
+
+function calculateMatchEPA(match: MatchEntry, yearConfig?: YearConfig) {
+  if (!yearConfig || !match.gameSpecificData) {
+    const flattened = flattenScoutingData(match.gameSpecificData);
+    return Object.values(flattened).reduce((sum, value) => {
+      if (typeof value === "number" && Number.isFinite(value)) return sum + value;
+      return sum;
+    }, 0);
+  }
+
+  const autoPoints = calculatePeriodPoints(
+    (match.gameSpecificData?.autonomous as Record<string, number | string | boolean>) || {},
+    yearConfig.scoring.autonomous,
+  );
+  const teleopPoints = calculatePeriodPoints(
+    (match.gameSpecificData?.teleop as Record<string, number | string | boolean>) || {},
+    yearConfig.scoring.teleop,
+  );
+  const endgamePoints = calculatePeriodPoints(
+    (match.gameSpecificData?.endgame as Record<string, number | string | boolean>) || {},
+    yearConfig.scoring.endgame,
+  );
+  const penaltiesPoints = calculatePeriodPoints(
+    (match.gameSpecificData?.fouls as Record<string, number | string | boolean>) || {},
+    yearConfig.scoring.fouls || {},
+  );
+
+  return autoPoints + teleopPoints + endgamePoints + penaltiesPoints;
+}
+
+function quantile(sortedValues: number[], q: number) {
+  if (!sortedValues.length) return 0;
+  const position = (sortedValues.length - 1) * q;
+  const base = Math.floor(position);
+  const rest = position - base;
+  const next = sortedValues[base + 1];
+  if (next === undefined) return sortedValues[base];
+  return sortedValues[base] + rest * (next - sortedValues[base]);
+}
+
 // GET /api/database/analysis - Get analysis data for charts
 export async function GET(request: NextRequest) {
   try {
@@ -147,6 +231,7 @@ export async function GET(request: NextRequest) {
       ? parseInt(searchParams.get("year")!)
       : undefined;
     const eventCode = searchParams.get("eventCode");
+    const includeBoxPlot = searchParams.get("includeBoxPlot") === "true";
     const competitionType =
       (searchParams.get("competitionType") as CompetitionType) || "FRC";
 
@@ -312,9 +397,26 @@ export async function GET(request: NextRequest) {
           }
         > = {};
 
-        const teamMatches = filteredEntries.filter(
-          (entry) => entry.teamNumber === team.teamNumber,
-        );
+        let min = 0;
+        let max = 0;
+        let q1 = 0;
+        let median = 0;
+        let q3 = 0;
+
+        if (includeBoxPlot) {
+          const teamMatches = filteredEntries.filter(
+            (entry) => entry.teamNumber === team.teamNumber,
+          );
+          const totalEPAValues = teamMatches
+            .map((match) => calculateMatchEPA(match, yearConfig))
+            .filter((value) => Number.isFinite(value))
+            .sort((a, b) => a - b);
+          min = totalEPAValues[0] ?? 0;
+          max = totalEPAValues[totalEPAValues.length - 1] ?? 0;
+          q1 = quantile(totalEPAValues, 0.25);
+          median = quantile(totalEPAValues, 0.5);
+          q3 = quantile(totalEPAValues, 0.75);
+        }
         teamMatches.forEach((match) => {
           const flattened = flattenScoutingData(match.gameSpecificData);
           Object.entries(flattened).forEach(([rawKey, value]) => {
@@ -366,6 +468,15 @@ export async function GET(request: NextRequest) {
           teleopEPA: team.epaBreakdown.teleop,
           endgameEPA: team.epaBreakdown.endgame,
           penaltiesEPA: team.epaBreakdown.penalties,
+          totalEPAStats: includeBoxPlot
+            ? {
+                min,
+                q1,
+                median,
+                q3,
+                max,
+              }
+            : undefined,
           detailMetrics,
         };
       })
