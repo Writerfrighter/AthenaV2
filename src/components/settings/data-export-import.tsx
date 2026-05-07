@@ -100,7 +100,7 @@ export function DataExportImportComponent() {
 
       params.append("types", types.join(","));
 
-      const response = await fetch(`/api/database/export?${params}`);
+      const response = await fetch(`/api/scouting/admin/export?${params}`);
       if (!response.ok) {
         throw new Error("Failed to export data");
       }
@@ -182,7 +182,7 @@ export function DataExportImportComponent() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/database/import", {
+      const response = await fetch("/api/scouting/admin/import", {
         method: "POST",
         body: formData,
       });

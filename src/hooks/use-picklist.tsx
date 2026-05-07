@@ -48,7 +48,7 @@ export function usePicklist(options: UsePicklistOptions) {
         competitionType: options.competitionType,
       });
 
-      const response = await fetch(`/api/database/picklist?${params}`);
+      const response = await fetch(`/api/scouting/picklist?${params}`);
       if (!response.ok) throw new Error("Failed to fetch initial ranking");
 
       const data = await response.json();
@@ -74,7 +74,7 @@ export function usePicklist(options: UsePicklistOptions) {
       });
 
       // First get the picklist metadata
-      const picklistResponse = await fetch(`/api/database/picklist?${params}`);
+      const picklistResponse = await fetch(`/api/scouting/picklist?${params}`);
       if (!picklistResponse.ok) {
         throw new Error(`Failed to fetch picklist: ${picklistResponse.status}`);
       }
@@ -95,7 +95,7 @@ export function usePicklist(options: UsePicklistOptions) {
           picklistId: picklistData.picklist.id.toString(),
         });
         const entriesResponse = await fetch(
-          `/api/database/picklist/entries?${entriesParams}`,
+          `/api/scouting/picklist/entries?${entriesParams}`,
         );
         if (entriesResponse.ok) {
           const entriesData = await entriesResponse.json();
@@ -131,7 +131,7 @@ export function usePicklist(options: UsePicklistOptions) {
     ) => {
       try {
         setIsSaving(true);
-        const response = await fetch("/api/database/picklist", {
+        const response = await fetch("/api/scouting/picklist", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -186,7 +186,7 @@ export function usePicklist(options: UsePicklistOptions) {
           throw new Error("Failed to resolve picklist ID for save");
         }
 
-        const response = await fetch("/api/database/picklist", {
+        const response = await fetch("/api/scouting/picklist", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -234,7 +234,7 @@ export function usePicklist(options: UsePicklistOptions) {
     try {
       setIsSaving(true);
       const response = await fetch(
-        `/api/database/picklist?picklistId=${picklist.id}`,
+        `/api/scouting/picklist?picklistId=${picklist.id}`,
         {
           method: "DELETE",
         },
@@ -263,7 +263,7 @@ export function usePicklist(options: UsePicklistOptions) {
       }
 
       try {
-        const response = await fetch("/api/database/picklist/notes", {
+        const response = await fetch("/api/scouting/picklist/notes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -300,7 +300,7 @@ export function usePicklist(options: UsePicklistOptions) {
           teamNumber: teamNumber.toString(),
         });
 
-        const response = await fetch(`/api/database/picklist/notes?${params}`);
+        const response = await fetch(`/api/scouting/picklist/notes?${params}`);
         if (!response.ok) throw new Error("Failed to fetch notes");
 
         const data = await response.json();
@@ -318,7 +318,7 @@ export function usePicklist(options: UsePicklistOptions) {
   const updateNote = useCallback(
     async (noteId: number, teamNumber: number, newText: string) => {
       try {
-        const response = await fetch("/api/database/picklist/notes", {
+        const response = await fetch("/api/scouting/picklist/notes", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -349,7 +349,7 @@ export function usePicklist(options: UsePicklistOptions) {
     async (noteId: number, teamNumber: number) => {
       try {
         const response = await fetch(
-          `/api/database/picklist/notes?noteId=${noteId}`,
+          `/api/scouting/picklist/notes?noteId=${noteId}`,
           {
             method: "DELETE",
           },
@@ -380,7 +380,7 @@ export function usePicklist(options: UsePicklistOptions) {
     try {
       setIsSaving(true);
       const response = await fetch(
-        `/api/database/picklist?picklistId=${picklist.id}`,
+        `/api/scouting/picklist?picklistId=${picklist.id}`,
         {
           method: "DELETE",
         },

@@ -4,13 +4,14 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   ComposedChart,
-  ErrorBar,
+  Customized,
   Scatter,
   XAxis,
   YAxis,
 } from "recharts";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Card,
@@ -38,6 +39,8 @@ type TeamEPAChartDatum = {
 };
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useSelectedEvent } from "@/hooks/use-event-config";
+import { useGameConfig } from "@/hooks/use-game-config";
 
 // Define types for better type safety
 interface TooltipPayload {
@@ -55,7 +58,8 @@ interface TooltipProps {
 }
 
 interface BoxPlotDatum {
-  category: string;
+  categoryKey: string;
+  label: string;
   color: string;
   min: number;
   q1: number;
@@ -105,7 +109,7 @@ function BoxPlotTooltipContent(props: TooltipProps) {
 
   return (
     <div className="p-2 bg-background rounded-md shadow-md border">
-      <div className="font-semibold mb-1">{data.category}</div>
+      <div className="font-semibold mb-1">{data.label}</div>
       <div className="flex justify-between gap-2">
         <span>Min:</span>
         <span>{data.min.toFixed(3)}</span>
@@ -155,8 +159,16 @@ const chartConfig = {
   },
 };
 
-const buildBoxPlotData = (data: TeamEPAChartDatum[]) =>
-  data.map((entry) => {
+type TeamColorsMap = Record<
+  string,
+  { primaryHex?: string; secondaryHex?: string; verified?: boolean }
+>;
+
+const buildBoxPlotData = (
+  data: TeamEPAChartDatum[],
+  teamColors: TeamColorsMap,
+) =>
+  data.map((entry, index) => {
     const stats = entry.totalEPAStats;
     const min = stats?.min ?? entry.totalEPA;
     const q1 = stats?.q1 ?? entry.totalEPA;
@@ -166,9 +178,13 @@ const buildBoxPlotData = (data: TeamEPAChartDatum[]) =>
     const iqr = q3 - q1;
     const range: [number, number] = [median - min, max - median];
 
+    const teamColor = teamColors[entry.team]?.primaryHex;
+    const color = teamColor || "var(--color-total)";
+
     return {
-      category: entry.team,
-      color: "var(--color-total)",
+      categoryKey: `${entry.team}__${index}`,
+      label: entry.team,
+      color,
       min,
       q1,
       median,
@@ -193,6 +209,46 @@ function MedianTick(props: { cx?: number; cy?: number; payload?: BoxPlotDatum })
       stroke={payload.color}
       strokeWidth={2}
     />
+  );
+}
+
+function WhiskerLines({
+  xAxisMap,
+  yAxisMap,
+  data,
+}: {
+  xAxisMap?: Record<string, { scale: (value: string) => number; bandSize?: number }>;
+  yAxisMap?: Record<string, { scale: (value: number) => number }>;
+  data?: BoxPlotDatum[];
+}) {
+  const xAxis = xAxisMap ? Object.values(xAxisMap)[0] : undefined;
+  const yAxis = yAxisMap ? Object.values(yAxisMap)[0] : undefined;
+
+  if (!xAxis || !yAxis || !data) return null;
+
+  const bandSize = xAxis.bandSize ?? 0;
+  const capWidth = 10;
+
+  return (
+    <g>
+      {data.map((entry) => {
+        const x = xAxis.scale(entry.categoryKey) + bandSize / 2;
+        const yMin = yAxis.scale(entry.min);
+        const yMax = yAxis.scale(entry.max);
+
+        if (!Number.isFinite(x) || !Number.isFinite(yMin) || !Number.isFinite(yMax)) {
+          return null;
+        }
+
+        return (
+          <g key={`${entry.categoryKey}-whisker`} stroke={entry.color} strokeWidth={2}>
+            <line x1={x} x2={x} y1={yMax} y2={yMin} />
+            <line x1={x - capWidth / 2} x2={x + capWidth / 2} y1={yMax} y2={yMax} />
+            <line x1={x - capWidth / 2} x2={x + capWidth / 2} y1={yMin} y2={yMin} />
+          </g>
+        );
+      })}
+    </g>
   );
 }
 
@@ -246,7 +302,10 @@ function CustomLegend({
 export function StackedEPAChart({ data }: { data?: TeamEPAChartDatum[] }) {
   const displayData = data || [];
   const isMobile = useIsMobile();
+  const selectedEvent = useSelectedEvent();
+  const { competitionType } = useGameConfig();
   const [chartView, setChartView] = useState<"stacked" | "box">("stacked");
+  const [teamColors, setTeamColors] = useState<TeamColorsMap>({});
 
   // State for toggling categories (all visible by default)
   const [visibleCategories, setVisibleCategories] = useState<
@@ -265,10 +324,79 @@ export function StackedEPAChart({ data }: { data?: TeamEPAChartDatum[] }) {
     }));
   };
 
+  useEffect(() => {
+    if (!selectedEvent?.eventCode || competitionType !== "FRC") {
+      setTeamColors({});
+      return;
+    }
+
+    let isActive = true;
+
+    const fetchColors = async () => {
+      try {
+        const response = await fetch(
+          `/api/events/${encodeURIComponent(selectedEvent.eventCode)}/colors?competitionType=${competitionType}`,
+        );
+
+        if (!response.ok) {
+          if (isActive) setTeamColors({});
+          return;
+        }
+
+        const data = (await response.json()) as {
+          teams?: Record<
+            string,
+            { teamNumber: number; colors: { primaryHex: string; secondaryHex: string; verified: boolean } | null }
+          >;
+        };
+
+        const colorMap: TeamColorsMap = {};
+        Object.values(data.teams || {}).forEach((team) => {
+          if (team?.teamNumber && team.colors?.primaryHex) {
+            colorMap[String(team.teamNumber)] = {
+              primaryHex: team.colors.primaryHex,
+              secondaryHex: team.colors.secondaryHex,
+              verified: team.colors.verified,
+            };
+          }
+        });
+
+        if (isActive) setTeamColors(colorMap);
+      } catch (error) {
+        console.warn("Failed to load team colors:", error);
+        if (isActive) setTeamColors({});
+      }
+    };
+
+    fetchColors();
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedEvent?.eventCode, competitionType]);
+
   const boxPlotData = useMemo(
-    () => buildBoxPlotData(displayData),
-    [displayData],
+    () => buildBoxPlotData(displayData, teamColors),
+    [displayData, teamColors],
   );
+
+  const yDomain = useMemo((): [number, number] => {
+    let min = 0;
+    let max = 0;
+
+    displayData.forEach((entry) => {
+      const statsMin = entry.totalEPAStats?.min ?? entry.totalEPA;
+      const statsMax = entry.totalEPAStats?.max ?? entry.totalEPA;
+
+      if (Number.isFinite(statsMin)) min = Math.min(min, statsMin);
+      if (Number.isFinite(statsMax)) max = Math.max(max, statsMax);
+    });
+
+    if (!Number.isFinite(min)) min = 0;
+    if (!Number.isFinite(max)) max = 0;
+
+    return [min, max];
+  }, [displayData]);
 
   return (
     <Card>
@@ -355,21 +483,22 @@ export function StackedEPAChart({ data }: { data?: TeamEPAChartDatum[] }) {
                   />
                 )}
                 <XAxis />
-                <YAxis />
+                <YAxis domain={yDomain} />
               </BarChart>
             ) : (
               <ComposedChart accessibilityLayer data={boxPlotData}>
                 <CartesianGrid vertical={false} />
                 <XAxis
-                  dataKey="category"
+                  dataKey="categoryKey"
                   tickLine={false}
                   tickMargin={10}
                   axisLine={false}
-                  tickFormatter={(value) =>
-                    value.length > 4 ? value.slice(0, 4) + "..." : value
-                  }
+                  tickFormatter={(value) => {
+                    const label = value.split("__")[0] || value;
+                    return label.length > 4 ? label.slice(0, 4) + "..." : label;
+                  }}
                 />
-                <YAxis />
+                <YAxis domain={yDomain} />
                 <ChartTooltip content={<BoxPlotTooltipContent />} />
                 <Bar
                   dataKey="q1"
@@ -387,7 +516,15 @@ export function StackedEPAChart({ data }: { data?: TeamEPAChartDatum[] }) {
                   strokeWidth={2}
                   radius={4}
                   isAnimationActive={false}
-                />
+                >
+                  {boxPlotData.map((entry) => (
+                    <Cell
+                      key={`${entry.categoryKey}-cell`}
+                      fill={entry.color}
+                      stroke={entry.color}
+                    />
+                  ))}
+                </Bar>
                 <Scatter
                   dataKey="median"
                   fill="transparent"
@@ -395,9 +532,12 @@ export function StackedEPAChart({ data }: { data?: TeamEPAChartDatum[] }) {
                   shape={(props: { cx?: number; cy?: number; payload?: BoxPlotDatum }) => (
                     <MedianTick {...props} />
                   )}
-                >
-                  <ErrorBar dataKey="range" stroke="var(--color-total)" direction="y" />
-                </Scatter>
+                />
+                <Customized
+                  component={(props: { xAxisMap?: Record<string, any>; yAxisMap?: Record<string, any> }) => (
+                    <WhiskerLines {...props} data={boxPlotData} />
+                  )}
+                />
               </ComposedChart>
             )}
           </ChartContainer>

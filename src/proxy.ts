@@ -7,7 +7,7 @@ export default auth((req) => {
     req.nextUrl.pathname.startsWith("/login") ||
     req.nextUrl.pathname.startsWith("/signup");
   const isApiAuth = req.nextUrl.pathname.startsWith("/api/auth");
-  const isApiRegister = req.nextUrl.pathname.startsWith("/api/register");
+  const isApiRegister = req.nextUrl.pathname.startsWith("/api/auth/register");
   const isHomePage = req.nextUrl.pathname === "/";
   const isSEO =
     req.nextUrl.pathname === "/robots.txt" ||

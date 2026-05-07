@@ -18,7 +18,7 @@ vi.mock("@/lib/auth/roles", () => ({
   },
 }));
 
-describe("/api/database/match", () => {
+describe("/api/scouting/entries/match", () => {
   let service: any;
 
   beforeEach(() => {
@@ -41,15 +41,15 @@ describe("/api/database/match", () => {
 
   it("returns 403 when unauthorized", async () => {
     permissionResult = false;
-    const route = await import("@/app/api/database/match/route");
-    const req = new Request("http://test/api/database/match");
+    const route = await import("@/app/api/scouting/entries/match/route");
+    const req = new Request("http://test/api/scouting/entries/match");
     const res = await route.GET(req as any);
     expect(res.status).toBe(403);
   });
 
   it("returns 404 when ID not found", async () => {
-    const route = await import("@/app/api/database/match/route");
-    const req = new Request("http://test/api/database/match?id=99");
+    const route = await import("@/app/api/scouting/entries/match/route");
+    const req = new Request("http://test/api/scouting/entries/match?id=99");
     const res = await route.GET(req as any);
     expect(res.status).toBe(404);
   });
@@ -66,8 +66,8 @@ describe("/api/database/match", () => {
       },
     ]);
 
-    const route = await import("@/app/api/database/match/route");
-    const req = new Request("http://test/api/database/match", {
+    const route = await import("@/app/api/scouting/entries/match/route");
+    const req = new Request("http://test/api/scouting/entries/match", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -88,15 +88,15 @@ describe("/api/database/match", () => {
   });
 
   it("returns 400 when delete lacks id", async () => {
-    const route = await import("@/app/api/database/match/route");
-    const req = new Request("http://test/api/database/match");
+    const route = await import("@/app/api/scouting/entries/match/route");
+    const req = new Request("http://test/api/scouting/entries/match");
     const res = await route.DELETE(req as any);
     expect(res.status).toBe(400);
   });
 
   it("creates match entry when valid", async () => {
-    const route = await import("@/app/api/database/match/route");
-    const req = new Request("http://test/api/database/match", {
+    const route = await import("@/app/api/scouting/entries/match/route");
+    const req = new Request("http://test/api/scouting/entries/match", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({

@@ -199,7 +199,9 @@ export function DraggablePicklist({
           competitionType,
           year: year.toString(),
         });
-        const response = await fetch(`/api/event/rankings?${params}`);
+        const response = await fetch(
+          `/api/events/${encodeURIComponent(eventCode)}/rankings?${params}`,
+        );
         if (response.ok) {
           const data = await response.json();
           const qualMap = new Map<number, number>();
@@ -235,7 +237,7 @@ export function DraggablePicklist({
           year: year.toString(),
           competitionType,
         });
-        const response = await fetch(`/api/database/picklist?${params}`);
+        const response = await fetch(`/api/scouting/picklist?${params}`);
         if (response.ok) {
           const data = await response.json();
           const epaMap = new Map<number, TeamEPAData>();
@@ -272,7 +274,7 @@ export function DraggablePicklist({
         const loaded: Record<number, string> = {};
         if (picklistId) {
           const res = await fetch(
-            `/api/database/picklist/notes?picklistId=${picklistId}`,
+            `/api/scouting/picklist/notes?picklistId=${picklistId}`,
           );
           if (res.ok) {
             const data = await res.json();
@@ -408,7 +410,7 @@ export function DraggablePicklist({
 
         try {
           if (value.trim()) {
-            const res = await fetch("/api/database/picklist/notes", {
+            const res = await fetch("/api/scouting/picklist/notes", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ picklistId, teamNumber, note: value }),
@@ -420,7 +422,7 @@ export function DraggablePicklist({
             }
           } else {
             const res = await fetch(
-              `/api/database/picklist/notes?picklistId=${picklistId}&teamNumber=${teamNumber}`,
+              `/api/scouting/picklist/notes?picklistId=${picklistId}&teamNumber=${teamNumber}`,
               { method: "DELETE" },
             );
             if (!res.ok) {

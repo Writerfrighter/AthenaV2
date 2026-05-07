@@ -34,7 +34,7 @@ export function useUnscoutedEventTeamNumbers(): {
       if (competitionType) params.append("competitionType", competitionType);
 
       // Fetch pit entries for this event/year from server
-      const resp = await fetch(`/api/database/pit?${params.toString()}`);
+      const resp = await fetch(`/api/scouting/entries/pit?${params.toString()}`);
       let serverEntries: Array<{ teamNumber: number }>;
       if (resp.ok) {
         serverEntries = await resp.json();

@@ -104,7 +104,7 @@ export function DynamicMatchScoutForm() {
 
       setIsLoadingEdit(true);
       try {
-        const response = await fetch(`/api/database/match?id=${editId}`);
+        const response = await fetch(`/api/scouting/entries/match?id=${editId}`);
         if (!response.ok) {
           throw new Error("Failed to fetch entry for editing");
         }
@@ -319,7 +319,7 @@ export function DynamicMatchScoutForm() {
       if (!isEditMode && selectedEvent?.eventCode) {
         try {
           const response = await fetch(
-            `/api/database/match/check?teamNumber=${formData.teamNumber}&matchNumber=${formData.matchNumber}&eventCode=${selectedEvent.eventCode}`,
+            `/api/scouting/entries/match/check?teamNumber=${formData.teamNumber}&matchNumber=${formData.matchNumber}&eventCode=${selectedEvent.eventCode}`,
           );
           const data = await response.json();
 
@@ -337,7 +337,7 @@ export function DynamicMatchScoutForm() {
 
       if (isEditMode && editingEntryId) {
         // Update existing entry
-        const response = await fetch("/api/database/match", {
+        const response = await fetch("/api/scouting/entries/match", {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

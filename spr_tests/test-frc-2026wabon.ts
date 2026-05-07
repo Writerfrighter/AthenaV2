@@ -147,7 +147,7 @@ function resolveName(userNameMap: Map<string, string>, userId: string): string {
  */
 async function fetchMatchEntries(): Promise<MatchEntry[]> {
   try {
-    const url = `${DEV_SERVER}/api/database/match?eventCode=${EVENT_CODE}&competitionType=${COMPETITION_TYPE}`;
+    const url = `${DEV_SERVER}/api/scouting/entries/match?eventCode=${EVENT_CODE}&competitionType=${COMPETITION_TYPE}`;
     console.log(`📡 Fetching match entries from: ${url}`);
 
     const response = await fetch(url);
@@ -203,7 +203,7 @@ async function fetchOfficialResults(): Promise<
   >
 > {
   try {
-    const url = `${DEV_SERVER}/api/database/spr/official-results?eventCode=${EVENT_CODE}&competitionType=${COMPETITION_TYPE}&year=${SEASON}`;
+    const url = `${DEV_SERVER}/api/scouting/analysis/spr/official-results?eventCode=${EVENT_CODE}&competitionType=${COMPETITION_TYPE}&year=${SEASON}`;
     console.log(`📡 Fetching official results from: ${url}`);
 
     const response = await fetch(url);

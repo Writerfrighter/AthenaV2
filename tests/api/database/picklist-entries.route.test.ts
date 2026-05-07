@@ -15,7 +15,7 @@ vi.mock("@/lib/auth/roles", () => ({
   },
 }));
 
-describe("/api/database/picklist/entries", () => {
+describe("/api/scouting/picklist/entries", () => {
   let service: any;
 
   beforeEach(() => {
@@ -36,15 +36,15 @@ describe("/api/database/picklist/entries", () => {
   });
 
   it("returns 400 when picklistId missing", async () => {
-    const route = await import("@/app/api/database/picklist/entries/route");
-    const req = new Request("http://test/api/database/picklist/entries");
+    const route = await import("@/app/api/scouting/picklist/entries/route");
+    const req = new Request("http://test/api/scouting/picklist/entries");
     const res = await route.GET(req as any);
     expect(res.status).toBe(400);
   });
 
   it("creates entry when valid", async () => {
-    const route = await import("@/app/api/database/picklist/entries/route");
-    const req = new Request("http://test/api/database/picklist/entries", {
+    const route = await import("@/app/api/scouting/picklist/entries/route");
+    const req = new Request("http://test/api/scouting/picklist/entries", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ picklistId: 1, teamNumber: 111, rank: 1 }),
@@ -58,8 +58,8 @@ describe("/api/database/picklist/entries", () => {
   });
 
   it("returns 400 when entryId missing on update", async () => {
-    const route = await import("@/app/api/database/picklist/entries/route");
-    const req = new Request("http://test/api/database/picklist/entries", {
+    const route = await import("@/app/api/scouting/picklist/entries/route");
+    const req = new Request("http://test/api/scouting/picklist/entries", {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ rank: 2 }),
@@ -70,8 +70,8 @@ describe("/api/database/picklist/entries", () => {
   });
 
   it("returns 400 when entryId missing on delete", async () => {
-    const route = await import("@/app/api/database/picklist/entries/route");
-    const req = new Request("http://test/api/database/picklist/entries");
+    const route = await import("@/app/api/scouting/picklist/entries/route");
+    const req = new Request("http://test/api/scouting/picklist/entries");
     const res = await route.DELETE(req as any);
     expect(res.status).toBe(400);
   });

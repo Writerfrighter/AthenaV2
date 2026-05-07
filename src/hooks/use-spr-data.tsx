@@ -74,7 +74,7 @@ export function useSPRData(options?: { verbose?: boolean }) {
         verbose: verbose ? "true" : "false",
       });
 
-      const response = await fetch(`/api/database/spr?${params}`);
+      const response = await fetch(`/api/scouting/analysis/spr?${params}`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

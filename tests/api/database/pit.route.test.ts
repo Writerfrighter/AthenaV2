@@ -18,7 +18,7 @@ vi.mock("@/lib/auth/roles", () => ({
   },
 }));
 
-describe("/api/database/pit", () => {
+describe("/api/scouting/entries/stats", () => {
   let service: any;
 
   beforeEach(() => {
@@ -41,15 +41,15 @@ describe("/api/database/pit", () => {
 
   it("returns 403 when unauthorized", async () => {
     permissionResult = false;
-    const route = await import("@/app/api/database/pit/route");
-    const req = new Request("http://test/api/database/pit");
+    const route = await import("@/app/api/scouting/entries/stats/route");
+    const req = new Request("http://test/api/scouting/entries/stats");
     const res = await route.GET(req as any);
     expect(res.status).toBe(403);
   });
 
   it("returns 404 when ID not found", async () => {
-    const route = await import("@/app/api/database/pit/route");
-    const req = new Request("http://test/api/database/pit?id=99");
+    const route = await import("@/app/api/scouting/entries/stats/route");
+    const req = new Request("http://test/api/scouting/entries/stats?id=99");
     const res = await route.GET(req as any);
     expect(res.status).toBe(404);
   });
@@ -65,8 +65,8 @@ describe("/api/database/pit", () => {
       },
     ]);
 
-    const route = await import("@/app/api/database/pit/route");
-    const req = new Request("http://test/api/database/pit", {
+    const route = await import("@/app/api/scouting/entries/stats/route");
+    const req = new Request("http://test/api/scouting/entries/stats", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -87,8 +87,8 @@ describe("/api/database/pit", () => {
   });
 
   it("creates pit entry when valid", async () => {
-    const route = await import("@/app/api/database/pit/route");
-    const req = new Request("http://test/api/database/pit", {
+    const route = await import("@/app/api/scouting/entries/stats/route");
+    const req = new Request("http://test/api/scouting/entries/stats", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({

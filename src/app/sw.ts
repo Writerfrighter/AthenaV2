@@ -128,7 +128,7 @@ const appRuntimeCaching = [
     }: {
       url: URL;
       sameOrigin: boolean;
-    }) => sameOrigin && pathname.startsWith("/api/event/schedule"),
+    }) => sameOrigin && /^\/api\/events\/[^/]+\/schedule/.test(pathname),
     handler: new NetworkFirst({
       cacheName: "event-schedule-api",
       networkTimeoutSeconds: 5,

@@ -123,7 +123,7 @@ export function DynamicPitScoutForm() {
 
       setIsLoadingEdit(true);
       try {
-        const response = await fetch(`/api/database/pit?id=${editId}`);
+        const response = await fetch(`/api/scouting/entries/pit?id=${editId}`);
         if (!response.ok) {
           throw new Error("Failed to fetch entry for editing");
         }
@@ -246,7 +246,7 @@ export function DynamicPitScoutForm() {
       if (!isEditMode && selectedEvent?.eventCode) {
         try {
           const response = await fetch(
-            `/api/database/pit/check?teamNumber=${formData.team}&eventCode=${selectedEvent.eventCode}`,
+            `/api/scouting/entries/pit/check?teamNumber=${formData.team}&eventCode=${selectedEvent.eventCode}`,
           );
           const data = await response.json();
 
@@ -265,7 +265,7 @@ export function DynamicPitScoutForm() {
 
       if (isEditMode && editingEntryId) {
         // Update existing entry
-        const response = await fetch("/api/database/pit", {
+        const response = await fetch("/api/scouting/entries/pit", {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

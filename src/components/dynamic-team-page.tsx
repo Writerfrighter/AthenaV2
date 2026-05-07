@@ -43,7 +43,7 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
 
         // Fetch match entries
         const matchResponse = await fetch(
-          `/api/database/match?teamNumber=${teamNumber}&year=${currentYear}`,
+          `/api/scouting/entries/match?teamNumber=${teamNumber}&year=${currentYear}`,
         );
         if (!matchResponse.ok) {
           throw new Error("Failed to fetch match entries");
@@ -53,7 +53,7 @@ export function DynamicTeamPage({ teamNumber }: DynamicTeamPageProps) {
 
         // Fetch pit entry
         const pitResponse = await fetch(
-          `/api/database/pit?teamNumber=${teamNumber}&year=${currentYear}`,
+          `/api/scouting/entries/pit?teamNumber=${teamNumber}&year=${currentYear}`,
         );
         if (!pitResponse.ok) {
           throw new Error("Failed to fetch pit entry");

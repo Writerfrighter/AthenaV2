@@ -45,7 +45,7 @@ export function useMatchScheduleTeams() {
 
       try {
         const response = await fetch(
-          `/api/event/schedule?eventCode=${selectedEvent.eventCode}&competitionType=${competitionType}&season=${currentYear}`,
+          `/api/events/${selectedEvent.eventCode}/schedule?competitionType=${competitionType}&season=${currentYear}`,
         );
 
         if (!response.ok) {
@@ -124,7 +124,7 @@ export function useMatchScheduleTeams() {
 
     try {
       const response = await fetch(
-        `/api/event/schedule?eventCode=${selectedEvent.eventCode}&competitionType=${competitionType}&season=${currentYear}`,
+        `/api/events/${selectedEvent.eventCode}/schedule?competitionType=${competitionType}&season=${currentYear}`,
       );
 
       if (!response.ok) {

@@ -97,7 +97,7 @@ export function FRCTeam2025Page({ teamNumber }: Team2025PageProps) {
       setLoadingAvgScore(true);
       try {
         const response = await fetch(
-          `/api/team/${teamNumber}/average-score?year=${teamData.year}&eventCode=${teamData.eventCode}&competitionType=FRC`,
+          `/api/teams/${teamNumber}/average-score?year=${teamData.year}&eventCode=${teamData.eventCode}&competitionType=FRC`,
         );
 
         if (response.ok) {

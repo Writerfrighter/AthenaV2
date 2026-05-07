@@ -80,7 +80,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
         let apiEvents: Event[] = [];
         try {
           const eventsResponse = await fetch(
-            `/api/team/${teamNumber}/events/${currentYear}?competitionType=${competitionType}`,
+            `/api/teams/${teamNumber}/events/${currentYear}?competitionType=${competitionType}`,
           );
           if (eventsResponse.ok) {
             const eventData = await eventsResponse.json();
@@ -115,7 +115,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
         let customEvents: Event[] = [];
         try {
           const customResponse = await fetch(
-            `/api/database/custom-events?year=${currentYear}`,
+            `/api/events/custom-events?year=${currentYear}`,
           );
           if (customResponse.ok) {
             const customEventData = await customResponse.json();
