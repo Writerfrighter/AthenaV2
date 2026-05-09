@@ -49,8 +49,8 @@ describe("/api/schedule/assignments", () => {
   });
 
   it("rejects missing fields", async () => {
-    const route = await import("@/app/api/schedule/assignments/route");
-    const req = new Request("http://test/api/schedule/assignments", {
+    const route = await import("@/app/api/scouting/schedule/assignments/route");
+    const req = new Request("http://test/api/scouting/schedule/assignments", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ eventCode: "EVT" }),
@@ -62,8 +62,8 @@ describe("/api/schedule/assignments", () => {
 
   it("returns 400 when provider not sql", async () => {
     service.getPool.mockResolvedValue(undefined);
-    const route = await import("@/app/api/schedule/assignments/route");
-    const req = new Request("http://test/api/schedule/assignments", {
+    const route = await import("@/app/api/scouting/schedule/assignments/route");
+    const req = new Request("http://test/api/scouting/schedule/assignments", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -82,8 +82,8 @@ describe("/api/schedule/assignments", () => {
   });
 
   it("creates assignments when valid", async () => {
-    const route = await import("@/app/api/schedule/assignments/route");
-    const req = new Request("http://test/api/schedule/assignments", {
+    const route = await import("@/app/api/scouting/schedule/assignments/route");
+    const req = new Request("http://test/api/scouting/schedule/assignments", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -106,10 +106,10 @@ describe("/api/schedule/assignments", () => {
   });
 
   it("clears assignments on delete", async () => {
-    const route = await import("@/app/api/schedule/assignments/route");
+    const route = await import("@/app/api/scouting/schedule/assignments/route");
     const req = {
       nextUrl: new URL(
-        "http://test/api/schedule/assignments?eventCode=EVT&year=2025",
+        "http://test/api/scouting/schedule/assignments?eventCode=EVT&year=2025",
       ),
     } as any;
 

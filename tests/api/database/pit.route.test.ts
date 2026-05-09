@@ -18,7 +18,7 @@ vi.mock("@/lib/auth/roles", () => ({
   },
 }));
 
-describe("/api/scouting/entries/stats", () => {
+describe("/api/scouting/entries/pit", () => {
   let service: any;
 
   beforeEach(() => {
@@ -41,15 +41,15 @@ describe("/api/scouting/entries/stats", () => {
 
   it("returns 403 when unauthorized", async () => {
     permissionResult = false;
-    const route = await import("@/app/api/scouting/entries/stats/route");
-    const req = new Request("http://test/api/scouting/entries/stats");
+    const route = await import("@/app/api/scouting/entries/pit/route");
+    const req = new Request("http://test/api/scouting/entries/pit");
     const res = await route.GET(req as any);
     expect(res.status).toBe(403);
   });
 
   it("returns 404 when ID not found", async () => {
-    const route = await import("@/app/api/scouting/entries/stats/route");
-    const req = new Request("http://test/api/scouting/entries/stats?id=99");
+    const route = await import("@/app/api/scouting/entries/pit/route");
+    const req = new Request("http://test/api/scouting/entries/pit?id=99");
     const res = await route.GET(req as any);
     expect(res.status).toBe(404);
   });
@@ -65,8 +65,8 @@ describe("/api/scouting/entries/stats", () => {
       },
     ]);
 
-    const route = await import("@/app/api/scouting/entries/stats/route");
-    const req = new Request("http://test/api/scouting/entries/stats", {
+    const route = await import("@/app/api/scouting/entries/pit/route");
+    const req = new Request("http://test/api/scouting/entries/pit", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -87,8 +87,8 @@ describe("/api/scouting/entries/stats", () => {
   });
 
   it("creates pit entry when valid", async () => {
-    const route = await import("@/app/api/scouting/entries/stats/route");
-    const req = new Request("http://test/api/scouting/entries/stats", {
+    const route = await import("@/app/api/scouting/entries/pit/route");
+    const req = new Request("http://test/api/scouting/entries/pit", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({

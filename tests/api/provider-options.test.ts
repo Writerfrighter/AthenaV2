@@ -33,9 +33,9 @@ beforeEach(() => {
   };
 });
 
-describe("GET /api/admin/provider-options", () => {
+describe("GET /api/scouting/admin/provider-options", () => {
   it("returns provider info", async () => {
-    const route = await import("@/app/api/admin/provider-options/route");
+    const route = await import("@/app/api/scouting/admin/provider-options/route");
     const response = await route.GET();
     const json = await response.json();
 

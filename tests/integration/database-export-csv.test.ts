@@ -49,9 +49,9 @@ describe("export CSV integration", () => {
   });
 
   it("returns CSV content for pit export", async () => {
-    const route = await import("@/app/api/admin/export/route");
+    const route = await import("@/app/api/scouting/admin/export/route");
     const req = new Request(
-      "http://test/api/admin/export?format=csv&types=pit",
+      "http://test/api/scouting/admin/export?format=csv&types=pit",
     );
     const res = await route.GET(req as any);
     const text = await res.text();
