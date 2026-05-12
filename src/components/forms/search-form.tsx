@@ -33,7 +33,9 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
             id="search"
             placeholder="Search a team..."
             className={state == "collapsed" ? "pl-5" : "pl-8"}
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={teamId}
             onChange={(e) => setTeamId(e.target.value)}
             // hidden={state == "collapsed" }
