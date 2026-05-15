@@ -1,8 +1,9 @@
-import NextAuth from "next-auth";
+import { getServerSession } from "next-auth/next";
+import type { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import "./types";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
     Credentials({
       name: "credentials",
@@ -63,8 +64,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  basePath: "/api/auth",
-  trustHost: true,
+  // basePath: "/api/auth",
+  // trustHost: true,
   cookies: {
     sessionToken: {
       name:
@@ -121,4 +122,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return baseUrl;
     },
   },
-});
+};
+
+export function auth() {
+  return getServerSession(authOptions);
+}

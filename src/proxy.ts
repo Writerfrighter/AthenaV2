@@ -1,8 +1,9 @@
-import { auth } from "@/lib/auth/config";
-import { NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { NextResponse, type NextRequest } from "next/server";
 
-export default auth((req) => {
-  const isAuth = !!req.auth;
+export default async function middleware(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const isAuth = !!token;
   const isAuthPage =
     req.nextUrl.pathname.startsWith("/login") ||
     req.nextUrl.pathname.startsWith("/signup");
@@ -30,7 +31,7 @@ export default auth((req) => {
 
   // // console.log(`Allowing access to: ${req.nextUrl.pathname}`)
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

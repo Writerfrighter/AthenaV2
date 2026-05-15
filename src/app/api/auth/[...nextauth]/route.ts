@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handlers } from "@/lib/auth/config";
+import NextAuth from "next-auth";
+import { authOptions } from "@/lib/auth/config";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 
 const LOGIN_WINDOW_MS = 60 * 1000;
 const LOGIN_MAX_REQUESTS = 20;
 
-export const GET = handlers.GET;
+const handler = NextAuth(authOptions);
 
-export async function POST(request: NextRequest) {
+export const GET = handler;
+
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ nextauth: string[] }> },
+) {
   // Credentials sign-in requests go through this callback route.
   if (request.nextUrl.pathname.includes("/callback/credentials")) {
     const rateLimit = checkRateLimit(request, {
@@ -27,5 +33,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return handlers.POST(request);
+  return handler(request, context);
 }
