@@ -166,7 +166,8 @@ export function AccountSettingsDialog({
           ...session?.user,
           name: name.trim(),
           username: username.trim(),
-          image: avatarUrl
+          image: avatarUrl,
+          avatarUrl,
         },
       });
 

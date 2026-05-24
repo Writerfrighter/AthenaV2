@@ -56,6 +56,8 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             username: user.username,
             role: user.role,
+            image: user.avatarUrl || null,
+            avatarUrl: user.avatarUrl || null,
           };
         } catch (error) {
           console.error("Auth error:", error);
@@ -101,6 +103,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.username = user.username;
         token.role = user.role;
+        token.image = user.image || user.avatarUrl || null;
+        token.avatarUrl = user.avatarUrl || user.image || null;
       }
       return token;
     },
@@ -110,6 +114,8 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.sub!;
         session.user.username = token.username;
         session.user.role = token.role;
+        session.user.image = token.image;
+        session.user.avatarUrl = token.avatarUrl || token.image;
       }
       return session;
     },

@@ -8,6 +8,9 @@ CREATE TABLE users (
     username NVARCHAR(255) UNIQUE NOT NULL,
     password_hash NVARCHAR(255) NOT NULL,
     role NVARCHAR(50) DEFAULT 'scout', -- 'admin', 'scout', 'coach'
+    avatarUrl NVARCHAR(1024), -- API URL for the current avatar
+    avatarData VARBINARY(MAX), -- Raw avatar image bytes
+    avatarMimeType NVARCHAR(100), -- MIME type for avatarData
     push_subscriptions NVARCHAR(MAX), -- JSON array of push subscription endpoints
     preferredPartners NVARCHAR(MAX), -- JSON array of user IDs for scheduling preferences
     created_at DATETIME DEFAULT GETDATE(),

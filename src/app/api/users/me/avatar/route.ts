@@ -1,8 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
-import { promises as fs } from "fs";
-import path from "path";
 import { databaseManager } from "@/db/database-manager";
+
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
+// GET /api/users/me/avatar
+export async function GET() {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const db = databaseManager.getService();
+    if (!db.getPool) {
+      return NextResponse.json(
+        { error: "Database service not available" },
+        { status: 500 },
+      );
+    }
+
+    const pool = await db.getPool();
+    const result = await pool.request().input("userId", session.user.id).query(`
+      SELECT avatarData, avatarMimeType
+      FROM users
+      WHERE id = @userId
+    `);
+
+    if (result.recordset.length === 0) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const avatarData = result.recordset[0]?.avatarData as Buffer | null;
+    const avatarMimeType =
+      (result.recordset[0]?.avatarMimeType as string | null) || "image/jpeg";
+
+    if (!avatarData) {
+      return NextResponse.json({ error: "Avatar not found" }, { status: 404 });
+    }
+
+    return new NextResponse(new Uint8Array(avatarData), {
+      status: 200,
+      headers: {
+        "Content-Type": avatarMimeType,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    console.error("Get avatar error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch avatar" },
+      { status: 500 },
+    );
+  }
+}
 
 // POST /api/users/me/avatar
 export async function POST(request: NextRequest) {
@@ -35,20 +86,17 @@ export async function POST(request: NextRequest) {
     }
 
     const mime = matches[1];
-    const ext = matches[2] === "jpeg" ? "jpg" : matches[2];
     const base64 = matches[3];
     const buffer = Buffer.from(base64, "base64");
 
-    // Ensure uploads directory exists in public
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    await fs.mkdir(uploadsDir, { recursive: true });
+    if (buffer.length > MAX_AVATAR_BYTES) {
+      return NextResponse.json(
+        { error: "Avatar must be 2MB or smaller" },
+        { status: 400 },
+      );
+    }
 
-    // Write file
-    const filename = `${session.user.id}.${ext}`;
-    const filepath = path.join(uploadsDir, filename);
-    await fs.writeFile(filepath, buffer);
-
-    // Persist URL to DB
+    // Persist avatar bytes and metadata directly in DB
     const db = databaseManager.getService();
     if (!db.getPool) {
       return NextResponse.json(
@@ -57,17 +105,22 @@ export async function POST(request: NextRequest) {
       );
     }
     const pool = await db.getPool();
-    const urlPath = `/uploads/${filename}`;
+    const urlPath = "/api/users/me/avatar";
 
     await pool
       .request()
+      .input("avatarData", buffer)
+      .input("avatarMimeType", mime)
       .input("avatarUrl", urlPath)
       .input("userId", session.user.id)
       .query(
-        "UPDATE users SET avatarUrl = @avatarUrl, updated_at = GETDATE() WHERE id = @userId",
+        "UPDATE users SET avatarData = @avatarData, avatarMimeType = @avatarMimeType, avatarUrl = @avatarUrl, updated_at = GETDATE() WHERE id = @userId",
       );
 
-    return NextResponse.json({ success: true, avatarUrl: urlPath });
+    return NextResponse.json({
+      success: true,
+      avatarUrl: `${urlPath}?v=${Date.now()}`,
+    });
   } catch (error) {
     console.error("Upload avatar error:", error);
     return NextResponse.json(
