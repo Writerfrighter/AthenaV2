@@ -44,14 +44,14 @@ export function NavMain({
                   <CollapsibleTrigger asChild>
                     <SidebarMenuButton tooltip={item.title}>
                       {item.icon && <item.icon />}
-                      <span className="flex w-full items-center">
+                      <span className="flex w-full items-center group-data-[collapsible=icon]:hidden">
                         {item.title}
                         <ChevronRight className="p-1 ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
                       </span>
-                    </SidebarMenuButton>       
+                    </SidebarMenuButton>
                   </CollapsibleTrigger>
 
-                  <CollapsibleContent>
+                  <CollapsibleContent className="group-data-[collapsible=icon]:hidden">
                     <SidebarMenuSub>
                       {item.items!.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
@@ -67,7 +67,7 @@ export function NavMain({
                       ))}
                     </SidebarMenuSub>
                   </CollapsibleContent>
-                </SidebarMenuItem>     
+                </SidebarMenuItem>
               </Collapsible>
             );
           }
@@ -75,15 +75,14 @@ export function NavMain({
           // no children
           return (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title}>
-                {item?.url ? (
-                  <Link href={item.url} className="flex items-center w-full">
-                    {item.icon && <item.icon className="p-1"/>}
+              <SidebarMenuButton asChild tooltip={item.title}>
+                <Link href={item.url!}>
+                  {item.icon && <item.icon className="size-4" />}
+
+                  <span className="group-data-[collapsible=icon]:hidden">
                     {item.title}
-                  </Link>
-                ) : (
-                  <span>{item.title}</span>
-                )}
+                  </span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           );

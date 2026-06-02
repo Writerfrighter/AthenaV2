@@ -35,7 +35,6 @@ export function AccountSettingsDialog({
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -114,6 +113,35 @@ export function AccountSettingsDialog({
 
     setSaving(true);
     try {
+      let avatarUrl = session?.user?.image;
+
+      if (avatarFile) {
+        const reader = new FileReader();
+
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = reject;
+          reader.readAsDataURL(avatarFile);
+        });
+
+        const avatarResponse = await fetch("/api/users/me/avatar", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ dataUrl }),
+        });
+
+        const avatarData = await avatarResponse.json();
+
+        if (!avatarResponse.ok) {
+          throw new Error(avatarData.error || "Failed to upload avatar");
+        }
+
+        avatarUrl = avatarData.avatarUrl;
+      }
+
+      // save profile info
       const response = await fetch("/api/auth/me", {
         method: "PUT",
         headers: {
@@ -138,31 +166,17 @@ export function AccountSettingsDialog({
           ...session?.user,
           name: name.trim(),
           username: username.trim(),
+          image: avatarUrl,
+          avatarUrl,
         },
       });
 
-      // Refresh avatar in session if server returned avatarUrl earlier
-      try {
-        const meRes = await fetch("/api/auth/me");
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          await update({
-            ...session,
-            user: {
-              ...session?.user,
-              name: name.trim(),
-              username: username.trim(),
-              image: meData.avatarUrl || session?.user?.image,
-            },
-          });
-        }
-      } catch (err) {
-        // ignore
-      }
+      setAvatarFile(null);
 
       toast.success("Profile updated successfully");
     } catch (error) {
       console.error("Save error:", error);
+
       toast.error(
         error instanceof Error ? error.message : "Failed to update profile",
       );
@@ -302,97 +316,53 @@ export function AccountSettingsDialog({
                   required
                 />
               </div>
+
+              {/* Avatar Upload */}
+              <div>
+                <Label>Profile Image</Label>
+                <div className="flex items-center gap-3 pt-2">
+
+                  <div className="w-20 h-20 rounded-lg overflow-hidden border bg-muted/10 flex items-center justify-center">
+                    {avatarPreview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarPreview}
+                        alt="avatar preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-sm text-muted-foreground">No image</div>
+                    )}
+                  </div>
+                  <div className="flex flex-row gap-2">
+                    <Button variant="ghost">
+                      <label>
+                        {avatarFile ? "Change Image" : "Upload Image"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setAvatarFile(file);
+                            if (file) {
+                              setAvatarPreview(URL.createObjectURL(file));
+                            }
+                          }}
+                        />
+                      </label>
+                    </Button>
+                    <Button variant="ghost" onClick={() => {setAvatarFile(null); setAvatarPreview(null)}}>
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               <Button type="submit" disabled={saving}>
                 {saving ? "Saving..." : "Save Profile"}
               </Button>
             </form>
-          </div>
-
-          {/* Avatar Upload */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Profile Picture</h3>
-            <p className="text-sm text-muted-foreground mb-2">
-              Upload a profile picture to replace the TRC logo in the sidebar.
-            </p>
-            <div className="flex items-center gap-3">
-              <div className="w-20 h-20 rounded-lg overflow-hidden border bg-muted/10 flex items-center justify-center">
-                {avatarPreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarPreview}
-                    alt="avatar preview"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-sm text-muted-foreground">No image</div>
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setAvatarFile(file);
-                    if (file) {
-                      const url = URL.createObjectURL(file);
-                      setAvatarPreview(url);
-                    }
-                  }}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    onClick={async () => {
-                      if (!avatarFile || !session?.user?.id) return;
-                      setUploadingAvatar(true);
-                      try {
-                        const reader = new FileReader();
-                        const p = await new Promise<string>((res, rej) => {
-                          reader.onload = () => res(String(reader.result));
-                          reader.onerror = rej;
-                          reader.readAsDataURL(avatarFile);
-                        });
-
-                        const response = await fetch("/api/users/me/avatar", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ dataUrl: p }),
-                        });
-
-                        const data = await response.json();
-                        if (!response.ok) {
-                          throw new Error(data.error || "Upload failed");
-                        }
-
-                        // Update session image
-                        await update({
-                          ...session,
-                          user: { ...session.user, image: data.avatarUrl },
-                        });
-                        toast.success("Avatar uploaded");
-                      } catch (err) {
-                        console.error("Upload error", err);
-                        toast.error("Failed to upload avatar");
-                      } finally {
-                        setUploadingAvatar(false);
-                      }
-                    }}
-                    disabled={!avatarFile || uploadingAvatar}
-                  >
-                    {uploadingAvatar ? "Uploading..." : "Upload"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setAvatarFile(null);
-                      setAvatarPreview((session?.user as any)?.image || null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </div>
           </div>
 
           <Separator />
@@ -401,7 +371,7 @@ export function AccountSettingsDialog({
           <div>
             <h3 className="text-lg font-semibold mb-3">Change Password</h3>
             <form onSubmit={handleChangePassword} className="space-y-4">
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="current-password">Current Password</Label>
                 <Input
                   id="current-password"
@@ -411,7 +381,7 @@ export function AccountSettingsDialog({
                   placeholder="Enter current password"
                   autoComplete="current-password"
                 />
-              </div>
+              </div> */}
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
                 <Input
@@ -434,7 +404,7 @@ export function AccountSettingsDialog({
                   autoComplete="new-password"
                 />
               </div>
-              <Button type="submit" disabled={changingPassword}>
+              <Button type="submit" disabled={changingPassword} className="mt-2">
                 {changingPassword ? "Changing..." : "Change Password"}
               </Button>
             </form>

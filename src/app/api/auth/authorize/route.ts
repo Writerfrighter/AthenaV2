@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const pool = await db.getPool();
 
     const result = await pool.request().input("username", username).query(`
-        SELECT id, name, username, role, password_hash
+        SELECT id, name, username, role, password_hash, avatarUrl
         FROM users
         WHERE username = @username
       `);
@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
       name: user.name,
       username: user.username,
       role: user.role,
+      avatarUrl: user.avatarUrl,
     });
   } catch (error) {
     console.error("Auth API error:", error);

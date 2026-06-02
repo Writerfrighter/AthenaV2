@@ -113,7 +113,7 @@ export function EventSwitcher() {
     const fetchCustomEvents = async () => {
       try {
         const response = await fetch(
-          `/api/database/custom-events?year=${currentYear}`,
+          `/api/events/custom-events?year=${currentYear}`,
         );
         if (response.ok) {
           const data = await response.json();
@@ -158,7 +158,7 @@ export function EventSwitcher() {
         year: currentYear,
       };
 
-      const response = await fetch("/api/database/custom-events", {
+      const response = await fetch("/api/events/custom-events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(eventData),
@@ -248,7 +248,7 @@ export function EventSwitcher() {
       };
 
       const response = await fetch(
-        `/api/database/custom-events?eventCode=${editingEvent.eventCode}`,
+        `/api/events/custom-events?eventCode=${editingEvent.eventCode}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -301,7 +301,7 @@ export function EventSwitcher() {
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `/api/database/custom-events?eventCode=${eventToDelete.eventCode}`,
+        `/api/events/custom-events?eventCode=${eventToDelete.eventCode}`,
         {
           method: "DELETE",
         },

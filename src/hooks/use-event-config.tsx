@@ -80,7 +80,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
         let apiEvents: Event[] = [];
         try {
           const eventsResponse = await fetch(
-            `/api/team/${teamNumber}/events/${currentYear}?competitionType=${competitionType}`,
+            `/api/teams/${teamNumber}/events/${currentYear}?competitionType=${competitionType}`,
           );
           if (eventsResponse.ok) {
             const eventData = await eventsResponse.json();
@@ -90,7 +90,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
               apiEvents = eventData.map((tbaEvent: TbaEvent) => ({
                 name: tbaEvent.name,
                 region: `${tbaEvent.event_code.toUpperCase()}: ${tbaEvent.year}`,
-                code: tbaEvent.key,
+                eventCode: tbaEvent.key,
               }));
             } else {
               // FTC
@@ -100,7 +100,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
                   `${ftcEvent.city || ""}${ftcEvent.city && ftcEvent.stateprov ? ", " : ""}${ftcEvent.stateprov || ""}` ||
                   ftcEvent.typeName ||
                   "FTC Event",
-                code: ftcEvent.code || ftcEvent.eventId,
+                eventCode: ftcEvent.code || ftcEvent.eventId,
               }));
             }
           }
@@ -115,7 +115,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
         let customEvents: Event[] = [];
         try {
           const customResponse = await fetch(
-            `/api/database/custom-events?year=${currentYear}`,
+            `/api/events/custom-events?year=${currentYear}`,
           );
           if (customResponse.ok) {
             const customEventData = await customResponse.json();
@@ -126,7 +126,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
               region: customEvent.location
                 ? `${customEvent.location}${customEvent.region ? ", " + customEvent.region : ""}`
                 : `Custom Event: ${customEvent.year}`,
-              code: customEvent.eventCode,
+              eventCode: customEvent.eventCode,
             }));
           }
         } catch (customError) {
@@ -270,11 +270,9 @@ export function useEventFilter() {
     data: T[],
   ): T[] => {
     if (!selectedEvent) return data;
-
     return data.filter(
       (item) =>
         item.eventName === selectedEvent.name ||
-        item.eventCode === selectedEvent.region ||
         item.eventCode === selectedEvent.eventCode,
     );
   };

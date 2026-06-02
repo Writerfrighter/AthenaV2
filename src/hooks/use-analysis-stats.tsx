@@ -21,6 +21,13 @@ export interface AnalysisStats {
     endgame: number;
     penalties: number;
     totalEPA: number;
+    totalEPAStats?: {
+      min: number;
+      q1: number;
+      median: number;
+      q3: number;
+      max: number;
+    };
     detailMetrics: Record<string, number>;
   }>;
 }
@@ -59,6 +66,15 @@ function transformToStats(
       endgame: parseFloat((team.endgameEPA || 0).toFixed(3)),
       penalties: parseFloat((team.penaltiesEPA || 0).toFixed(3)),
       totalEPA: parseFloat(team.totalEPA.toFixed(3)),
+      totalEPAStats: team.totalEPAStats
+        ? {
+            min: parseFloat(team.totalEPAStats.min.toFixed(3)),
+            q1: parseFloat(team.totalEPAStats.q1.toFixed(3)),
+            median: parseFloat(team.totalEPAStats.median.toFixed(3)),
+            q3: parseFloat(team.totalEPAStats.q3.toFixed(3)),
+            max: parseFloat(team.totalEPAStats.max.toFixed(3)),
+          }
+        : undefined,
       detailMetrics: team.detailMetrics || {},
     })),
   };
@@ -117,6 +133,7 @@ export function useAnalysisStats() {
           currentYear,
           selectedEvent.eventCode,
           competitionType,
+          true,
         );
         setStats(transformToStats(apiStats));
       } catch (err) {

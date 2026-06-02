@@ -19,7 +19,7 @@ export async function GET() {
     const pool = await db.getPool();
 
     const result = await pool.request().input("userId", session.user.id).query(`
-        SELECT id, name, username, role
+        SELECT id, name, username, role, avatarUrl
         FROM users
         WHERE id = @userId
       `);
@@ -34,6 +34,7 @@ export async function GET() {
       name: user.name,
       username: user.username,
       role: user.role,
+      avatarUrl: user.avatarUrl,
     });
   } catch (error) {
     console.error("Get profile error:", error);

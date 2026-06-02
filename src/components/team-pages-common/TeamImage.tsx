@@ -29,7 +29,7 @@ export function TeamImage({
 
         // Fetch team images from unified API
         const response = await fetch(
-          `/api/team/${teamNumber}/media?competitionType=${competitionType}`,
+          `/api/teams/${teamNumber}/media?competitionType=${competitionType}`,
         );
         if (response.ok) {
           const imageUrls = await response.json();

@@ -58,7 +58,7 @@ export function useScoutingAssignment() {
         }
 
         const res = await fetch(
-          `/api/database/match-assignments?eventCode=${selectedEvent.eventCode}&year=${currentYear}`,
+          `/api/scouting/entries/match-assignments?eventCode=${selectedEvent.eventCode}&year=${currentYear}`,
         );
 
         if (!res.ok) {

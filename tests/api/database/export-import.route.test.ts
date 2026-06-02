@@ -15,7 +15,7 @@ vi.mock("@/lib/auth/roles", () => ({
   },
 }));
 
-describe("/api/database/export and import", () => {
+describe("/api/scouting/admin/export and import", () => {
   let service: any;
 
   beforeEach(() => {
@@ -59,9 +59,9 @@ describe("/api/database/export and import", () => {
   });
 
   it("exports json and filters types", async () => {
-    const route = await import("@/app/api/database/export/route");
+    const route = await import("@/app/api/scouting/admin/export/route");
     const req = new Request(
-      "http://test/api/database/export?format=json&types=pit",
+      "http://test/api/scouting/admin/export?format=json&types=pit",
     );
     const res = await route.GET(req as any);
     const body = await res.json();
@@ -72,8 +72,8 @@ describe("/api/database/export and import", () => {
   });
 
   it("imports json payload", async () => {
-    const route = await import("@/app/api/database/import/route");
-    const req = new Request("http://test/api/database/import", {
+    const route = await import("@/app/api/scouting/admin/import/route");
+    const req = new Request("http://test/api/scouting/admin/import", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ pitEntries: [], matchEntries: [] }),

@@ -6,4 +6,5 @@ export default async function Page() {
   const session = await auth();
 
   return session ? <LoggedInLandingPage /> : <NotLoggedInLandingPage />;
+  //return <LoggedInLandingPage></LoggedInLandingPage>
 }

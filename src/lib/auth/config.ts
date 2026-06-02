@@ -1,8 +1,9 @@
-import NextAuth from "next-auth";
+import { getServerSession } from "next-auth/next";
+import type { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import "./types";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
     Credentials({
       name: "credentials",
@@ -55,6 +56,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: user.name,
             username: user.username,
             role: user.role,
+            image: user.avatarUrl || null,
+            avatarUrl: user.avatarUrl || null,
           };
         } catch (error) {
           console.error("Auth error:", error);
@@ -63,8 +66,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  basePath: "/api/auth",
-  trustHost: true,
+  // basePath: "/api/auth",
+  // trustHost: true,
   cookies: {
     sessionToken: {
       name:
@@ -100,6 +103,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.username = user.username;
         token.role = user.role;
+        token.image = user.image || user.avatarUrl || null;
+        token.avatarUrl = user.avatarUrl || user.image || null;
       }
       return token;
     },
@@ -109,6 +114,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.sub!;
         session.user.username = token.username;
         session.user.role = token.role;
+        session.user.image = token.image;
+        session.user.avatarUrl = token.avatarUrl || token.image;
       }
       return session;
     },
@@ -121,4 +128,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return baseUrl;
     },
   },
-});
+};
+
+export function auth() {
+  return getServerSession(authOptions);
+}

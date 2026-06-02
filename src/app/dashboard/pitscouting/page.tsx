@@ -61,7 +61,7 @@ export default function PitScoutingPage() {
       }
       params.append("competitionType", competitionType);
 
-      const response = await fetch(`/api/database/export?${params.toString()}`);
+      const response = await fetch(`/api/scouting/admin/export?${params.toString()}`);
       if (!response.ok) {
         throw new Error("Failed to export data");
       }
@@ -125,7 +125,7 @@ export default function PitScoutingPage() {
       if (eventCode) params.append("eventCode", eventCode);
       params.append("competitionType", competitionType);
 
-      const url = `/api/database/pit?${params.toString()}`;
+      const url = `/api/scouting/entries/pit?${params.toString()}`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to fetch pit entries: ${response.statusText}`);
@@ -190,7 +190,7 @@ export default function PitScoutingPage() {
     try {
       let failedCount = 0;
       for (const id of idsToDelete) {
-        const response = await fetch(`/api/database/pit?id=${id}`, {
+        const response = await fetch(`/api/scouting/entries/pit?id=${id}`, {
           method: "DELETE",
         });
         if (!response.ok) {

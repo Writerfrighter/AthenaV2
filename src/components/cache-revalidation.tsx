@@ -15,7 +15,7 @@ export function CacheRevalidationComponent() {
     setIsRevalidating(true);
 
     try {
-      const response = await fetch("/api/revalidate", {
+      const response = await fetch("/api/system/revalidate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

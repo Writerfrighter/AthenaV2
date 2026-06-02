@@ -72,7 +72,7 @@ export function useDashboardStats() {
         // Use unified matches API
         try {
           const matchesResp = await fetch(
-            `/api/event/matches?eventCode=${encodeURIComponent(selectedEvent.eventCode)}&competitionType=${competitionType}&season=${currentYear}`,
+            `/api/events/${encodeURIComponent(selectedEvent.eventCode)}/matches?competitionType=${competitionType}&season=${currentYear}`,
           );
           if (matchesResp.ok) {
             const matchesData = await matchesResp.json();
@@ -85,7 +85,7 @@ export function useDashboardStats() {
               "Unified API failed, falling back to custom event data",
             );
             const customEventResp = await fetch(
-              `/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.eventCode)}&competitionType=${competitionType}`,
+              `/api/events/custom-events?eventCode=${encodeURIComponent(selectedEvent.eventCode)}&competitionType=${competitionType}`,
             );
             if (customEventResp.ok) {
               const customEvent = await customEventResp.json();
@@ -104,7 +104,7 @@ export function useDashboardStats() {
           );
           try {
             const customEventResp = await fetch(
-              `/api/database/custom-events?eventCode=${encodeURIComponent(selectedEvent.eventCode)}&competitionType=${competitionType}`,
+              `/api/events/custom-events?eventCode=${encodeURIComponent(selectedEvent.eventCode)}&competitionType=${competitionType}`,
             );
             if (customEventResp.ok) {
               const customEvent = await customEventResp.json();

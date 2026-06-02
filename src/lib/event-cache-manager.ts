@@ -207,7 +207,7 @@ async function cacheSchedule(opts: CacheOptions): Promise<void> {
     detail: "Downloading match schedule...",
   });
   try {
-    const url = `/api/event/schedule?eventCode=${opts.eventCode}&competitionType=${opts.competitionType}&season=${opts.year}`;
+    const url = `/api/events/${opts.eventCode}/schedule?competitionType=${opts.competitionType}&season=${opts.year}`;
     const res = await fetchAndCache(url);
     await res.text();
     opts.onStepUpdate("schedule", {
@@ -228,7 +228,7 @@ async function cacheScoutSchedule(opts: CacheOptions): Promise<void> {
     detail: "Downloading scouting schedule...",
   });
   try {
-    const url = `/api/database/match-assignments?eventCode=${opts.eventCode}&year=${opts.year}`;
+    const url = `/api/scouting/entries/match-assignments?eventCode=${opts.eventCode}&year=${opts.year}`;
     const res = await fetchAndCache(url);
     await res.text();
     opts.onStepUpdate("scoutSchedule", {
@@ -273,7 +273,7 @@ async function cachePitEntries(opts: CacheOptions): Promise<number> {
     detail: "Downloading pit scouting data...",
   });
   try {
-    const url = `/api/database/pit?eventCode=${opts.eventCode}&year=${opts.year}&competitionType=${opts.competitionType}`;
+    const url = `/api/scouting/entries/pit?eventCode=${opts.eventCode}&year=${opts.year}&competitionType=${opts.competitionType}`;
     const res = await fetchAndCache(url);
     const entries: PitEntry[] = await res.json();
     const count = Array.isArray(entries) ? entries.length : 0;
@@ -299,7 +299,7 @@ async function cacheMatchEntries(opts: CacheOptions): Promise<number> {
     detail: "Downloading match scouting data...",
   });
   try {
-    const url = `/api/database/match?eventCode=${opts.eventCode}&year=${opts.year}&competitionType=${opts.competitionType}`;
+    const url = `/api/scouting/entries/match?eventCode=${opts.eventCode}&year=${opts.year}&competitionType=${opts.competitionType}`;
     const res = await fetchAndCache(url);
     const entries: MatchEntry[] = await res.json();
     const count = Array.isArray(entries) ? entries.length : 0;
@@ -325,7 +325,7 @@ async function cacheAnalysisData(opts: CacheOptions): Promise<void> {
     detail: "Downloading analysis data...",
   });
   try {
-    const url = `/api/database/analysis?eventCode=${opts.eventCode}&year=${opts.year}&competitionType=${opts.competitionType}`;
+    const url = `/api/scouting/analysis/analysis?eventCode=${opts.eventCode}&year=${opts.year}&competitionType=${opts.competitionType}&includeBoxPlot=true`;
     const res = await fetchAndCache(url);
     const data: AnalysisData = await res.json();
 

@@ -41,8 +41,8 @@ describe("import CSV integration", () => {
     const form = new FormData();
     form.append("file", file);
 
-    const route = await import("@/app/api/database/import/route");
-    const req = new Request("http://test/api/database/import", {
+    const route = await import("@/app/api/scouting/admin/import/route");
+    const req = new Request("http://test/api/scouting/admin/import", {
       method: "POST",
       body: form,
     });

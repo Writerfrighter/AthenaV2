@@ -30,7 +30,7 @@ export function DatabaseResetComponent() {
     }, 500);
 
     try {
-      const response = await fetch("/api/database/reset", {
+      const response = await fetch("/api/scouting/admin/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

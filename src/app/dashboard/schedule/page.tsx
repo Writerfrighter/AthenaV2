@@ -41,7 +41,6 @@ import {
 } from "@/components/ui/collapsible";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { toast } from "sonner";
-import { useScouterMedals } from "@/hooks/use-scouter-medals";
 
 type UserWithPartners = {
   id: string;
@@ -70,7 +69,6 @@ const MatchAssignmentRow = React.memo(
     scoutsPerAlliance,
     getAvailableUsersForMatchSlot,
     setLocalMatchScout,
-    formatScouterName,
   }: {
     match: MatchAssignment;
     scoutsPerAlliance: number;
@@ -85,7 +83,6 @@ const MatchAssignmentRow = React.memo(
       position: number,
       scoutId: string | null,
     ) => void;
-    formatScouterName: (scouterId: string, fallbackName: string) => string;
   }) => {
     return (
       <div className="rounded-md border px-3 py-2">
@@ -135,7 +132,7 @@ const MatchAssignmentRow = React.memo(
                           <SelectItem value="none">None</SelectItem>
                           {availableUsers.map((user) => (
                             <SelectItem key={user.id} value={user.id}>
-                              {formatScouterName(user.id, user.name)}
+                              {user.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -158,12 +155,10 @@ const ActiveScoutCheckbox = React.memo(
     scout,
     isActive,
     onToggle,
-    formatScouterName,
   }: {
     scout: UserWithPartners;
     isActive: boolean;
     onToggle: (scoutId: string, checked: boolean) => void;
-    formatScouterName: (scouterId: string, fallbackName: string) => string;
   }) => (
     <div className="flex items-center space-x-2">
       <Checkbox
@@ -175,7 +170,7 @@ const ActiveScoutCheckbox = React.memo(
         htmlFor={`active-${scout.id}`}
         className="text-sm font-medium cursor-pointer"
       >
-        {formatScouterName(scout.id, scout.name)}
+        {scout.name}
       </label>
     </div>
   ),
@@ -203,8 +198,6 @@ export default function SchedulePage() {
     deleteAllBlocks,
     refreshData,
   } = useScheduleData();
-
-  const { formatScouterName } = useScouterMedals();
 
   const scoutsPerAlliance = competitionType === "FTC" ? 2 : 3;
 
@@ -1118,7 +1111,6 @@ export default function SchedulePage() {
                         scout={scout}
                         isActive={activeScoutSet.has(scout.id)}
                         onToggle={toggleActiveScout}
-                        formatScouterName={formatScouterName}
                       />
                     ))}
                   </div>
@@ -1298,7 +1290,6 @@ export default function SchedulePage() {
                         getAvailableUsersForMatchSlot
                       }
                       setLocalMatchScout={setLocalMatchScout}
-                      formatScouterName={formatScouterName}
                     />
                   ))}
                 </div>

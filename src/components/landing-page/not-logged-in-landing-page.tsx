@@ -142,7 +142,7 @@ export function NotLoggedInLandingPage() {
       {/* Hero Section */}
       <section className="relative z-10 w-full max-h-[70vh] sm:max-h-[80vh] flex items-center py-2 sm:py-12">
         <Image
-          src="/assets/HeroCropped.jpg"
+          src="/assets/HeroCropped.JPG"
           alt=""
           fill
           className="object-cover object-left sm:object-center -z-10"
@@ -223,63 +223,6 @@ export function NotLoggedInLandingPage() {
         </div>
       </section>
 
-      {/* TRC Spotlight Section */}
-      {/* <section id="trc" className="relative z-10 w-full py-16 bg-primary/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] items-start">
-            <div className="space-y-5">
-              <Badge variant="outline" className="w-fit">From Titan Robotics Club</Badge>
-              <h2 className="text-3xl sm:text-4xl font-bold">We built Athena to serve our own scouts first.</h2>
-              <p className="text-lg text-muted-foreground">
-                Every design decision comes from long nights in the pits, missed Wi-Fi, and the need to tell our story to judges and alliance partners. You can adopt Athena knowing it has already survived real competition pressure.
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {[{
-                  title: "Student-led product",
-                  description: "Designed and shipped by TRC software & strategy students.",
-                  icon: Users
-                }, {
-                  title: "Competition proven",
-                  description: "Ran through regionals, DCMP, and offseason scrimmages.",
-                  icon: Trophy
-                }].map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <div key={item.title} className="rounded-2xl border border-primary/20 bg-background/80 p-5 space-y-2">
-                      <Icon className="h-6 w-6 text-primary" />
-                      <h3 className="font-semibold text-lg">{item.title}</h3>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-            <div className="rounded-3xl border border-primary/20 bg-background/90 p-8 shadow-xl space-y-6">
-              <div>
-                <p className="text-sm text-muted-foreground uppercase tracking-wide">Season snapshot</p>
-                <p className="text-3xl font-bold mt-2">2025 Goals</p>
-              </div>
-              <ul className="space-y-4">
-                {[
-                  "Capture every match with consistent metrics",
-                  "Prep alliance decks in under 10 minutes",
-                  "Share insights with partners before playoffs"
-                ].map((goal) => (
-                  <li key={goal} className="flex items-start gap-3">
-                    <Sparkles className="h-5 w-5 text-primary mt-0.5" />
-                    <span className="text-sm text-muted-foreground">{goal}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="rounded-2xl border border-dashed border-primary/40 p-6">
-                <p className="text-sm text-muted-foreground">Core belief</p>
-                <p className="text-xl font-semibold">Scouting should feel inspirational, not tedious.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section> */}
-
       {/* Feature Highlights Section */}
       <section className="relative z-10 w-full py-16 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -334,7 +277,7 @@ export function NotLoggedInLandingPage() {
             <div className="relative">
               <div className="aspect-square rounded-lg bg-background flex items-center justify-center overflow-hidden">
                 <Image
-                  src="/assets/Scouting2.jpg"
+                  src="/assets/Scouting2.JPG"
                   width={600}
                   height={600}
                   alt="Student scouting using green scouting tablet."
@@ -387,7 +330,7 @@ export function NotLoggedInLandingPage() {
             <div className="order-1 lg:order-2 relative">
               <div className="aspect-square rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
                 <Image
-                  src="/assets/PitScouting.jpg"
+                  src="/assets/PitScouting.JPG"
                   width={600}
                   height={600}
                   alt="Students from different robotics team looking together at green scouting tablet."
@@ -408,7 +351,7 @@ export function NotLoggedInLandingPage() {
             <div className="relative">
               <div className="aspect-square rounded-lg bg-background flex items-center justify-center overflow-hidden">
                 <Image
-                  src="/assets/Scouting.jpg"
+                  src="/assets/Scouting.JPG"
                   width={600}
                   height={600}
                   alt="Students scouting using green scouting tablets."
@@ -456,7 +399,7 @@ export function NotLoggedInLandingPage() {
             <div className="order-1 lg:order-2 relative">
               <div className="aspect-square rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
                 <Image
-                  src="/assets/Strat.jpg"
+                  src="/assets/Strat.JPG"
                   width={600}
                   height={600}
                   alt="Students looking over at a clipboard while strategizing."
@@ -509,18 +452,6 @@ export function NotLoggedInLandingPage() {
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className="mt-6 flex justify-center">
-            <a
-              href="https://titanrobotics.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button variant="outline" size="lg" className="gap-2">
-                Visit TRC Website <ArrowRight className="h-4 w-4" />
-              </Button>
-            </a>
           </div>
         </div>
       </section>

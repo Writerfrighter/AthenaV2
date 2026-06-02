@@ -69,13 +69,14 @@ Extensive use of custom hooks for data fetching and state management. Follow nam
 
 ### 5. API Route Structure
 
-RESTful API routes under `/api/database/` with consistent CRUD patterns:
+RESTful API routes under `/api/` with consistent CRUD patterns:
 
+For example:
 ```
-GET /api/database/match - List/filter match entries
-POST /api/database/match - Create match entry
-PUT /api/database/match/[id] - Update specific entry
-DELETE /api/database/match/[id] - Delete entry
+GET /api/scouting/entries/match - List/filter match entries
+POST /api/scouting/entries/match - Create match entry
+PUT /api/scouting/entries/match/[id] - Update specific entry
+DELETE /api/scouting/entries/match/[id] - Delete entry
 ```
 
 ### 6. Component Organization

@@ -47,7 +47,11 @@ export interface CreateResult {
   isQueued: boolean;
 }
 
-const API_BASE = "/api/database";
+const SCOUTING_BASE = "/api/scouting";
+const ENTRIES_BASE = `${SCOUTING_BASE}/entries`;
+const ANALYSIS_BASE = `${SCOUTING_BASE}/analysis`;
+const PICKLIST_BASE = `${SCOUTING_BASE}/picklist`;
+const ADMIN_BASE = `${SCOUTING_BASE}/admin`;
 
 // Pit scouting operations
 export const pitApi = {
@@ -56,7 +60,7 @@ export const pitApi = {
     const params = new URLSearchParams();
     if (year) params.append("year", year.toString());
 
-    const response = await fetch(`${API_BASE}/pit?${params}`);
+    const response = await fetch(`${ENTRIES_BASE}/pit?${params}`);
     if (!response.ok) throw new Error("Failed to fetch pit entries");
     return response.json();
   },
@@ -66,7 +70,7 @@ export const pitApi = {
     params.append("teamNumber", teamNumber.toString());
     if (year) params.append("year", year.toString());
 
-    const response = await fetch(`${API_BASE}/pit?${params}`);
+    const response = await fetch(`${ENTRIES_BASE}/pit?${params}`);
     if (!response.ok) throw new Error("Failed to fetch pit entry");
     return response.json();
   },
@@ -80,7 +84,7 @@ export const pitApi = {
 
     // If online, try to submit immediately with timeout
     try {
-      const response = await fetchWithTimeout(`${API_BASE}/pit`, {
+      const response = await fetchWithTimeout(`${ENTRIES_BASE}/pit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entry),
@@ -126,7 +130,7 @@ export const pitApi = {
   },
 
   async update(id: number, updates: Partial<PitEntry>): Promise<void> {
-    const response = await fetch(`${API_BASE}/pit`, {
+    const response = await fetch(`${ENTRIES_BASE}/pit`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, ...updates }),
@@ -135,7 +139,7 @@ export const pitApi = {
   },
 
   async delete(id: number): Promise<void> {
-    const response = await fetch(`${API_BASE}/pit?id=${id}`, {
+    const response = await fetch(`${ENTRIES_BASE}/pit?id=${id}`, {
       method: "DELETE",
     });
     if (!response.ok) throw new Error("Failed to delete pit entry");
@@ -148,7 +152,7 @@ export const matchApi = {
     const params = new URLSearchParams();
     if (year) params.append("year", year.toString());
 
-    const response = await fetch(`${API_BASE}/match?${params}`);
+    const response = await fetch(`${ENTRIES_BASE}/match?${params}`);
     if (!response.ok) throw new Error("Failed to fetch match entries");
     return response.json();
   },
@@ -158,7 +162,7 @@ export const matchApi = {
     params.append("teamNumber", teamNumber.toString());
     if (year) params.append("year", year.toString());
 
-    const response = await fetch(`${API_BASE}/match?${params}`);
+    const response = await fetch(`${ENTRIES_BASE}/match?${params}`);
     if (!response.ok) throw new Error("Failed to fetch match entries");
     return response.json();
   },
@@ -172,7 +176,7 @@ export const matchApi = {
 
     // If online, try to submit immediately with timeout
     try {
-      const response = await fetchWithTimeout(`${API_BASE}/match`, {
+      const response = await fetchWithTimeout(`${ENTRIES_BASE}/match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entry),
@@ -218,7 +222,7 @@ export const matchApi = {
   },
 
   async update(id: number, updates: Partial<MatchEntry>): Promise<void> {
-    const response = await fetch(`${API_BASE}/match`, {
+    const response = await fetch(`${ENTRIES_BASE}/match`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, ...updates }),
@@ -227,7 +231,7 @@ export const matchApi = {
   },
 
   async delete(id: number): Promise<void> {
-    const response = await fetch(`${API_BASE}/match?id=${id}`, {
+    const response = await fetch(`${ENTRIES_BASE}/match?id=${id}`, {
       method: "DELETE",
     });
     if (!response.ok) throw new Error("Failed to delete match entry");
@@ -246,7 +250,7 @@ export const statsApi = {
     if (eventCode) params.append("eventCode", eventCode);
     if (competitionType) params.append("competitionType", competitionType);
 
-    const response = await fetch(`${API_BASE}/stats?${params}`);
+    const response = await fetch(`${ANALYSIS_BASE}/stats?${params}`);
     if (!response.ok) throw new Error("Failed to fetch dashboard stats");
     return response.json();
   },
@@ -255,13 +259,15 @@ export const statsApi = {
     year?: number,
     eventCode?: string,
     competitionType?: string,
+    includeBoxPlot?: boolean,
   ): Promise<AnalysisData> {
     const params = new URLSearchParams();
     if (year) params.append("year", year.toString());
     if (eventCode) params.append("eventCode", eventCode);
     if (competitionType) params.append("competitionType", competitionType);
+    if (includeBoxPlot) params.append("includeBoxPlot", "true");
 
-    const response = await fetch(`${API_BASE}/analysis?${params}`);
+    const response = await fetch(`${ANALYSIS_BASE}/analysis?${params}`);
     if (!response.ok) throw new Error("Failed to fetch analysis data");
     return response.json();
   },
@@ -276,7 +282,7 @@ export const statsApi = {
     if (eventCode) params.append("eventCode", eventCode);
     if (competitionType) params.append("competitionType", competitionType);
 
-    const response = await fetch(`${API_BASE}/picklist?${params}`);
+    const response = await fetch(`${PICKLIST_BASE}?${params}`);
     if (!response.ok) throw new Error("Failed to fetch picklist data");
     return response.json();
   },
@@ -296,7 +302,7 @@ export const teamApi = {
     if (eventCode) params.append("eventCode", eventCode);
     if (competitionType) params.append("competitionType", competitionType);
 
-    const response = await fetch(`${API_BASE}/team?${params}`);
+    const response = await fetch(`${ENTRIES_BASE}/team?${params}`);
     if (!response.ok) throw new Error("Failed to fetch team data");
     const data = await response.json();
     // console.log("Data:", data);
@@ -312,7 +318,7 @@ export const dataApi = {
     const params = new URLSearchParams();
     if (year) params.append("year", year.toString());
 
-    const response = await fetch(`${API_BASE}/export?${params}`);
+    const response = await fetch(`${ADMIN_BASE}/export?${params}`);
     if (!response.ok) throw new Error("Failed to export data");
     return response.json();
   },
@@ -321,7 +327,7 @@ export const dataApi = {
     pitEntries: PitEntry[];
     matchEntries: MatchEntry[];
   }): Promise<void> {
-    const response = await fetch(`${API_BASE}/import`, {
+    const response = await fetch(`${ADMIN_BASE}/import`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),

@@ -216,7 +216,7 @@ export function useScheduleData() {
         }
 
         const matchesResponse = await fetch(
-          `/api/event/matches?eventCode=${selectedEvent.eventCode}&competitionType=${competitionType}&season=${currentYear}`,
+          `/api/events/${selectedEvent.eventCode}/matches?competitionType=${competitionType}&season=${currentYear}`,
         );
 
         if (matchesResponse.ok) {
@@ -232,7 +232,7 @@ export function useScheduleData() {
         } else {
           // Try custom events fallback
           const customResponse = await fetch(
-            `/api/database/custom-events?year=${currentYear}`,
+            `/api/events/custom-events?year=${currentYear}`,
           );
           if (customResponse.ok) {
             const customEvents = await customResponse.json();
@@ -285,7 +285,7 @@ export function useScheduleData() {
         // Hydrate from matchAssignments by collapsing match-level assignments to shift-level,
         // only when consistent across the whole shift range.
         const res = await fetch(
-          `/api/database/match-assignments?eventCode=${selectedEvent.eventCode}&year=${currentYear}`,
+          `/api/scouting/entries/match-assignments?eventCode=${selectedEvent.eventCode}&year=${currentYear}`,
         );
 
         if (!res.ok) {
@@ -334,7 +334,7 @@ export function useScheduleData() {
 
     try {
       const matchesResponse = await fetch(
-        `/api/event/matches?eventCode=${selectedEvent.eventCode}&competitionType=${competitionType}&season=${currentYear}`,
+        `/api/events/${selectedEvent.eventCode}/matches?competitionType=${competitionType}&season=${currentYear}`,
       );
 
       if (matchesResponse.ok) {
@@ -373,7 +373,7 @@ export function useScheduleData() {
       const block = blocks.find((b) => b.id === blockId);
       if (!block) return;
 
-      const response = await fetch("/api/schedule/assignments", {
+      const response = await fetch("/api/scouting/schedule/assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -404,7 +404,7 @@ export function useScheduleData() {
     ) => {
       if (!selectedEvent) return;
 
-      const response = await fetch("/api/schedule/assignments", {
+      const response = await fetch("/api/scouting/schedule/assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -436,7 +436,7 @@ export function useScheduleData() {
     ) => {
       if (!selectedEvent) return;
 
-      const response = await fetch("/api/schedule/assignments", {
+      const response = await fetch("/api/scouting/schedule/assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -462,7 +462,7 @@ export function useScheduleData() {
     if (!selectedEvent) return;
 
     const response = await fetch(
-      `/api/schedule/assignments?eventCode=${selectedEvent.eventCode}&year=${currentYear}`,
+      `/api/scouting/schedule/assignments?eventCode=${selectedEvent.eventCode}&year=${currentYear}`,
       {
         method: "DELETE",
       },

@@ -15,7 +15,7 @@ vi.mock("@/lib/auth/roles", () => ({
   },
 }));
 
-describe("/api/database/custom-events", () => {
+describe("/api/events/custom-events", () => {
   let service: any;
 
   beforeEach(() => {
@@ -37,17 +37,17 @@ describe("/api/database/custom-events", () => {
   });
 
   it("returns 404 when event code not found", async () => {
-    const route = await import("@/app/api/database/custom-events/route");
+    const route = await import("@/app/api/events/custom-events/route");
     const req = new Request(
-      "http://test/api/database/custom-events?eventCode=EVT",
+      "http://test/api/events/custom-events?eventCode=EVT",
     );
     const res = await route.GET(req as any);
     expect(res.status).toBe(404);
   });
 
   it("creates custom event when valid", async () => {
-    const route = await import("@/app/api/database/custom-events/route");
-    const req = new Request("http://test/api/database/custom-events", {
+    const route = await import("@/app/api/events/custom-events/route");
+    const req = new Request("http://test/api/events/custom-events", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
