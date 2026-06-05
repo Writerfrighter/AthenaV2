@@ -1,4 +1,5 @@
 import type { CompetitionType } from "../competition/competition";
+import type { AnalysisInsightsConfig } from "../analysis/analysis";
 
 export interface ScoringDefinition {
   label: string;
@@ -54,6 +55,7 @@ export interface YearConfig {
       }
     >;
   };
+  analysisInsights?: AnalysisInsightsConfig;
 }
 
 export interface GameConfig {

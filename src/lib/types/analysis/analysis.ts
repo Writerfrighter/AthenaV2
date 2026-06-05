@@ -5,6 +5,35 @@ export interface AnalysisMetricDefinition {
   valueType: "rate" | "average";
 }
 
+export type InsightCalculation =
+  | {
+      type: "booleanRate";
+      key: string;
+    }
+  | {
+      type: "ratio";
+      numeratorKeys: string[];
+      denominatorKeys: string[];
+    }
+  | {
+      type: "sum";
+      keys: string[];
+    };
+
+export interface AnalysisInsightDefinition {
+  id: string;
+  title: string;
+  description?: string;
+  ranking: "higher" | "lower";
+  valueFormat?: "percent" | "number";
+  rawLabel?: string;
+  calculation: InsightCalculation;
+}
+
+export interface AnalysisInsightsConfig {
+  insights: AnalysisInsightDefinition[];
+}
+
 export interface AnalysisData {
   availableMetrics?: AnalysisMetricDefinition[];
   scoringAnalysis: Array<{

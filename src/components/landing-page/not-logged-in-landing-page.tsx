@@ -142,10 +142,10 @@ export function NotLoggedInLandingPage() {
       {/* Hero Section */}
       <section className="relative z-10 w-full max-h-[70vh] sm:max-h-[80vh] flex items-center py-2 sm:py-12">
         <Image
-          src="/assets/HeroCropped.JPG"
+          src="/assets/HeroSwapped.PNG"
           alt=""
           fill
-          className="object-cover object-left sm:object-center -z-10"
+          className="object-cover object-left sm:object-center -z-5"
           sizes="100vw"
         />
         <div className="absolute inset-0 max-lg:bg-black/50 lg:bg-linear-to-r lg:from-black/0 lg:to-black/60" />

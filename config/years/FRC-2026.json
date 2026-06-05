@@ -191,5 +191,57 @@
         "dependsOn": "hasClimb"
       }
     }
+  },
+  "analysisInsights": {
+    "insights": [
+      {
+        "id": "reliability",
+        "title": "Reliability (Breakdown Rate)",
+        "description": "Robot breakdowns per match",
+        "ranking": "lower",
+        "valueFormat": "percent",
+        "rawLabel": "Breakdowns/Matches",
+        "calculation": {
+          "type": "booleanRate",
+          "key": "endgame.robot_broke_down"
+        }
+      },
+      {
+        "id": "accuracy",
+        "title": "Accuracy (Fuel Miss Rate)",
+        "description": "Fuel missed divided by total attempts",
+        "ranking": "lower",
+        "valueFormat": "percent",
+        "rawLabel": "Missed/Attempts",
+        "calculation": {
+          "type": "ratio",
+          "numeratorKeys": [
+            "autonomous.fuel_missed",
+            "teleop.fuel_missed"
+          ],
+          "denominatorKeys": [
+            "autonomous.fuel_scored",
+            "teleop.fuel_scored",
+            "autonomous.fuel_missed",
+            "teleop.fuel_missed"
+          ]
+        }
+      },
+      {
+        "id": "support",
+        "title": "Support Capability (Fuel Shuttled)",
+        "description": "Total fuel shuttled",
+        "ranking": "higher",
+        "valueFormat": "number",
+        "rawLabel": "Fuel Shuttled",
+        "calculation": {
+          "type": "sum",
+          "keys": [
+            "autonomous.fuel_shuttled",
+            "teleop.fuel_shuttled"
+          ]
+        }
+      }
+    ]
   }
 }
