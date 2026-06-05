@@ -98,6 +98,9 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.DELETE_SCHEDULE,
     PERMISSIONS.VIEW_USERS, // Can view users for schedule assignments
 
+    // Allow lead scouts to manage "friends" / preferred partners for any user
+    PERMISSIONS.EDIT_USERS,
+
     PERMISSIONS.CONFIGURE_EVENTS,
     PERMISSIONS.MANAGE_EVENT_SETTINGS,
 
