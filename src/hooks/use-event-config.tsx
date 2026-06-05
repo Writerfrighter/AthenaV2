@@ -198,13 +198,10 @@ export function EventProvider({ children }: { children: ReactNode }) {
         const parsedEvent = JSON.parse(savedEvent);
         // Verify the saved event still exists in the events list
         const eventExists = events.find(
-          (e) =>
-            e.name === parsedEvent.name ||
-            e.region === parsedEvent.region ||
-            e.eventCode === parsedEvent.eventCode,
+          (e) => e.eventCode === parsedEvent.eventCode,
         );
         if (eventExists) {
-          setSelectedEventState(parsedEvent);
+          setSelectedEventState(eventExists);
         } else {
           // If saved event doesn't exist anymore, default to first event
           setSelectedEventState(events[0] || null);

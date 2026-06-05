@@ -153,7 +153,7 @@ export function EventFormDialog({
                       onFormChange({ ...formData, endDate: date });
                       setEndDateOpen(false);
                     }}
-                    initialFocus
+                    autoFocus
                   />
                 </PopoverContent>
               </Popover>

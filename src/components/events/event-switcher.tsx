@@ -604,7 +604,7 @@ export function EventSwitcher() {
                         setNewEventForm((prev) => ({ ...prev, endDate: date }));
                         setEndDateOpen(false);
                       }}
-                      initialFocus
+                      autoFocus
                     />
                   </PopoverContent>
                 </Popover>
@@ -748,7 +748,7 @@ export function EventSwitcher() {
                         setNewEventForm((prev) => ({ ...prev, date }));
                         setDateOpen(false);
                       }}
-                      initialFocus
+                      autoFocus
                     />
                   </PopoverContent>
                 </Popover>
@@ -779,7 +779,7 @@ export function EventSwitcher() {
                         setNewEventForm((prev) => ({ ...prev, endDate: date }));
                         setEndDateOpen(false);
                       }}
-                      initialFocus
+                      autoFocus
                     />
                   </PopoverContent>
                 </Popover>

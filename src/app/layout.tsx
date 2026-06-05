@@ -7,6 +7,11 @@ import { EventProvider } from "@/hooks/use-event-config";
 import { ServiceWorkerManager } from "@/components/sync/service-worker-manager";
 import { SessionProvider } from "@/components/session-provider";
 import { SonnerToaster } from "@/components/sonner-toaster";
+import { Geist, Inter } from "next/font/google";
+import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+
 
 // const inter = Inter({
 //   variable: "--font-inter",
@@ -28,24 +33,26 @@ export default function RootLayout({
 }>) {
   return (
     <>
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning className={cn("font-sans", inter.variable)}>
         <head></head>
         <body className="font-sans">
-          {/* className={inter.className} */}
-          <SessionProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              <GameConfigProvider>
-                <EventProvider>{children}</EventProvider>
-              </GameConfigProvider>
-              <SonnerToaster />
-              <ServiceWorkerManager />
-            </ThemeProvider>
-          </SessionProvider>
+          <TooltipProvider>
+            {/* className={inter.className} */}
+            <SessionProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                <GameConfigProvider>
+                  <EventProvider>{children}</EventProvider>
+                </GameConfigProvider>
+                <SonnerToaster />
+                <ServiceWorkerManager />
+              </ThemeProvider>
+            </SessionProvider>
+          </TooltipProvider>
         </body>
       </html>
     </>
