@@ -3,11 +3,9 @@
 import {
   Bar,
   BarChart,
+  BarShapeProps,
   CartesianGrid,
-  Cell,
   ComposedChart,
-  Customized,
-  Scatter,
   XAxis,
   YAxis,
 } from "recharts";
@@ -67,6 +65,8 @@ interface BoxPlotDatum {
   q3: number;
   max: number;
   iqr: number;
+  lowerWhisker: number; // q1 - min
+  upperWhisker: number; // max - q3
   range: [number, number];
 }
 
@@ -181,6 +181,9 @@ const buildBoxPlotData = (
     const teamColor = teamColors[entry.team]?.primaryHex;
     const color = teamColor || "var(--color-total)";
 
+    const lowerWhisker = q1 - min;
+    const upperWhisker = max - q3;
+
     return {
       categoryKey: `${entry.team}__${index}`,
       label: entry.team,
@@ -191,11 +194,17 @@ const buildBoxPlotData = (
       q3,
       max,
       iqr,
+      lowerWhisker,
+      upperWhisker,
       range,
     } satisfies BoxPlotDatum;
   });
 
-function MedianTick(props: { cx?: number; cy?: number; payload?: BoxPlotDatum }) {
+function MedianTick(props: {
+  cx?: number;
+  cy?: number;
+  payload?: BoxPlotDatum;
+}) {
   const { cx, cy, payload } = props;
   if (!payload || cx === undefined || cy === undefined) return null;
 
@@ -217,7 +226,10 @@ function WhiskerLines({
   yAxisMap,
   data,
 }: {
-  xAxisMap?: Record<string, { scale: (value: string) => number; bandSize?: number }>;
+  xAxisMap?: Record<
+    string,
+    { scale: (value: string) => number; bandSize?: number }
+  >;
   yAxisMap?: Record<string, { scale: (value: number) => number }>;
   data?: BoxPlotDatum[];
 }) {
@@ -236,15 +248,33 @@ function WhiskerLines({
         const yMin = yAxis.scale(entry.min);
         const yMax = yAxis.scale(entry.max);
 
-        if (!Number.isFinite(x) || !Number.isFinite(yMin) || !Number.isFinite(yMax)) {
+        if (
+          !Number.isFinite(x) ||
+          !Number.isFinite(yMin) ||
+          !Number.isFinite(yMax)
+        ) {
           return null;
         }
 
         return (
-          <g key={`${entry.categoryKey}-whisker`} stroke={entry.color} strokeWidth={2}>
+          <g
+            key={`${entry.categoryKey}-whisker`}
+            stroke={entry.color}
+            strokeWidth={2}
+          >
             <line x1={x} x2={x} y1={yMax} y2={yMin} />
-            <line x1={x - capWidth / 2} x2={x + capWidth / 2} y1={yMax} y2={yMax} />
-            <line x1={x - capWidth / 2} x2={x + capWidth / 2} y1={yMin} y2={yMin} />
+            <line
+              x1={x - capWidth / 2}
+              x2={x + capWidth / 2}
+              y1={yMax}
+              y2={yMax}
+            />
+            <line
+              x1={x - capWidth / 2}
+              x2={x + capWidth / 2}
+              y1={yMin}
+              y2={yMin}
+            />
           </g>
         );
       })}
@@ -346,7 +376,14 @@ export function StackedEPAChart({ data }: { data?: TeamEPAChartDatum[] }) {
         const data = (await response.json()) as {
           teams?: Record<
             string,
-            { teamNumber: number; colors: { primaryHex: string; secondaryHex: string; verified: boolean } | null }
+            {
+              teamNumber: number;
+              colors: {
+                primaryHex: string;
+                secondaryHex: string;
+                verified: boolean;
+              } | null;
+            }
           >;
         };
 
@@ -434,7 +471,11 @@ export function StackedEPAChart({ data }: { data?: TeamEPAChartDatum[] }) {
             className={isMobile ? "min-w-[600px]" : ""}
           >
             {chartView === "stacked" ? (
-              <BarChart accessibilityLayer data={displayData} stackOffset="sign">
+              <BarChart
+                accessibilityLayer
+                data={displayData}
+                stackOffset="sign"
+              >
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="team"
@@ -482,7 +523,6 @@ export function StackedEPAChart({ data }: { data?: TeamEPAChartDatum[] }) {
                     animationDuration={300}
                   />
                 )}
-                <XAxis />
                 <YAxis domain={yDomain} />
               </BarChart>
             ) : (
@@ -500,43 +540,140 @@ export function StackedEPAChart({ data }: { data?: TeamEPAChartDatum[] }) {
                 />
                 <YAxis domain={yDomain} />
                 <ChartTooltip content={<BoxPlotTooltipContent />} />
+
+                {/* Invisible base to offset stack to min */}
                 <Bar
-                  dataKey="q1"
+                  dataKey="min"
                   stackId="box"
                   fill="transparent"
                   stroke="transparent"
                   isAnimationActive={false}
                 />
+
+                {/* Lower whisker — thin centered line */}
+                <Bar
+                  dataKey="lowerWhisker"
+                  stackId="box"
+                  isAnimationActive={false}
+                  shape={(props: BarShapeProps & { index?: number }) => {
+                    const entry = boxPlotData[props.index ?? 0];
+                    if (
+                      !entry ||
+                      props.x == null ||
+                      props.y == null ||
+                      props.width == null ||
+                      props.height == null
+                    )
+                      return <g />;
+                    const cx = props.x + props.width / 2;
+                    const capWidth = 10;
+                    return (
+                      <g stroke={entry.color} strokeWidth={2}>
+                        {/* Vertical line */}
+                        <line
+                          x1={cx}
+                          x2={cx}
+                          y1={props.y}
+                          y2={props.y + props.height}
+                        />
+                        {/* Bottom cap (min) */}
+                        <line
+                          x1={cx - capWidth / 2}
+                          x2={cx + capWidth / 2}
+                          y1={props.y + props.height}
+                          y2={props.y + props.height}
+                        />
+                      </g>
+                    );
+                  }}
+                />
+
+                {/* IQR box */}
                 <Bar
                   dataKey="iqr"
                   stackId="box"
-                  fill="var(--color-total)"
-                  fillOpacity={0.25}
-                  stroke="var(--color-total)"
-                  strokeWidth={2}
-                  radius={4}
                   isAnimationActive={false}
-                >
-                  {boxPlotData.map((entry) => (
-                    <Cell
-                      key={`${entry.categoryKey}-cell`}
-                      fill={entry.color}
-                      stroke={entry.color}
-                    />
-                  ))}
-                </Bar>
-                <Scatter
-                  dataKey="median"
-                  fill="transparent"
-                  stroke="transparent"
-                  shape={(props: { cx?: number; cy?: number; payload?: BoxPlotDatum }) => (
-                    <MedianTick {...props} />
-                  )}
+                  shape={(props: BarShapeProps & { index?: number }) => {
+                    const entry = boxPlotData[props.index ?? 0];
+                    if (
+                      !entry ||
+                      props.x == null ||
+                      props.y == null ||
+                      props.width == null ||
+                      props.height == null ||
+                      !Number.isFinite(props.height)
+                    )
+                      return <g />;
+                    const cx = props.x + props.width / 2;
+                    const medianY =
+                      entry.iqr === 0
+                        ? props.y + props.height / 2
+                        : props.y +
+                          props.height *
+                            ((entry.q3 - entry.median) / entry.iqr);
+                    return (
+                      <g>
+                        <rect
+                          x={props.x}
+                          y={props.y}
+                          width={props.width}
+                          height={props.height}
+                          fill={entry.color}
+                          fillOpacity={0.25}
+                          stroke={entry.color}
+                          strokeWidth={2}
+                          rx={4}
+                          ry={4}
+                        />
+                        {/* Median line inside box */}
+                        <line
+                          x1={props.x}
+                          x2={props.x + props.width}
+                          y1={medianY}
+                          y2={medianY}
+                          stroke={entry.color}
+                          strokeWidth={2}
+                        />
+                      </g>
+                    );
+                  }}
                 />
-                <Customized
-                  component={(props: { xAxisMap?: Record<string, any>; yAxisMap?: Record<string, any> }) => (
-                    <WhiskerLines {...props} data={boxPlotData} />
-                  )}
+
+                {/* Upper whisker */}
+                <Bar
+                  dataKey="upperWhisker"
+                  stackId="box"
+                  isAnimationActive={false}
+                  shape={(props: BarShapeProps & { index?: number }) => {
+                    const entry = boxPlotData[props.index ?? 0];
+                    if (
+                      !entry ||
+                      props.x == null ||
+                      props.y == null ||
+                      props.width == null ||
+                      props.height == null
+                    )
+                      return <g />;
+                    const cx = props.x + props.width / 2;
+                    const capWidth = 10;
+                    return (
+                      <g stroke={entry.color} strokeWidth={2}>
+                        <line
+                          x1={cx}
+                          x2={cx}
+                          y1={props.y}
+                          y2={props.y + props.height}
+                        />
+                        {/* Top cap (max) */}
+                        <line
+                          x1={cx - capWidth / 2}
+                          x2={cx + capWidth / 2}
+                          y1={props.y}
+                          y2={props.y}
+                        />
+                      </g>
+                    );
+                  }}
                 />
               </ComposedChart>
             )}
