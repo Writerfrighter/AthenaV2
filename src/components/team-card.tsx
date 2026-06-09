@@ -83,7 +83,7 @@ export function TeamCard({ team }: TeamCardProps) {
         </div>
       </CardContent>
 
-      <CardFooter className="flex-col gap-3 px-6 pb-2">
+      <CardFooter className="flex-col gap-3 px-4 pb-4">
         <Button asChild className="w-full group/button">
           <Link
             href={"/dashboard/team/" + String(team.team_number)}

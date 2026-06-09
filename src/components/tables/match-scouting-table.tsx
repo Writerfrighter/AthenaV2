@@ -131,8 +131,7 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({
           return (
             <div className="">
               <Badge
-                variant={alliance === "red" ? "destructive" : "default"}
-                className={`text-xs px-1.5 py-0 ${alliance === "blue" ? "bg-blue-500 hover:bg-blue-600 text-white" : ""}`}
+                className={`text-xs px-1.5 py-0 ${alliance === "blue" ? "bg-blue-400 hover:bg-blue-500 text-white" : "bg-red-400 hover:bg-red-500 text-white"}`}
               >
                 {alliance.toUpperCase()}
               </Badge>
@@ -285,9 +284,9 @@ export const MatchScoutingTable = React.memo(function MatchScoutingTable({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
                     </TableHead>
                   );
                 })}
