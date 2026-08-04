@@ -1,8 +1,9 @@
 import { DatabaseService, DatabaseConfig, DatabaseProvider } from "@/lib/types";
 import { AzureSqlDatabaseService } from "./azuresql-database-service";
-import { LocalDatabaseService } from "./local-database-service";
 import { FirebaseDatabaseService } from "./firebase-database-service";
 import { CosmosDatabaseService } from "./cosmos-database-service";
+import { MariaDbDatabaseService } from "./mariadb-database-service";
+import { loadPersistedDatabaseConfig } from "@/lib/server/env-file";
 
 class DatabaseManager {
   private static instance: DatabaseManager;
@@ -10,6 +11,21 @@ class DatabaseManager {
   private config: DatabaseConfig;
 
   private constructor() {
+    const persistedConfig = loadPersistedDatabaseConfig();
+
+    if (persistedConfig) {
+      try {
+        this.config = persistedConfig;
+        this.currentService = this.createService(persistedConfig);
+        return;
+      } catch (error) {
+        console.warn(
+          "Ignoring persisted database config and falling back to env detection:",
+          error,
+        );
+      }
+    }
+
     // Allow explicit provider override via env var
     const envProvider = (process.env.DATABASE_PROVIDER || "").toLowerCase() as
       | DatabaseProvider
@@ -24,25 +40,29 @@ class DatabaseManager {
     const useManagedIdentity =
       process.env.AZURE_SQL_USE_MANAGED_IDENTITY === "true" ||
       !azureSqlUser ||
-      !azureSqlPassword ||
-      (azureSqlUser?.includes("your-username") ?? false);
+      !azureSqlPassword;
 
     const isAzureSqlConfigured =
-      azureSqlConnectionString ||
-      (azureSqlServer &&
-        azureSqlDatabase &&
-        !azureSqlServer.includes("your-server") &&
-        !azureSqlDatabase.includes("ScoutingDatabase"));
+      azureSqlConnectionString || (azureSqlServer && azureSqlDatabase);
 
-    // Local SQL envs
-    const localSqlConnectionString = process.env.LOCAL_SQL_CONNECTION_STRING;
-    const localSqlServer = process.env.LOCAL_SQL_SERVER;
-    const localSqlDatabase = process.env.LOCAL_SQL_DATABASE;
-    const localSqlUser = process.env.LOCAL_SQL_USER;
-    const localSqlPassword = process.env.LOCAL_SQL_PASSWORD;
-    const isLocalSqlConfigured = !!(
-      localSqlConnectionString ||
-      (localSqlServer && localSqlDatabase)
+    // MariaDB / MySQL envs
+    const mariadbConnectionString =
+      process.env.MARIADB_CONNECTION_STRING ||
+      process.env.MYSQL_CONNECTION_STRING;
+    const mariadbHost = process.env.MARIADB_HOST || process.env.MYSQL_HOST;
+    const mariadbDatabase =
+      process.env.MARIADB_DATABASE || process.env.MYSQL_DATABASE;
+    const mariadbUser = process.env.MARIADB_USER || process.env.MYSQL_USER;
+    const mariadbPassword =
+      process.env.MARIADB_PASSWORD || process.env.MYSQL_PASSWORD;
+    const mariadbPort = process.env.MARIADB_PORT
+      ? parseInt(process.env.MARIADB_PORT, 10)
+      : process.env.MYSQL_PORT
+        ? parseInt(process.env.MYSQL_PORT, 10)
+        : undefined;
+    const isMariaDbConfigured = !!(
+      mariadbConnectionString ||
+      (mariadbHost && mariadbDatabase)
     );
 
     // Cosmos envs
@@ -62,9 +82,9 @@ class DatabaseManager {
     let selected: DatabaseProvider | null = null;
     if (
       envProvider === "firebase" ||
-      envProvider === "local" ||
       envProvider === "cosmos" ||
-      envProvider === "azuresql"
+      envProvider === "azuresql" ||
+      envProvider === "mariadb"
     ) {
       selected = envProvider as DatabaseProvider;
     } else if (isAzureSqlConfigured) {
@@ -73,10 +93,12 @@ class DatabaseManager {
       selected = "cosmos";
     } else if (firebaseServiceAccountPath || firebaseServiceAccountJson) {
       selected = "firebase";
-    } else if (isLocalSqlConfigured) {
-      selected = "local";
+    } else if (isMariaDbConfigured) {
+      selected = "mariadb";
     } else {
-      selected = "local";
+      throw new Error(
+        "No supported database provider could be detected from environment variables",
+      );
     }
 
     // Build config and instantiate service
@@ -122,28 +144,20 @@ class DatabaseManager {
         },
       } as DatabaseConfig;
       this.currentService = new FirebaseDatabaseService(this.config.firebase);
-    } else if (selected === "local") {
+    } else if (selected === "mariadb") {
       this.config = {
-        provider: "local",
-        local: localSqlConnectionString
-          ? {
-              connectionString: localSqlConnectionString,
-            }
+        provider: "mariadb",
+        mariadb: mariadbConnectionString
+          ? { connectionString: mariadbConnectionString }
           : {
-              server: localSqlServer,
-              database: localSqlDatabase,
-              user: localSqlUser,
-              password: localSqlPassword,
+              host: mariadbHost,
+              port: mariadbPort,
+              database: mariadbDatabase,
+              user: mariadbUser,
+              password: mariadbPassword,
             },
-      };
-      this.currentService = new LocalDatabaseService({
-        connectionString: this.config.local?.connectionString,
-        server: this.config.local?.server,
-        database: this.config.local?.database,
-        user: this.config.local?.user,
-        password: this.config.local?.password,
-        useManagedIdentity: false,
-      });
+      } as DatabaseConfig;
+      this.currentService = new MariaDbDatabaseService(this.config.mariadb!);
     } else {
       throw new Error(
         "No supported database provider could be selected or detected",
@@ -167,21 +181,19 @@ class DatabaseManager {
     if (config.provider === "azuresql" && config.azuresql) {
       return new AzureSqlDatabaseService(config.azuresql);
     }
-    if (config.provider === "local" && config.local) {
-      return new LocalDatabaseService({
-        connectionString: config.local.connectionString,
-        server: config.local.server,
-        database: config.local.database,
-        user: config.local.user,
-        password: config.local.password,
-        useManagedIdentity: false,
-      });
-    }
     if (config.provider === "firebase" && config.firebase) {
       return new FirebaseDatabaseService(config.firebase);
     }
     if (config.provider === "cosmos" && config.cosmos) {
       return new CosmosDatabaseService(config.cosmos);
+    }
+    if (
+      config.provider === "mariadb" &&
+      (config.mariadb || (config as any).local)
+    ) {
+      // Accept either explicit mariadb config or fall back to local-style config
+      const cfg = config.mariadb ?? (config as any).local;
+      return new MariaDbDatabaseService(cfg as any);
     }
     throw new Error("Invalid database configuration");
   }

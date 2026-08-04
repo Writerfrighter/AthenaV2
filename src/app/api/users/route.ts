@@ -23,21 +23,27 @@ export async function GET() {
     }
 
     const db = databaseManager.getService();
-    if (!db.getPool) {
+    if (!db.query) {
       return NextResponse.json(
         { error: "Database service does not support direct SQL queries" },
         { status: 500 },
       );
     }
-    const pool = await db.getPool();
-
-    const result = await pool.request().query(`
+    const result = await db.query<{
+      id: string;
+      name: string;
+      username: string;
+      role: string;
+      preferredPartners: string | null;
+      created_at: string;
+      updated_at: string;
+    }>(`
         SELECT id, name, username, role, preferredPartners, created_at, updated_at
         FROM users
         ORDER BY name ASC
       `);
 
-    const users = result.recordset.map((user) => {
+    const users = result.recordset.map((user: any) => {
       let preferredPartners: string[] = [];
       if (user.preferredPartners) {
         try {
@@ -126,19 +132,17 @@ export async function POST(request: NextRequest) {
     }
 
     const db = databaseManager.getService();
-    if (!db.getPool) {
+    if (!db.query) {
       return NextResponse.json(
         { error: "Database service does not support direct SQL queries" },
         { status: 500 },
       );
     }
-    const pool = await db.getPool();
-
     // Check if user already exists
-    const existingUserResult = await pool
-      .request()
-      .input("username", username)
-      .query("SELECT id FROM users WHERE username = @username");
+    const existingUserResult = await db.query<{ id: string }>(
+      "SELECT id FROM users WHERE username = @username",
+      { username },
+    );
 
     if (existingUserResult.recordset.length > 0) {
       return NextResponse.json(
@@ -154,16 +158,19 @@ export async function POST(request: NextRequest) {
     const userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
     // Create user
-    await pool
-      .request()
-      .input("id", userId)
-      .input("name", name)
-      .input("username", username)
-      .input("passwordHash", hashedPassword)
-      .input("role", role).query(`
+    await db.query(
+      `
         INSERT INTO users (id, name, username, password_hash, role, created_at, updated_at)
         VALUES (@id, @name, @username, @passwordHash, @role, GETDATE(), GETDATE())
-      `);
+      `,
+      {
+        id: userId,
+        name,
+        username,
+        passwordHash: hashedPassword,
+        role,
+      },
+    );
 
     return NextResponse.json(
       { message: "User created successfully", userId },

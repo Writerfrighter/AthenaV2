@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Database, Users, Info } from "lucide-react";
 import { DatabaseSyncComponent } from "@/components/sync/database-sync";
+import { DatabaseConfigurationComponent } from "@/components/settings/database-configuration";
 import { OfflinePrecache } from "@/components/sync/offline-precache";
 import { DataExportImportComponent } from "@/components/settings/data-export-import";
 import { DatabaseResetComponent } from "@/components/settings/database-reset";
@@ -66,6 +67,9 @@ export default function SettingsPage() {
 
         <TabsContent value="database" className="space-y-4">
           <DatabaseSyncComponent />
+          <PermissionGuard permission={PERMISSIONS.MANAGE_SYSTEM_CONFIG}>
+            <DatabaseConfigurationComponent />
+          </PermissionGuard>
           <OfflinePrecache />
           <PermissionGuard
             permissions={[PERMISSIONS.IMPORT_DATA, PERMISSIONS.EXPORT_DATA]}
