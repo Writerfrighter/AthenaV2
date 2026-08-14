@@ -1,70 +1,16 @@
-export type DatabaseProvider = "azuresql" | "firebase" | "cosmos" | "mariadb";
-
-export interface DatabaseFormState {
-  provider: DatabaseProvider;
-  azuresql: {
-    connectionString: string;
-    server: string;
-    database: string;
-    user: string;
-    password: string;
-    useManagedIdentity: boolean;
-  };
-  firebase: {
-    serviceAccountPath: string;
-    serviceAccountJson: string;
-    databaseURL: string;
-  };
-  cosmos: {
-    endpoint: string;
-    key: string;
-    databaseId: string;
-    containerId: string;
-  };
-  mariadb: {
-    connectionString: string;
-    host: string;
-    port: string;
-    database: string;
-    user: string;
-    password: string;
-  };
-}
-
-export const defaultDatabaseFormState: DatabaseFormState = {
-  provider: "azuresql",
-  azuresql: {
-    connectionString: "",
-    server: "",
-    database: "",
-    user: "",
-    password: "",
-    useManagedIdentity: false,
-  },
-  firebase: {
-    serviceAccountPath: "",
-    serviceAccountJson: "",
-    databaseURL: "",
-  },
-  cosmos: {
-    endpoint: "",
-    key: "",
-    databaseId: "",
-    containerId: "",
-  },
-  mariadb: {
-    connectionString: "",
-    host: "",
-    port: "",
-    database: "",
-    user: "",
-    password: "",
-  },
-};
+export type {
+  DatabaseProvider,
+  DatabaseFormState,
+} from "@/lib/types/db/providers";
+export {
+  defaultDatabaseFormState,
+  DATABASE_PROVIDERS,
+  isDatabaseFormValid,
+} from "@/lib/types/db/providers";
 
 export interface AdminFormValues {
   name: string;
-  email: string;
+  username: string;
   password: string;
 }
 

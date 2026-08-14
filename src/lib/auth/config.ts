@@ -1,9 +1,11 @@
 import { getServerSession } from "next-auth/next";
 import type { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { getOrCreateAuthSecret } from "@/lib/server/env-file";
 import "./types";
 
 export const authOptions: NextAuthOptions = {
+  secret: getOrCreateAuthSecret(),
   providers: [
     Credentials({
       name: "credentials",

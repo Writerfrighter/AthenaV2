@@ -7,10 +7,14 @@ import { loadPersistedDatabaseConfig } from "@/lib/server/env-file";
 
 class DatabaseManager {
   private static instance: DatabaseManager;
-  private currentService: DatabaseService;
-  private config: DatabaseConfig;
+  private currentService: DatabaseService | null = null;
+  private config: DatabaseConfig | null = null;
 
   private constructor() {
+    this.initFromEnvOrPersisted();
+  }
+
+  public initFromEnvOrPersisted(): void {
     const persistedConfig = loadPersistedDatabaseConfig();
 
     if (persistedConfig) {
@@ -96,72 +100,74 @@ class DatabaseManager {
     } else if (isMariaDbConfigured) {
       selected = "mariadb";
     } else {
-      throw new Error(
-        "No supported database provider could be detected from environment variables",
-      );
+      this.config = null;
+      this.currentService = null;
+      return;
     }
 
-    // Build config and instantiate service
-    if (selected === "azuresql") {
-      this.config = {
-        provider: "azuresql",
-        azuresql:
-          azureSqlServer && azureSqlDatabase
-            ? {
-                server: azureSqlServer,
-                database: azureSqlDatabase,
-                user: useManagedIdentity ? undefined : azureSqlUser,
-                password: useManagedIdentity ? undefined : azureSqlPassword,
-                useManagedIdentity: useManagedIdentity,
-              }
+    try {
+      // Build config and instantiate service
+      if (selected === "azuresql") {
+        this.config = {
+          provider: "azuresql",
+          azuresql:
+            azureSqlServer && azureSqlDatabase
+              ? {
+                  server: azureSqlServer,
+                  database: azureSqlDatabase,
+                  user: useManagedIdentity ? undefined : azureSqlUser,
+                  password: useManagedIdentity ? undefined : azureSqlPassword,
+                  useManagedIdentity: useManagedIdentity,
+                }
+              : {
+                  connectionString: azureSqlConnectionString,
+                  useManagedIdentity: false,
+                },
+        };
+        this.currentService = new AzureSqlDatabaseService(this.config.azuresql!);
+      } else if (selected === "cosmos") {
+        this.config = {
+          provider: "cosmos",
+          cosmos: {
+            endpoint: cosmosEndpoint,
+            key: cosmosKey,
+            databaseId: cosmosDatabaseId,
+            containerId: cosmosContainerId,
+          },
+        };
+        this.currentService = new CosmosDatabaseService(this.config.cosmos);
+      } else if (selected === "firebase") {
+        const saJson = firebaseServiceAccountJson
+          ? JSON.parse(firebaseServiceAccountJson)
+          : undefined;
+        this.config = {
+          provider: "firebase",
+          firebase: {
+            serviceAccountPath: firebaseServiceAccountPath,
+            serviceAccountJson: saJson,
+            databaseURL: firebaseDatabaseURL,
+          },
+        } as DatabaseConfig;
+        this.currentService = new FirebaseDatabaseService(this.config.firebase);
+      } else if (selected === "mariadb") {
+        this.config = {
+          provider: "mariadb",
+          mariadb: mariadbConnectionString
+            ? { connectionString: mariadbConnectionString }
             : {
-                connectionString: azureSqlConnectionString,
-                useManagedIdentity: false,
+                host: mariadbHost,
+                port: mariadbPort,
+                database: mariadbDatabase,
+                user: mariadbUser,
+                password: mariadbPassword,
               },
-      };
-      this.currentService = new AzureSqlDatabaseService(this.config.azuresql!);
-    } else if (selected === "cosmos") {
-      this.config = {
-        provider: "cosmos",
-        cosmos: {
-          endpoint: cosmosEndpoint,
-          key: cosmosKey,
-          databaseId: cosmosDatabaseId,
-          containerId: cosmosContainerId,
-        },
-      };
-      this.currentService = new CosmosDatabaseService(this.config.cosmos);
-    } else if (selected === "firebase") {
-      const saJson = firebaseServiceAccountJson
-        ? JSON.parse(firebaseServiceAccountJson)
-        : undefined;
-      this.config = {
-        provider: "firebase",
-        firebase: {
-          serviceAccountPath: firebaseServiceAccountPath,
-          serviceAccountJson: saJson,
-          databaseURL: firebaseDatabaseURL,
-        },
-      } as DatabaseConfig;
-      this.currentService = new FirebaseDatabaseService(this.config.firebase);
-    } else if (selected === "mariadb") {
-      this.config = {
-        provider: "mariadb",
-        mariadb: mariadbConnectionString
-          ? { connectionString: mariadbConnectionString }
-          : {
-              host: mariadbHost,
-              port: mariadbPort,
-              database: mariadbDatabase,
-              user: mariadbUser,
-              password: mariadbPassword,
-            },
-      } as DatabaseConfig;
-      this.currentService = new MariaDbDatabaseService(this.config.mariadb!);
-    } else {
-      throw new Error(
-        "No supported database provider could be selected or detected",
-      );
+        } as DatabaseConfig;
+        this.currentService = new MariaDbDatabaseService(this.config.mariadb!);
+      }
+    } catch (err) {
+      console.warn("Failed to initialize database provider from environment:", err);
+      this.config = null;
+      this.currentService = null;
     }
   }
 
@@ -170,6 +176,10 @@ class DatabaseManager {
       DatabaseManager.instance = new DatabaseManager();
     }
     return DatabaseManager.instance;
+  }
+
+  isConfigured(): boolean {
+    return this.currentService !== null;
   }
 
   configure(config: DatabaseConfig): void {
@@ -199,24 +209,35 @@ class DatabaseManager {
   }
 
   getService(): DatabaseService {
+    if (!this.currentService) {
+      this.initFromEnvOrPersisted();
+    }
+    if (!this.currentService) {
+      throw new Error(
+        "No database provider is currently configured. Please complete setup.",
+      );
+    }
     return this.currentService;
   }
 
-  getConfig(): DatabaseConfig {
+  getConfig(): DatabaseConfig | null {
+    if (!this.config) {
+      this.initFromEnvOrPersisted();
+    }
     return this.config;
   }
 
   // Convenience methods that delegate to the current service
   async exportData(year?: number) {
-    return this.currentService.exportData(year);
+    return this.getService().exportData(year);
   }
 
   async importData(data: Parameters<DatabaseService["importData"]>[0]) {
-    return this.currentService.importData(data);
+    return this.getService().importData(data);
   }
 
   async resetDatabase() {
-    return this.currentService.resetDatabase();
+    return this.getService().resetDatabase();
   }
 
   async switchProvider(
@@ -224,7 +245,7 @@ class DatabaseManager {
     config?: Partial<DatabaseConfig>,
   ) {
     const newConfig: DatabaseConfig = {
-      ...this.config,
+      ...(this.config ?? { provider }),
       provider,
       ...config,
     };

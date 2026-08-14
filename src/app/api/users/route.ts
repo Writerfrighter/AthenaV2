@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { databaseManager } from "@/db/database-manager";
 import { auth } from "@/lib/auth/config";
 import { hasPermission, hasAnyPermission, PERMISSIONS } from "@/lib/auth/roles";
+import { createUser } from "@/lib/server/user-service";
 
 export async function GET() {
   try {
@@ -87,93 +87,22 @@ export async function POST(request: NextRequest) {
 
     const { name, username, password, role = "scout" } = await request.json();
 
-    // Validate required fields
-    if (!name || !username || !password) {
+    const result = await createUser({
+      name,
+      username,
+      password,
+      role,
+    });
+
+    if (!result.success) {
       return NextResponse.json(
-        { error: "Name, username, and password are required" },
-        { status: 400 },
+        { error: result.error },
+        { status: result.status },
       );
     }
-
-    // Validate username format (alphanumeric, underscore, dash, 3-20 chars)
-    const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
-    if (!usernameRegex.test(username)) {
-      return NextResponse.json(
-        {
-          error:
-            "Username must be 3-20 characters and contain only letters, numbers, underscores, or dashes",
-        },
-        { status: 400 },
-      );
-    }
-
-    // Validate password strength
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters long" },
-        { status: 400 },
-      );
-    }
-
-    // Validate role
-    const validRoles = [
-      "admin",
-      "lead_scout",
-      "scout",
-      "tablet",
-      "viewer",
-      "external",
-    ];
-    if (!validRoles.includes(role)) {
-      return NextResponse.json(
-        { error: "Invalid role specified" },
-        { status: 400 },
-      );
-    }
-
-    const db = databaseManager.getService();
-    if (!db.query) {
-      return NextResponse.json(
-        { error: "Database service does not support direct SQL queries" },
-        { status: 500 },
-      );
-    }
-    // Check if user already exists
-    const existingUserResult = await db.query<{ id: string }>(
-      "SELECT id FROM users WHERE username = @username",
-      { username },
-    );
-
-    if (existingUserResult.recordset.length > 0) {
-      return NextResponse.json(
-        { error: "User with this username already exists" },
-        { status: 409 },
-      );
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Generate unique ID for user
-    const userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-
-    // Create user
-    await db.query(
-      `
-        INSERT INTO users (id, name, username, password_hash, role, created_at, updated_at)
-        VALUES (@id, @name, @username, @passwordHash, @role, GETDATE(), GETDATE())
-      `,
-      {
-        id: userId,
-        name,
-        username,
-        passwordHash: hashedPassword,
-        role,
-      },
-    );
 
     return NextResponse.json(
-      { message: "User created successfully", userId },
+      { message: "User created successfully", userId: result.userId },
       { status: 201 },
     );
   } catch (error) {

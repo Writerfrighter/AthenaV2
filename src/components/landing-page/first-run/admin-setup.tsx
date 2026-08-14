@@ -1,8 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Eye, EyeOff, Check, X, ArrowRight, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import {
+  Sparkles,
+  Eye,
+  EyeOff,
+  Check,
+  X,
+  ArrowRight,
+  Loader2,
+  AlertCircle,
+  ArrowLeft,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +28,7 @@ import type { AdminFormValues } from "./types";
 
 interface AdminStepProps {
   onSubmit: (data: AdminFormValues) => void;
-  onBack: () => void;
+  onBack?: () => void;
   isSubmitting: boolean;
   error: string | null;
 }
@@ -29,9 +46,14 @@ function PasswordRequirement({ met, label }: { met: boolean; label: string }) {
   );
 }
 
-export function AdminStep({ onSubmit, onBack, isSubmitting, error }: AdminStepProps) {
+export function AdminStep({
+  onSubmit,
+  onBack,
+  isSubmitting,
+  error,
+}: AdminStepProps) {
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -42,14 +64,26 @@ export function AdminStep({ onSubmit, onBack, isSubmitting, error }: AdminStepPr
     uppercase: /[A-Z]/.test(password),
     number: /[0-9]/.test(password),
   };
-  const passwordValid = requirements.length && requirements.uppercase && requirements.number;
+  const passwordValid =
+    requirements.length && requirements.uppercase && requirements.number;
   const passwordsMatch = password.length > 0 && password === confirmPassword;
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const canSubmit = name.trim().length > 0 && emailValid && passwordValid && passwordsMatch && !isSubmitting;
+  const usernameValid = /^[a-zA-Z0-9_-]{3,20}$/.test(username.trim());
+  const canSubmit =
+    name.trim().length > 0 &&
+    usernameValid &&
+    passwordValid &&
+    passwordsMatch &&
+    !isSubmitting;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (canSubmit) onSubmit({ name: name.trim(), email: email.trim(), password });
+    if (canSubmit) {
+      onSubmit({
+        name: name.trim(),
+        username: username.trim(),
+        password,
+      });
+    }
   };
 
   return (
@@ -59,10 +93,9 @@ export function AdminStep({ onSubmit, onBack, isSubmitting, error }: AdminStepPr
           <Sparkles className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <CardTitle className="text-2xl">Create the admin account</CardTitle>
+          <CardTitle className="text-2xl">Create admin account</CardTitle>
           <CardDescription className="mt-2">
-            Your database is connected. Now create the first admin account
-            for this instance.
+            Create the primary administrator account for this instance.
           </CardDescription>
         </div>
       </CardHeader>
@@ -90,16 +123,21 @@ export function AdminStep({ onSubmit, onBack, isSubmitting, error }: AdminStepPr
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="username">Username</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="admin@yourteam.org"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
+              id="username"
+              type="text"
+              placeholder="admin"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
               required
             />
+            {username.length > 0 && !usernameValid && (
+              <p className="text-xs text-destructive">
+                Username must be 3-20 characters (letters, numbers, underscores, or dashes).
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -120,14 +158,27 @@ export function AdminStep({ onSubmit, onBack, isSubmitting, error }: AdminStepPr
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 tabIndex={-1}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </button>
             </div>
             {password.length > 0 && (
               <ul className="grid grid-cols-1 gap-1 pt-1">
-                <PasswordRequirement met={requirements.length} label="At least 8 characters" />
-                <PasswordRequirement met={requirements.uppercase} label="One uppercase letter" />
-                <PasswordRequirement met={requirements.number} label="One number" />
+                <PasswordRequirement
+                  met={requirements.length}
+                  label="At least 8 characters"
+                />
+                <PasswordRequirement
+                  met={requirements.uppercase}
+                  label="One uppercase letter"
+                />
+                <PasswordRequirement
+                  met={requirements.number}
+                  label="One number"
+                />
               </ul>
             )}
           </div>
@@ -150,7 +201,11 @@ export function AdminStep({ onSubmit, onBack, isSubmitting, error }: AdminStepPr
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 tabIndex={-1}
               >
-                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </button>
             </div>
             {confirmPassword.length > 0 && !passwordsMatch && (
@@ -161,11 +216,22 @@ export function AdminStep({ onSubmit, onBack, isSubmitting, error }: AdminStepPr
 
         <CardFooter className="flex-col gap-3">
           <div className="flex w-full gap-2">
-            <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <Button type="submit" className="flex-1" disabled={!canSubmit}>
+            {onBack && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onBack}
+                disabled={isSubmitting}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            )}
+            <Button
+              type="submit"
+              className={onBack ? "flex-1" : "w-full"}
+              disabled={!canSubmit}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -180,8 +246,7 @@ export function AdminStep({ onSubmit, onBack, isSubmitting, error }: AdminStepPr
             </Button>
           </div>
           <p className="text-xs text-muted-foreground text-center">
-            This account will have full access to the app. You can invite
-            additional users afterwards.
+            This account will have full administrative access.
           </p>
         </CardFooter>
       </form>

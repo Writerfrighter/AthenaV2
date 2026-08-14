@@ -3,8 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, ShieldCheck, ArrowRight, Database as DatabaseIcon, UserPlus } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import {
+  Check,
+  ShieldCheck,
+  ArrowRight,
+  Database as DatabaseIcon,
+  UserPlus,
+} from "lucide-react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
 import { ThemeSelector } from "@/components/settings/theme-selector";
@@ -21,43 +33,60 @@ import {
 interface FirstRunSetupPageProps {
   appName?: string;
   redirectHref?: string;
+  initialStep?: SetupStep;
   /** Wire this to your database-testing/persisting API. Defaults to POST /api/setup/database */
   onSubmitDatabase?: (data: DatabaseFormState) => Promise<SetupResult>;
   /** Wire this to your admin-creation API. Defaults to POST /api/setup/admin */
   onSubmitAdmin?: (data: AdminFormValues) => Promise<SetupResult>;
 }
 
-const defaultSubmitDatabase = async (data: DatabaseFormState): Promise<SetupResult> => {
+const defaultSubmitDatabase = async (
+  data: DatabaseFormState,
+): Promise<SetupResult> => {
   try {
     const res = await fetch("/api/setup/database", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
+    const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      return { success: false, error: body?.error ?? "Could not connect to the database." };
+      return {
+        success: false,
+        error: body?.error ?? "Could not connect to the database.",
+      };
     }
     return { success: true };
   } catch {
-    return { success: false, error: "Could not reach the server. Please try again." };
+    return {
+      success: false,
+      error: "Could not reach the server. Please try again.",
+    };
   }
 };
 
-const defaultSubmitAdmin = async (data: AdminFormValues): Promise<SetupResult> => {
+const defaultSubmitAdmin = async (
+  data: AdminFormValues,
+): Promise<SetupResult> => {
   try {
     const res = await fetch("/api/setup/admin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
+    const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      return { success: false, error: body?.error ?? "Setup failed. Please try again." };
+      return {
+        success: false,
+        error: body?.error ?? "Setup failed. Please try again.",
+      };
     }
     return { success: true };
   } catch {
-    return { success: false, error: "Could not reach the server. Please try again." };
+    return {
+      success: false,
+      error: "Could not reach the server. Please try again.",
+    };
   }
 };
 
@@ -72,7 +101,7 @@ function StepIndicator({ current }: { current: SetupStep }) {
   return (
     <div className="flex items-center justify-center gap-2 mb-8">
       {STEPS.map((step, i) => {
-        const isDone = current !== "complete" && i < currentIndex;
+        const isDone = (current as string) === "complete" || (currentIndex !== -1 && i < currentIndex);
         const isActive = step.key === current;
         const Icon = step.icon;
 
@@ -88,16 +117,28 @@ function StepIndicator({ current }: { current: SetupStep }) {
                       : "border-muted text-muted-foreground"
                 }`}
               >
-                {isDone ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                {isDone ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Icon className="h-4 w-4" />
+                )}
               </div>
               <span
-                className={`text-xs ${isActive ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                className={`text-xs ${
+                  isActive
+                    ? "text-foreground font-medium"
+                    : "text-muted-foreground"
+                }`}
               >
                 {step.label}
               </span>
             </div>
             {i < STEPS.length - 1 && (
-              <div className={`h-0.5 w-12 sm:w-20 mx-2 ${isDone ? "bg-primary" : "bg-muted"}`} />
+              <div
+                className={`h-0.5 w-12 sm:w-20 mx-2 ${
+                  isDone ? "bg-primary" : "bg-muted"
+                }`}
+              />
             )}
           </div>
         );
@@ -109,11 +150,13 @@ function StepIndicator({ current }: { current: SetupStep }) {
 export function FirstRunSetupPage({
   appName = "Athena",
   redirectHref = "/login",
+  initialStep = "database",
   onSubmitDatabase = defaultSubmitDatabase,
   onSubmitAdmin = defaultSubmitAdmin,
 }: FirstRunSetupPageProps) {
-  const [step, setStep] = useState<SetupStep>("database");
-  const [databaseForm, setDatabaseForm] = useState<DatabaseFormState>(defaultDatabaseFormState);
+  const [step, setStep] = useState<SetupStep>(initialStep);
+  const [databaseForm, setDatabaseForm] =
+    useState<DatabaseFormState>(defaultDatabaseFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -154,7 +197,13 @@ export function FirstRunSetupPage({
       <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Image src="/TRCLogo.webp" alt={`${appName} logo`} width={40} height={40} className="rounded dark:hidden" />
+            <Image
+              src="/TRCLogo.webp"
+              alt={`${appName} logo`}
+              width={40}
+              height={40}
+              className="rounded dark:hidden"
+            />
             <Image
               src="/TRCLogoWhite.png"
               alt={`${appName} logo`}
@@ -190,10 +239,14 @@ export function FirstRunSetupPage({
             {step === "admin" && (
               <AdminStep
                 onSubmit={handleAdminSubmit}
-                onBack={() => {
-                  setError(null);
-                  setStep("database");
-                }}
+                onBack={
+                  initialStep === "admin"
+                    ? undefined
+                    : () => {
+                        setError(null);
+                        setStep("database");
+                      }
+                }
                 isSubmitting={isSubmitting}
                 error={error}
               />
@@ -205,11 +258,10 @@ export function FirstRunSetupPage({
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
                     <ShieldCheck className="h-6 w-6 text-emerald-500" />
                   </div>
-                  <CardTitle className="text-2xl">You&apos;re all set</CardTitle>
+                  <CardTitle className="text-2xl">You&apos;re all set!</CardTitle>
                   <CardDescription>
-                    {appName} is connected to your database and the admin
-                    account has been created. Sign in to start configuring
-                    your team.
+                    {appName} is ready and the administrator account has been created.
+                    Sign in to start configuring your team and scouting settings.
                   </CardDescription>
                 </CardHeader>
                 <CardFooter>

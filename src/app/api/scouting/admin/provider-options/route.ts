@@ -183,9 +183,9 @@ export async function GET() {
   const config = manager.getConfig();
 
   return NextResponse.json({
-    currentProvider: config.provider,
+    currentProvider: config?.provider ?? "azuresql",
     providers,
-    config: summarizeConfig(config),
+    config: config ? summarizeConfig(config) : { provider: "azuresql" },
   });
 }
 
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
     }
 
     const manager = DatabaseManager.getInstance();
-    const currentConfig = manager.getConfig();
+    const currentConfig = manager.getConfig() ?? { provider };
     const mergedConfig = mergeConfig(
       {
         provider,
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Database configuration updated successfully",
       currentProvider: mergedConfig.provider,
-      config: summarizeConfig(manager.getConfig()),
+      config: summarizeConfig(manager.getConfig()!),
     });
   } catch (error) {
     console.error("Error updating database configuration:", error);
