@@ -5,10 +5,11 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Check,
-  ShieldCheck,
+  PartyPopper,
   ArrowRight,
   Database as DatabaseIcon,
   UserPlus,
+  Rocket,
 } from "lucide-react";
 import {
   Card,
@@ -34,9 +35,7 @@ interface FirstRunSetupPageProps {
   appName?: string;
   redirectHref?: string;
   initialStep?: SetupStep;
-  /** Wire this to your database-testing/persisting API. Defaults to POST /api/setup/database */
   onSubmitDatabase?: (data: DatabaseFormState) => Promise<SetupResult>;
-  /** Wire this to your admin-creation API. Defaults to POST /api/setup/admin */
   onSubmitAdmin?: (data: AdminFormValues) => Promise<SetupResult>;
 }
 
@@ -53,14 +52,14 @@ const defaultSubmitDatabase = async (
     if (!res.ok) {
       return {
         success: false,
-        error: body?.error ?? "Could not connect to the database.",
+        error: body?.error ?? "We couldn't connect to that database. Double-check your details and try again.",
       };
     }
     return { success: true };
   } catch {
     return {
       success: false,
-      error: "Could not reach the server. Please try again.",
+      error: "We couldn't reach the server. Check your connection and try again.",
     };
   }
 };
@@ -78,14 +77,14 @@ const defaultSubmitAdmin = async (
     if (!res.ok) {
       return {
         success: false,
-        error: body?.error ?? "Setup failed. Please try again.",
+        error: body?.error ?? "Something went wrong creating your account. Please try again.",
       };
     }
     return { success: true };
   } catch {
     return {
       success: false,
-      error: "Could not reach the server. Please try again.",
+      error: "We couldn't reach the server. Check your connection and try again.",
     };
   }
 };
@@ -94,6 +93,72 @@ const STEPS: { key: SetupStep; label: string; icon: typeof DatabaseIcon }[] = [
   { key: "database", label: "Database", icon: DatabaseIcon },
   { key: "admin", label: "Admin account", icon: UserPlus },
 ];
+
+const WELCOME_STEPS = [
+  { key: "database" as const, label: "Connect your database", icon: DatabaseIcon },
+  { key: "admin" as const, label: "Create your admin account", icon: UserPlus },
+  { key: "complete" as const, label: "Start scouting", icon: Rocket },
+];
+
+function WelcomePanel({
+  appName,
+  current,
+}: {
+  appName: string;
+  current: SetupStep;
+}) {
+  const currentIndex = WELCOME_STEPS.findIndex((s) => s.key === current);
+
+  return (
+    <div className="hidden lg:block">
+      <h1 className="text-3xl font-bold tracking-tight mb-2">
+        Welcome to {appName}
+      </h1>
+      <p className="text-muted-foreground mb-8 max-w-sm">
+        Let's get your scouting platform up and running — it only takes
+        a couple of minutes.
+      </p>
+      <ul className="space-y-4">
+        {WELCOME_STEPS.map((item, i) => {
+          const isDone = currentIndex !== -1 && i < currentIndex;
+          const isActive = item.key === current;
+          const Icon = item.icon;
+
+          return (
+            <li key={item.key} className="flex items-center gap-3">
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-300 ${
+                  isDone
+                    ? "bg-primary border-primary text-primary-foreground"
+                    : isActive
+                      ? "border-primary text-primary"
+                      : "border-muted text-muted-foreground"
+                }`}
+              >
+                {isDone ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Icon className="h-3.5 w-3.5" />
+                )}
+              </div>
+              <span
+                className={`text-sm ${
+                  isActive
+                    ? "text-foreground font-medium"
+                    : isDone
+                      ? "text-foreground"
+                      : "text-muted-foreground"
+                }`}
+              >
+                {item.label}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
 
 function StepIndicator({ current }: { current: SetupStep }) {
   const currentIndex = STEPS.findIndex((s) => s.key === current);
@@ -109,7 +174,7 @@ function StepIndicator({ current }: { current: SetupStep }) {
           <div key={step.key} className="flex items-center">
             <div className="flex flex-col items-center gap-1.5">
               <div
-                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-colors ${
+                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-colors duration-300 ${
                   isDone
                     ? "bg-primary border-primary text-primary-foreground"
                     : isActive
@@ -135,7 +200,7 @@ function StepIndicator({ current }: { current: SetupStep }) {
             </div>
             {i < STEPS.length - 1 && (
               <div
-                className={`h-0.5 w-12 sm:w-20 mx-2 ${
+                className={`h-0.5 w-12 sm:w-20 mx-2 transition-colors duration-300 ${
                   isDone ? "bg-primary" : "bg-muted"
                 }`}
               />
@@ -169,7 +234,7 @@ export function FirstRunSetupPage({
     if (result.success) {
       setStep("admin");
     } else {
-      setError(result.error ?? "Could not connect to the database.");
+      setError(result.error ?? "We couldn't connect to that database. Double-check your details and try again.");
     }
   };
 
@@ -222,60 +287,66 @@ export function FirstRunSetupPage({
 
       {/* Main Content */}
       <main className="relative z-10 flex-1 w-full flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-2xl">
-          {step !== "complete" && <StepIndicator current={step} />}
-
-          <div className="mx-auto max-w-md">
-            {step === "database" && (
-              <DatabaseStep
-                value={databaseForm}
-                onChange={setDatabaseForm}
-                onSubmit={handleDatabaseSubmit}
-                isSubmitting={isSubmitting}
-                error={error}
-              />
-            )}
-
-            {step === "admin" && (
-              <AdminStep
-                onSubmit={handleAdminSubmit}
-                onBack={
-                  initialStep === "admin"
-                    ? undefined
-                    : () => {
-                        setError(null);
-                        setStep("database");
-                      }
-                }
-                isSubmitting={isSubmitting}
-                error={error}
-              />
-            )}
-
-            {step === "complete" && (
-              <Card className="shadow-lg text-center">
-                <CardHeader className="space-y-3">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-                    <ShieldCheck className="h-6 w-6 text-emerald-500" />
-                  </div>
-                  <CardTitle className="text-2xl">You&apos;re all set!</CardTitle>
-                  <CardDescription>
-                    {appName} is ready and the administrator account has been created.
-                    Sign in to start configuring your team and scouting settings.
-                  </CardDescription>
-                </CardHeader>
-                <CardFooter>
-                  <Link href={redirectHref} className="w-full">
-                    <Button className="w-full">
-                      Continue to sign in
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            )}
+        {step === "complete" ? (
+          <div className="w-full max-w-md">
+            <Card className="shadow-lg text-center">
+              <CardHeader className="space-y-3">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+                  <PartyPopper className="h-6 w-6 text-emerald-500" />
+                </div>
+                <CardTitle className="text-2xl">You're all set!</CardTitle>
+                <CardDescription>
+                  Nice work — {appName} is ready to go and your admin account is created.
+                  Sign in whenever you're ready to start setting up your team.
+                </CardDescription>
+              </CardHeader>
+              <CardFooter>
+                <Link href={redirectHref} className="w-full">
+                  <Button className="w-full">
+                    Continue to sign in
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
+              </CardFooter>
+            </Card>
           </div>
-        </div>
+        ) : (
+          <div className="w-full max-w-4xl grid lg:grid-cols-2 gap-16 items-center">
+            <WelcomePanel appName={appName} current={step} />
+
+            <div className="w-full max-w-md mx-auto lg:mx-0">
+              <div className="lg:hidden">
+                <StepIndicator current={step} />
+              </div>
+
+              {step === "database" && (
+                <DatabaseStep
+                  value={databaseForm}
+                  onChange={setDatabaseForm}
+                  onSubmit={handleDatabaseSubmit}
+                  isSubmitting={isSubmitting}
+                  error={error}
+                />
+              )}
+
+              {step === "admin" && (
+                <AdminStep
+                  onSubmit={handleAdminSubmit}
+                  onBack={
+                    initialStep === "admin"
+                      ? undefined
+                      : () => {
+                          setError(null);
+                          setStep("database");
+                        }
+                  }
+                  isSubmitting={isSubmitting}
+                  error={error}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

@@ -48,14 +48,14 @@ export function DatabaseStep({
         <div>
           <CardTitle className="text-2xl">Connect your database</CardTitle>
           <CardDescription className="mt-2">
-            Choose a provider and enter its connection details. We&apos;ll
+            Choose a provider and enter its connection details. We'll
             verify the connection before moving on.
           </CardDescription>
         </div>
       </CardHeader>
 
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pb-4">
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />

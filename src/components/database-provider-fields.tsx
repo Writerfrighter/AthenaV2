@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DATABASE_PROVIDERS, type DatabaseFormState, type DatabaseProvider } from "@/lib/types/db/providers";
+import { HelpTooltip } from "./ui/help-tooltip";
 
 interface DatabaseProviderFieldsProps {
   value: DatabaseFormState;
@@ -105,7 +106,12 @@ export function DatabaseProviderFields({
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label>Managed identity</Label>
+              <div className="flex items-center justify-left gap-2">
+                <Label>Managed identity</Label>
+                <HelpTooltip side="right">
+                  Lets Athena authenticate to your database using your Azure resource's built-in identity instead of a stored password. Recommended if you're hosting on Azure — nothing to rotate or leak.
+                </HelpTooltip>
+              </div>
               <Select
                 value={value.azuresql.useManagedIdentity ? "yes" : "no"}
                 onValueChange={(v) =>

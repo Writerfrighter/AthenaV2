@@ -37,7 +37,7 @@ export default function Page() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back! Here&apos;s your scouting overview for the current
+            Welcome back! Here's your scouting overview for the current
             event.
           </p>
         </div>
