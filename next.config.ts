@@ -48,10 +48,12 @@ function resolveAuthSecret(): string {
 const authSecret = resolveAuthSecret();
 
 const nextConfig: NextConfig = {
-  // Inject the auth secret so every runtime (including Edge middleware) can
-  // read it from process.env.NEXTAUTH_SECRET without needing an .env file.
+  // Inject the auth secret and trust host flag so every runtime (including Edge middleware) can
+  // read it without needing manual .env configuration or AUTH_URL.
   env: {
     NEXTAUTH_SECRET: authSecret,
+    AUTH_SECRET: authSecret,
+    AUTH_TRUST_HOST: "true",
   },
   output: "standalone",
   reactStrictMode: true,
