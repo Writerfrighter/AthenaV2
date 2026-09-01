@@ -6,6 +6,7 @@ let mockQuery = vi.fn();
 
 vi.mock("@/lib/server/env-file", () => ({
   savePersistedDatabaseConfig: mockSavePersistedDatabaseConfig,
+  loadSystemSettings: vi.fn(() => ({ signupEnabled: true })),
 }));
 
 vi.mock("@/db/database-manager", () => {
