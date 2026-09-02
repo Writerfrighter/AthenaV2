@@ -57,7 +57,10 @@ const defaultSubmitDatabase = async (
         error: body?.error ?? "We couldn't connect to that database. Double-check your details and try again.",
       };
     }
-    return { success: true };
+    return {
+      success: true,
+      setupComplete: Boolean(body?.setupComplete ?? body?.adminExists ?? false),
+    };
   } catch {
     return {
       success: false,
@@ -234,7 +237,7 @@ export function FirstRunSetupPage({
     setIsSubmitting(false);
 
     if (result.success) {
-      setStep("admin");
+      setStep(result.setupComplete ? "complete" : "admin");
     } else {
       setError(result.error ?? "We couldn't connect to that database. Double-check your details and try again.");
     }
@@ -298,7 +301,7 @@ export function FirstRunSetupPage({
                 </div>
                 <CardTitle className="text-2xl">You're all set!</CardTitle>
                 <CardDescription>
-                  Nice work — {appName} is ready to go and your admin account is created.
+                  Nice work — {appName} is ready to go. Your database is connected and the setup is complete.
                   Sign in whenever you're ready to start setting up your team.
                 </CardDescription>
               </CardHeader>
