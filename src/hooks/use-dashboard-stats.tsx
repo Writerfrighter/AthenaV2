@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useEventConfig } from "./use-event-config";
 import { useGameConfig } from "./use-game-config";
 import { statsApi } from "@/lib/api/database-client";
-// We'll call a server-side proxy route instead of calling TBA directly from the client
-// to avoid CORS and exposing the TBA API key.
 
 export interface DashboardStats {
   teamsScouted: number;

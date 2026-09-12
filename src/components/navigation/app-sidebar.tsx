@@ -12,10 +12,16 @@ import {
   CalendarClock,
   Swords,
   UserCheck,
+  DatabaseIcon,
+  Users,
+  KeyRound,
+  FileJson,
+  Bell
 } from "lucide-react";
 
 import { NavMain } from "@/components/navigation/nav-main";
 import { NavUser } from "@/components/navigation/nav-user";
+import { NavAdmin } from "@/components/navigation/nav-admin";
 import { EventSwitcher } from "@/components/events/event-switcher";
 import {
   Sidebar,
@@ -27,7 +33,8 @@ import {
 import { SearchForm } from "@/components/forms/search-form";
 import { useSession } from "next-auth/react";
 import { useGameConfig } from "@/hooks/use-game-config";
-
+import { PermissionGuard } from "../auth/PermissionGuard";
+import { ROLES } from "@/lib/auth/roles";
 const data = {
   user: {
     name: "Noah Fang",
@@ -81,30 +88,39 @@ const data = {
       url: "/dashboard/picklist",
       icon: ListOrdered,
     },
-    {
-      title: "Settings",
-      url: "/dashboard/settings",
-      icon: Settings,
-    },
+    // {
+    //   title: "Settings",
+    //   url: "/dashboard/settings",
+    //   icon: Settings,
     // },
   ],
-  // projects: [
-  //   {
-  //     name: "Design Engineering",
-  //     url: "#",
-  //     icon: Frame,
-  //   },
-  //   {
-  //     name: "Sales & Marketing",
-  //     url: "#",
-  //     icon: PieChart,
-  //   },
-  //   {
-  //     name: "Travel",
-  //     url: "#",
-  //     icon: Map,
-  //   },
-  // ],
+  navAdmin: [
+    {
+      name: "Database",
+      url: "/dashboard/admin/database",
+      icon: DatabaseIcon,
+    },
+    {
+      name: "Team Management",
+      url: "#",
+      icon: Users,
+    },
+    {
+      name: "Game Configuration",
+      url: "/dashboard/admin/game-config",
+      icon: FileJson,
+    },
+    {
+      name: "API Keys",
+      url: "/dashboard/admin/keys",
+      icon: KeyRound,
+    },
+    {
+      name: "Notifications",
+      url: "#",
+      icon: Bell,
+    }
+  ],
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -149,7 +165,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </div>
         <SearchForm className="mt-1 ms-2" />
         <NavMain items={data.navMain} />
-        {/* <NavProjects projects={data.projects} /> */}
+        <PermissionGuard roles={[ROLES.ADMIN, ROLES.LEAD_SCOUT]}>
+          <NavAdmin items={data.navAdmin} />
+        </PermissionGuard>
+        
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={userData} />

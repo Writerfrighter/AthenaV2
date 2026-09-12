@@ -1,4 +1,12 @@
-import type { MatchEntry, TeamStats, EPABreakdown, YearConfig, ScoringDefinition, TeamData, PitEntry } from "../lib/types";
+import type {
+  MatchEntry,
+  TeamStats,
+  EPABreakdown,
+  YearConfig,
+  ScoringDefinition,
+  TeamData,
+  PitEntry,
+} from "../lib/types";
 
 /**
  * Calculate Expected Points Added (EPA) for a team based on their match performance
@@ -803,7 +811,10 @@ export function calculateDetailedGameStats(
         const fullKey = `${period}.${rawKey}`;
         const shortKey = rawKey;
 
-        if (typeof val === "number" || (!isNaN(Number(val)) && typeof val === "string" && val.trim() !== "")) {
+        if (
+          typeof val === "number" ||
+          (!isNaN(Number(val)) && typeof val === "string" && val.trim() !== "")
+        ) {
           const num = Number(val);
           numTotals[fullKey] = (numTotals[fullKey] || 0) + num;
           numTotals[shortKey] = (numTotals[shortKey] || 0) + num;
@@ -928,13 +939,24 @@ export function calculateDetailedGameStats(
     stateFrequency[s] = (stateFrequency[s] || 0) + 1;
   });
   const bestEndgame =
-    Object.entries(stateFrequency).sort((a, b) => b[1] - a[1])[0]?.[0] || "none";
+    Object.entries(stateFrequency).sort((a, b) => b[1] - a[1])[0]?.[0] ||
+    "none";
 
   // Best climb
-  const l3Rate = rates["endgame.ending_robot_state.L3"] || rates["ending_robot_state.L3"] || 0;
-  const l2Rate = rates["endgame.ending_robot_state.L2"] || rates["ending_robot_state.L2"] || 0;
-  const l1Rate = rates["endgame.ending_robot_state.L1"] || rates["ending_robot_state.L1"] || 0;
-  const bestClimb = l3Rate > 0 ? "L3" : l2Rate > 0 ? "L2" : l1Rate > 0 ? "L1" : "None";
+  const l3Rate =
+    rates["endgame.ending_robot_state.L3"] ||
+    rates["ending_robot_state.L3"] ||
+    0;
+  const l2Rate =
+    rates["endgame.ending_robot_state.L2"] ||
+    rates["ending_robot_state.L2"] ||
+    0;
+  const l1Rate =
+    rates["endgame.ending_robot_state.L1"] ||
+    rates["ending_robot_state.L1"] ||
+    0;
+  const bestClimb =
+    l3Rate > 0 ? "L3" : l2Rate > 0 ? "L2" : l1Rate > 0 ? "L1" : "None";
 
   // Calculate estimated points
   const autoEstimatedPoints = (() => {
@@ -1019,7 +1041,9 @@ export function calculateDetailedGameStats(
 /**
  * Extract and deduplicate all scouting notes from team data
  */
-export function extractScoutingNotes(teamData: TeamData | null | undefined): string[] {
+export function extractScoutingNotes(
+  teamData: TeamData | null | undefined,
+): string[] {
   if (!teamData) return [];
   const notes: string[] = [];
 
@@ -1053,4 +1077,3 @@ export function extractScoutingNotes(teamData: TeamData | null | undefined): str
 
   return [...new Set(notes)];
 }
-

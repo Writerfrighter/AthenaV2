@@ -205,3 +205,11 @@ export function getRolePermissions(role: string): string[] {
 export function getAllPermissions(): string[] {
   return Object.values(PERMISSIONS);
 }
+
+export function hasRole(userRole: string | null, role: string): boolean {
+  return userRole === role;
+}
+
+export function hasAnyRole(userRole: string | null, roles: string[]): boolean {
+  return roles.includes(userRole || "");
+}
