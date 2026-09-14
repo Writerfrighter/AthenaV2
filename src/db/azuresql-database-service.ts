@@ -1559,36 +1559,45 @@ export class AzureSqlDatabaseService implements DatabaseService {
   }
 
   async importData(data: {
-    pitEntries: PitEntry[];
-    matchEntries: MatchEntry[];
+    pitEntries?: PitEntry[];
+    matchEntries?: MatchEntry[];
   }): Promise<void> {
     const pool = await this.getPool();
     const mssql = await import("mssql");
 
-    // Clear existing data for the years being imported
-    const years = new Set<number>();
-    data.pitEntries.forEach((entry) => years.add(entry.year));
-    data.matchEntries.forEach((entry) => years.add(entry.year));
+    const pitEntries = data.pitEntries || [];
+    const matchEntries = data.matchEntries || [];
 
-    for (const year of years) {
-      await pool
-        .request()
-        .input("year", mssql.Int, year)
-        .query("DELETE FROM pitEntries WHERE year = @year");
+    // Clear existing data only for the years and types being imported
+    if (pitEntries.length > 0) {
+      const pitYears = new Set<number>();
+      pitEntries.forEach((entry) => pitYears.add(entry.year));
+      for (const year of pitYears) {
+        await pool
+          .request()
+          .input("year", mssql.Int, year)
+          .query("DELETE FROM pitEntries WHERE year = @year");
+      }
+    }
 
-      await pool
-        .request()
-        .input("year", mssql.Int, year)
-        .query("DELETE FROM matchEntries WHERE year = @year");
+    if (matchEntries.length > 0) {
+      const matchYears = new Set<number>();
+      matchEntries.forEach((entry) => matchYears.add(entry.year));
+      for (const year of matchYears) {
+        await pool
+          .request()
+          .input("year", mssql.Int, year)
+          .query("DELETE FROM matchEntries WHERE year = @year");
+      }
     }
 
     // Import pit entries
-    for (const entry of data.pitEntries) {
+    for (const entry of pitEntries) {
       await this.addPitEntry(entry);
     }
 
     // Import match entries
-    for (const entry of data.matchEntries) {
+    for (const entry of matchEntries) {
       await this.addMatchEntry(entry);
     }
   }

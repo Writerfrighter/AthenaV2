@@ -88,11 +88,11 @@ const data = {
       url: "/dashboard/picklist",
       icon: ListOrdered,
     },
-    // {
-    //   title: "Settings",
-    //   url: "/dashboard/settings",
-    //   icon: Settings,
-    // },
+    {
+      title: "Settings",
+      url: "/dashboard/settings",
+      icon: Settings,
+    },
   ],
   navAdmin: [
     {
@@ -102,7 +102,7 @@ const data = {
     },
     {
       name: "Team Management",
-      url: "#",
+      url: "/dashboard/admin/team",
       icon: Users,
     },
     {
@@ -117,9 +117,9 @@ const data = {
     },
     {
       name: "Notifications",
-      url: "#",
+      url: "/dashboard/admin/notifications",
       icon: Bell,
-    }
+    },
   ],
 };
 

@@ -324,8 +324,8 @@ export const dataApi = {
   },
 
   async importData(data: {
-    pitEntries: PitEntry[];
-    matchEntries: MatchEntry[];
+    pitEntries?: PitEntry[];
+    matchEntries?: MatchEntry[];
   }): Promise<void> {
     const response = await fetch(`${ADMIN_BASE}/import`, {
       method: "POST",

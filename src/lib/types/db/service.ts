@@ -122,8 +122,8 @@ export interface DatabaseService {
     competitionType?: CompetitionType,
   ): Promise<{ pitEntries: PitEntry[]; matchEntries: MatchEntry[] }>;
   importData(data: {
-    pitEntries: PitEntry[];
-    matchEntries: MatchEntry[];
+    pitEntries?: PitEntry[];
+    matchEntries?: MatchEntry[];
   }): Promise<void>;
   resetDatabase(): Promise<void>;
   syncToCloud?(): Promise<void>;

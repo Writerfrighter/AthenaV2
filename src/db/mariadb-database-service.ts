@@ -890,16 +890,16 @@ export class MariaDbDatabaseService implements DatabaseService {
     return { pitEntries: pit, matchEntries: matches };
   }
 
-  async importData(data: { pitEntries: PitEntry[]; matchEntries: MatchEntry[] }): Promise<void> {
+  async importData(data: { pitEntries?: PitEntry[]; matchEntries?: MatchEntry[] }): Promise<void> {
     const pool = await this.getPool();
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
-      for (const p of data.pitEntries) {
+      for (const p of data.pitEntries || []) {
         const q = `INSERT INTO pitEntries (teamNumber, year, competitionType, driveTrain, weight, length, width, eventName, eventCode, userId, gameSpecificData, autoDrawing, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
         await conn.execute(q, [p.teamNumber, p.year, p.competitionType, p.driveTrain, p.weight ?? null, p.length ?? null, p.width ?? null, p.eventName ?? null, p.eventCode ?? null, p.userId ?? null, JSON.stringify(p.gameSpecificData), p.autoDrawing ?? null, p.notes ?? null]);
       }
-      for (const m of data.matchEntries) {
+      for (const m of data.matchEntries || []) {
         const q = `INSERT INTO matchEntries (matchNumber, teamNumber, year, competitionType, alliance, alliancePosition, eventName, eventCode, userId, gameSpecificData, notes, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
         await conn.execute(q, [m.matchNumber, m.teamNumber, m.year, m.competitionType, m.alliance, m.alliancePosition ?? null, m.eventName ?? null, m.eventCode ?? null, m.userId ?? null, JSON.stringify(m.gameSpecificData), m.notes ?? null, m.timestamp]);
       }
