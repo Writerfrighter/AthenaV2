@@ -42,14 +42,11 @@ export default function Page() {
     setIsSubmitting(true);
 
     try {
-      console.log("Attempting login with username:", formData.username);
       const result = await signIn("credentials", {
         username: formData.username,
         password: formData.password,
         redirect: false,
       });
-
-      console.log("SignIn result:", result);
 
       if (result?.error) {
         console.error("Login error:", result.error);

@@ -27,11 +27,9 @@ export default async function middleware(req: NextRequest) {
 
   // Redirect to login if not authenticated
   if (!isAuth) {
-    // console.log(`Redirecting to login - no auth for path: ${req.nextUrl.pathname}`)
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // // console.log(`Allowing access to: ${req.nextUrl.pathname}`)
   return NextResponse.next();
 }
 
