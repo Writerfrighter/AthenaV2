@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEventMatches as getTbaEventMatches } from "@/lib/api/tba";
-import { getEventMatches as getFtcEventMatches } from "@/lib/api/ftcevents";
+import {
+  getEventMatches as getFtcEventMatches,
+  getEventSchedule as getFtcEventSchedule,
+} from "@/lib/api/ftcevents";
 import { TbaMatch } from "@/lib/api/tba-types";
 
 export async function GET(
@@ -36,10 +39,22 @@ export async function GET(
 
       const response = await getFtcEventMatches(seasonNum, eventCode);
       const matches = response.matches || [];
+      const qualificationMatches = matches.filter(
+        (match) => match.tournamentLevel === "QUALIFICATION",
+      );
+      const scheduleResponse = await getFtcEventSchedule(
+        seasonNum,
+        eventCode,
+        "qual",
+      ).catch(() => null);
+      const qualificationSchedule = scheduleResponse?.schedule ?? [];
 
       return NextResponse.json({
         matches,
         totalMatches: matches.length,
+        qualMatchesCount:
+          qualificationSchedule.length || qualificationMatches.length,
+        qualificationSchedule,
       });
     }
 
