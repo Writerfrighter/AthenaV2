@@ -24,6 +24,8 @@ import {
   BarChart3,
 } from "lucide-react";
 import type { YearConfig } from "@/lib/types";
+import { buildDatapointRegistry } from "@/lib/game-config/datapoint-registry";
+import { DatapointPicker, DatapointMultiPicker } from "./datapoint-picker";
 
 interface BuilderInsightsMatchupProps {
   config: YearConfig;
@@ -35,6 +37,14 @@ export function BuilderInsightsMatchup({
   onUpdateConfig,
 }: BuilderInsightsMatchupProps) {
   const [activeTab, setActiveTab] = useState("insights");
+  const datapoints = React.useMemo(
+    () => buildDatapointRegistry(config),
+    [config],
+  );
+  const enumDatapoints = React.useMemo(
+    () => datapoints.filter((d) => d.valueType === "enum" && !d.pitSection),
+    [datapoints],
+  );
 
   // Insights helper
   const insightsList = config.analysisInsights?.insights || [];
@@ -270,40 +280,42 @@ export function BuilderInsightsMatchup({
                     </div>
 
                     <div className="space-y-1">
-                      <Label className="text-xs">Target Field Key (or comma-separated keys)</Label>
-                      <Input
-                        value={
-                          insight.calculation.type === "booleanRate"
-                            ? insight.calculation.key
-                            : insight.calculation.type === "sum"
-                              ? insight.calculation.keys.join(", ")
-                              : insight.calculation.numeratorKeys.join(", ")
-                        }
-                        onChange={(e) => {
-                          const val = e.target.value;
+                      <Label className="text-xs">Target Field{insight.calculation.type === "booleanRate" ? "" : "s"}</Label>
+                      {(() => {
+                        const applyKeys = (keys: string[]) =>
                           onUpdateConfig((prev) => {
                             const list = [...(prev.analysisInsights?.insights || [])];
                             const currentCalc = list[idx].calculation;
                             let updatedCalc: typeof currentCalc;
                             if (currentCalc.type === "booleanRate") {
-                              updatedCalc = { type: "booleanRate", key: val };
+                              updatedCalc = { type: "booleanRate", key: keys[0] || "" };
                             } else if (currentCalc.type === "sum") {
-                              updatedCalc = {
-                                type: "sum",
-                                keys: val.split(",").map((k) => k.trim()).filter(Boolean),
-                              };
+                              updatedCalc = { type: "sum", keys };
                             } else {
-                              updatedCalc = {
-                                ...currentCalc,
-                                numeratorKeys: val.split(",").map((k) => k.trim()).filter(Boolean),
-                              };
+                              updatedCalc = { ...currentCalc, numeratorKeys: keys };
                             }
                             list[idx] = { ...list[idx], calculation: updatedCalc };
                             return { ...prev, analysisInsights: { ...prev.analysisInsights, insights: list } };
                           });
-                        }}
-                        placeholder="e.g. endgame.robot_broke_down"
-                      />
+
+                        return insight.calculation.type === "booleanRate" ? (
+                          <DatapointPicker
+                            datapoints={datapoints}
+                            value={insight.calculation.key}
+                            onChange={(key) => applyKeys([key])}
+                          />
+                        ) : (
+                          <DatapointMultiPicker
+                            datapoints={datapoints}
+                            values={
+                              insight.calculation.type === "sum"
+                                ? insight.calculation.keys
+                                : insight.calculation.numeratorKeys
+                            }
+                            onChange={applyKeys}
+                          />
+                        );
+                      })()}
                     </div>
                   </div>
                 </Card>
@@ -375,12 +387,12 @@ export function BuilderInsightsMatchup({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="endgame-state-key">Endgame State Field Key</Label>
-                  <Input
-                    id="endgame-state-key"
-                    value={config.matchupCardConfig?.endgame?.stateKey || "endgame.ending_robot_state"}
-                    onChange={(e) => {
-                      const val = e.target.value;
+                  <Label htmlFor="endgame-state-key">Endgame State Field</Label>
+                  <DatapointPicker
+                    datapoints={enumDatapoints}
+                    placeholder="Select a multi-state field..."
+                    value={config.matchupCardConfig?.endgame?.stateKey}
+                    onChange={(val) => {
                       onUpdateConfig((prev) => ({
                         ...prev,
                         matchupCardConfig: {
@@ -548,11 +560,11 @@ export function BuilderInsightsMatchup({
                       }}
                       className="flex-1"
                     />
-                    <Input
-                      placeholder="Field Key"
+                    <DatapointPicker
+                      className="flex-1"
+                      datapoints={datapoints}
                       value={item.key}
-                      onChange={(e) => {
-                        const val = e.target.value;
+                      onChange={(val) => {
                         onUpdateConfig((prev) => {
                           const items = [...(prev.teamPageConfig?.scoringBreakdownChart?.items || [])];
                           items[idx] = { ...items[idx], key: val };
@@ -568,7 +580,6 @@ export function BuilderInsightsMatchup({
                           };
                         });
                       }}
-                      className="flex-1"
                     />
                     <div className="flex items-center gap-1.5 shrink-0">
                       <input

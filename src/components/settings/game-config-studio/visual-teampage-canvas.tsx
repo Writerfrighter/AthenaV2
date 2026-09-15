@@ -7,21 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   LayoutDashboard,
   BarChart3,
   Activity,
-  Flame,
-  Zap,
-  Target,
   Trophy,
-  AlertTriangle,
   Plus,
   Trash2,
   Sliders,
@@ -29,6 +18,10 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import type { YearConfig, TeamPageConfig } from "@/lib/types";
+import { buildDatapointRegistry } from "@/lib/game-config/datapoint-registry";
+import { buildPreviewTeamData } from "@/lib/game-config/preview-stats";
+import { ConfigurableTeamPage } from "@/components/team-pages/configurable-team-page";
+import { DatapointPicker } from "./datapoint-picker";
 
 interface VisualTeamPageCanvasProps {
   config: YearConfig;
@@ -41,6 +34,18 @@ export function VisualTeamPageCanvas({
 }: VisualTeamPageCanvasProps) {
   const [selectedSection, setSelectedSection] = useState<"kpi" | "chart" | "endgame" | "penalties">("kpi");
   const [selectedChartItemIdx, setSelectedChartItemIdx] = useState<number | null>(null);
+  const datapoints = React.useMemo(
+    () => buildDatapointRegistry(config),
+    [config],
+  );
+  const enumDatapoints = React.useMemo(
+    () => datapoints.filter((d) => d.valueType === "enum" && !d.pitSection),
+    [datapoints],
+  );
+  const previewTeamData = React.useMemo(
+    () => buildPreviewTeamData(config),
+    [config],
+  );
 
   const teamPageConfig: TeamPageConfig = config.teamPageConfig || {
     kpis: {
@@ -217,193 +222,23 @@ export function VisualTeamPageCanvas({
         </Card>
       </div>
 
-      {/* Center Column: Live WYSIWYG Team Page Layout Preview (6 cols) */}
-      <div className="lg:col-span-6 space-y-5">
-        <span className="text-xs font-mono text-muted-foreground flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-primary" /> Live Team Page Profile Preview
-        </span>
-
-        {/* 1. Top KPI Cards Preview */}
-        <div
-          onClick={() => setSelectedSection("kpi")}
-          className={`grid grid-cols-1 sm:grid-cols-2 gap-4 cursor-pointer p-2 rounded-xl transition-all ${
-            selectedSection === "kpi" ? "ring-2 ring-primary bg-primary/5" : "hover:bg-muted/30"
-          }`}
-        >
-          {/* Auto KPI */}
-          <Card className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {teamPageConfig.kpis?.auto?.label || "Avg Auto Scored"}
-              </CardTitle>
-              <Activity className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold font-mono text-foreground">18.4</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {teamPageConfig.kpis?.auto?.subLabel || "Climb rate"}:{" "}
-                <span className="text-foreground font-semibold">92%</span>
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Teleop KPI */}
-          <Card className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {teamPageConfig.kpis?.teleop?.label || "Avg Teleop Scored"}
-              </CardTitle>
-              <Flame className="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold font-mono text-foreground">34.2</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {teamPageConfig.kpis?.teleop?.subLabel || "Accuracy"}:{" "}
-                <span className="text-foreground font-semibold">88%</span>
-              </p>
-            </CardContent>
-          </Card>
+      {/* Center Column: the real team page, rendered against preview data (6 cols) */}
+      <div className="lg:col-span-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono text-muted-foreground flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-primary" /> Live Team Page
+            Preview
+          </span>
+          <Badge variant="outline" className="text-[10px]">
+            Sample data
+          </Badge>
         </div>
-
-        {/* 2. Scoring Breakdown Bar Chart Preview */}
-        <div
-          onClick={() => setSelectedSection("chart")}
-          className={`p-2 rounded-xl cursor-pointer transition-all ${
-            selectedSection === "chart" ? "ring-2 ring-primary bg-primary/5" : "hover:bg-muted/30"
-          }`}
-        >
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base font-bold">
-                    {teamPageConfig.scoringBreakdownChart?.title || "Scoring Breakdown"}
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    {teamPageConfig.scoringBreakdownChart?.description || "Average scoring actions per match"}
-                  </CardDescription>
-                </div>
-                <Badge variant="outline" className="text-xs">
-                  Chart Preview
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Visual Simulated Bar Chart */}
-              <div className="h-36 flex items-end gap-3 pt-6 pb-2 px-2 border-b">
-                {(teamPageConfig.scoringBreakdownChart?.items || []).map((item, idx) => {
-                  const heights = [65, 30, 85, 45, 55, 40];
-                  const heightPercent = heights[idx % heights.length];
-                  const isSelected = selectedChartItemIdx === idx;
-                  return (
-                    <div
-                      key={idx}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedChartItemIdx(idx);
-                        setSelectedSection("chart");
-                      }}
-                      className="flex-1 flex flex-col items-center gap-1 group/bar cursor-pointer"
-                    >
-                      <span className="text-[10px] font-mono text-muted-foreground opacity-0 group-hover/bar:opacity-100">
-                        {heightPercent}%
-                      </span>
-                      <div
-                        style={{
-                          height: `${heightPercent}%`,
-                          backgroundColor: item.fill || "#3b82f6",
-                        }}
-                        className={`w-full rounded-t-sm transition-all ${
-                          isSelected ? "ring-2 ring-foreground scale-105" : "hover:opacity-90"
-                        }`}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Chart Legend with Color Swatches */}
-              <div className="flex flex-wrap gap-2 pt-1">
-                {(teamPageConfig.scoringBreakdownChart?.items || []).map((item, idx) => (
-                  <Badge
-                    key={idx}
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedChartItemIdx(idx);
-                      setSelectedSection("chart");
-                    }}
-                    className={`text-xs px-2 py-1 flex items-center gap-1.5 cursor-pointer ${
-                      selectedChartItemIdx === idx ? "ring-2 ring-primary border-primary" : ""
-                    }`}
-                  >
-                    <span
-                      className="h-2.5 w-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: item.fill || "#3b82f6" }}
-                    />
-                    <span>{item.name}</span>
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* 3. Endgame Distribution & Penalties Preview */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Endgame */}
-          <div
-            onClick={() => setSelectedSection("endgame")}
-            className={`p-1 rounded-xl cursor-pointer transition-all ${
-              selectedSection === "endgame" ? "ring-2 ring-primary bg-primary/5" : "hover:bg-muted/30"
-            }`}
-          >
-            <Card className="h-full shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold">
-                  {teamPageConfig.endgame?.title || "Endgame Distribution"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {(teamPageConfig.endgame?.states || []).map((st) => (
-                  <div key={st.value} className="flex justify-between items-center text-xs p-1.5 rounded bg-muted/40 border">
-                    <span className="font-medium">{st.label}</span>
-                    <span className="font-mono font-bold text-primary">{st.points ?? 0} pts</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Penalties */}
-          <div
-            onClick={() => setSelectedSection("penalties")}
-            className={`p-1 rounded-xl cursor-pointer transition-all ${
-              selectedSection === "penalties" ? "ring-2 ring-primary bg-primary/5" : "hover:bg-muted/30"
-            }`}
-          >
-            <Card className="h-full shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold">
-                  {teamPageConfig.penalties?.title || "Reliability & Penalties"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-xs">
-                <div className="flex justify-between items-center p-1.5 rounded bg-muted/40 border">
-                  <span>{teamPageConfig.penalties?.minorLabel || "Minor Fouls"}</span>
-                  <span className="font-mono text-rose-500 font-bold">
-                    {teamPageConfig.penalties?.minorPoints ?? -3} pts
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-1.5 rounded bg-muted/40 border">
-                  <span>{teamPageConfig.penalties?.majorLabel || "Major Fouls"}</span>
-                  <span className="font-mono text-rose-500 font-bold">
-                    {teamPageConfig.penalties?.majorPoints ?? -10} pts
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="rounded-xl border bg-background overflow-y-auto max-h-[1100px] p-4">
+          <ConfigurableTeamPage
+            teamNumber={String(previewTeamData.teamNumber)}
+            configOverride={config}
+            teamDataOverride={previewTeamData}
+          />
         </div>
       </div>
 
@@ -440,11 +275,11 @@ export function VisualTeamPageCanvas({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Field Key</Label>
-                    <Input
+                    <Label className="text-xs">Field</Label>
+                    <DatapointPicker
+                      datapoints={datapoints}
                       value={teamPageConfig.kpis?.auto?.key || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
+                      onChange={(val) => {
                         updateTeamPage({
                           kpis: {
                             ...teamPageConfig.kpis,
@@ -453,7 +288,6 @@ export function VisualTeamPageCanvas({
                           },
                         });
                       }}
-                      className="h-8 text-xs font-mono"
                     />
                   </div>
                 </div>
@@ -478,11 +312,11 @@ export function VisualTeamPageCanvas({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Field Key</Label>
-                    <Input
+                    <Label className="text-xs">Field</Label>
+                    <DatapointPicker
+                      datapoints={datapoints}
                       value={teamPageConfig.kpis?.teleop?.key || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
+                      onChange={(val) => {
                         updateTeamPage({
                           kpis: {
                             ...teamPageConfig.kpis,
@@ -491,7 +325,6 @@ export function VisualTeamPageCanvas({
                           },
                         });
                       }}
-                      className="h-8 text-xs font-mono"
                     />
                   </div>
                 </div>
@@ -567,10 +400,10 @@ export function VisualTeamPageCanvas({
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
-                        <Input
+                        <DatapointPicker
+                          datapoints={datapoints}
                           value={item.key}
-                          onChange={(e) => {
-                            const val = e.target.value;
+                          onChange={(val) => {
                             const items = [...(teamPageConfig.scoringBreakdownChart?.items || [])];
                             items[idx] = { ...items[idx], key: val };
                             updateTeamPage({
@@ -581,8 +414,6 @@ export function VisualTeamPageCanvas({
                               },
                             });
                           }}
-                          className="h-7 text-xs font-mono"
-                          placeholder="Field Key (e.g. teleop.fuel_scored)"
                         />
                       </div>
                     ))}
@@ -612,20 +443,21 @@ export function VisualTeamPageCanvas({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Robot State Field Key</Label>
-                  <Input
-                    value={teamPageConfig.endgame?.stateKey || "endgame.ending_robot_state"}
-                    onChange={(e) =>
+                  <Label className="text-xs">Robot State Field</Label>
+                  <DatapointPicker
+                    datapoints={enumDatapoints}
+                    placeholder="Select a multi-state field..."
+                    value={teamPageConfig.endgame?.stateKey}
+                    onChange={(val) =>
                       updateTeamPage({
                         endgame: {
                           ...teamPageConfig.endgame,
                           title: teamPageConfig.endgame?.title || "Endgame Distribution",
                           states: teamPageConfig.endgame?.states || [],
-                          stateKey: e.target.value,
+                          stateKey: val,
                         },
                       })
                     }
-                    className="h-8 text-xs font-mono"
                   />
                 </div>
               </div>
