@@ -104,6 +104,7 @@ describe("/api/scouting/admin/export and import", () => {
   });
 
   it("imports json payload with only matchEntries (pitEntries omitted)", async () => {
+    const timestamp = "2025-09-01T05:48:29.718Z";
     const route = await import("@/app/api/scouting/admin/import/route");
     const req = new Request("http://test/api/scouting/admin/import", {
       method: "POST",
@@ -117,7 +118,7 @@ describe("/api/scouting/admin/export and import", () => {
             competitionType: "FRC",
             alliance: "red",
             notes: "Great match",
-            timestamp: new Date().toISOString(),
+            timestamp,
             gameSpecificData: {
               autonomous: { leave: true },
             },
@@ -135,6 +136,38 @@ describe("/api/scouting/admin/export and import", () => {
     const callArg = service.importData.mock.calls[0][0];
     expect(callArg.pitEntries).toEqual([]);
     expect(callArg.matchEntries.length).toBe(1);
+    expect(callArg.matchEntries[0].timestamp).toEqual(new Date(timestamp));
+  });
+
+  it("rejects an invalid match timestamp", async () => {
+    const route = await import("@/app/api/scouting/admin/import/route");
+    const req = new Request("http://test/api/scouting/admin/import", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        matchEntries: [
+          {
+            teamNumber: 111,
+            matchNumber: 1,
+            year: 2025,
+            competitionType: "FRC",
+            alliance: "red",
+            notes: "",
+            timestamp: "not-a-date",
+            gameSpecificData: {},
+          },
+        ],
+      }),
+    });
+
+    const res = await route.POST(
+      req as unknown as Parameters<typeof route.POST>[0],
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("Invalid timestamp for match 1, team 111");
+    expect(service.importData).not.toHaveBeenCalled();
   });
 
   it("imports json payload with only pitEntries (matchEntries omitted)", async () => {

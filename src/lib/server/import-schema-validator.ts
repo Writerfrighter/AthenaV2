@@ -1,10 +1,12 @@
 import gameConfig from "../../../config/game-config-loader";
-import type { YearConfig, CompetitionType, PitEntry, MatchEntry } from "@/lib/types";
+import type {
+  YearConfig,
+  CompetitionType,
+  PitEntry,
+  MatchEntry,
+} from "@/lib/types";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-
-const CONFIG_YEARS_DIR = join(process.cwd(), "config", "years");
-const RUNTIME_CONFIGS_DIR = join(process.cwd(), ".runtime", "configs");
 
 export interface ImportValidationResult {
   valid: boolean;
@@ -37,21 +39,18 @@ export function getYearConfig(
     `${competitionType}-${year}.json`,
   ];
 
-  const searchDirs = [CONFIG_YEARS_DIR, RUNTIME_CONFIGS_DIR];
+  const candidatePaths = candidateFiles.flatMap((filename) => [
+    join(process.cwd(), "config", "years", filename),
+    join(process.cwd(), ".runtime", "configs", filename),
+  ]);
 
-  for (const dir of searchDirs) {
-    if (!existsSync(dir)) continue;
-    for (const filename of candidateFiles) {
-      const fullPath = join(dir, filename);
-      if (existsSync(fullPath)) {
-        try {
-          const raw = readFileSync(fullPath, "utf-8");
-          const parsed = JSON.parse(raw) as YearConfig;
-          return parsed;
-        } catch {
-          // ignore read/parse error and continue
-        }
-      }
+  for (const fullPath of candidatePaths) {
+    if (!existsSync(fullPath)) continue;
+    try {
+      const raw = readFileSync(fullPath, "utf-8");
+      return JSON.parse(raw) as YearConfig;
+    } catch {
+      // Try the next supported filename when a config is unreadable.
     }
   }
 
@@ -85,7 +84,9 @@ export function validateImportAgainstSchema(data: {
   const groups = new Map<string, GroupData>();
 
   for (const p of pitEntries) {
-    const compType = ((p.competitionType as string) || "FRC").toUpperCase() as CompetitionType;
+    const compType = (
+      (p.competitionType as string) || "FRC"
+    ).toUpperCase() as CompetitionType;
     const year = Number(p.year);
     if (!year || isNaN(year)) {
       return { valid: false, error: "Invalid or missing year in pit scouting data." };

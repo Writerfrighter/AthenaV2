@@ -62,6 +62,21 @@ export async function POST(request: NextRequest) {
     data.pitEntries = Array.isArray(data.pitEntries) ? data.pitEntries : [];
     data.matchEntries = Array.isArray(data.matchEntries) ? data.matchEntries : [];
 
+    for (const entry of data.matchEntries) {
+      if (!(entry.timestamp instanceof Date)) {
+        entry.timestamp = new Date(entry.timestamp);
+      }
+
+      if (Number.isNaN(entry.timestamp.getTime())) {
+        return NextResponse.json(
+          {
+            error: `Invalid timestamp for match ${entry.matchNumber}, team ${entry.teamNumber}`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     // Validate schema configurations match the imported data
     const validation = validateImportAgainstSchema(data);
     if (!validation.valid) {
