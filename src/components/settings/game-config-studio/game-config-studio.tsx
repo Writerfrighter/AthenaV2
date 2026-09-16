@@ -683,6 +683,7 @@ export function GameConfigStudio() {
         /* Team Profile Page Designer */
         <VisualTeamPageCanvas
           config={currentConfig}
+          year={currentYear}
           onUpdateConfig={setCurrentConfig}
         />
       )}

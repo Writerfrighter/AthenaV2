@@ -54,6 +54,7 @@ export interface TeamPageProps {
   /** Renders against supplied data instead of fetching — used by the config designer. */
   configOverride?: YearConfig;
   teamDataOverride?: TeamData;
+  yearOverride?: number;
 }
 
 function renderDynamicIcon(iconName?: string) {
@@ -82,6 +83,7 @@ export function ConfigurableTeamPage({
   teamNumber,
   configOverride,
   teamDataOverride,
+  yearOverride,
 }: TeamPageProps) {
   const isPreview = !!teamDataOverride;
   const [searchNote, setSearchNote] = useState("");
@@ -90,7 +92,9 @@ export function ConfigurableTeamPage({
     loading: fetchLoading,
     error: fetchError,
   } = useTeamData(isPreview ? "" : teamNumber);
-  const { currentYear, competitionType, getCurrentYearConfig } = useGameConfig();
+  const { currentYear: selectedYear, competitionType: selectedCompetition, getCurrentYearConfig } = useGameConfig();
+  const currentYear = yearOverride ?? selectedYear;
+  const competitionType = configOverride?.competitionType ?? selectedCompetition;
   const yearConfig = configOverride ?? getCurrentYearConfig();
   const teamData = teamDataOverride ?? fetchedTeamData;
   const loading = isPreview ? false : fetchLoading;
@@ -405,7 +409,7 @@ export function ConfigurableTeamPage({
                         {m.unit || ""}
                       </Badge>
                     ) : (
-                      <span className="font-medium">{val}</span>
+                      <span className="font-medium">{val}{m.unit || (m.type === "rate" ? "%" : "")}</span>
                     )}
                   </div>
                 );
@@ -444,7 +448,7 @@ export function ConfigurableTeamPage({
                         {m.unit || ""}
                       </Badge>
                     ) : (
-                      <span className="font-medium">{val}</span>
+                      <span className="font-medium">{val}{m.unit || (m.type === "rate" ? "%" : "")}</span>
                     )}
                   </div>
                 );
