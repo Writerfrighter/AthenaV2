@@ -5,6 +5,7 @@ import {
   getEventMatches as getFtcEventMatches,
   getEventSchedule as getFtcEventSchedule,
 } from "@/lib/api/ftcevents";
+import { parseEventRequest } from "@/lib/server/event-request";
 
 type MatchStatusResponse = {
   label: string | null;
@@ -17,9 +18,9 @@ export async function GET(
   { params }: { params: Promise<{ eventCode: string }> },
 ) {
   const { eventCode } = await params;
-  const { searchParams } = new URL(request.url);
-  const competitionType = searchParams.get("competitionType") || "FRC";
-  const season = Number(searchParams.get("season") || searchParams.get("year"));
+  const parsed = parseEventRequest(request, { requireFtcYear: true });
+  if (parsed.error) return parsed.error;
+  const { competitionType, year: season } = parsed.data;
 
   try {
     if (competitionType === "FRC") {
@@ -56,13 +57,9 @@ export async function GET(
       } satisfies MatchStatusResponse);
     }
 
-    if (!Number.isFinite(season)) {
-      return NextResponse.json({ error: "Missing season" }, { status: 400 });
-    }
-
     const [scheduleResponse, resultsResponse] = await Promise.all([
-      getFtcEventSchedule(season, eventCode),
-      getFtcEventMatches(season, eventCode),
+      getFtcEventSchedule(season!, eventCode),
+      getFtcEventMatches(season!, eventCode),
     ]);
     const results = resultsResponse.matches ?? [];
     const completed = new Set(
