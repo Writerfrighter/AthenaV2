@@ -57,6 +57,7 @@ export const PERMISSIONS = {
   VIEW_SETTINGS: "view_settings",
   EDIT_SETTINGS: "edit_settings",
   MANAGE_SYSTEM_CONFIG: "manage_system_config",
+  MANAGE_DATABASE: "manage_database",
 
   // Advanced Features
   MANAGE_GAME_CONFIG: "manage_game_config",

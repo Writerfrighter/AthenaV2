@@ -190,6 +190,11 @@ class DatabaseManager {
     this.currentService = this.createService(config);
   }
 
+  /** Creates a candidate service without replacing the active connection. */
+  createServiceForConfig(config: DatabaseConfig): DatabaseService {
+    return this.createService(config);
+  }
+
   private createService(config: DatabaseConfig): DatabaseService {
     if (config.provider === "azuresql" && config.azuresql) {
       return new AzureSqlDatabaseService(config.azuresql);
