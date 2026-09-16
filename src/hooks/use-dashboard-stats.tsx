@@ -134,7 +134,6 @@ export function useDashboardStats() {
             );
           }
         }
-        // const qualMatchesCount = 0;
         // Fetch stats from API
         const apiStats = await statsApi.getDashboardStats(
           currentYear,

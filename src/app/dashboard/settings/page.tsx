@@ -16,40 +16,6 @@ import {
   Shield,
   Layers,
 } from "lucide-react";
-import Link from "next/link";
-
-const adminLinks = [
-  {
-    title: "Database & Sync",
-    description: "Database connections, cloud sync, data export/import, cache revalidation, and maintenance.",
-    href: "/dashboard/admin/database",
-    icon: Database,
-  },
-  {
-    title: "Team Management",
-    description: "User accounts, role assignments, passwords, and open registration settings.",
-    href: "/dashboard/admin/team",
-    icon: Users,
-  },
-  {
-    title: "Game Configuration",
-    description: "Visual Game Config Studio for scoring definitions, canvas layouts, and custom formulas.",
-    href: "/dashboard/admin/game-config",
-    icon: FileJson,
-  },
-  {
-    title: "API Keys",
-    description: "Integration credentials for The Blue Alliance, FTC Events, and Nexus status APIs.",
-    href: "/dashboard/admin/keys",
-    icon: KeyRound,
-  },
-  {
-    title: "Push Notifications",
-    description: "Broadcast instant scouting alerts and shift assignments to team members.",
-    href: "/dashboard/admin/notifications",
-    icon: Bell,
-  },
-];
 
 export default function SettingsPage() {
   return (
@@ -61,44 +27,6 @@ export default function SettingsPage() {
           System configuration, offline capabilities, and administration tools.
         </p>
       </div>
-
-      {/* Admin Quick Links (Visible to Admin and Lead Scout) */}
-      <PermissionGuard roles={[ROLES.ADMIN, ROLES.LEAD_SCOUT]}>
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
-            <h2 className="text-lg font-semibold tracking-tight">Administration Sections</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {adminLinks.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Card key={item.title} className="flex flex-col justify-between hover:border-primary/50 transition-colors">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center text-primary">
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <CardTitle className="text-base">{item.title}</CardTitle>
-                    </div>
-                    <CardDescription className="text-xs pt-1.5 leading-relaxed">
-                      {item.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <Button asChild variant="outline" size="sm" className="w-full text-xs">
-                      <Link href={item.href} className="flex items-center justify-center gap-1.5">
-                        <span>Open {item.title}</span>
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </PermissionGuard>
 
       {/* Offline Pre-cache (Available to all scouts) */}
       <div className="space-y-3">
