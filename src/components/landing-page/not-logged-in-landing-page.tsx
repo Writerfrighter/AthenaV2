@@ -23,8 +23,6 @@ export function NotLoggedInLandingPage() {
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
-  // const highlightStats = []
-
   const missionHighlights = [
     {
       title: "Purpose-built workflows",
@@ -82,7 +80,6 @@ export function NotLoggedInLandingPage() {
       }
     };
 
-    // Check for dark mode
     const checkDarkMode = () => {
       setIsDark(document.documentElement.classList.contains("dark"));
     };
@@ -122,16 +119,13 @@ export function NotLoggedInLandingPage() {
             <span className="font-bold text-lg">Athena</span>
           </div>
           <div className="flex items-center gap-3">
-            {/* <ModeToggle /> */}
             <Link href="/signup">
               <Button variant="outline" size="lg" className="inline-flex gap-1">
-                {/* < className="h-5 w-5" /> */}
                 Sign up
               </Button>
             </Link>
             <Link href="/login">
               <Button variant="default" size="lg" className="inline-flex gap-1">
-                {/* <LogIn className="h-5 w-5" /> */}
                 Log in
               </Button>
             </Link>
@@ -142,7 +136,7 @@ export function NotLoggedInLandingPage() {
       {/* Hero Section */}
       <section className="relative z-10 w-full max-h-[70vh] sm:max-h-[80vh] flex items-center py-2 sm:py-12">
         <Image
-          src="/assets/HeroSwapped.PNG"
+          src="/assets/HeroSwapped.png"
           alt=""
           fill
           className="object-cover object-left sm:object-center -z-5"
@@ -277,7 +271,7 @@ export function NotLoggedInLandingPage() {
             <div className="relative">
               <div className="aspect-square rounded-lg bg-background flex items-center justify-center overflow-hidden">
                 <Image
-                  src="/assets/Scouting2.JPG"
+                  src="/assets/Scouting2.jpg"
                   width={600}
                   height={600}
                   alt="Student scouting using green scouting tablet."
@@ -330,7 +324,7 @@ export function NotLoggedInLandingPage() {
             <div className="order-1 lg:order-2 relative">
               <div className="aspect-square rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
                 <Image
-                  src="/assets/PitScouting.JPG"
+                  src="/assets/PitScouting.jpg"
                   width={600}
                   height={600}
                   alt="Students from different robotics team looking together at green scouting tablet."
@@ -351,7 +345,7 @@ export function NotLoggedInLandingPage() {
             <div className="relative">
               <div className="aspect-square rounded-lg bg-background flex items-center justify-center overflow-hidden">
                 <Image
-                  src="/assets/Scouting.JPG"
+                  src="/assets/Tablets.jpg"
                   width={600}
                   height={600}
                   alt="Students scouting using green scouting tablets."
@@ -399,7 +393,7 @@ export function NotLoggedInLandingPage() {
             <div className="order-1 lg:order-2 relative">
               <div className="aspect-square rounded-lg bg-primary/5 flex items-center justify-center overflow-hidden">
                 <Image
-                  src="/assets/Strat.JPG"
+                  src="/assets/Strat.jpg"
                   width={600}
                   height={600}
                   alt="Students looking over at a clipboard while strategizing."
