@@ -6,12 +6,39 @@ import type {
   PicklistNote,
 } from "../picklist/picklist";
 
+export type ScheduleAssignmentChange = {
+  startMatch: number;
+  endMatch: number;
+  alliance: "red" | "blue";
+  position: number;
+  userId: string | null;
+};
+
+export type ScheduleAssignmentScope = {
+  eventCode: string;
+  year: number;
+  competitionType: CompetitionType;
+};
+
+export type ScheduleAssignmentRecord = {
+  matchNumber: number;
+  alliance: "red" | "blue";
+  position: number;
+  userId: string;
+};
+
 export interface DatabaseService {
   getPool?(): Promise<any>;
   query?<T = any>(
     sql: string,
     params?: Record<string, unknown>,
   ): Promise<{ recordset: T[] }>;
+  applyScheduleAssignmentChanges?(
+    scope: ScheduleAssignmentScope,
+    changes: ScheduleAssignmentChange[],
+    replaceAll?: boolean,
+    expectedAssignments?: ScheduleAssignmentRecord[],
+  ): Promise<void>;
 
   addPitEntry(entry: Omit<PitEntry, "id">): Promise<number>;
   getPitEntry(

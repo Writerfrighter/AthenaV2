@@ -50,7 +50,7 @@ const data = {
       icon: Table,
     },
     {
-      title: "Match Matchup",
+      title: "Matchup",
       url: "/dashboard/matchup",
       icon: Swords,
     },
@@ -133,8 +133,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         name: session.user.name || "User",
         username: session.user.username || "user",
         avatar:
-          (session.user as any)?.image ||
-          (session.user as any)?.avatarUrl ||
+          session.user.image ||
+          session.user.avatarUrl ||
           "/TRCLogo.webp",
       }
     : {
