@@ -14,6 +14,19 @@ import {
 
 import type { Pool } from "mysql2/promise";
 
+/**
+ * JSON requests and imports carry dates as ISO strings, while mysql2 expects a
+ * Date (or a MariaDB-formatted DATETIME string). Normalize at the provider
+ * boundary so every MariaDB write path behaves consistently.
+ */
+export function normalizeMariaDbTimestamp(value: unknown): Date {
+  const timestamp = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(timestamp.getTime())) {
+    throw new TypeError("Invalid match entry timestamp");
+  }
+  return timestamp;
+}
+
 export class MariaDbDatabaseService implements DatabaseService {
   private pool: Pool | null = null;
   private config: { connectionString?: string; host?: string; port?: number; database?: string; user?: string; password?: string };
@@ -534,7 +547,7 @@ export class MariaDbDatabaseService implements DatabaseService {
         entry.userId ?? null,
         JSON.stringify(entry.gameSpecificData),
         entry.notes ?? null,
-        entry.timestamp,
+        normalizeMariaDbTimestamp(entry.timestamp),
       ]);
       return result.insertId;
     } catch (error: any) {
@@ -653,7 +666,7 @@ export class MariaDbDatabaseService implements DatabaseService {
     }
     if (updates.timestamp !== undefined) {
       setParts.push(`timestamp = ?`);
-      params.push(updates.timestamp);
+      params.push(normalizeMariaDbTimestamp(updates.timestamp));
     }
 
     if (setParts.length === 0) return;
@@ -1038,7 +1051,7 @@ export class MariaDbDatabaseService implements DatabaseService {
       }
       for (const m of data.matchEntries || []) {
         const q = `INSERT INTO matchEntries (matchNumber, teamNumber, year, competitionType, alliance, alliancePosition, eventName, eventCode, userId, gameSpecificData, notes, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-        await conn.execute(q, [m.matchNumber, m.teamNumber, m.year, m.competitionType, m.alliance, m.alliancePosition ?? null, m.eventName ?? null, m.eventCode ?? null, m.userId ?? null, JSON.stringify(m.gameSpecificData), m.notes ?? null, m.timestamp]);
+        await conn.execute(q, [m.matchNumber, m.teamNumber, m.year, m.competitionType, m.alliance, m.alliancePosition ?? null, m.eventName ?? null, m.eventCode ?? null, m.userId ?? null, JSON.stringify(m.gameSpecificData), m.notes ?? null, normalizeMariaDbTimestamp(m.timestamp)]);
       }
       await conn.commit();
     } catch (err) {

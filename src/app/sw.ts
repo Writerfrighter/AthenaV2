@@ -2,6 +2,7 @@
 import { defaultCache } from "@serwist/turbopack/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { Serwist, NetworkFirst, ExpirationPlugin } from "serwist";
+import { APP_LOGO, APP_NAME } from "@/lib/app-config";
 
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
@@ -25,7 +26,7 @@ const OFFLINE_FALLBACK_HTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Offline - TRC Scouting</title>
+  <title>Offline - ${APP_NAME}</title>
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #0a0a0a; color: #fafafa; }
     .container { text-align: center; padding: 2rem; }
@@ -240,8 +241,8 @@ async function syncOfflineData() {
     if (!result.success && result.errors.length > 0) {
       await self.registration.showNotification("Sync Issues", {
         body: `${result.failedCount} entries failed to sync. Check the app for details.`,
-        icon: "/TRCLogo.webp",
-        badge: "/TRCLogo.webp",
+        icon: APP_LOGO,
+        badge: APP_LOGO,
         tag: "sync-error",
         requireInteraction: true,
         data: { url: "/dashboard" },
@@ -249,8 +250,8 @@ async function syncOfflineData() {
     } else if (result.syncedCount > 0) {
       await self.registration.showNotification("Data Synced", {
         body: `${result.syncedCount} scouting entries synced successfully.`,
-        icon: "/TRCLogo.webp",
-        badge: "/TRCLogo.webp",
+        icon: APP_LOGO,
+        badge: APP_LOGO,
         tag: "sync-success",
         requireInteraction: false,
         data: { url: "/dashboard" },
@@ -262,8 +263,8 @@ async function syncOfflineData() {
     // Show error notification
     await self.registration.showNotification("Sync Failed", {
       body: "Failed to sync offline data. Please try again manually.",
-      icon: "/TRCLogo.webp",
-      badge: "/TRCLogo.webp",
+      icon: APP_LOGO,
+      badge: APP_LOGO,
       tag: "sync-error",
       requireInteraction: true,
       data: { url: "/dashboard" },
@@ -330,11 +331,11 @@ self.addEventListener("push", function (event: any) {
   }
 
   const data = event.data.json();
-  const title = data.title || "TRC Scouting";
+  const title = data.title || APP_NAME;
   const options = {
     body: data.body || "New notification",
-    icon: "/TRCLogo.webp",
-    badge: "/TRCLogo.webp",
+    icon: APP_LOGO,
+    badge: APP_LOGO,
     data: data.data || {},
     requireInteraction: false,
     silent: false,

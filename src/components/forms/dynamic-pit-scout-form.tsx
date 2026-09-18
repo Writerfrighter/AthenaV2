@@ -48,6 +48,10 @@ export function DynamicPitScoutForm() {
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastSavedEntry, setLastSavedEntry] = useState<{
+    teamNumber: number;
+    queued: boolean;
+  } | null>(null);
 
   // Function to initialize form data with all pit scouting fields
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -360,6 +364,11 @@ export function DynamicPitScoutForm() {
           });
         }
 
+        setLastSavedEntry({
+          teamNumber: entryToSave.teamNumber,
+          queued: result.isQueued,
+        });
+
         // Reset form
         setFormData(
           gameConfig
@@ -519,6 +528,30 @@ export function DynamicPitScoutForm() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {lastSavedEntry && (
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-xl border border-primary/25 bg-primary/5 p-4"
+        >
+          {lastSavedEntry.queued ? (
+            <Clock className="mt-0.5 size-5 shrink-0 text-primary" />
+          ) : (
+            <CheckCircle className="mt-0.5 size-5 shrink-0 text-primary" />
+          )}
+          <div>
+            <p className="font-semibold">
+              Team {lastSavedEntry.teamNumber}{" "}
+              {lastSavedEntry.queued ? "saved on this device" : "saved successfully"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {lastSavedEntry.queued
+                ? "It will sync automatically when a connection is available."
+                : "The form is ready for the next team."}
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Scout Selector (for tablet accounts only) */}
