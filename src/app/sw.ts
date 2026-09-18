@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { defaultCache } from "@serwist/turbopack/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { Serwist, NetworkFirst, ExpirationPlugin } from "serwist";
@@ -14,10 +13,73 @@ declare global {
   }
 }
 
+/**
+ * The TypeScript `webworker` lib is not enabled for this project (the app is
+ * compiled against `dom`), so the service worker event and client shapes this
+ * file uses are declared here.
+ */
+interface ExtendableServiceWorkerEvent extends Event {
+  waitUntil(promise: Promise<unknown>): void;
+}
+
+interface BackgroundSyncEvent extends ExtendableServiceWorkerEvent {
+  tag: string;
+}
+
+interface ServiceWorkerMessageEvent extends ExtendableServiceWorkerEvent {
+  data?: { type?: string };
+}
+
+interface PushNotificationPayload {
+  title?: string;
+  body?: string;
+  data?: Record<string, unknown>;
+}
+
+interface PushMessageEvent extends ExtendableServiceWorkerEvent {
+  data: { json(): PushNotificationPayload } | null;
+}
+
+interface NotificationClickEvent extends ExtendableServiceWorkerEvent {
+  notification: {
+    close(): void;
+    data?: { url?: string };
+  };
+}
+
+interface ServiceWorkerClient {
+  url: string;
+  postMessage(message: unknown): void;
+  focus?(): Promise<ServiceWorkerClient>;
+}
+
+interface ServiceWorkerClients {
+  matchAll(options?: {
+    type?: "window" | "worker" | "sharedworker" | "all";
+    includeUncontrolled?: boolean;
+  }): Promise<ServiceWorkerClient[]>;
+  openWindow?(url: string): Promise<ServiceWorkerClient | null>;
+}
+
+/** Service worker lifecycle events this file listens for. */
+interface ServiceWorkerEventMap {
+  install: ExtendableServiceWorkerEvent;
+  activate: ExtendableServiceWorkerEvent;
+  sync: BackgroundSyncEvent;
+  message: ServiceWorkerMessageEvent;
+  push: PushMessageEvent;
+  notificationclick: NotificationClickEvent;
+  notificationclose: Event;
+}
+
 declare const self: WorkerGlobalScope &
   typeof globalThis & {
     registration: ServiceWorkerRegistration;
-    clients: any;
+    clients: ServiceWorkerClients;
+    addEventListener<K extends keyof ServiceWorkerEventMap>(
+      type: K,
+      listener: (event: ServiceWorkerEventMap[K]) => void | Promise<void>,
+    ): void;
   };
 
 // Offline fallback page HTML served when navigation fails offline
@@ -184,7 +246,7 @@ const serwist = new Serwist({
 });
 
 // Cache the offline fallback on install so it's always available
-self.addEventListener("install", (event: any) => {
+self.addEventListener("install", (event: ExtendableServiceWorkerEvent) => {
   event.waitUntil(
     caches.open("offline-fallback").then((cache) =>
       cache.put(
@@ -206,7 +268,7 @@ const SYNC_TAGS = {
 } as const;
 
 // Handle background sync events
-self.addEventListener("sync", function (event: any) {
+self.addEventListener("sync", function (event: BackgroundSyncEvent) {
   console.log("[Service Worker] Background sync event:", event.tag);
 
   if (event.tag === SYNC_TAGS.OFFLINE_DATA) {
@@ -230,7 +292,7 @@ async function syncOfflineData() {
 
     // Notify all clients about sync completion
     const clients = await self.clients.matchAll();
-    clients.forEach((client: any) => {
+    clients.forEach((client) => {
       client.postMessage({
         type: "SYNC_COMPLETED",
         result,
@@ -285,7 +347,7 @@ async function retryFailedEntries() {
 
     // Notify all clients
     const clients = await self.clients.matchAll();
-    clients.forEach((client: any) => {
+    clients.forEach((client) => {
       client.postMessage({
         type: "RETRY_COMPLETED",
         result,
@@ -297,7 +359,7 @@ async function retryFailedEntries() {
 }
 
 // Handle messages from the main app
-self.addEventListener("message", async function (event: any) {
+self.addEventListener("message", async function (event: ServiceWorkerMessageEvent) {
   console.log("[Service Worker] Received message:", event.data);
 
   if (event.data?.type === "REGISTER_SYNC") {
@@ -323,7 +385,7 @@ self.addEventListener("message", async function (event: any) {
 });
 
 // Add notification event listeners
-self.addEventListener("push", function (event: any) {
+self.addEventListener("push", function (event: PushMessageEvent) {
   console.log("[Service Worker] Push Received.");
 
   if (!event.data) {
@@ -344,7 +406,7 @@ self.addEventListener("push", function (event: any) {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-self.addEventListener("notificationclick", function (event: any) {
+self.addEventListener("notificationclick", function (event: NotificationClickEvent) {
   console.log("[Service Worker] Notification click Received.");
 
   event.notification.close();
@@ -357,11 +419,11 @@ self.addEventListener("notificationclick", function (event: any) {
         type: "window",
         includeUncontrolled: true,
       })
-      .then(function (clientList: any[]) {
+      .then(function (clientList) {
         // Check if there's already a window/tab open with the target URL
         for (let i = 0; i < clientList.length; i++) {
           const client = clientList[i];
-          if (client.url === urlToOpen && "focus" in client) {
+          if (client.url === urlToOpen && client.focus) {
             return client.focus();
           }
         }
@@ -374,6 +436,6 @@ self.addEventListener("notificationclick", function (event: any) {
   );
 });
 
-self.addEventListener("notificationclose", function (event: any) {
+self.addEventListener("notificationclose", function (event: Event) {
   console.log("[Service Worker] Notification closed.", event);
 });

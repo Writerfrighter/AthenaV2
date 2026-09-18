@@ -29,7 +29,11 @@ import { pitApi } from "@/lib/api/database-client";
 import { ScoutSelector } from "@/components/scout-selector";
 import { FieldDrawingCanvas } from "@/components/forms/field-drawing-canvas";
 import type { PitEntry } from "@/lib/types";
-import type { DynamicPitData } from "@/lib/types";
+import type {
+  DynamicPitData,
+  PitScoutingFieldDefinition,
+  YearConfig,
+} from "@/lib/types";
 
 export function DynamicPitScoutForm() {
   const { data: session } = useSession();
@@ -54,8 +58,7 @@ export function DynamicPitScoutForm() {
   } | null>(null);
 
   // Function to initialize form data with all pit scouting fields
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const initializePitFormData = (config: any): DynamicPitData => {
+  const initializePitFormData = (config: YearConfig): DynamicPitData => {
     const data: DynamicPitData = {
       team: 0,
       drivetrain: "",
@@ -69,11 +72,13 @@ export function DynamicPitScoutForm() {
     };
 
     // Initialize fields for each category
-    ["autonomous", "teleoperated", "driveTeam", "endgame"].forEach(
+    (["autonomous", "teleoperated", "driveTeam", "endgame"] as const).forEach(
       (category) => {
-        if (config?.pitScouting?.[category]) {
-          Object.entries(config.pitScouting[category]).forEach(
-            ([fieldName, fieldConfig]: [string, any]) => {
+        const fields: Record<string, PitScoutingFieldDefinition> | undefined =
+          config?.pitScouting?.[category];
+        if (fields) {
+          Object.entries(fields).forEach(
+            ([fieldName, fieldConfig]) => {
               switch (fieldConfig.type) {
                 case "text":
                   data.gameSpecificData[`${category}_${fieldName}`] = "";
@@ -791,7 +796,7 @@ export function DynamicPitScoutForm() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {Object.entries(
                             gameConfig.pitScouting.autonomous,
-                          ).map(([name, field]: [string, any]) =>
+                          ).map(([name, field]) =>
                             renderCustomField({
                               name: `autonomous_${name}`,
                               label: field.label,
@@ -847,7 +852,7 @@ export function DynamicPitScoutForm() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {Object.entries(
                             gameConfig.pitScouting.teleoperated,
-                          ).map(([name, field]: [string, any]) =>
+                          ).map(([name, field]) =>
                             renderCustomField({
                               name: `teleoperated_${name}`,
                               label: field.label,
@@ -869,7 +874,7 @@ export function DynamicPitScoutForm() {
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {Object.entries(gameConfig.pitScouting.driveTeam).map(
-                            ([name, field]: [string, any]) =>
+                            ([name, field]) =>
                               renderCustomField({
                                 name: `driveTeam_${name}`,
                                 label: field.label,
@@ -890,7 +895,7 @@ export function DynamicPitScoutForm() {
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {Object.entries(gameConfig.pitScouting.endgame)
-                            .filter(([, field]: [string, any]) => {
+                            .filter(([, field]) => {
                               if (!field.dependsOn) return true;
                               const dependencyValue =
                                 formData.gameSpecificData[
@@ -898,7 +903,7 @@ export function DynamicPitScoutForm() {
                                 ];
                               return Boolean(dependencyValue);
                             })
-                            .map(([name, field]: [string, any]) =>
+                            .map(([name, field]) =>
                               renderCustomField({
                                 name: `endgame_${name}`,
                                 label: field.label,

@@ -40,7 +40,12 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { YearConfig, ScoringDefinition } from "@/lib/types";
+import type {
+  YearConfig,
+  ScoringDefinition,
+  PitScoutingFieldDefinition,
+} from "@/lib/types";
+import { getErrorMessage } from "@/lib/utils";
 import { DEFAULT_NEW_CONFIG, slugifyKey } from "./types";
 import { ComponentPalette, PaletteComponentType } from "./component-palette";
 import { VisualCanvas } from "./visual-canvas";
@@ -194,8 +199,8 @@ export function GameConfigStudio() {
       toast.success(`Saved configuration to ${filename}`);
       fetchConfigs();
       setSelectedFile(filename);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save configuration");
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Failed to save configuration");
     } finally {
       setIsSaving(false);
     }
@@ -287,7 +292,7 @@ export function GameConfigStudio() {
     } else {
       // Pit Scouting
       let newKey = `pit_${timestamp}`;
-      let newField: any;
+      let newField: PitScoutingFieldDefinition;
 
       switch (type) {
         case "pit-text":
@@ -323,7 +328,10 @@ export function GameConfigStudio() {
 
       setCurrentConfig((prev) => {
         const pit = { ...prev.pitScouting };
-        const sec = { ...((pit[targetSec as keyof typeof pit] || {}) as Record<string, any>) };
+        const sec = {
+          ...((pit[targetSec as keyof typeof pit] ||
+            {}) as Record<string, PitScoutingFieldDefinition>),
+        };
         sec[newKey] = newField;
         return {
           ...prev,
@@ -363,8 +371,9 @@ export function GameConfigStudio() {
         };
       } else {
         const pit = { ...prev.pitScouting };
-        const existing = (pit[section as keyof typeof pit] || {}) as Record<string, any>;
-        const reordered: Record<string, any> = {};
+        const existing = (pit[section as keyof typeof pit] ||
+          {}) as Record<string, PitScoutingFieldDefinition>;
+        const reordered: Record<string, PitScoutingFieldDefinition> = {};
         newKeysOrder.forEach((k) => {
           if (existing[k]) reordered[k] = existing[k];
         });
@@ -395,7 +404,10 @@ export function GameConfigStudio() {
         return { ...prev, scoring: { ...scoring, [comp.section]: sec } };
       } else {
         const pit = { ...prev.pitScouting };
-        const sec = { ...((pit[comp.section as keyof typeof pit] || {}) as Record<string, any>) };
+        const sec = {
+          ...((pit[comp.section as keyof typeof pit] ||
+            {}) as Record<string, PitScoutingFieldDefinition>),
+        };
         if (sec[comp.fieldKey]) {
           sec[newKey] = {
             ...sec[comp.fieldKey],
@@ -420,7 +432,10 @@ export function GameConfigStudio() {
         return { ...prev, scoring: { ...scoring, [comp.section]: sec } };
       } else {
         const pit = { ...prev.pitScouting };
-        const sec = { ...((pit[comp.section as keyof typeof pit] || {}) as Record<string, any>) };
+        const sec = {
+          ...((pit[comp.section as keyof typeof pit] ||
+            {}) as Record<string, PitScoutingFieldDefinition>),
+        };
         delete sec[comp.fieldKey];
         return { ...prev, pitScouting: { ...pit, [comp.section]: sec } };
       }

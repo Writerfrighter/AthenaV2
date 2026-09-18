@@ -26,7 +26,11 @@ import {
   Sparkles,
   Info,
 } from "lucide-react";
-import type { YearConfig, ScoringDefinition } from "@/lib/types";
+import type {
+  YearConfig,
+  ScoringDefinition,
+  PitScoutingFieldDefinition,
+} from "@/lib/types";
 import { slugifyKey } from "./types";
 
 export interface SelectedComponentInfo {
@@ -535,7 +539,9 @@ export function PropertyInspector({
   }
 
   // Pit Scouting component selected
-  const pitSection = (config.pitScouting?.[section as keyof typeof config.pitScouting] || {}) as Record<string, any>;
+  const pitSection = (config.pitScouting?.[
+    section as keyof typeof config.pitScouting
+  ] || {}) as Record<string, PitScoutingFieldDefinition>;
   const pitDef = pitSection[fieldKey];
 
   if (!pitDef) {
@@ -549,10 +555,13 @@ export function PropertyInspector({
     );
   }
 
-  const updatePitField = (patch: Record<string, any>) => {
+  const updatePitField = (patch: Partial<PitScoutingFieldDefinition>) => {
     onUpdateConfig((prev) => {
       const pit = { ...prev.pitScouting };
-      const sec = { ...((pit[section as keyof typeof pit] || {}) as Record<string, any>) };
+      const sec = {
+        ...((pit[section as keyof typeof pit] ||
+          {}) as Record<string, PitScoutingFieldDefinition>),
+      };
       sec[fieldKey] = { ...sec[fieldKey], ...patch };
       return {
         ...prev,
@@ -616,7 +625,10 @@ export function PropertyInspector({
               if (sanitized && sanitized !== fieldKey) {
                 onUpdateConfig((prev) => {
                   const pit = { ...prev.pitScouting };
-                  const sec = { ...((pit[section as keyof typeof pit] || {}) as Record<string, any>) };
+                  const sec = {
+        ...((pit[section as keyof typeof pit] ||
+          {}) as Record<string, PitScoutingFieldDefinition>),
+      };
                   const existing = sec[fieldKey];
                   delete sec[fieldKey];
                   sec[sanitized] = existing;
@@ -673,7 +685,9 @@ export function PropertyInspector({
                     type="button"
                     onClick={() => {
                       updatePitField({
-                        options: (pitDef.options || []).filter((_: any, idx: number) => idx !== i),
+                        options: (pitDef.options || []).filter(
+                          (_opt: string, idx: number) => idx !== i,
+                        ),
                       });
                     }}
                     className="text-muted-foreground hover:text-destructive"
