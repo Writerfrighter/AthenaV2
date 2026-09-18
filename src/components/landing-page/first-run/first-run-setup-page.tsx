@@ -41,6 +41,7 @@ interface FirstRunSetupPageProps {
   appName?: string;
   redirectHref?: string;
   initialStep?: SetupStep;
+  stepAfterAppUrl?: Exclude<SetupStep, "app-url">;
   onSubmitAppUrl?: (appUrl: string) => Promise<SetupResult>;
   onSubmitDatabase?: (data: DatabaseFormState) => Promise<SetupResult>;
   onSubmitAdmin?: (data: AdminFormValues) => Promise<SetupResult>;
@@ -323,6 +324,7 @@ export function FirstRunSetupPage({
   appName = "Athena",
   redirectHref = "/login",
   initialStep = "app-url",
+  stepAfterAppUrl = "database",
   onSubmitAppUrl = defaultSubmitAppUrl,
   onSubmitDatabase = defaultSubmitDatabase,
   onSubmitAdmin = defaultSubmitAdmin,
@@ -340,7 +342,7 @@ export function FirstRunSetupPage({
     const result = await onSubmitAppUrl(appUrl);
     setIsSubmitting(false);
     if (result.success) {
-      setStep("database");
+      setStep(stepAfterAppUrl);
     } else {
       setError(result.error ?? "Couldn't save the app URL. Please try again.");
     }
@@ -475,12 +477,12 @@ export function FirstRunSetupPage({
                 <AdminStep
                   onSubmit={handleAdminSubmit}
                   onBack={
-                    initialStep === "admin"
-                      ? undefined
-                      : () => {
+                    initialStep === "database" || stepAfterAppUrl === "database"
+                      ? () => {
                           setError(null);
                           setStep("database");
                         }
+                      : undefined
                   }
                   isSubmitting={isSubmitting}
                   error={error}
