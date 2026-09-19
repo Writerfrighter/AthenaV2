@@ -44,7 +44,6 @@ interface PropertyInspectorProps {
   year: number;
   selectedComponent: SelectedComponentInfo | null;
   onUpdateConfig: (updater: (prev: YearConfig) => YearConfig) => void;
-  onUpdateYear: (year: number) => void;
   onSelectComponent: (comp: SelectedComponentInfo | null) => void;
   onDuplicateComponent: (comp: SelectedComponentInfo) => void;
   onDeleteComponent: (comp: SelectedComponentInfo) => void;
@@ -55,7 +54,6 @@ export function PropertyInspector({
   year,
   selectedComponent,
   onUpdateConfig,
-  onUpdateYear,
   onSelectComponent,
   onDuplicateComponent,
   onDeleteComponent,
@@ -120,9 +118,7 @@ export function PropertyInspector({
               <Label className="text-xs">Competition Program</Label>
               <Select
                 value={config.competitionType || "FRC"}
-                onValueChange={(val: "FRC" | "FTC") =>
-                  onUpdateConfig((prev) => ({ ...prev, competitionType: val }))
-                }
+                disabled
               >
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
@@ -140,7 +136,7 @@ export function PropertyInspector({
                 <Input
                   type="number"
                   value={year || ""}
-                  onChange={(e) => onUpdateYear(parseInt(e.target.value, 10) || 0)}
+                  readOnly
                   className="h-8 text-xs"
                 />
               </div>
@@ -156,6 +152,9 @@ export function PropertyInspector({
                 />
               </div>
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              Use Rename in the toolbar to change the program or year safely.
+            </p>
           </div>
 
           {/* Starting Positions */}

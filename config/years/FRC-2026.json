@@ -296,6 +296,7 @@
       "auto": {
         "key": "autonomous.fuel_scored",
         "label": "Avg Fuel (Auto)",
+        "format": "number",
         "subKey": "autonomous.climb",
         "subLabel": "Climb rate",
         "subFormat": "percent",
@@ -304,6 +305,7 @@
       "teleop": {
         "key": "teleop.fuel_scored",
         "label": "Avg Fuel Scored",
+        "format": "number",
         "subKey": "teleop.fuel_accuracy",
         "subLabel": "Accuracy",
         "subFormat": "percent",

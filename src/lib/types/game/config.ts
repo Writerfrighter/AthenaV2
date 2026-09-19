@@ -78,6 +78,7 @@ export interface TeamPageConfig {
     auto: {
       key: string;
       label: string;
+      format?: "percent" | "number";
       subKey?: string;
       subLabel?: string;
       subFormat?: "percent" | "number";
@@ -86,6 +87,7 @@ export interface TeamPageConfig {
     teleop: {
       key: string;
       label: string;
+      format?: "percent" | "number";
       subKey?: string;
       subLabel?: string;
       subFormat?: "percent" | "number";
