@@ -87,7 +87,7 @@ export default function Page() {
 
   if (!selectedEvent) {
     return (
-      <div className="mx-auto flex min-h-[60vh] max-w-2xl items-center">
+      <div className="mx-auto flex min-h-[60vh] w-full max-w-2xl items-center">
         <Card className="w-full border-dashed">
           <CardHeader className="text-center">
             <div className="mx-auto mb-2 rounded-full bg-primary/10 p-3 text-primary">
