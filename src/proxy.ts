@@ -1,9 +1,12 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse, type NextRequest } from "next/server";
+import { withAuthOrigin } from "@/lib/server/auth-request";
 export default async function middleware(req: NextRequest) {
+  const publicRequest = withAuthOrigin(req);
   const token = await getToken({
     req,
     secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    secureCookie: publicRequest.nextUrl.protocol === "https:",
   });
   const isAuth = !!token;
   const isAuthPage =
@@ -25,7 +28,7 @@ export default async function middleware(req: NextRequest) {
 
   // Authenticated users should not be able to return to authentication pages.
   if (isAuth && isAuthPage) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return NextResponse.redirect(new URL("/dashboard", publicRequest.url));
   }
 
   // The home page performs its own setup check before redirecting an active
@@ -45,7 +48,7 @@ export default async function middleware(req: NextRequest) {
 
   // Redirect to login if not authenticated
   if (!isAuth) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(new URL("/login", publicRequest.url));
   }
 
   return NextResponse.next();
