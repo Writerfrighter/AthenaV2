@@ -26,10 +26,9 @@ export default async function middleware(req: NextRequest) {
     req.nextUrl.pathname === "/sitemap.xml";
   const isAsset = req.nextUrl.pathname.startsWith("/_next/static") || req.nextUrl.pathname.startsWith("/assets");
 
-  // Authenticated users should not be able to return to authentication pages.
-  if (isAuth && isAuthPage) {
-    return NextResponse.redirect(new URL("/dashboard", publicRequest.url));
-  }
+  // Always allow authentication pages: an unexpired JWT can belong to a
+  // deleted account. Only auth() can validate the current database account;
+  // redirecting here based on the cookie alone can trap it in a login loop.
 
   // The home page performs its own setup check before redirecting an active
   // session, so first-run installations still reach the setup wizard.

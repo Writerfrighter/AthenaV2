@@ -91,4 +91,22 @@ describe("authentication public origin", () => {
     const response = await middleware(new NextRequest("http://0.0.0.0:3000/dashboard"));
     expect(response.headers.get("location")).toBe("https://scouting.example.com/login");
   });
+
+  it("accepts an HTTP session cookie on a direct LAN deployment", async () => {
+    vi.stubEnv("AUTH_SECRET", "test-secret-only");
+    const token = await encode({ token: { sub: "test-user" }, secret: "test-secret-only", salt: "authjs.session-token" });
+    const response = await middleware(new NextRequest("http://192.168.1.20:3000/dashboard", {
+      headers: { cookie: `authjs.session-token=${token}` },
+    }));
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("allows login with a stale account token instead of redirecting back to the dashboard", async () => {
+    vi.stubEnv("AUTH_SECRET", "test-secret-only");
+    const token = await encode({ token: { sub: "deleted-user" }, secret: "test-secret-only", salt: "authjs.session-token" });
+    const response = await middleware(new NextRequest("http://localhost/login", {
+      headers: { cookie: `authjs.session-token=${token}` },
+    }));
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
 });
