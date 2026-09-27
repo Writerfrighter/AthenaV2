@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -30,12 +30,27 @@ import { teamApi } from "@/lib/api/database-client";
 import type { TeamData } from "@/lib/types";
 import { useMatchScheduleTeams } from "@/hooks/use-match-schedule-teams";
 import { useGameConfig } from "@/hooks/use-game-config";
+import { useAsyncData } from "@/hooks/use-async-data";
 import { useSelectedEvent } from "@/hooks/use-event-config";
 import { calculateEPA } from "@/lib/statistics";
 import { estimateWinProbability } from "@/lib/matchup-probability";
 import MatchupAlliancePanel from "./matchup-alliance-panel";
 
 type MatchType = "qualification" | "playoff";
+
+type TeamEpaMap = Record<
+      number,
+      {
+        epa: number;
+        auto: number;
+        teleop: number;
+        endgame: number;
+        matchCount: number;
+        scores: number[];
+      } | null
+    >;
+
+const NO_EPA_DATA: TeamEpaMap = {};
 
 export default function MatchupPage() {
   const { currentYear, competitionType, getCurrentYearConfig } = useGameConfig();
@@ -85,23 +100,6 @@ export default function MatchupPage() {
   // FTC has 2 robots per alliance, FRC has 3
   const allianceSize = competitionType === "FTC" ? 2 : 3;
 
-  // EPA data for all displayed teams
-  const [teamEpaMap, setTeamEpaMap] = useState<
-    Record<
-      number,
-      {
-        epa: number;
-        auto: number;
-        teleop: number;
-        endgame: number;
-        matchCount: number;
-        scores: number[];
-      } | null
-    >
-  >({});
-  const [epaLoading, setEpaLoading] = useState(false);
-  const [loadedEpaKey, setLoadedEpaKey] = useState("");
-
   // Stable key to detect when displayed teams change
   const allTeamsKey = useMemo(
     () => [...displayRedTeams, ...displayBlueTeams].sort().join(","),
@@ -110,54 +108,47 @@ export default function MatchupPage() {
   const epaRequestKey = `${competitionType}:${currentYear}:${selectedEvent?.eventCode ?? ""}:${allTeamsKey}`;
 
   // Fetch EPA data for all displayed teams
-  useEffect(() => {
-    const allTeams = [...displayRedTeams, ...displayBlueTeams];
-    if (allTeams.length === 0) {
-      setTeamEpaMap({});
-      return;
-    }
-
-    let cancelled = false;
-    setEpaLoading(true);
-
-    Promise.all(
-      allTeams.map(async (teamNum) => {
-        try {
-          const data: TeamData = await teamApi.getTeamData(
-            teamNum,
-            currentYear,
-            selectedEvent?.eventCode,
-            competitionType,
-          );
-          // API returns autoEPA/teleopEPA/endgameEPA (not auto/teleop/endgame)
-          const epa = data.epa as Record<string, number> | null;
-          const scores = yearConfig && epa
-            ? data.matchEntries.map((match) => calculateEPA([match], currentYear, yearConfig).totalEPA)
-            : [];
-          return {
-            teamNum,
-            epa: epa?.totalEPA ?? 0,
-            auto: epa?.autoEPA ?? 0,
-            teleop: epa?.teleopEPA ?? 0,
-            endgame: epa?.endgameEPA ?? 0,
-            matchCount: data.matchCount ?? 0,
-            scores,
-          };
-        } catch {
-          return {
-            teamNum,
-            epa: 0,
-            auto: 0,
-            teleop: 0,
-            endgame: 0,
-            matchCount: 0,
-            scores: [],
-          };
-        }
-      }),
-    ).then((results) => {
-      if (cancelled) return;
-      const map: typeof teamEpaMap = {};
+  const { data: fetchedEpaMap, loading: epaLoading } = useAsyncData<TeamEpaMap>(
+    hasTeams ? epaRequestKey : null,
+    async () => {
+      const allTeams = [...displayRedTeams, ...displayBlueTeams];
+      const results = await Promise.all(
+        allTeams.map(async (teamNum) => {
+          try {
+            const data: TeamData = await teamApi.getTeamData(
+              teamNum,
+              currentYear,
+              selectedEvent?.eventCode,
+              competitionType,
+            );
+            // API returns autoEPA/teleopEPA/endgameEPA (not auto/teleop/endgame)
+            const epa = data.epa as Record<string, number> | null;
+            const scores = yearConfig && epa
+              ? data.matchEntries.map((match) => calculateEPA([match], currentYear, yearConfig).totalEPA)
+              : [];
+            return {
+              teamNum,
+              epa: epa?.totalEPA ?? 0,
+              auto: epa?.autoEPA ?? 0,
+              teleop: epa?.teleopEPA ?? 0,
+              endgame: epa?.endgameEPA ?? 0,
+              matchCount: data.matchCount ?? 0,
+              scores,
+            };
+          } catch {
+            return {
+              teamNum,
+              epa: 0,
+              auto: 0,
+              teleop: 0,
+              endgame: 0,
+              matchCount: 0,
+              scores: [],
+            };
+          }
+        }),
+      );
+      const map: TeamEpaMap = {};
       results.forEach((r) => {
         map[r.teamNum] = {
           epa: r.epa,
@@ -168,16 +159,10 @@ export default function MatchupPage() {
           scores: r.scores,
         };
       });
-      setTeamEpaMap(map);
-      setLoadedEpaKey(epaRequestKey);
-      setEpaLoading(false);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allTeamsKey, currentYear, selectedEvent?.eventCode, competitionType, yearConfig, epaRequestKey]);
+      return map;
+    },
+  );
+  const teamEpaMap = fetchedEpaMap ?? NO_EPA_DATA;
 
   // Calculate alliance totals
   const redTotalEpa = displayRedTeams.reduce(
@@ -214,7 +199,7 @@ export default function MatchupPage() {
   );
 
   const epaReady =
-    hasTeams && !epaLoading && loadedEpaKey === epaRequestKey && Object.keys(teamEpaMap).length > 0;
+    hasTeams && !epaLoading && Object.keys(teamEpaMap).length > 0;
   const winProbability = !epaReady ||
     displayRedTeams.length !== allianceSize ||
     displayBlueTeams.length !== allianceSize
@@ -241,9 +226,12 @@ export default function MatchupPage() {
     );
   }, [maxMatchNumber]);
 
-  useEffect(() => {
+  // Keep the text input in sync when the match number changes elsewhere
+  const [inputMatchNumber, setInputMatchNumber] = useState(matchNumber);
+  if (inputMatchNumber !== matchNumber) {
+    setInputMatchNumber(matchNumber);
     setMatchNumberInput(matchNumber.toString());
-  }, [matchNumber]);
+  }
 
   const updateManualTeam = (
     alliance: "red" | "blue",
@@ -472,7 +460,7 @@ export default function MatchupPage() {
           {/* EPA Prediction Summary */}
           <Card>
             <CardContent className="py-4">
-              {epaLoading || loadedEpaKey !== epaRequestKey ? (
+              {epaLoading ? (
                 <div className="flex items-center justify-center gap-4 py-2">
                   <Skeleton className="h-8 w-32" />
                   <Skeleton className="h-10 w-40" />
