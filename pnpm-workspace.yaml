@@ -2,7 +2,7 @@ allowBuilds:
   '@firebase/util': true
   '@prisma/client': true
   '@swc/core': true
-  '@tailwindcss/oxide': set this to true or false
+  '@tailwindcss/oxide': true
   esbuild: true
   msw: true
   protobufjs: true
