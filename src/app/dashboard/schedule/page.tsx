@@ -285,21 +285,27 @@ export default function SchedulePage() {
     return initial;
   }, [matchCount, scoutsPerAlliance, matchAssignments]);
 
-  useEffect(() => {
-    if (!hasEvent || matchCount <= 0) {
+  // Rebuild the local editing copy whenever the saved assignments change.
+  // Done during render so stale matches from the previous event never show.
+  const hasSchedule = hasEvent && matchCount > 0;
+  const syncFingerprint = useMemo(
+    () =>
+      hasSchedule
+        ? JSON.stringify({
+            scheduleScopeKey,
+            matchCount,
+            scoutsPerAlliance,
+            rows: matchAssignments,
+          })
+        : "",
+    [hasSchedule, scheduleScopeKey, matchCount, scoutsPerAlliance, matchAssignments],
+  );
+  if (syncFingerprint !== lastSyncedFingerprint) {
+    setLastSyncedFingerprint(syncFingerprint);
+    if (!hasSchedule) {
       setLocalMatches([]);
-      return;
-    }
-
-    const fingerprint = JSON.stringify({
-      scheduleScopeKey,
-      matchCount,
-      scoutsPerAlliance,
-      rows: matchAssignments,
-    });
-    if (fingerprint !== lastSyncedFingerprint) {
+    } else {
       setLocalMatches(buildInitialMatches());
-      setLastSyncedFingerprint(fingerprint);
 
       const assignedScoutIds = new Set<string>();
       matchAssignments.forEach((row) => {
@@ -307,15 +313,7 @@ export default function SchedulePage() {
       });
       setActiveScouts(Array.from(assignedScoutIds));
     }
-  }, [
-    hasEvent,
-    matchCount,
-    scoutsPerAlliance,
-    matchAssignments,
-    scheduleScopeKey,
-    lastSyncedFingerprint,
-    buildInitialMatches,
-  ]);
+  }
 
   const matchesByNumber = useMemo(() => {
     const map = new Map<number, MatchAssignment>();
