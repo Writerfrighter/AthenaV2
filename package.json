@@ -91,7 +91,7 @@
     "@types/sortablejs": "^1.15.9",
     "@types/web-push": "^3.6.4",
     "baseline-browser-mapping": "^2.11.26",
-    "esbuild": "^0.27.7",
+    "esbuild": "^0.28.2",
     "eslint": "^10.11.0",
     "eslint-config-next": "16.3.5",
     "serwist": "^9.5.12",
