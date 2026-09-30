@@ -3,7 +3,16 @@
   "appService.deploySubpath": ".",
   "appService.zipIgnorePattern": [
     "node_modules{,/**}",
-    ".vscode{,/**}"
+    ".vscode{,/**}",
+    ".next{,/**}",
+    ".git{,/**}",
+    "test-results{,/**}",
+    "playwright-report{,/**}",
+    "tsconfig.tsbuildinfo",
+    ".runtime{,/**}",
+    "docs{,/**}",
+    "tests{,/**}",
+    ".env.example"
   ],
   "sqltools.connections": [
     {
