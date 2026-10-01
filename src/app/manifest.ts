@@ -5,6 +5,14 @@ import {
   APP_SHORT_NAME,
 } from "@/lib/app-config";
 
+const screenshots = [
+  { id: "overview", label: "Overview with the next match assignment and scouting coverage" },
+  { id: "scheduling", label: "Match-by-match scouting assignments" },
+  { id: "pit-scouting", label: "Pit scouting robot profile" },
+  { id: "match-scouting", label: "Match scouting during teleop" },
+  { id: "analytics", label: "EPA analysis comparing teams" },
+];
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: APP_NAME,
@@ -47,6 +55,15 @@ export default function manifest(): MetadataRoute.Manifest {
         icons: [{ src: "/assets/icon-192.png", sizes: "192x192" }],
       },
     ],
+    screenshots: (["wide", "narrow"] as const).flatMap((form_factor) =>
+      screenshots.map(({ id, label }) => ({
+        src: `/screenshots/${id}-${form_factor}.png`,
+        sizes: form_factor === "wide" ? "1920x1080" : "1080x1920",
+        type: "image/png",
+        form_factor,
+        label,
+      })),
+    ),
     icons: [
       {
         src: "/assets/icon-192.png",

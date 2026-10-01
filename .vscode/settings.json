@@ -10,9 +10,16 @@
     "playwright-report{,/**}",
     "tsconfig.tsbuildinfo",
     ".runtime{,/**}",
+    ".github{,/**}",
+    "coverage{,/**}",
+    "e2e{,/**}",
     "docs{,/**}",
     "tests{,/**}",
-    ".env.example"
+    ".env.example",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "database-schema.sql",
+    "docker-compose.yml"
   ],
   "sqltools.connections": [
     {

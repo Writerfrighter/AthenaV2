@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { APP_LOGO, APP_LOGO_DARK, APP_NAME, ORGANIZATION_NAME, ORGANIZATION_URL } from "@/lib/app-config";
 import { DashboardPreview, SchedulePreview, PitPreview, MatchPreview, AnalyticsPreview } from "./product-previews";
 
-const features = [
+export const features = [
   { id: "scheduling", label: "01 / COORDINATE", title: "Every match. Every seat covered.", description: "Build scouting rotations, assign your crew, and give everyone a clear view of what's next. Less time organizing. More time watching the field.", points: ["Match-by-match assignments", "One shared schedule for your team"], preview: SchedulePreview },
   { id: "pit-scouting", label: "02 / DISCOVER", title: "Know the robot behind the rank.", description: "Bring robot capabilities, build details, and pit notes together. Give your strategy team the context that a score alone can't capture.", points: ["Structured robot profiles", "Capabilities and notes in one place"], preview: PitPreview },
   { id: "match-scouting", label: "03 / CAPTURE", title: "Eyes on the field. Data at your fingertips.", description: "Capture performance as the match unfolds with a scouting workflow built for the stands. Keep collecting when the venue connection drops, then sync later.", points: ["Fast match data collection", "Offline support for competition day"], preview: MatchPreview },

@@ -371,11 +371,16 @@ export class AzureSqlDatabaseService implements DatabaseService {
       )
     `);
 
+    // Must be its own batch: SQL Server compiles a whole batch up front, so the
+    // INSERT below would fail with "Invalid column name" if the column were
+    // added in the same batch.
     await pool.request().query(`
       IF COL_LENGTH('matchAssignments', 'competitionType') IS NULL
         ALTER TABLE matchAssignments ADD competitionType NVARCHAR(10) NOT NULL
           CONSTRAINT DF_matchAssignments_competitionType DEFAULT 'FRC';
+    `);
 
+    await pool.request().query(`
       IF EXISTS (
         SELECT 1 FROM sys.indexes i
         WHERE i.object_id = OBJECT_ID('matchAssignments')
