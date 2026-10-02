@@ -1,3 +1,4 @@
+import { guestDatabase } from "@/lib/server/guest-database";
 import { NextRequest, NextResponse } from "next/server";
 import { databaseManager } from "@/db/database-manager";
 import { DatabaseService, CompetitionType, MatchEntry } from "@/lib/types";
@@ -235,7 +236,7 @@ export async function GET(request: NextRequest) {
     const competitionType =
       (searchParams.get("competitionType") as CompetitionType) || "FRC";
 
-    const service = getDbService();
+    const service = guestDatabase(getDbService(), session);
 
     // Get all match entries for analysis, filtered by competition type
     const matchEntries = await service.getAllMatchEntries(

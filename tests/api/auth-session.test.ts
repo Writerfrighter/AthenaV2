@@ -2,24 +2,33 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { encode } from "next-auth/jwt";
 import { handlers } from "@/lib/auth/config";
+import { createGuestEventLink as signGuestEventLink, verifyGuestEventLink } from "@/lib/server/event-guest";
+import type { JWT } from "next-auth/jwt";
 
-const { query } = vi.hoisted(() => ({ query: vi.fn() }));
+const { query, guestLinks } = vi.hoisted(() => ({ query: vi.fn(), guestLinks: new Map<string, { token: string; revokedAt: number | null }>() }));
 vi.mock("@/db/database-manager", () => ({
-  databaseManager: { getService: () => ({ query }) },
+  databaseManager: { getService: () => ({ query, getGuestLink: async (id: string) => guestLinks.get(id) }) },
 }));
 vi.mock("@/lib/server/env-file", () => ({
   getOrCreateAuthSecret: () => "session-test-secret",
 }));
 
-async function getSession() {
+async function getSession(overrides: JWT = {}) {
   const token = await encode({
     secret: "session-test-secret",
     salt: "authjs.session-token",
-    token: { sub: "user-1", id: "user-1", role: "admin", name: "Old name" },
+    token: { sub: "user-1", id: "user-1", role: "admin", name: "Old name", ...overrides },
   });
   return handlers.GET(new NextRequest("http://localhost/api/auth/session", {
     headers: { cookie: `authjs.session-token=${token}` },
   }));
+}
+
+function createGuestEventLink(event: Parameters<typeof signGuestEventLink>[0]) {
+  const link = signGuestEventLink(event);
+  const grant = verifyGuestEventLink(link.token)!;
+  guestLinks.set(grant.nonce, { token: link.token, revokedAt: null });
+  return link;
 }
 
 describe("existing account sessions", () => {
@@ -27,6 +36,7 @@ describe("existing account sessions", () => {
     vi.stubEnv("AUTH_URL", "http://localhost");
     vi.stubEnv("NEXTAUTH_URL", "http://localhost");
     query.mockReset();
+    guestLinks.clear();
   });
   afterEach(() => vi.unstubAllEnvs());
 
@@ -50,5 +60,49 @@ describe("existing account sessions", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     query.mockRejectedValue(new Error("Database unavailable"));
     expect(await (await getSession()).json()).toBeNull();
+  });
+
+  it("uses the verified guest role and event without a database account", async () => {
+    vi.stubEnv("AUTH_SECRET", "guest-secret");
+    const event = { name: "Test", eventCode: "2026test", year: 2026, competitionType: "FRC" as const };
+    const { token: guestToken } = createGuestEventLink(event);
+    const response = await getSession({ guestToken, role: "admin" });
+    expect(await response.json()).toMatchObject({ user: { role: "guest", username: "guest" }, guestEvent: event });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("signs in from a guest link through the real credentials callback", async () => {
+    vi.stubEnv("AUTH_SECRET", "guest-secret");
+    const { token: guestToken } = createGuestEventLink({ name: "Test", eventCode: "2026test", year: 2026, competitionType: "FRC" });
+    const csrfResponse = await handlers.GET(new NextRequest("http://localhost/api/auth/csrf"));
+    const { csrfToken } = await csrfResponse.json();
+    const csrfCookies = csrfResponse.headers.getSetCookie().map((cookie) => cookie.split(";")[0]).join("; ");
+    const loginResponse = await handlers.POST(new NextRequest("http://localhost/api/auth/callback/credentials", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", cookie: csrfCookies },
+      body: new URLSearchParams({ csrfToken, guestToken, callbackUrl: "http://localhost/dashboard" }),
+    }));
+    expect(loginResponse.headers.get("location")).toBe("http://localhost/dashboard");
+    const sessionCookies = loginResponse.headers.getSetCookie().map((cookie) => cookie.split(";")[0]).join("; ");
+    const response = await handlers.GET(new NextRequest("http://localhost/api/auth/session", { headers: { cookie: sessionCookies } }));
+    expect(await response.json()).toMatchObject({ user: { role: "guest" }, guestEvent: { eventCode: "2026test" } });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("rejects guest sessions whose grant expired even when the auth JWT is valid", async () => {
+    vi.stubEnv("AUTH_SECRET", "guest-secret");
+    const { token: guestToken, expiresAt } = createGuestEventLink({ name: "Test", eventCode: "2026test", year: 2026, competitionType: "FRC" });
+    vi.spyOn(Date, "now").mockReturnValue(expiresAt);
+    expect(await (await getSession({ guestToken, role: "guest" })).json()).toBeNull();
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("rejects already signed-in guest sessions after revocation", async () => {
+    vi.stubEnv("AUTH_SECRET", "guest-secret");
+    const { token: guestToken } = createGuestEventLink({ name: "Test", eventCode: "2026test", year: 2026, competitionType: "FRC" });
+    const grant = verifyGuestEventLink(guestToken)!;
+    guestLinks.set(grant.nonce, { token: guestToken, revokedAt: Date.now() });
+    expect(await (await getSession({ guestToken, role: "guest" })).json()).toBeNull();
+    expect(query).not.toHaveBeenCalled();
   });
 });

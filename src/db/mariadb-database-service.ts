@@ -1,3 +1,5 @@
+import { sqlGuestLinks } from "./sql-guest-links";
+import type { GuestLinkRecord } from "@/lib/types";
 import {
   DatabaseService,
   PitEntry,
@@ -223,9 +225,28 @@ export class MariaDbDatabaseService implements DatabaseService {
     return { sql: normalizedSql, values };
   }
 
+  async addGuestLink(link: GuestLinkRecord): Promise<void> {
+    await sqlGuestLinks(this.query.bind(this)).addGuestLink(link);
+  }
+  async getGuestLinks(): Promise<GuestLinkRecord[]> {
+    return sqlGuestLinks(this.query.bind(this)).getGuestLinks();
+  }
+  async getGuestLink(id: string): Promise<GuestLinkRecord | undefined> {
+    return sqlGuestLinks(this.query.bind(this)).getGuestLink(id);
+  }
+  async revokeGuestLink(id: string, revokedAt: number): Promise<void> {
+    await sqlGuestLinks(this.query.bind(this)).revokeGuestLink(id, revokedAt);
+  }
   private async initializeTables(): Promise<void> {
     const pool = await this.getPool();
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS guestLinks (
+        id VARCHAR(32) PRIMARY KEY,
+        data LONGTEXT NOT NULL,
+        revokedAt BIGINT NULL
+      )
+    `);
     // users
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (

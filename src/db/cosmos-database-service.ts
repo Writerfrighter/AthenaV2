@@ -11,6 +11,29 @@ import type {
 
 // Minimal Azure Cosmos DB-backed service using @azure/cosmos
 export class CosmosDatabaseService implements DatabaseService {
+  private async guestLinksContainer() {
+    const { container } = await this.getDatabase().containers.createIfNotExists({
+      // Keep bearer tokens out of the shared scouting container and its exports.
+      id: this.config?.containerId ? `${this.config.containerId}-guestLinks` : "guestLinks",
+      partitionKey: { paths: ["/id"] },
+    });
+    return container;
+  }
+  async addGuestLink(link: import("@/lib/types").GuestLinkRecord): Promise<void> {
+    await (await this.guestLinksContainer()).items.create({ ...link, type: "guestLink" });
+  }
+  async getGuestLinks(): Promise<import("@/lib/types").GuestLinkRecord[]> {
+    const { resources } = await (await this.guestLinksContainer()).items.query({ query: "SELECT * FROM c WHERE c.type = @type", parameters: [{ name: "@type", value: "guestLink" }] }).fetchAll();
+    return resources;
+  }
+  async getGuestLink(id: string): Promise<import("@/lib/types").GuestLinkRecord | undefined> {
+    const { resources } = await (await this.guestLinksContainer()).items.query({ query: "SELECT * FROM c WHERE c.type = @type AND c.id = @id", parameters: [{ name: "@type", value: "guestLink" }, { name: "@id", value: id }] }).fetchAll();
+    return resources[0];
+  }
+  async revokeGuestLink(id: string, revokedAt: number): Promise<void> {
+    const link = await this.getGuestLink(id);
+    if (link) await (await this.guestLinksContainer()).items.upsert({ ...link, revokedAt, type: "guestLink" });
+  }
   private client: CosmosClient | null = null;
 
   constructor(

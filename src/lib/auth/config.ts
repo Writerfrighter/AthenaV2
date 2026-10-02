@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { databaseManager } from "@/db/database-manager";
 import { getOrCreateAuthSecret } from "@/lib/server/env-file";
 import "./types";
+import { resolveGuestEventLink } from "@/lib/server/guest-link-service";
 
 export const authConfig: NextAuthConfig = {
   secret: getOrCreateAuthSecret(),
@@ -14,8 +15,14 @@ export const authConfig: NextAuthConfig = {
       credentials: {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
+        guestToken: { label: "Guest link", type: "text" },
       },
       async authorize(credentials) {
+        if (typeof credentials?.guestToken === "string") {
+          const grant = await resolveGuestEventLink(credentials.guestToken);
+          if (!grant) return null;
+          return { id: `guest:${grant.nonce}`, name: "Event Guest", username: "guest", role: "guest", guestToken: credentials.guestToken };
+        }
         if (!credentials?.username || !credentials?.password) {
           return null;
         }
@@ -87,6 +94,12 @@ export const authConfig: NextAuthConfig = {
   },
   callbacks: {
     async jwt({ token, user }) {
+      const guestToken = user ? user.guestToken : token.guestToken;
+      if (guestToken) {
+        const grant = await resolveGuestEventLink(guestToken);
+        if (!grant) return null;
+        return { ...token, id: `guest:${grant.nonce}`, name: "Event Guest", username: "guest", role: "guest", guestToken, exp: Math.floor(grant.expiresAt / 1000) };
+      }
       if (user) {
         token.id = user.id;
         token.username = user.username;
@@ -130,6 +143,12 @@ export const authConfig: NextAuthConfig = {
       return token;
     },
     async session({ session, token }) {
+      if (token.guestToken) {
+        const grant = await resolveGuestEventLink(token.guestToken);
+        if (grant) {
+          session.guestEvent = grant;
+        }
+      }
       if (token && session.user) {
         const userId = token.id || token.sub;
         if (userId) session.user.id = userId;

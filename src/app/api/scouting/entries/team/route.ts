@@ -1,3 +1,4 @@
+import { guestDatabase } from "@/lib/server/guest-database";
 import { NextRequest, NextResponse } from "next/server";
 import { databaseManager } from "@/db/database-manager";
 import { DatabaseService, MatchEntry, CompetitionType } from "@/lib/types";
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const service = getDbService();
+    const service = guestDatabase(getDbService(), session);
 
     // Get match entries for the team, filtered by competition type
     const matchEntries = await service.getMatchEntries(

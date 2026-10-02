@@ -10,6 +10,7 @@ vi.mock("@serwist/turbopack/worker", () => ({ defaultCache: [] }));
 vi.mock("serwist", () => ({
   Serwist: class { addEventListeners() {} },
   NetworkFirst: class {},
+  NetworkOnly: class {},
   ExpirationPlugin: class {},
 }));
 
@@ -23,6 +24,7 @@ describe("service worker background sync lifecycle", () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal("self", {
+      location: { origin: "http://localhost" },
       addEventListener: (name: string, listener: typeof listeners extends Map<string, infer T> ? T : never) => listeners.set(name, listener),
       registration: { sync: { register }, showNotification: vi.fn().mockResolvedValue(undefined) },
       clients: { matchAll: vi.fn().mockResolvedValue([]) },

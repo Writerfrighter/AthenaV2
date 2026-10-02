@@ -11,6 +11,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ThemeSelector } from "@/components/settings/theme-selector";
+import { useSession } from "next-auth/react";
 
 const AccountSettingsDialog = dynamic(
   () => import("./account-settings").then((mod) => mod.AccountSettingsDialog),
@@ -56,10 +57,13 @@ export default function DashboardShell({
 }: {
   children: React.ReactNode;
 }) {
+  const { data: session, status } = useSession();
   const [accountOpen, setAccountOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const openAccountSettings = () => setAccountOpen(true);
   const openNotificationSettings = () => setNotificationOpen(true);
+  if (status === "loading") return <p className="p-8">Loading event access…</p>;
+  if (status !== "authenticated") return <div className="p-8"><p>Your session has ended. Open a new guest link or sign in.</p><a href="/login">Sign in</a></div>;
 
   return (
     <AccountSettingsContext.Provider value={{ openAccountSettings }}>
@@ -70,6 +74,7 @@ export default function DashboardShell({
           <AppSidebar />
           <SidebarInset>
             <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+              {session?.guestEvent && <span className="text-xs text-muted-foreground">Read-only guest · {session.guestEvent.name}</span>}
               <SidebarTrigger className="-ml-1" />
               <Separator
                 orientation="vertical"

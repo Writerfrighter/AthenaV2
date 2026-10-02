@@ -1,4 +1,5 @@
 import { DatabaseService } from "@/lib/types";
+import type { GuestLinkRecord } from "@/lib/types";
 import type { PitEntry, MatchEntry, CustomEvent } from "@/lib/types";
 import type { CompetitionType } from "@/lib/types";
 import type { Picklist, PicklistEntry, PicklistNote } from "@/lib/types";
@@ -20,6 +21,20 @@ function withNumericId<T>(data: DocumentData): T {
 
 // Minimal Firebase Admin-backed database service. Uses Firestore collections.
 export class FirebaseDatabaseService implements DatabaseService {
+  async addGuestLink(link: GuestLinkRecord): Promise<void> {
+    await this.collection("guestLinks").doc(link.id).create(link);
+  }
+  async getGuestLinks(): Promise<GuestLinkRecord[]> {
+    const snapshot = await this.collection("guestLinks").get();
+    return snapshot.docs.map((doc) => doc.data() as GuestLinkRecord);
+  }
+  async getGuestLink(id: string): Promise<GuestLinkRecord | undefined> {
+    const snapshot = await this.collection("guestLinks").doc(id).get();
+    return snapshot.exists ? snapshot.data() as GuestLinkRecord : undefined;
+  }
+  async revokeGuestLink(id: string, revokedAt: number): Promise<void> {
+    await this.collection("guestLinks").doc(id).update({ revokedAt });
+  }
   private db: Firestore | null = null;
 
   constructor(

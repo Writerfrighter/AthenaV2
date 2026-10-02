@@ -1,3 +1,5 @@
+import { sqlGuestLinks } from "./sql-guest-links";
+import type { GuestLinkRecord } from "@/lib/types";
 import {
   DatabaseService,
   PitEntry,
@@ -261,9 +263,29 @@ export class AzureSqlDatabaseService implements DatabaseService {
     }
   }
 
+  async addGuestLink(link: GuestLinkRecord): Promise<void> {
+    await sqlGuestLinks(this.query.bind(this)).addGuestLink(link);
+  }
+  async getGuestLinks(): Promise<GuestLinkRecord[]> {
+    return sqlGuestLinks(this.query.bind(this)).getGuestLinks();
+  }
+  async getGuestLink(id: string): Promise<GuestLinkRecord | undefined> {
+    return sqlGuestLinks(this.query.bind(this)).getGuestLink(id);
+  }
+  async revokeGuestLink(id: string, revokedAt: number): Promise<void> {
+    await sqlGuestLinks(this.query.bind(this)).revokeGuestLink(id, revokedAt);
+  }
   private async initializeTables(): Promise<void> {
     const pool = await this.getPool();
 
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='guestLinks' AND xtype='U')
+      CREATE TABLE guestLinks (
+        id NVARCHAR(32) PRIMARY KEY,
+        data NVARCHAR(MAX) NOT NULL,
+        revokedAt BIGINT NULL
+      )
+    `);
     // Create users table
     await pool.request().query(`
       IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='users' AND xtype='U')

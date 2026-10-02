@@ -1,6 +1,6 @@
 import { defaultCache } from "@serwist/turbopack/worker";
-import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist, NetworkFirst, ExpirationPlugin } from "serwist";
+import type { PrecacheEntry, SerwistGlobalConfig, RuntimeCaching } from "serwist";
+import { Serwist, NetworkFirst, NetworkOnly, ExpirationPlugin } from "serwist";
 import { APP_LOGO, APP_NAME } from "@/lib/app-config";
 
 // This declares the value of `injectionPoint` to TypeScript.
@@ -113,7 +113,11 @@ const OFFLINE_FALLBACK_HTML = `<!DOCTYPE html>
 const APP_PAGES_CACHE = "app-pages";
 
 // Custom runtime caching rules for scouting-specific routes, merged with defaults
-const appRuntimeCaching = [
+const appRuntimeCaching: RuntimeCaching[] = [
+  {
+    matcher: ({ url }: { url: URL }) => url.pathname.startsWith("/guest/events/"),
+    handler: new NetworkOnly(),
+  },
   // Auth session endpoint — cache so offline relaunches preserve the logged-in session.
   // Short timeout so the cached session is returned quickly when offline.
   {
@@ -227,12 +231,47 @@ const appRuntimeCaching = [
   ...defaultCache,
 ];
 
+// Guest sessions must never fall back to a signed-in user's cached pages or
+// private API responses. Persist only this mode flag across worker restarts.
+const networkOnly = new NetworkOnly();
+const accessModeKey = new URL("/__athena_guest_mode", self.location.origin).href;
+const safeRuntimeCaching: RuntimeCaching[] = appRuntimeCaching.map((rule) => {
+  const original = rule.handler;
+  if (typeof original !== "function" && "plugins" in original) {
+    (original as NetworkFirst).plugins.push({
+      cacheWillUpdate: async ({ response }) => response.headers.get("X-Athena-Guest") === "1"
+        ? null : response.status === 200 || response.status === 0 ? response : null,
+    });
+  }
+  return { ...rule, handler: async (options) => {
+    const url = new URL(options.request.url);
+    const modeCache = await caches.open("athena-access-mode");
+    if (url.origin === self.location.origin && url.pathname.startsWith("/guest/events/")) {
+      await modeCache.put(accessModeKey, new Response("guest"));
+    }
+    const isGuest = !!(await modeCache.match(accessModeKey));
+    const protectedRequest = url.origin === self.location.origin && (
+      url.pathname.startsWith("/api/") || url.pathname.startsWith("/dashboard") ||
+      url.pathname.startsWith("/scout/") || url.pathname === "/"
+    );
+    const response = isGuest && protectedRequest
+      ? await networkOnly.handle(options)
+      : typeof original === "function" ? await original(options) : await original.handle(options);
+    if (url.origin === self.location.origin && url.pathname === "/api/auth/session" && response.ok) {
+      const session = await response.clone().json().catch(() => null);
+      if (session?.guestEvent) await modeCache.put(accessModeKey, new Response("guest"));
+      else if (session?.user) await modeCache.delete(accessModeKey);
+    }
+    return response;
+  } };
+});
+
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: false, // Disabled — navigation preload bypasses cache and breaks offline
-  runtimeCaching: appRuntimeCaching,
+  runtimeCaching: safeRuntimeCaching,
   fallbacks: {
     entries: [
       {

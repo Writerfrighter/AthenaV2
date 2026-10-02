@@ -1,5 +1,6 @@
 import type { CompetitionType } from "../competition/competition";
 import type { CustomEvent, MatchEntry, PitEntry } from "./entries";
+import type { GuestLinkRecord } from "../events/guest-links";
 import type {
   Picklist,
   PicklistEntry,
@@ -28,6 +29,10 @@ export type ScheduleAssignmentRecord = {
 };
 
 export interface DatabaseService {
+  addGuestLink(link: GuestLinkRecord): Promise<void>;
+  getGuestLinks(): Promise<GuestLinkRecord[]>;
+  getGuestLink(id: string): Promise<GuestLinkRecord | undefined>;
+  revokeGuestLink(id: string, revokedAt: number): Promise<void>;
   getPool?(): Promise<unknown>;
   query?<T = unknown>(
     sql: string,

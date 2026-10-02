@@ -26,11 +26,13 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { SearchForm } from "@/components/forms/search-form";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useGameConfig } from "@/hooks/use-game-config";
 import { PermissionGuard } from "../auth/PermissionGuard";
 import { ROLES } from "@/lib/auth/roles";
 import { APP_LOGO } from "@/lib/app-config";
+import { isGuestPage } from "@/lib/auth/guest-policy";
+import { Button } from "@/components/ui/button";
 const data = {
   navMain: [
     { title: "Overview", url: "/dashboard", icon: LayoutDashboard },
@@ -82,6 +84,11 @@ const data = {
   ],
   navAdmin: [
     {
+      name: "Guest Links",
+      url: "/dashboard/guest-links",
+      icon: KeyRound,
+    },
+    {
       name: "Database",
       url: "/dashboard/admin/database",
       icon: DatabaseIcon,
@@ -111,6 +118,8 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = useSession();
+  const guest = session?.guestEvent;
+  const navigation = guest ? data.navMain.filter((item) => !item.url || isGuestPage(item.url)).map((item) => ({ ...item, items: item.items?.filter((child) => isGuestPage(child.url)) })) : data.navMain;
   const { competitionType } = useGameConfig();
 
   // Use session data if available, otherwise fallback to default
@@ -147,17 +156,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <div className="mx-2 mt-1">
-          <EventSwitcher />
+          {guest ? <div className="space-y-1 p-2"><p className="font-semibold text-sm">{guest.name}</p><p className="text-xs text-muted-foreground">{guest.competitionType} {guest.year} · Read-only guest</p></div> : <EventSwitcher />}
         </div>
         <SearchForm className="mt-1 ms-2" />
-        <NavMain items={data.navMain} />
+        <NavMain items={navigation} />
         <PermissionGuard roles={[ROLES.ADMIN, ROLES.LEAD_SCOUT]}>
           <NavAdmin items={data.navAdmin} />
         </PermissionGuard>
         
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={userData} />
+        {guest ? <Button variant="outline" onClick={() => signOut({ callbackUrl: "/login" })}>Leave guest access</Button> : <NavUser user={userData} />}
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

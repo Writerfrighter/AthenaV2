@@ -1,3 +1,4 @@
+import { guestDatabase } from "@/lib/server/guest-database";
 import { NextRequest, NextResponse } from "next/server";
 import { databaseManager } from "@/db/database-manager";
 import { DatabaseService, CompetitionType } from "@/lib/types";
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     const competitionType =
       (searchParams.get("competitionType") as CompetitionType) || undefined;
 
-    const service = getDbService();
+    const service = guestDatabase(getDbService(), session);
 
     // If ID is provided, fetch single entry by ID
     if (id) {
