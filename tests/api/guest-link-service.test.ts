@@ -49,16 +49,14 @@ describe("persistent guest links", () => {
     expect(await resolveGuestEventLink(record.token, service)).toBeNull();
   });
 
-  it("discovers a legacy link on use and never recreates revoked access", async () => {
+  it("rejects an unrecorded signed link without registering it", async () => {
     const grant = { ...event, nonce: "a".repeat(32), expiresAt: Date.now() + 100000 };
     const payload = Buffer.from(JSON.stringify(grant)).toString("base64url");
     const signature = createHmac("sha256", "registry-test-secret").update(`event-guest:v1:${payload}`).digest("base64url");
     const token = `${payload}.${signature}`;
     expect(await activeGuestLinks(service)).toEqual([]);
-    expect(await resolveGuestEventLink(token, service)).toMatchObject(event);
-    expect((await activeGuestLinks(service))[0].createdBy).toBe("legacy");
-    await service.revokeGuestLink(grant.nonce, Date.now());
     expect(await resolveGuestEventLink(token, service)).toBeNull();
-    expect(service.addGuestLink).toHaveBeenCalledTimes(1);
+    expect(await activeGuestLinks(service)).toEqual([]);
+    expect(service.addGuestLink).not.toHaveBeenCalled();
   });
 });

@@ -70,7 +70,6 @@ export function GuestLinksManager() {
         <Input aria-label={`Guest link for ${link.name}`} readOnly value={`${origin}${link.path}`} onFocus={(event) => event.target.select()} />
         <div className="flex gap-2"><Button variant="outline" onClick={() => copy(link)}>Copy link</Button><Button variant="destructive" onClick={() => setPending(link)}>Revoke access</Button></div>
       </CardContent></Card>)}</div>
-    <p className="text-xs text-muted-foreground">Expired and revoked links are excluded. Links issued before tracking was enabled appear after their next use.</p>
     <DeleteConfirmationDialog open={!!pending} onOpenChange={(open) => { if (!open && !revoking) setPending(null); }} onConfirm={revoke} title="Revoke guest access?" description={`Anyone using this link for ${pending?.name ?? "this event"} will lose access. This cannot be undone; you can create a new link.`} loading={revoking} confirmButtonText="Revoke access" loadingText="Revoking..." />
   </div>;
 }

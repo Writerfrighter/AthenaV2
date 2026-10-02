@@ -18,16 +18,7 @@ export async function resolveGuestEventLink(token: string, service?: DatabaseSer
   if (!grant) return null;
   try {
     const db = await database(service);
-    let record = await db.getGuestLink(grant.nonce);
-    // Older, stateless links can only be discovered when presented. Persist
-    // them once so that they can be listed and revoked without breaking access.
-    if (!record && !grant.tracked) {
-      const legacy: GuestLinkRecord = { ...grant, id: grant.nonce, token, createdAt: grant.expiresAt - 7 * 24 * 60 * 60 * 1000, createdBy: "legacy", revokedAt: null };
-      try { await db.addGuestLink(legacy); } catch {
-        // Another request may have registered or revoked this link concurrently.
-      }
-      record = await db.getGuestLink(grant.nonce);
-    }
+    const record = await db.getGuestLink(grant.nonce);
     return record && record.token === token && record.revokedAt === null ? grant : null;
   } catch {
     // No registry read means no authorization, including already signed-in guests.

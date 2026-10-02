@@ -145,7 +145,6 @@ export default function Page() {
         </div>
       </div>
 
-      <GuestEventLink key={`${competitionType}:${currentYear}:${selectedEvent.eventCode}`} event={selectedEvent} />
       <Tabs key={defaultView} defaultValue={defaultView} className="space-y-6">
         <TabsList className={`grid h-11 w-full ${isGuest ? "grid-cols-1" : "grid-cols-2"} sm:w-[360px]`}>
           {!isGuest && <TabsTrigger value="live" className="gap-2">

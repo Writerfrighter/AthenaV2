@@ -10,7 +10,6 @@ export const guestEventSchema = z.object({
 const grantSchema = guestEventSchema.extend({
   expiresAt: z.number().int().positive(),
   nonce: z.string().length(32),
-  tracked: z.literal(true).optional(),
 });
 export type GuestEventGrant = z.infer<typeof grantSchema>;
 
@@ -29,7 +28,6 @@ export function createGuestEventLink(event: z.infer<typeof guestEventSchema>) {
     ...guestEventSchema.parse(event),
     expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
     nonce: randomBytes(16).toString("hex"),
-    tracked: true,
   });
   const payload = Buffer.from(JSON.stringify(grant)).toString("base64url");
   return { token: `${payload}.${signature(payload).toString("base64url")}`, expiresAt: grant.expiresAt };
