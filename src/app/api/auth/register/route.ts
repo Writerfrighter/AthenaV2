@@ -42,11 +42,11 @@ export async function POST(request: NextRequest) {
       username,
       password,
       role: "scout",
-    });
+    }, { preventDuplicateName: true });
 
     if (!result.success) {
       return NextResponse.json(
-        { error: result.error },
+        { error: result.error, code: result.code },
         { status: result.status },
       );
     }

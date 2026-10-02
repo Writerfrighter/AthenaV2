@@ -28,7 +28,36 @@ export type ScheduleAssignmentRecord = {
   userId: string;
 };
 
+export interface UserRecord {
+  id: string;
+  name: string;
+  username: string;
+  role: string;
+  preferredPartners: string | null;
+  avatarUrl: string | null;
+  deactivatedAt: string | null;
+  sessionVersion: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserCredentials extends UserRecord { password_hash: string }
+
+/** Account persistence capability; non-relational providers use external auth. */
+export interface UserStore {
+  list(includeInactive?: boolean): Promise<UserRecord[]>;
+  getById(id: string): Promise<UserCredentials | undefined>;
+  getByUsername(username: string): Promise<UserCredentials | undefined>;
+  getByIds(ids: string[], activeOnly?: boolean): Promise<UserRecord[]>;
+  hasAdmin(): Promise<boolean>;
+  create(user: { id: string; name: string; username: string; passwordHash: string; role: string }): Promise<void>;
+  setActive(id: string, active: boolean): Promise<void>;
+  getAvatar(id: string): Promise<{ avatarData: Buffer | null; avatarMimeType: string | null } | undefined>;
+  getSubscriptions(id?: string): Promise<{ id: string; push_subscriptions: string | null }[]>;
+}
+
 export interface DatabaseService {
+  users?: UserStore;
   addGuestLink(link: GuestLinkRecord): Promise<void>;
   getGuestLinks(): Promise<GuestLinkRecord[]>;
   getGuestLink(id: string): Promise<GuestLinkRecord | undefined>;

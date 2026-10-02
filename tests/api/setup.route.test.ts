@@ -16,7 +16,8 @@ vi.mock("@/lib/server/require-permission", () => ({
   requirePermission: mockRequirePermission,
 }));
 
-vi.mock("@/db/database-manager", () => {
+vi.mock("@/db/database-manager", async () => {
+  const { sqlUsers } = await import("@/db/sql-users");
   return {
     DatabaseManager: {
       getInstance: vi.fn(() => ({
@@ -25,6 +26,7 @@ vi.mock("@/db/database-manager", () => {
         configure: mockConfigure,
         getService: () => ({
           query: mockQuery,
+          users: sqlUsers(mockQuery, "azuresql"),
         }),
         getConfig: () => ({ provider: "mariadb" }),
       })),
@@ -32,6 +34,7 @@ vi.mock("@/db/database-manager", () => {
     databaseManager: {
       getService: () => ({
         query: mockQuery,
+          users: sqlUsers(mockQuery, "azuresql"),
       }),
       getConfig: () => ({ provider: "mariadb" }),
     },
@@ -145,7 +148,7 @@ describe("/api/setup/admin", () => {
 
   it("rejects admin creation if an admin already exists", async () => {
     mockQuery = vi.fn().mockResolvedValueOnce({
-      recordset: [{ id: "existing-admin-1" }],
+      recordset: [{ count: 1 }],
     });
 
     const route = await import("@/app/api/setup/admin/route");

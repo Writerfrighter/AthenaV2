@@ -6,9 +6,12 @@ import { createGuestEventLink as signGuestEventLink, verifyGuestEventLink } from
 import type { JWT } from "next-auth/jwt";
 
 const { query, guestLinks } = vi.hoisted(() => ({ query: vi.fn(), guestLinks: new Map<string, { token: string; revokedAt: number | null }>() }));
-vi.mock("@/db/database-manager", () => ({
-  databaseManager: { getService: () => ({ query, getGuestLink: async (id: string) => guestLinks.get(id) }) },
-}));
+vi.mock("@/db/database-manager", async () => {
+  const { sqlUsers } = await import("@/db/sql-users");
+  return ({
+  databaseManager: { getService: () => ({ users: sqlUsers(query, "azuresql"), getGuestLink: async (id: string) => guestLinks.get(id) }) },
+});
+});
 vi.mock("@/lib/server/env-file", () => ({
   getOrCreateAuthSecret: () => "session-test-secret",
 }));
@@ -54,6 +57,36 @@ describe("existing account sessions", () => {
     const response = await getSession();
     expect(await response.json()).toBeNull();
     expect(response.headers.getSetCookie().some(cookie => cookie.includes("Max-Age=0"))).toBe(true);
+  });
+
+  it("rejects a deactivated account and clears its session", async () => {
+    query.mockResolvedValue({ recordset: [{ id: "user-1", role: "admin", deactivatedAt: "2026-10-02", sessionVersion: 1 }] });
+    const response = await getSession();
+    expect(await response.json()).toBeNull();
+    expect(response.headers.getSetCookie().some(cookie => cookie.includes("Max-Age=0"))).toBe(true);
+  });
+
+  it("rejects a deactivated user at the real credentials login", async () => {
+    query.mockResolvedValue({ recordset: [{ id: "user-1", username: "former-scout", role: "scout", deactivatedAt: "2026-10-02", password_hash: "unused" }] });
+    const csrfResponse = await handlers.GET(new NextRequest("http://localhost/api/auth/csrf"));
+    const { csrfToken } = await csrfResponse.json();
+    const cookies = csrfResponse.headers.getSetCookie().map(cookie => cookie.split(";")[0]).join("; ");
+    const response = await handlers.POST(new NextRequest("http://localhost/api/auth/callback/credentials", {
+      method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", cookie: cookies },
+      body: new URLSearchParams({ csrfToken, username: "former-scout", password: "password123", callbackUrl: "http://localhost/dashboard" }),
+    }));
+    expect(response.headers.get("location")).toContain("CredentialsSignin");
+    expect(response.headers.getSetCookie().some(cookie => cookie.startsWith("authjs.session-token="))).toBe(false);
+  });
+
+  it("rejects an old session after restoration", async () => {
+    query.mockResolvedValue({ recordset: [{ id: "user-1", role: "scout", deactivatedAt: null, sessionVersion: 2 }] });
+    expect(await (await getSession({ sessionVersion: 0 })).json()).toBeNull();
+  });
+
+  it("allows a fresh session for a restored account", async () => {
+    query.mockResolvedValue({ recordset: [{ id: "user-1", role: "scout", deactivatedAt: null, sessionVersion: 2 }] });
+    expect(await (await getSession({ sessionVersion: 2 })).json()).toMatchObject({ user: { role: "scout" } });
   });
 
   it("fails closed if current permissions cannot be read", async () => {

@@ -1,3 +1,4 @@
+import { sqlUsers } from "./sql-users";
 import { sqlGuestLinks } from "./sql-guest-links";
 import type { GuestLinkRecord } from "@/lib/types";
 import {
@@ -65,6 +66,7 @@ export function normalizeMariaDbTimestamp(value: unknown): Date {
 }
 
 export class MariaDbDatabaseService implements DatabaseService {
+  readonly users = sqlUsers(this.query.bind(this), "mariadb");
   private pool: Pool | null = null;
   private config: { connectionString?: string; host?: string; port?: number; database?: string; user?: string; password?: string };
 
@@ -263,6 +265,10 @@ export class MariaDbDatabaseService implements DatabaseService {
         avatarMimeType VARCHAR(100)
       ) ENGINE=InnoDB;
     `);
+
+    // Preserve existing users; inactive accounts retain all historical references.
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS deactivatedAt DATETIME NULL`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS sessionVersion INT NOT NULL DEFAULT 0`);
 
     // pitEntries
     await pool.query(`

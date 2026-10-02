@@ -1,3 +1,4 @@
+import { sqlUsers } from "./sql-users";
 import { sqlGuestLinks } from "./sql-guest-links";
 import type { GuestLinkRecord } from "@/lib/types";
 import {
@@ -38,6 +39,7 @@ import {
 } from "./row-mappers";
 
 export class AzureSqlDatabaseService implements DatabaseService {
+  readonly users = sqlUsers(this.query.bind(this), "azuresql");
   private pool: import("mssql").ConnectionPool | null = null;
   private config: AzureSqlConfig;
   private tokenExpiresAt: Date | null = null;
@@ -426,6 +428,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
         ALTER TABLE matchAssignments ADD CONSTRAINT uq_match_assignment
           UNIQUE (eventCode, year, competitionType, matchNumber, alliance, position);
       END
+    `);
+
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'deactivatedAt')
+      ALTER TABLE users ADD deactivatedAt DATETIME NULL;
+      IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'sessionVersion')
+      ALTER TABLE users ADD sessionVersion INT NOT NULL DEFAULT 0;
     `);
 
     // Add preferredPartners column to users table if it doesn't exist

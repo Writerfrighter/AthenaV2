@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     }
 
     const service = databaseManager.getService();
-    if (!service.query || !service.applyScheduleAssignmentChanges) {
+    if (!service.users || !service.applyScheduleAssignmentChanges) {
       return NextResponse.json(
         { error: "Schedule assignments require a SQL-backed provider" },
         { status: 501 },
@@ -138,13 +138,10 @@ export async function POST(request: NextRequest) {
       ...new Set(changes.map((change) => change.userId).filter(Boolean)),
     ] as string[];
     for (const userId of userIds) {
-      const result = await service.query<{ id: string }>(
-        "SELECT id FROM users WHERE id = @userId",
-        { userId },
-      );
-      if (!result.recordset?.length) {
+      const user = await service.users.getById(userId);
+      if (!user || user.deactivatedAt) {
         return NextResponse.json(
-          { error: `Unknown scout: ${userId}` },
+          { error: `Unknown or inactive scout: ${userId}` },
           { status: 400 },
         );
       }
