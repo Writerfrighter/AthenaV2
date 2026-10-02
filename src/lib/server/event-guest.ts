@@ -20,7 +20,9 @@ function secret() {
 }
 
 function signature(payload: string) {
-  return createHmac("sha256", secret()).update(`event-guest:v1:${payload}`).digest();
+  return createHmac("sha256", secret())
+    .update(`event-guest:v1:${payload}`)
+    .digest();
 }
 
 export function createGuestEventLink(event: z.infer<typeof guestEventSchema>) {
@@ -30,7 +32,10 @@ export function createGuestEventLink(event: z.infer<typeof guestEventSchema>) {
     nonce: randomBytes(16).toString("hex"),
   });
   const payload = Buffer.from(JSON.stringify(grant)).toString("base64url");
-  return { token: `${payload}.${signature(payload).toString("base64url")}`, expiresAt: grant.expiresAt };
+  return {
+    token: `${payload}.${signature(payload).toString("base64url")}`,
+    expiresAt: grant.expiresAt,
+  };
 }
 
 export function verifyGuestEventLink(token: string): GuestEventGrant | null {
@@ -41,8 +46,11 @@ export function verifyGuestEventLink(token: string): GuestEventGrant | null {
     const [payload, supplied] = parts;
     const expected = signature(payload);
     const actual = Buffer.from(supplied, "base64url");
-    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;
-    const grant = grantSchema.parse(JSON.parse(Buffer.from(payload, "base64url").toString()));
+    if (actual.length !== expected.length || !timingSafeEqual(actual, expected))
+      return null;
+    const grant = grantSchema.parse(
+      JSON.parse(Buffer.from(payload, "base64url").toString()),
+    );
     return grant.expiresAt > Date.now() ? grant : null;
   } catch {
     return null;

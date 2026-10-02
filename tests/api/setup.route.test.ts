@@ -34,7 +34,7 @@ vi.mock("@/db/database-manager", async () => {
     databaseManager: {
       getService: () => ({
         query: mockQuery,
-          users: sqlUsers(mockQuery, "azuresql"),
+        users: sqlUsers(mockQuery, "azuresql"),
       }),
       getConfig: () => ({ provider: "mariadb" }),
     },

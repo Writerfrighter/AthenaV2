@@ -27,7 +27,10 @@ function validateConfig(config: DatabaseConfig): string | null {
     if (!azureSql) {
       return "Azure SQL configuration is required";
     }
-    if (!azureSql.connectionString && (!azureSql.server || !azureSql.database)) {
+    if (
+      !azureSql.connectionString &&
+      (!azureSql.server || !azureSql.database)
+    ) {
       return "Azure SQL requires either a connection string or server and database";
     }
   }

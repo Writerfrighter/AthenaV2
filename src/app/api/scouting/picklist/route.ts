@@ -208,30 +208,28 @@ export async function GET(request: NextRequest) {
               }
             });
 
-            const picklistData = rankingItems.map(
-              (item, index: number) => {
-                const teamNumber = parseInt(
-                  String(item.team_key).replace(/^frc/i, ""),
-                  10,
-                );
-                const td = teamMap[teamNumber] || {
-                  teamNumber,
-                  driveTrain: "Unknown",
-                  weight: undefined,
-                  length: undefined,
-                  width: undefined,
-                  matchesPlayed: 0,
-                  totalEPA: 0,
-                  autoEPA: 0,
-                  teleopEPA: 0,
-                  endgameEPA: 0,
-                };
-                return {
-                  ...td,
-                  rank: item.rank ?? index + 1,
-                };
-              },
-            );
+            const picklistData = rankingItems.map((item, index: number) => {
+              const teamNumber = parseInt(
+                String(item.team_key).replace(/^frc/i, ""),
+                10,
+              );
+              const td = teamMap[teamNumber] || {
+                teamNumber,
+                driveTrain: "Unknown",
+                weight: undefined,
+                length: undefined,
+                width: undefined,
+                matchesPlayed: 0,
+                totalEPA: 0,
+                autoEPA: 0,
+                teleopEPA: 0,
+                endgameEPA: 0,
+              };
+              return {
+                ...td,
+                rank: item.rank ?? index + 1,
+              };
+            });
 
             return NextResponse.json({
               teams: picklistData,

@@ -186,7 +186,9 @@ export async function GET(request: NextRequest) {
         const db = getDbService();
         if (db.users) {
           const users = await db.users.getByIds(scouterIds);
-          users.forEach((user) => { userNameMap[user.id] = user.name; });
+          users.forEach((user) => {
+            userNameMap[user.id] = user.name;
+          });
         }
       } catch {
         // Non-critical: fall back to IDs if user lookup fails

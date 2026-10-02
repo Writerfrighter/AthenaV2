@@ -38,7 +38,8 @@ export async function PUT(request: NextRequest) {
 
     // Get current password hash
     const user = await service.users.getById(session.user.id);
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user)
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     // Verify current password
     const isValid = await bcrypt.compare(currentPassword, user.password_hash);

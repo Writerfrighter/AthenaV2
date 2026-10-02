@@ -42,7 +42,10 @@ export async function POST(request: NextRequest) {
     }
     const user = await db.users.getByUsername(username);
     if (!user || user.deactivatedAt) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 },
+      );
     }
     const passwordHash = String(user.password_hash || "");
 

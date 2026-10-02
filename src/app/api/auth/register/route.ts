@@ -12,7 +12,10 @@ export async function POST(request: NextRequest) {
     const { signupEnabled } = loadSystemSettings();
     if (!signupEnabled) {
       return NextResponse.json(
-        { error: "Public sign-up is currently disabled. Please contact an administrator." },
+        {
+          error:
+            "Public sign-up is currently disabled. Please contact an administrator.",
+        },
         { status: 403 },
       );
     }
@@ -37,12 +40,15 @@ export async function POST(request: NextRequest) {
 
     const { name, username, password } = await request.json();
 
-    const result = await createUser({
-      name,
-      username,
-      password,
-      role: "scout",
-    }, { preventDuplicateName: true });
+    const result = await createUser(
+      {
+        name,
+        username,
+        password,
+        role: "scout",
+      },
+      { preventDuplicateName: true },
+    );
 
     if (!result.success) {
       return NextResponse.json(

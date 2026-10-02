@@ -35,7 +35,12 @@ let pool: { request: ReturnType<typeof vi.fn> };
 
 vi.mock("@/db/database-manager", () => ({
   databaseManager: {
-    getService: () => ({ ...serviceMock, users: serviceMock.query ? sqlUsers(serviceMock.query, "azuresql") : undefined }),
+    getService: () => ({
+      ...serviceMock,
+      users: serviceMock.query
+        ? sqlUsers(serviceMock.query, "azuresql")
+        : undefined,
+    }),
   },
 }));
 

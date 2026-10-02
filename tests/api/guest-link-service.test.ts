@@ -1,9 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import type { DatabaseService, GuestLinkRecord } from "@/lib/types";
-import { activeGuestLinks, issueGuestLink, resolveGuestEventLink } from "@/lib/server/guest-link-service";
+import {
+  activeGuestLinks,
+  issueGuestLink,
+  resolveGuestEventLink,
+} from "@/lib/server/guest-link-service";
 
-const event = { name: "Event", eventCode: "2026test", year: 2026, competitionType: "FRC" as const };
+const event = {
+  name: "Event",
+  eventCode: "2026test",
+  year: 2026,
+  competitionType: "FRC" as const,
+};
 
 describe("persistent guest links", () => {
   let records: Map<string, GuestLinkRecord>;
@@ -12,18 +21,27 @@ describe("persistent guest links", () => {
     vi.stubEnv("AUTH_SECRET", "registry-test-secret");
     records = new Map();
     service = {
-      addGuestLink: vi.fn(async (record: GuestLinkRecord) => { records.set(record.id, record); }),
+      addGuestLink: vi.fn(async (record: GuestLinkRecord) => {
+        records.set(record.id, record);
+      }),
       getGuestLinks: vi.fn(async () => [...records.values()]),
       getGuestLink: vi.fn(async (id: string) => records.get(id)),
-      revokeGuestLink: vi.fn(async (id: string, revokedAt: number) => { records.get(id)!.revokedAt = revokedAt; }),
+      revokeGuestLink: vi.fn(async (id: string, revokedAt: number) => {
+        records.get(id)!.revokedAt = revokedAt;
+      }),
     } as unknown as DatabaseService;
   });
-  afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+  });
 
   it("persists issued links and lists their copyable paths", async () => {
     const record = await issueGuestLink(event, "manager-1", service);
     expect(record.createdBy).toBe("manager-1");
-    expect(await resolveGuestEventLink(record.token, service)).toMatchObject(event);
+    expect(await resolveGuestEventLink(record.token, service)).toMatchObject(
+      event,
+    );
     const links = await activeGuestLinks(service);
     expect(links).toHaveLength(1);
     expect(links[0].path).toBe(`/guest/events/${record.token}`);
@@ -45,14 +63,22 @@ describe("persistent guest links", () => {
     const record = await issueGuestLink(event, "manager", service);
     records.clear();
     expect(await resolveGuestEventLink(record.token, service)).toBeNull();
-    vi.mocked(service.getGuestLink).mockRejectedValue(new Error("Database offline"));
+    vi.mocked(service.getGuestLink).mockRejectedValue(
+      new Error("Database offline"),
+    );
     expect(await resolveGuestEventLink(record.token, service)).toBeNull();
   });
 
   it("rejects an unrecorded signed link without registering it", async () => {
-    const grant = { ...event, nonce: "a".repeat(32), expiresAt: Date.now() + 100000 };
+    const grant = {
+      ...event,
+      nonce: "a".repeat(32),
+      expiresAt: Date.now() + 100000,
+    };
     const payload = Buffer.from(JSON.stringify(grant)).toString("base64url");
-    const signature = createHmac("sha256", "registry-test-secret").update(`event-guest:v1:${payload}`).digest("base64url");
+    const signature = createHmac("sha256", "registry-test-secret")
+      .update(`event-guest:v1:${payload}`)
+      .digest("base64url");
     const token = `${payload}.${signature}`;
     expect(await activeGuestLinks(service)).toEqual([]);
     expect(await resolveGuestEventLink(token, service)).toBeNull();

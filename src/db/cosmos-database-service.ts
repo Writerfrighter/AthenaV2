@@ -12,27 +12,57 @@ import type {
 // Minimal Azure Cosmos DB-backed service using @azure/cosmos
 export class CosmosDatabaseService implements DatabaseService {
   private async guestLinksContainer() {
-    const { container } = await this.getDatabase().containers.createIfNotExists({
-      // Keep bearer tokens out of the shared scouting container and its exports.
-      id: this.config?.containerId ? `${this.config.containerId}-guestLinks` : "guestLinks",
-      partitionKey: { paths: ["/id"] },
-    });
+    const { container } = await this.getDatabase().containers.createIfNotExists(
+      {
+        // Keep bearer tokens out of the shared scouting container and its exports.
+        id: this.config?.containerId
+          ? `${this.config.containerId}-guestLinks`
+          : "guestLinks",
+        partitionKey: { paths: ["/id"] },
+      },
+    );
     return container;
   }
-  async addGuestLink(link: import("@/lib/types").GuestLinkRecord): Promise<void> {
-    await (await this.guestLinksContainer()).items.create({ ...link, type: "guestLink" });
+  async addGuestLink(
+    link: import("@/lib/types").GuestLinkRecord,
+  ): Promise<void> {
+    await (
+      await this.guestLinksContainer()
+    ).items.create({ ...link, type: "guestLink" });
   }
   async getGuestLinks(): Promise<import("@/lib/types").GuestLinkRecord[]> {
-    const { resources } = await (await this.guestLinksContainer()).items.query({ query: "SELECT * FROM c WHERE c.type = @type", parameters: [{ name: "@type", value: "guestLink" }] }).fetchAll();
+    const { resources } = await (
+      await this.guestLinksContainer()
+    ).items
+      .query({
+        query: "SELECT * FROM c WHERE c.type = @type",
+        parameters: [{ name: "@type", value: "guestLink" }],
+      })
+      .fetchAll();
     return resources;
   }
-  async getGuestLink(id: string): Promise<import("@/lib/types").GuestLinkRecord | undefined> {
-    const { resources } = await (await this.guestLinksContainer()).items.query({ query: "SELECT * FROM c WHERE c.type = @type AND c.id = @id", parameters: [{ name: "@type", value: "guestLink" }, { name: "@id", value: id }] }).fetchAll();
+  async getGuestLink(
+    id: string,
+  ): Promise<import("@/lib/types").GuestLinkRecord | undefined> {
+    const { resources } = await (
+      await this.guestLinksContainer()
+    ).items
+      .query({
+        query: "SELECT * FROM c WHERE c.type = @type AND c.id = @id",
+        parameters: [
+          { name: "@type", value: "guestLink" },
+          { name: "@id", value: id },
+        ],
+      })
+      .fetchAll();
     return resources[0];
   }
   async revokeGuestLink(id: string, revokedAt: number): Promise<void> {
     const link = await this.getGuestLink(id);
-    if (link) await (await this.guestLinksContainer()).items.upsert({ ...link, revokedAt, type: "guestLink" });
+    if (link)
+      await (
+        await this.guestLinksContainer()
+      ).items.upsert({ ...link, revokedAt, type: "guestLink" });
   }
   private client: CosmosClient | null = null;
 
@@ -707,7 +737,10 @@ export class CosmosDatabaseService implements DatabaseService {
       for (const { id, ...entry } of pitEntries) {
         // Cosmos reserves a string `id`; the numeric domain id lives on
         // `numericId`, matching addPitEntry.
-        await pitContainer.items.create({ ...entry, numericId: id ?? Date.now() });
+        await pitContainer.items.create({
+          ...entry,
+          numericId: id ?? Date.now(),
+        });
       }
     }
     if (matchEntries.length > 0) {
@@ -749,8 +782,13 @@ export class CosmosDatabaseService implements DatabaseService {
    * via Azure AD / the SDK layer. This stub satisfies the DatabaseService
    * interface; throw if called so misconfiguration is caught at runtime.
    */
-  async updateUser(_id: string, _updates: import("@/lib/types").UserUpdates): Promise<void> {
-    throw new Error("updateUser is not supported by the Cosmos DB provider. Use Azure AD or a relational provider for user management.");
+  async updateUser(
+    _id: string,
+    _updates: import("@/lib/types").UserUpdates,
+  ): Promise<void> {
+    throw new Error(
+      "updateUser is not supported by the Cosmos DB provider. Use Azure AD or a relational provider for user management.",
+    );
   }
 }
 

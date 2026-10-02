@@ -173,10 +173,11 @@ export class AzureSqlDatabaseService implements DatabaseService {
         const normalize = (rows: ScheduleAssignmentRecord[]) =>
           JSON.stringify(
             [...rows]
-              .sort((a, b) =>
-                a.matchNumber - b.matchNumber ||
-                a.alliance.localeCompare(b.alliance) ||
-                a.position - b.position,
+              .sort(
+                (a, b) =>
+                  a.matchNumber - b.matchNumber ||
+                  a.alliance.localeCompare(b.alliance) ||
+                  a.position - b.position,
               )
               .map(({ matchNumber, alliance, position, userId }) => ({
                 matchNumber,
@@ -1640,7 +1641,10 @@ export class AzureSqlDatabaseService implements DatabaseService {
    * callers never write SQL or handle dialect differences.
    * `updated_at` is always refreshed automatically.
    */
-  async updateUser(id: string, updates: import("@/lib/types").UserUpdates): Promise<void> {
+  async updateUser(
+    id: string,
+    updates: import("@/lib/types").UserUpdates,
+  ): Promise<void> {
     const mssql = await import("mssql");
     const pool = await this.getPool();
     const req = pool.request().input("userId", mssql.NVarChar, id);
@@ -1677,12 +1681,18 @@ export class AzureSqlDatabaseService implements DatabaseService {
     }
     if (updates.pushSubscriptions !== undefined) {
       setParts.push("push_subscriptions = @pushSubscriptions");
-      req.input("pushSubscriptions", mssql.NVarChar(mssql.MAX), updates.pushSubscriptions);
+      req.input(
+        "pushSubscriptions",
+        mssql.NVarChar(mssql.MAX),
+        updates.pushSubscriptions,
+      );
     }
 
     if (setParts.length === 0) return;
 
     setParts.push("updated_at = GETDATE()");
-    await req.query(`UPDATE users SET ${setParts.join(", ")} WHERE id = @userId`);
+    await req.query(
+      `UPDATE users SET ${setParts.join(", ")} WHERE id = @userId`,
+    );
   }
 }

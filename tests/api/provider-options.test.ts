@@ -66,7 +66,8 @@ beforeEach(() => {
 
 describe("GET /api/scouting/admin/provider-options", () => {
   it("returns provider info", async () => {
-    const route = await import("@/app/api/scouting/admin/provider-options/route");
+    const route =
+      await import("@/app/api/scouting/admin/provider-options/route");
     const response = await route.GET();
     const json = await response.json();
 
@@ -76,7 +77,8 @@ describe("GET /api/scouting/admin/provider-options", () => {
   });
 
   it("updates the active provider", async () => {
-    const route = await import("@/app/api/scouting/admin/provider-options/route");
+    const route =
+      await import("@/app/api/scouting/admin/provider-options/route");
     const response = await route.POST(
       asNextRequest(
         new Request("http://test/api/scouting/admin/provider-options", {

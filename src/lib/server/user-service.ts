@@ -78,12 +78,15 @@ export async function hasAnyAdmin(): Promise<boolean> {
   return db?.users ? db.users.hasAdmin() : false;
 }
 
-export async function createUser(data: {
-  name: string;
-  username: string;
-  password: string;
-  role?: string;
-}, options: { preventDuplicateName?: boolean } = {}): Promise<{
+export async function createUser(
+  data: {
+    name: string;
+    username: string;
+    password: string;
+    role?: string;
+  },
+  options: { preventDuplicateName?: boolean } = {},
+): Promise<{
   success: boolean;
   error?: string;
   status: number;
@@ -112,7 +115,8 @@ export async function createUser(data: {
   if (existingUser) {
     return {
       success: false,
-      error: "This username is already in use. Log in to your existing account or contact an administrator for help.",
+      error:
+        "This username is already in use. Log in to your existing account or contact an administrator for help.",
       code: "DUPLICATE_ACCOUNT",
       status: 409,
     };
@@ -121,12 +125,16 @@ export async function createUser(data: {
   // Names are a hint, not proof of identity. Admins can create namesakes.
   if (options.preventDuplicateName) {
     const existingNames = await db.users.list(true);
-    if (existingNames.some((user) =>
-      normalizeAccountName(user.name) === normalizeAccountName(name),
-    )) {
+    if (
+      existingNames.some(
+        (user) =>
+          normalizeAccountName(user.name) === normalizeAccountName(name),
+      )
+    ) {
       return {
         success: false,
-        error: "An account with this name already exists. Log in, or contact an administrator if you forgot your login or share a name with another person.",
+        error:
+          "An account with this name already exists. Log in, or contact an administrator if you forgot your login or share a name with another person.",
         status: 409,
         code: "DUPLICATE_ACCOUNT",
       };
@@ -138,7 +146,13 @@ export async function createUser(data: {
   const userId = `user_${crypto.randomUUID().replace(/-/g, "")}`;
 
   // Insert user
-  await db.users.create({ id: userId, name, username, passwordHash: hashedPassword, role });
+  await db.users.create({
+    id: userId,
+    name,
+    username,
+    passwordHash: hashedPassword,
+    role,
+  });
 
   return { success: true, userId, status: 201 };
 }

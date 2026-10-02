@@ -18,7 +18,8 @@ export async function GET() {
       );
     }
     const user = await db.users.getById(session.user.id);
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user)
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     return NextResponse.json({
       id: user.id.toString(),
       name: user.name,

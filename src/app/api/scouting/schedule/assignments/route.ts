@@ -58,7 +58,10 @@ export async function POST(request: NextRequest) {
     const parsed = requestSchema.safeParse(await request.json());
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid schedule assignment request", details: parsed.error.flatten() },
+        {
+          error: "Invalid schedule assignment request",
+          details: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
@@ -88,7 +91,10 @@ export async function POST(request: NextRequest) {
       });
       if (!single.success) {
         return NextResponse.json(
-          { error: "A valid assignment range is required", details: single.error.flatten() },
+          {
+            error: "A valid assignment range is required",
+            details: single.error.flatten(),
+          },
           { status: 400 },
         );
       }
@@ -98,7 +104,9 @@ export async function POST(request: NextRequest) {
     const maxPosition = competitionType === "FTC" ? 1 : 2;
     if (changes.some((change) => change.position > maxPosition)) {
       return NextResponse.json(
-        { error: `position must be between 0 and ${maxPosition} for ${competitionType}` },
+        {
+          error: `position must be between 0 and ${maxPosition} for ${competitionType}`,
+        },
         { status: 400 },
       );
     }
@@ -114,7 +122,11 @@ export async function POST(request: NextRequest) {
     }
     const touchedSlots = new Set<string>();
     for (const change of changes) {
-      for (let matchNumber = change.startMatch; matchNumber <= change.endMatch; matchNumber++) {
+      for (
+        let matchNumber = change.startMatch;
+        matchNumber <= change.endMatch;
+        matchNumber++
+      ) {
         const key = `${matchNumber}-${change.alliance}-${change.position}`;
         if (touchedSlots.has(key)) {
           return NextResponse.json(
@@ -179,7 +191,9 @@ export async function DELETE(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!hasPermission(session.user.role ?? null, PERMISSIONS.DELETE_SCHEDULE)) {
+    if (
+      !hasPermission(session.user.role ?? null, PERMISSIONS.DELETE_SCHEDULE)
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

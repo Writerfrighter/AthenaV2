@@ -1,12 +1,11 @@
 import { MetadataRoute } from "next";
-import {
-  APP_DESCRIPTION,
-  APP_NAME,
-  APP_SHORT_NAME,
-} from "@/lib/app-config";
+import { APP_DESCRIPTION, APP_NAME, APP_SHORT_NAME } from "@/lib/app-config";
 
 const screenshots = [
-  { id: "overview", label: "Overview with the next match assignment and scouting coverage" },
+  {
+    id: "overview",
+    label: "Overview with the next match assignment and scouting coverage",
+  },
   { id: "scheduling", label: "Match-by-match scouting assignments" },
   { id: "pit-scouting", label: "Pit scouting robot profile" },
   { id: "match-scouting", label: "Match scouting during teleop" },

@@ -32,10 +32,7 @@ type UnknownPayload = {
 };
 
 type TbaWebhookPayload =
-  | VerificationPayload
-  | UpcomingMatchPayload
-  | PingPayload
-  | UnknownPayload;
+  VerificationPayload | UpcomingMatchPayload | PingPayload | UnknownPayload;
 
 function constantTimeEquals(a: string, b: string) {
   const aBuf = Buffer.from(a);
@@ -109,13 +106,16 @@ export async function POST(req: NextRequest) {
 
     const result = await service.query<{
       userId: string;
-    }>(`
+    }>(
+      `
         SELECT DISTINCT userId
         FROM matchAssignments
         WHERE eventCode = @eventCode
           AND competitionType = 'FRC'
           AND matchNumber = @matchNumber
-      `, { eventCode: data.event_key, matchNumber: notifyMatch });
+      `,
+      { eventCode: data.event_key, matchNumber: notifyMatch },
+    );
 
     const userIds: string[] =
       result.recordset?.map((r) => r.userId).filter(Boolean) ?? [];

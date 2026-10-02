@@ -17,13 +17,23 @@ export async function checkSetupStatus(): Promise<SetupStatus> {
   try {
     if (!databaseManager.isConfigured()) {
       console.warn("[setup] No database provider configured");
-      return { isComplete: false, needsAppUrl, needsDatabase: true, needsAdmin: true };
+      return {
+        isComplete: false,
+        needsAppUrl,
+        needsDatabase: true,
+        needsAdmin: true,
+      };
     }
 
     const service = databaseManager.getService();
     if (!service) {
       console.warn("[setup] databaseManager.getService() returned null");
-      return { isComplete: false, needsAppUrl, needsDatabase: true, needsAdmin: true };
+      return {
+        isComplete: false,
+        needsAppUrl,
+        needsDatabase: true,
+        needsAdmin: true,
+      };
     }
 
     if (service.query) {
@@ -77,6 +87,11 @@ export async function checkSetupStatus(): Promise<SetupStatus> {
       "[setup] checkSetupStatus failed and DB is not configured:",
       error,
     );
-    return { isComplete: false, needsAppUrl, needsDatabase: true, needsAdmin: true };
+    return {
+      isComplete: false,
+      needsAppUrl,
+      needsDatabase: true,
+      needsAdmin: true,
+    };
   }
 }

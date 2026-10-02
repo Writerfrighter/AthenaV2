@@ -47,7 +47,9 @@ export async function loadAllSubscriptions(): Promise<
 > {
   const db = databaseManager.getService();
   if (!db.users) {
-    throw new Error("User management is not supported by this database provider");
+    throw new Error(
+      "User management is not supported by this database provider",
+    );
   }
   const users = await db.users.getSubscriptions();
 

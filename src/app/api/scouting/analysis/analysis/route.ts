@@ -182,25 +182,38 @@ function calculateMatchEPA(match: MatchEntry, yearConfig?: YearConfig) {
   if (!yearConfig || !match.gameSpecificData) {
     const flattened = flattenScoutingData(match.gameSpecificData);
     return Object.values(flattened).reduce<number>((sum, value) => {
-      if (typeof value === "number" && Number.isFinite(value)) return sum + value;
+      if (typeof value === "number" && Number.isFinite(value))
+        return sum + value;
       return sum;
     }, 0);
   }
 
   const autoPoints = calculatePeriodPoints(
-    (match.gameSpecificData?.autonomous as Record<string, number | string | boolean>) || {},
+    (match.gameSpecificData?.autonomous as Record<
+      string,
+      number | string | boolean
+    >) || {},
     yearConfig.scoring.autonomous,
   );
   const teleopPoints = calculatePeriodPoints(
-    (match.gameSpecificData?.teleop as Record<string, number | string | boolean>) || {},
+    (match.gameSpecificData?.teleop as Record<
+      string,
+      number | string | boolean
+    >) || {},
     yearConfig.scoring.teleop,
   );
   const endgamePoints = calculatePeriodPoints(
-    (match.gameSpecificData?.endgame as Record<string, number | string | boolean>) || {},
+    (match.gameSpecificData?.endgame as Record<
+      string,
+      number | string | boolean
+    >) || {},
     yearConfig.scoring.endgame,
   );
   const penaltiesPoints = calculatePeriodPoints(
-    (match.gameSpecificData?.fouls as Record<string, number | string | boolean>) || {},
+    (match.gameSpecificData?.fouls as Record<
+      string,
+      number | string | boolean
+    >) || {},
     yearConfig.scoring.fouls || {},
   );
 

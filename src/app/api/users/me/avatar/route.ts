@@ -20,7 +20,8 @@ export async function GET() {
       );
     }
     const avatar = await db.users.getAvatar(session.user.id);
-    if (!avatar) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!avatar)
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     const avatarData = avatar.avatarData;
     const avatarMimeType = avatar.avatarMimeType || "image/jpeg";
 

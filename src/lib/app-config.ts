@@ -13,7 +13,8 @@ export const APP_LOGO_DARK =
 export const ORGANIZATION_NAME =
   process.env.NEXT_PUBLIC_ORGANIZATION_NAME?.trim() || "Titan Robotics Club";
 export const ORGANIZATION_URL =
-  process.env.NEXT_PUBLIC_ORGANIZATION_URL?.trim() || "https://titanrobotics.com";
+  process.env.NEXT_PUBLIC_ORGANIZATION_URL?.trim() ||
+  "https://titanrobotics.com";
 
 export function getPublicAppUrl() {
   return (

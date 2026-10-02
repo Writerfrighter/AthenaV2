@@ -50,10 +50,18 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.json(entry);
     } else if (teamNumber && year) {
-      const entry = await service.getPitEntry(teamNumber, year, competitionType);
+      const entry = await service.getPitEntry(
+        teamNumber,
+        year,
+        competitionType,
+      );
       return NextResponse.json(entry || null);
     } else {
-      const entries = await service.getAllPitEntries(year, eventCode, competitionType);
+      const entries = await service.getAllPitEntries(
+        year,
+        eventCode,
+        competitionType,
+      );
       return NextResponse.json(entries);
     }
   } catch (error) {

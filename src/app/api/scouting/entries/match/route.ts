@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { scoutingForUserId, ...entry } = body
+    const { scoutingForUserId, ...entry } = body;
 
     // Determine which userId to use
     let actualUserId = session.user.id;

@@ -44,8 +44,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
     const user = await db.users.getById(id);
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-    if (user.deactivatedAt && !hasPermission(session.user.role, PERMISSIONS.DELETE_USERS)) {
+    if (!user)
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (
+      user.deactivatedAt &&
+      !hasPermission(session.user.role, PERMISSIONS.DELETE_USERS)
+    ) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
     const userData = {
@@ -131,11 +135,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
     // Check if user exists
     const existingUser = await db.users.getById(id);
-    if (!existingUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!existingUser)
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     if (username && username !== existingUser.username) {
       const match = await db.users.getByUsername(username);
       if (match && match.id !== id) {
-        return NextResponse.json({ error: "Username already taken" }, { status: 409 });
+        return NextResponse.json(
+          { error: "Username already taken" },
+          { status: 409 },
+        );
       }
     }
 
@@ -167,32 +175,56 @@ export async function PATCH(request: NextRequest, context: RouteParams) {
   try {
     const body = await request.json();
     if (typeof body.active !== "boolean") {
-      return NextResponse.json({ error: "active must be a boolean" }, { status: 400 });
+      return NextResponse.json(
+        { error: "active must be a boolean" },
+        { status: 400 },
+      );
     }
     return setAccountActive(context, body.active);
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 }
 
 async function setAccountActive({ params }: RouteParams, active: boolean) {
   try {
     const session = await auth();
-    if (!session?.user?.role || !hasPermission(session.user.role, PERMISSIONS.DELETE_USERS)) {
+    if (
+      !session?.user?.role ||
+      !hasPermission(session.user.role, PERMISSIONS.DELETE_USERS)
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
     const { id } = await params;
     if (!active && session.user.id === id) {
-      return NextResponse.json({ error: "Cannot deactivate your own account" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Cannot deactivate your own account" },
+        { status: 400 },
+      );
     }
     const db = databaseManager.getService();
-    if (!db.users) return NextResponse.json({ error: "User management is not supported by this database provider" }, { status: 500 });
-    if (!await db.users.getById(id)) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!db.users)
+      return NextResponse.json(
+        { error: "User management is not supported by this database provider" },
+        { status: 500 },
+      );
+    if (!(await db.users.getById(id)))
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     // Account transitions invalidate old sessions, even after restoration.
     await db.users.setActive(id, active);
-    return NextResponse.json({ message: active ? "User restored successfully" : "User deactivated successfully" });
+    return NextResponse.json({
+      message: active
+        ? "User restored successfully"
+        : "User deactivated successfully",
+    });
   } catch (error) {
     console.error("Change user status error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

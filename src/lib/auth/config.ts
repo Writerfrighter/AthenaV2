@@ -21,7 +21,13 @@ export const authConfig: NextAuthConfig = {
         if (typeof credentials?.guestToken === "string") {
           const grant = await resolveGuestEventLink(credentials.guestToken);
           if (!grant) return null;
-          return { id: `guest:${grant.nonce}`, name: "Event Guest", username: "guest", role: "guest", guestToken: credentials.guestToken };
+          return {
+            id: `guest:${grant.nonce}`,
+            name: "Event Guest",
+            username: "guest",
+            role: "guest",
+            guestToken: credentials.guestToken,
+          };
         }
         if (!credentials?.username || !credentials?.password) {
           return null;
@@ -33,7 +39,9 @@ export const authConfig: NextAuthConfig = {
 
           const db = databaseManager.getService();
           if (!db.users) {
-            console.error("User management is not supported by this database provider");
+            console.error(
+              "User management is not supported by this database provider",
+            );
             return null;
           }
 
@@ -81,7 +89,15 @@ export const authConfig: NextAuthConfig = {
       if (guestToken) {
         const grant = await resolveGuestEventLink(guestToken);
         if (!grant) return null;
-        return { ...token, id: `guest:${grant.nonce}`, name: "Event Guest", username: "guest", role: "guest", guestToken, exp: Math.floor(grant.expiresAt / 1000) };
+        return {
+          ...token,
+          id: `guest:${grant.nonce}`,
+          name: "Event Guest",
+          username: "guest",
+          role: "guest",
+          guestToken,
+          exp: Math.floor(grant.expiresAt / 1000),
+        };
       }
       if (user) {
         token.sessionVersion = user.sessionVersion ?? 0;
@@ -100,8 +116,12 @@ export const authConfig: NextAuthConfig = {
           const db = databaseManager.getService();
           if (!db.users) return null;
           const currentUser = await db.users.getById(String(id));
-          if (!currentUser || currentUser.deactivatedAt ||
-            (token.sessionVersion ?? 0) !== (currentUser.sessionVersion ?? 0)) return null;
+          if (
+            !currentUser ||
+            currentUser.deactivatedAt ||
+            (token.sessionVersion ?? 0) !== (currentUser.sessionVersion ?? 0)
+          )
+            return null;
 
           token.id = String(currentUser.id);
           token.name = currentUser.name;

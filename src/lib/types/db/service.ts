@@ -41,7 +41,9 @@ export interface UserRecord {
   updated_at: string;
 }
 
-export interface UserCredentials extends UserRecord { password_hash: string }
+export interface UserCredentials extends UserRecord {
+  password_hash: string;
+}
 
 /** Account persistence capability; non-relational providers use external auth. */
 export interface UserStore {
@@ -50,10 +52,22 @@ export interface UserStore {
   getByUsername(username: string): Promise<UserCredentials | undefined>;
   getByIds(ids: string[], activeOnly?: boolean): Promise<UserRecord[]>;
   hasAdmin(): Promise<boolean>;
-  create(user: { id: string; name: string; username: string; passwordHash: string; role: string }): Promise<void>;
+  create(user: {
+    id: string;
+    name: string;
+    username: string;
+    passwordHash: string;
+    role: string;
+  }): Promise<void>;
   setActive(id: string, active: boolean): Promise<void>;
-  getAvatar(id: string): Promise<{ avatarData: Buffer | null; avatarMimeType: string | null } | undefined>;
-  getSubscriptions(id?: string): Promise<{ id: string; push_subscriptions: string | null }[]>;
+  getAvatar(
+    id: string,
+  ): Promise<
+    { avatarData: Buffer | null; avatarMimeType: string | null } | undefined
+  >;
+  getSubscriptions(
+    id?: string,
+  ): Promise<{ id: string; push_subscriptions: string | null }[]>;
 }
 
 export interface DatabaseService {
@@ -217,11 +231,7 @@ export interface UserUpdates {
   pushSubscriptions?: string | null;
 }
 
-export type DatabaseProvider =
-  | "azuresql"
-  | "firebase"
-  | "cosmos"
-  | "mariadb";
+export type DatabaseProvider = "azuresql" | "firebase" | "cosmos" | "mariadb";
 
 export interface AzureSqlConfig {
   server?: string;

@@ -30,7 +30,7 @@ export class FirebaseDatabaseService implements DatabaseService {
   }
   async getGuestLink(id: string): Promise<GuestLinkRecord | undefined> {
     const snapshot = await this.collection("guestLinks").doc(id).get();
-    return snapshot.exists ? snapshot.data() as GuestLinkRecord : undefined;
+    return snapshot.exists ? (snapshot.data() as GuestLinkRecord) : undefined;
   }
   async revokeGuestLink(id: string, revokedAt: number): Promise<void> {
     await this.collection("guestLinks").doc(id).update({ revokedAt });
@@ -48,7 +48,8 @@ export class FirebaseDatabaseService implements DatabaseService {
       // initialize firebase admin if not already
       // use dynamic import so application doesn't require firebase-admin in all environments
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const admin = require("firebase-admin") as typeof import("firebase-admin");
+      const admin =
+        require("firebase-admin") as typeof import("firebase-admin");
       if (!admin.apps || admin.apps.length === 0) {
         const opts: AppOptions = {};
         if (this.config?.serviceAccountJson)
@@ -482,7 +483,9 @@ export class FirebaseDatabaseService implements DatabaseService {
   }> {
     const pitSnap = await this.collection("pitEntries").get();
     const matchSnap = await this.collection("matchEntries").get();
-    const pitEntries = pitSnap.docs.map((d) => withNumericId<PitEntry>(d.data()));
+    const pitEntries = pitSnap.docs.map((d) =>
+      withNumericId<PitEntry>(d.data()),
+    );
     const matchEntries = matchSnap.docs.map((d) =>
       withNumericId<MatchEntry>(d.data()),
     );
@@ -536,8 +539,13 @@ export class FirebaseDatabaseService implements DatabaseService {
    * DatabaseService interface; throw if called so misconfiguration is caught
    * at runtime.
    */
-  async updateUser(_id: string, _updates: import("@/lib/types").UserUpdates): Promise<void> {
-    throw new Error("updateUser is not supported by the Firebase provider. Use Firebase Auth or a relational provider for user management.");
+  async updateUser(
+    _id: string,
+    _updates: import("@/lib/types").UserUpdates,
+  ): Promise<void> {
+    throw new Error(
+      "updateUser is not supported by the Firebase provider. Use Firebase Auth or a relational provider for user management.",
+    );
   }
 }
 

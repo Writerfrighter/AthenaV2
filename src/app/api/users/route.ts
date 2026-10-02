@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
     const records = await db.users.list(
       request.nextUrl.searchParams.get("includeInactive") === "true" &&
-      hasPermission(session.user.role, PERMISSIONS.DELETE_USERS),
+        hasPermission(session.user.role, PERMISSIONS.DELETE_USERS),
     );
 
     const users = records.map((user) => {
