@@ -12,6 +12,8 @@ import {
   FileJson,
   Bell,
   RadioTower,
+  LogOut,
+  CalendarDays,
 } from "lucide-react";
 
 import { NavMain } from "@/components/navigation/nav-main";
@@ -24,6 +26,9 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { SearchForm } from "@/components/forms/search-form";
 import { useSession, signOut } from "next-auth/react";
@@ -32,7 +37,6 @@ import { PermissionGuard } from "../auth/PermissionGuard";
 import { ROLES } from "@/lib/auth/roles";
 import { APP_LOGO } from "@/lib/app-config";
 import { isGuestPage } from "@/lib/auth/guest-policy";
-import { Button } from "@/components/ui/button";
 const data = {
   navMain: [
     { title: "Overview", url: "/dashboard", icon: LayoutDashboard },
@@ -156,7 +160,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <div className="mx-2 mt-1">
-          {guest ? <div className="space-y-1 p-2"><p className="font-semibold text-sm">{guest.name}</p><p className="text-xs text-muted-foreground">{guest.competitionType} {guest.year} · Read-only guest</p></div> : <EventSwitcher />}
+          {guest ? (
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  size="lg"
+                  tooltip={`${guest.name} · ${guest.competitionType} ${guest.year} · Read-only guest`}
+                  className="h-auto min-h-12 cursor-default group-data-[collapsible=icon]:min-h-8 group-data-[collapsible=icon]:justify-center"
+                  asChild
+                >
+                  <div>
+                    <CalendarDays className="shrink-0" aria-hidden="true" />
+                    <div className="min-w-0 space-y-1 group-data-[collapsible=icon]:hidden">
+                      <p className="whitespace-normal break-words text-sm font-semibold">{guest.name}</p>
+                      <p className="whitespace-normal text-xs text-muted-foreground">{guest.competitionType} {guest.year} · Read-only guest</p>
+                    </div>
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          ) : <EventSwitcher />}
         </div>
         <SearchForm className="mt-1 ms-2" />
         <NavMain items={navigation} />
@@ -166,7 +189,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         
       </SidebarContent>
       <SidebarFooter>
-        {guest ? <Button variant="outline" onClick={() => signOut({ callbackUrl: "/login" })}>Leave guest access</Button> : <NavUser user={userData} />}
+        {guest ? (
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                variant="outline"
+                tooltip="Leave guest access"
+                aria-label="Leave guest access"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+              >
+                <LogOut aria-hidden="true" />
+                <span className="group-data-[collapsible=icon]:hidden">Leave guest access</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        ) : <NavUser user={userData} />}
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

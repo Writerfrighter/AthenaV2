@@ -34,12 +34,12 @@ function PreviewFrame({ title, children, width = 760, height = 580 }: {
   }, [width]);
   return (
     <figure className="m-0 min-w-0">
-      <div ref={frame} role="img" aria-label={`${title}. Illustrative sample data.`} className="relative overflow-hidden rounded-xl border bg-background shadow-xl shadow-black/5" style={{ aspectRatio: `${width} / ${height}` }}>
+      <div ref={frame} role="img" aria-label={`${title}. Illustrative sample data.`} className="relative overflow-hidden rounded-xl border bg-card text-card-foreground" style={{ aspectRatio: `${width} / ${height}` }}>
         <div inert aria-hidden="true" className="absolute left-0 top-0 origin-top-left overflow-hidden bg-background text-foreground" style={{ width, height, transform: `scale(${scale})`, visibility: scale ? "visible" : "hidden" }}>
           {children}
         </div>
       </div>
-      <figcaption className="mt-3 text-center text-[11px] text-muted-foreground">{title} · Sample data</figcaption>
+      <figcaption className="mt-3 text-xs text-muted-foreground">{title} · Sample data</figcaption>
     </figure>
   );
 }

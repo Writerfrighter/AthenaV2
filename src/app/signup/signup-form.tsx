@@ -95,7 +95,7 @@ export function SignupForm() {
   };
 
   return (
-    <Card className="shadow-lg rounded-2xl backdrop-blur-sm">
+    <Card>
       <CardHeader className="text-center mt-2">
         <h1 className="text-2xl font-semibold text-primary">
           Create Account

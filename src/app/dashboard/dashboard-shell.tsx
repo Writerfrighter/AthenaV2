@@ -64,6 +64,9 @@ export default function DashboardShell({
   children: React.ReactNode;
 }) {
   const { data: session, status } = useSession();
+  // Session revalidation keeps the existing session while status is loading.
+  // Only replace the dashboard during the initial session load.
+  const isInitialLoading = status === "loading" && !session;
   const [accountOpen, setAccountOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const openAccountSettings = () => setAccountOpen(true);
@@ -76,7 +79,7 @@ export default function DashboardShell({
         value={{ openNotificationSettings }}
       >
         <SidebarProvider>
-          {status === "loading" ? <DashboardSidebarLoading /> : <AppSidebar />}
+          {isInitialLoading ? <DashboardSidebarLoading /> : <AppSidebar />}
           <SidebarInset>
             <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
               {session?.guestEvent && <span className="text-xs text-muted-foreground">Read-only guest · {session.guestEvent.name}</span>}
@@ -91,7 +94,7 @@ export default function DashboardShell({
               </div>
             </header>
             <div className="flex flex-1 flex-col gap-4 p-4">
-              {status === "loading" ? <DashboardLoading /> : children}
+              {isInitialLoading ? <DashboardLoading /> : children}
             </div>
           </SidebarInset>
           {accountOpen && (
