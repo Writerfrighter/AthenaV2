@@ -7,6 +7,7 @@ let authSession: MockAuthSession | null = {
 const mockReadFileSync = vi.fn();
 const mockMkdir = vi.fn();
 const mockWriteFile = vi.fn();
+const mockConnectionCheck = vi.fn();
 
 vi.mock("@/db/azuresql-database-service", () => ({
   AzureSqlDatabaseService: class AzureSqlDatabaseService {
@@ -17,6 +18,7 @@ vi.mock("@/db/azuresql-database-service", () => ({
 vi.mock("@/db/firebase-database-service", () => ({
   FirebaseDatabaseService: class FirebaseDatabaseService {
     constructor(public config: unknown) {}
+    checkConnection = mockConnectionCheck;
   },
 }));
 
@@ -57,6 +59,7 @@ beforeEach(() => {
   mockReadFileSync.mockClear();
   mockMkdir.mockClear();
   mockWriteFile.mockClear();
+  mockConnectionCheck.mockReset().mockResolvedValue(undefined);
   process.env = {
     ...process.env,
     DATABASE_PROVIDER: "firebase",
@@ -101,8 +104,22 @@ describe("GET /api/scouting/admin/provider-options", () => {
     expect(json.success).toBe(true);
     expect(json.currentProvider).toBe("firebase");
     expect(mockWriteFile).toHaveBeenCalled();
+    expect(mockConnectionCheck).toHaveBeenCalledOnce();
+    const persisted = JSON.parse(String(mockWriteFile.mock.calls[0]?.[1]));
+    expect(persisted.firebase.serviceAccountPath).toBe("/tmp/service-account.json");
+    expect(persisted.firebase.serviceAccountJson).toBeUndefined();
     expect(String(mockWriteFile.mock.calls[0]?.[0] ?? "")).toContain(
       ".runtime",
     );
+  });
+  it("does not persist an unreachable provider", async () => {
+    mockConnectionCheck.mockRejectedValue(new Error("Firebase unavailable"));
+    const route = await import("@/app/api/scouting/admin/provider-options/route");
+    const response = await route.POST(asNextRequest(new Request("http://test/api/scouting/admin/provider-options", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ provider: "firebase", firebase: { serviceAccountPath: "/new-account.json" } }),
+    })));
+    expect(response.status).toBe(500);
+    expect(mockWriteFile).not.toHaveBeenCalled();
   });
 });

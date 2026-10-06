@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     const service = databaseManager.getService();
     if (!service.users || !service.applyScheduleAssignmentChanges) {
       return NextResponse.json(
-        { error: "Schedule assignments require a SQL-backed provider" },
+        { error: "This provider does not support schedule assignments" },
         { status: 501 },
       );
     }
@@ -213,7 +213,7 @@ export async function DELETE(request: NextRequest) {
     const service = databaseManager.getService();
     if (!service.applyScheduleAssignmentChanges) {
       return NextResponse.json(
-        { error: "Schedule assignments require a SQL-backed provider" },
+        { error: "This provider does not support schedule assignments" },
         { status: 501 },
       );
     }

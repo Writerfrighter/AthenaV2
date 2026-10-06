@@ -146,13 +146,22 @@ export async function createUser(
   const userId = `user_${crypto.randomUUID().replace(/-/g, "")}`;
 
   // Insert user
-  await db.users.create({
-    id: userId,
-    name,
-    username,
-    passwordHash: hashedPassword,
-    role,
-  });
+  try {
+    await db.users.create({
+      id: userId,
+      name,
+      username,
+      passwordHash: hashedPassword,
+      role,
+    });
+  } catch (error) {
+    // The document providers reserve usernames atomically; another signup can
+    // win after the initial availability check.
+    if (error instanceof Error && error.name === "DuplicateUsernameError") {
+      return { success: false, status: 409, code: "DUPLICATE_ACCOUNT", error: error.message };
+    }
+    throw error;
+  }
 
   return { success: true, userId, status: 201 };
 }

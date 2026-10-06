@@ -60,6 +60,16 @@ describe("/api/scouting/entries/match", () => {
     const res = await route.GET(asNextRequest(req));
     expect(res.status).toBe(404);
   });
+  it("uses the new provider after configuration changes without reloading the route", async () => {
+    const route = await import("@/app/api/scouting/entries/match/route");
+    expect((await route.GET(asNextRequest(new Request("http://test/api/scouting/entries/match")))).status).toBe(200);
+    const original = service;
+    service = { getAllMatchEntries: vi.fn().mockResolvedValue([{ id: 42 }]) };
+    const response = await route.GET(asNextRequest(new Request("http://test/api/scouting/entries/match")));
+    expect(await response.json()).toEqual([{ id: 42 }]);
+    expect(original.getAllMatchEntries).toHaveBeenCalledOnce();
+    expect(service.getAllMatchEntries).toHaveBeenCalledOnce();
+  });
 
   it("rejects duplicate match entry", async () => {
     service.getAllMatchEntries.mockResolvedValue([

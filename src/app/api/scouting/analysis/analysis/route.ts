@@ -13,14 +13,9 @@ import {
 } from "@/lib/types";
 import gameConfig from "../../../../../../config/game-config-loader";
 
-// Initialize database service
-let dbService: DatabaseService;
-
-function getDbService() {
-  if (!dbService) {
-    dbService = databaseManager.getService();
-  }
-  return dbService;
+// Resolve the active provider on each request so configuration changes take effect.
+function getDbService(): DatabaseService {
+  return databaseManager.getService();
 }
 
 type MetricValueType = AnalysisMetricDefinition["valueType"];

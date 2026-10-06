@@ -100,11 +100,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const service = databaseManager.getService();
-    if (!service.query) {
+    if (!service.query && !service.getScheduleAssignments) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    const result = await service.query<{
+    const result = service.getScheduleAssignments ? {
+      recordset: (await service.getScheduleAssignments({ eventCode: data.event_key, year: Number(data.event_key.slice(0, 4)), competitionType: "FRC" })).filter((assignment) => assignment.matchNumber === notifyMatch),
+    } : await service.query!<{
       userId: string;
     }>(
       `
@@ -118,7 +120,7 @@ export async function POST(req: NextRequest) {
     );
 
     const userIds: string[] =
-      result.recordset?.map((r) => r.userId).filter(Boolean) ?? [];
+      [...new Set(result.recordset?.map((r) => r.userId).filter(Boolean) ?? [])];
 
     await Promise.all(
       userIds.map((userId) =>

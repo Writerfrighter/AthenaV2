@@ -71,4 +71,11 @@ describe("duplicate account prevention", () => {
     );
     expect(hash).not.toHaveBeenCalled();
   });
+
+  it("returns conflict when a concurrent signup reserves the username first", async () => {
+    const duplicate = new Error("This username is already in use");
+    duplicate.name = "DuplicateUsernameError";
+    query.mockResolvedValueOnce({ recordset: [] }).mockRejectedValueOnce(duplicate);
+    expect(await createUser(account)).toMatchObject({ success: false, status: 409, code: "DUPLICATE_ACCOUNT" });
+  });
 });

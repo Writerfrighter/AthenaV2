@@ -43,9 +43,15 @@ export async function GET(request: NextRequest) {
     }
 
     const service = databaseManager.getService();
+    if (service.getScheduleAssignments) {
+      const assignments = await service.getScheduleAssignments({ eventCode, year, competitionType: competitionType as "FRC" | "FTC" });
+      return NextResponse.json(assignments.map((assignment) => ({ eventCode, year, ...assignment })), {
+        headers: { "Cache-Control": "private, max-age=0, must-revalidate" },
+      });
+    }
     if (!service.query) {
       return NextResponse.json(
-        { error: "Schedule assignments require a SQL-backed provider" },
+        { error: "This provider does not support schedule assignments" },
         { status: 501 },
       );
     }
@@ -120,7 +126,7 @@ export async function DELETE(request: NextRequest) {
     const service = databaseManager.getService();
     if (!service.applyScheduleAssignmentChanges) {
       return NextResponse.json(
-        { error: "Schedule assignments require a SQL-backed provider" },
+        { error: "This provider does not support schedule assignments" },
         { status: 501 },
       );
     }

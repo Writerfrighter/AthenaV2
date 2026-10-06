@@ -36,7 +36,7 @@ export async function checkSetupStatus(): Promise<SetupStatus> {
       };
     }
 
-    if (service.query) {
+    if (service.users) {
       const adminExists = await hasAnyAdmin();
       if (!adminExists) {
         return {
@@ -57,12 +57,12 @@ export async function checkSetupStatus(): Promise<SetupStatus> {
       };
     }
 
-    // Provider doesn't support raw SQL (Firebase/Cosmos) — assume setup complete
+    // A provider without account storage cannot complete credentials setup.
     return {
-      isComplete: !needsAppUrl,
+      isComplete: false,
       needsAppUrl,
       needsDatabase: false,
-      needsAdmin: false,
+      needsAdmin: true,
       currentProvider: databaseManager.getConfig()?.provider,
     };
   } catch (error) {

@@ -45,7 +45,7 @@ export interface UserCredentials extends UserRecord {
   password_hash: string;
 }
 
-/** Account persistence capability; non-relational providers use external auth. */
+/** Account persistence used by the application's credentials authentication. */
 export interface UserStore {
   list(includeInactive?: boolean): Promise<UserRecord[]>;
   getById(id: string): Promise<UserCredentials | undefined>;
@@ -71,6 +71,8 @@ export interface UserStore {
 }
 
 export interface DatabaseService {
+  checkConnection?(): Promise<void>;
+  getScheduleAssignments?(scope: ScheduleAssignmentScope): Promise<ScheduleAssignmentRecord[]>;
   users?: UserStore;
   addGuestLink(link: GuestLinkRecord): Promise<void>;
   getGuestLinks(): Promise<GuestLinkRecord[]>;

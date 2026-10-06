@@ -91,15 +91,16 @@ function mergeConfig(
   if (config.provider === "firebase") {
     const currentFirebase =
       current.provider === "firebase" ? current.firebase : undefined;
+    const suppliedPath = cleanString(config.firebase?.serviceAccountPath);
+    const changedPath = suppliedPath !== undefined && suppliedPath !== currentFirebase?.serviceAccountPath;
     return {
       provider: "firebase",
       firebase: {
         serviceAccountPath:
-          cleanString(config.firebase?.serviceAccountPath) ??
-          currentFirebase?.serviceAccountPath,
+          suppliedPath ?? currentFirebase?.serviceAccountPath,
         serviceAccountJson:
           config.firebase?.serviceAccountJson ??
-          currentFirebase?.serviceAccountJson,
+          (changedPath ? undefined : currentFirebase?.serviceAccountJson),
         databaseURL:
           cleanString(config.firebase?.databaseURL) ??
           currentFirebase?.databaseURL,
@@ -244,6 +245,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
+    const candidate = manager.createServiceForConfig(mergedConfig);
+    if (candidate.checkConnection) await candidate.checkConnection();
+    else if (candidate.query) await candidate.query("SELECT 1 AS healthcheck");
     await savePersistedDatabaseConfig(mergedConfig);
     manager.configure(mergedConfig);
 
