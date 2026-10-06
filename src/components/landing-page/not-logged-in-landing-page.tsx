@@ -1,6 +1,6 @@
 ﻿import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BarChart3, CalendarDays, Check, ClipboardList, Users } from "lucide-react";
+import { ArrowRight, BarChart3, CalendarDays, Check, ClipboardList, Heart, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { APP_LOGO, APP_LOGO_DARK, APP_NAME, ORGANIZATION_NAME, ORGANIZATION_URL } from "@/lib/app-config";
 import { DashboardPreview, SchedulePreview, PitPreview, MatchPreview, AnalyticsPreview } from "./product-previews";
@@ -76,24 +76,15 @@ export function NotLoggedInLandingPage({ signupEnabled }: { signupEnabled: boole
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="text-center text-sm text-muted-foreground">
             <span>
-              {APP_NAME} &middot; Built by students for FIRST teams
-              {ORGANIZATION_NAME && (
-                <>
-                  {" · "}
-                  {ORGANIZATION_URL ? (
-                    <a
-                      href={ORGANIZATION_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:text-primary transition-colors"
-                    >
-                      {ORGANIZATION_NAME}
-                    </a>
-                  ) : (
-                    ORGANIZATION_NAME
-                  )}
-                </>
-              )}
+              {APP_NAME} &middot; Made with 
+              <Heart className="inline-block h-4 w-4 mx-1 text-green-500" />
+              {" by "}
+              <a
+                href={ORGANIZATION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-primary transition-colors"
+              >Titan Robotics Club</a>
             </span>
           </div>
         </div>

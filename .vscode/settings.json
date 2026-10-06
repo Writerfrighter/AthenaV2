@@ -33,9 +33,9 @@
       "port": 3306,
       "driver": "MariaDB",
       "name": "Athena",
-      "database": "frcathenadb",
-      "username": "root",
-      "password": "492"
+      "database": "athenadb",
+      "username": "athenadb_user",
+      "password": "trcAdmin492!"
     }
   ],
 }
