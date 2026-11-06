@@ -371,8 +371,9 @@ async function syncOfflineData() {
       });
     });
 
-    // Show notification if there were sync errors
-    if (!result.success && result.errors.length > 0) {
+    // Sync must work even when the scout has not allowed notifications.
+    const canNotify = typeof Notification !== "undefined" && Notification.permission === "granted";
+    if (canNotify && !result.success && result.errors.length > 0) {
       await self.registration.showNotification("Sync Issues", {
         body: `${result.failedCount} entries failed to sync. Check the app for details.`,
         icon: APP_LOGO,
@@ -381,7 +382,7 @@ async function syncOfflineData() {
         requireInteraction: true,
         data: { url: "/dashboard" },
       });
-    } else if (result.syncedCount > 0) {
+    } else if (canNotify && result.syncedCount > 0) {
       await self.registration.showNotification("Data Synced", {
         body: `${result.syncedCount} scouting entries synced successfully.`,
         icon: APP_LOGO,
