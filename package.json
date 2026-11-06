@@ -59,7 +59,7 @@
     "@types/web-push": "^3.6.4",
     "baseline-browser-mapping": "^2.11.33",
     "esbuild": "^0.28.2",
-    "eslint": "^10.13.0",
+    "eslint": "^10.14.0",
     "eslint-config-next": "16.4.1",
     "serwist": "^9.5.13",
     "shadcn": "^4.23.0",
