@@ -41,6 +41,7 @@ export function DynamicPitScoutForm() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("editId");
   const gameConfig = useCurrentGameConfig();
+  const hasGameConfig = !!gameConfig;
   const { competitionType, currentYear } = useGameConfig();
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
@@ -131,7 +132,7 @@ export function DynamicPitScoutForm() {
     let isMounted = true;
 
     const fetchEntryForEdit = async () => {
-      if (!editId || !gameConfig) return;
+      if (!editId || !hasGameConfig) return;
 
       setIsLoadingEdit(true);
       try {
@@ -193,18 +194,23 @@ export function DynamicPitScoutForm() {
     return () => {
       isMounted = false;
     };
-  }, [editId, gameConfig]);
+  }, [editId, hasGameConfig]);
 
-  // Reinitialize form data when game config changes (but not in edit mode).
-  // Done during render so the stale form is never shown.
-  const [formSource, setFormSource] = useState({ gameConfig, isEditMode });
+  // Reset for a different season; preserve entered values on live config edits.
+  const season = `${competitionType}-${currentYear}`;
+  const [formSource, setFormSource] = useState({ gameConfig, isEditMode, season });
   if (
     formSource.gameConfig !== gameConfig ||
-    formSource.isEditMode !== isEditMode
+    formSource.isEditMode !== isEditMode || formSource.season !== season
   ) {
-    setFormSource({ gameConfig, isEditMode });
+    setFormSource({ gameConfig, isEditMode, season });
     if (gameConfig && !isEditMode) {
-      setFormData(initializePitFormData(gameConfig));
+      const defaults = initializePitFormData(gameConfig);
+      const preserve = formSource.season === season && formSource.isEditMode === isEditMode;
+      setFormData((previous) => preserve ? {
+        ...defaults, ...previous,
+        gameSpecificData: { ...defaults.gameSpecificData, ...previous.gameSpecificData },
+      } : defaults);
     }
   }
 
@@ -280,7 +286,7 @@ export function DynamicPitScoutForm() {
       if (!session?.guestEvent && !isEditMode && selectedEvent?.eventCode) {
         try {
           const response = await fetch(
-            `/api/scouting/entries/pit/check?teamNumber=${formData.team}&eventCode=${selectedEvent.eventCode}`,
+            `/api/scouting/entries/pit/check?teamNumber=${formData.team}&eventCode=${selectedEvent.eventCode}&year=${currentYear}&competitionType=${competitionType}`,
           );
           const data = await response.json();
 

@@ -119,6 +119,11 @@ const APP_PAGES_CACHE = "app-pages";
 // Custom runtime caching rules for scouting-specific routes, merged with defaults
 const appRuntimeCaching: RuntimeCaching[] = [
   {
+    matcher: ({ url, sameOrigin }: { url: URL; sameOrigin: boolean }) =>
+      sameOrigin && (url.pathname === "/api/scouting/config" || url.pathname === "/api/scouting/admin/configs"),
+    handler: new NetworkOnly(),
+  },
+  {
     matcher: ({ url }: { url: URL }) =>
       url.pathname.startsWith("/guest/events/"),
     handler: new NetworkOnly(),

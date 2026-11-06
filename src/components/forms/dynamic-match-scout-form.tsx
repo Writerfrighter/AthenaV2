@@ -44,6 +44,7 @@ export function DynamicMatchScoutForm() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("editId");
   const gameConfig = useCurrentGameConfig();
+  const hasGameConfig = !!gameConfig;
   const { competitionType, currentYear } = useGameConfig();
   const selectedEvent = useSelectedEvent();
   const eventTeamNumbers = useEventTeamNumbers();
@@ -105,7 +106,7 @@ export function DynamicMatchScoutForm() {
     let isMounted = true;
 
     const fetchEntryForEdit = async () => {
-      if (!editId || !gameConfig) return;
+      if (!editId || !hasGameConfig) return;
 
       setIsLoadingEdit(true);
       try {
@@ -170,18 +171,26 @@ export function DynamicMatchScoutForm() {
     return () => {
       isMounted = false;
     };
-  }, [editId, gameConfig]);
+  }, [editId, hasGameConfig]);
 
-  // Reinitialize form data when game config changes (but not in edit mode).
-  // Done during render so the stale form is never shown.
-  const [formSource, setFormSource] = useState({ gameConfig, isEditMode });
+  // Reset for a different season; preserve entered values on live config edits.
+  const season = `${competitionType}-${currentYear}`;
+  const [formSource, setFormSource] = useState({ gameConfig, isEditMode, season });
   if (
     formSource.gameConfig !== gameConfig ||
-    formSource.isEditMode !== isEditMode
+    formSource.isEditMode !== isEditMode || formSource.season !== season
   ) {
-    setFormSource({ gameConfig, isEditMode });
+    setFormSource({ gameConfig, isEditMode, season });
     if (gameConfig && !isEditMode) {
-      setFormData(initializeFormData(gameConfig));
+      const defaults = initializeFormData(gameConfig);
+      const preserve = formSource.season === season && formSource.isEditMode === isEditMode;
+      setFormData((previous) => preserve ? {
+        ...defaults, ...previous,
+        autonomous: { ...defaults.autonomous, ...previous.autonomous },
+        teleop: { ...defaults.teleop, ...previous.teleop },
+        endgame: { ...defaults.endgame, ...previous.endgame },
+        fouls: { ...defaults.fouls, ...previous.fouls },
+      } : defaults);
     }
   }
 
@@ -320,7 +329,7 @@ export function DynamicMatchScoutForm() {
       if (!session?.guestEvent && !isEditMode && selectedEvent?.eventCode) {
         try {
           const response = await fetch(
-            `/api/scouting/entries/match/check?teamNumber=${formData.teamNumber}&matchNumber=${formData.matchNumber}&eventCode=${selectedEvent.eventCode}`,
+            `/api/scouting/entries/match/check?teamNumber=${formData.teamNumber}&matchNumber=${formData.matchNumber}&eventCode=${selectedEvent.eventCode}&year=${currentYear}&competitionType=${competitionType}`,
           );
           const data = await response.json();
 
