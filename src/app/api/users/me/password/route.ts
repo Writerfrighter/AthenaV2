@@ -1,3 +1,4 @@
+import { checkRateLimit, getRateLimitHeaders } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import bcrypt from "bcryptjs";
@@ -11,10 +12,13 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { currentPassword, newPassword } = body;
+    const body = await request.json().catch(() => null);
+    const { currentPassword, newPassword } = body ?? {};
 
-    if (!currentPassword || !newPassword) {
+    if (
+      typeof currentPassword !== "string" || !currentPassword ||
+      typeof newPassword !== "string" || !newPassword
+    ) {
       return NextResponse.json(
         { error: "currentPassword and newPassword are required" },
         { status: 400 },
@@ -27,6 +31,14 @@ export async function PUT(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    const limit = checkRateLimit(request, {
+      keyPrefix: `password:${session.user.id}`, windowMs: 60_000, maxRequests: 10,
+    });
+    if (limit.limited) return NextResponse.json(
+      { error: "Too many password change attempts. Please try again later." },
+      { status: 429, headers: getRateLimitHeaders(limit, 10) },
+    );
 
     const service = databaseManager.getService();
     if (!service.users) {

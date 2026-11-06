@@ -7,7 +7,6 @@ import "./types";
 import { resolveGuestEventLink } from "@/lib/server/guest-link-service";
 
 export const authConfig: NextAuthConfig = {
-  secret: getOrCreateAuthSecret(),
   trustHost: true,
   providers: [
     Credentials({
@@ -165,5 +164,5 @@ export const authConfig: NextAuthConfig = {
   },
 };
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+export const { handlers, auth, signIn, signOut } = NextAuth(() => ({ ...authConfig, secret: getOrCreateAuthSecret() }));
 export const authOptions = authConfig;
