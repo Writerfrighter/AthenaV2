@@ -46,12 +46,13 @@ describe("/api/scouting/entries/pit", () => {
     }));
   });
 
-  it("returns 403 when unauthorized", async () => {
+  it.each(["GET", "POST", "PUT", "DELETE"] as const)("%s denies missing permissions before accessing persistence", async (method) => {
     permissionResult = false;
     const route = await import("@/app/api/scouting/entries/pit/route");
     const req = new Request("http://test/api/scouting/entries/pit");
-    const res = await route.GET(asNextRequest(req));
+    const res = await route[method](asNextRequest(req));
     expect(res.status).toBe(403);
+    for (const operation of Object.values(service)) expect(operation).not.toHaveBeenCalled();
   });
 
   it("returns 404 when ID not found", async () => {
@@ -139,10 +140,19 @@ describe("/api/scouting/entries/pit", () => {
     expect(service.updatePitEntry).not.toHaveBeenCalled();
   });
 
-  it("returns 401 for an unauthenticated read", async () => {
+  it.each(["GET", "POST", "PUT", "DELETE"] as const)("%s requires authentication", async (method) => {
     authSession = null;
     const route = await import("@/app/api/scouting/entries/pit/route");
-    const response = await route.GET(asNextRequest(new Request("http://test/api/scouting/entries/pit")));
+    const response = await route[method](asNextRequest(new Request("http://test/api/scouting/entries/pit")));
     expect(response.status).toBe(401);
+  });
+
+  it("returns a safe error when persistence fails asynchronously", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    service.getAllPitEntries.mockRejectedValue(new Error("private database details"));
+    const route = await import("@/app/api/scouting/entries/pit/route");
+    const response = await route.GET(asNextRequest(new Request("http://test/api/scouting/entries/pit")));
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: "Failed to fetch pit entries" });
   });
 });

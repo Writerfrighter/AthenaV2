@@ -733,6 +733,8 @@ export class AzureSqlDatabaseService implements DatabaseService {
   async checkPitScoutExists(
     teamNumber: number,
     eventCode: string,
+    year: number,
+    competitionType: CompetitionType,
   ): Promise<boolean> {
     try {
       const pool = await this.getPool();
@@ -740,10 +742,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
       const result = await pool
         .request()
         .input("teamNumber", mssql.Int, teamNumber)
-        .input("eventCode", mssql.NVarChar, eventCode).query(`
-          SELECT COUNT(*) as count 
-          FROM pitEntries 
+        .input("eventCode", mssql.NVarChar, eventCode)
+        .input("year", mssql.Int, year)
+        .input("competitionType", mssql.NVarChar, competitionType).query(`
+          SELECT COUNT(*) as count
+          FROM pitEntries
           WHERE teamNumber = @teamNumber AND eventCode = @eventCode
+            AND year = @year AND competitionType = @competitionType
         `);
 
       return result.recordset[0].count > 0;
@@ -938,6 +943,8 @@ export class AzureSqlDatabaseService implements DatabaseService {
     teamNumber: number,
     matchNumber: number,
     eventCode: string,
+    year: number,
+    competitionType: CompetitionType,
   ): Promise<boolean> {
     try {
       const pool = await this.getPool();
@@ -946,12 +953,16 @@ export class AzureSqlDatabaseService implements DatabaseService {
         .request()
         .input("teamNumber", mssql.Int, teamNumber)
         .input("matchNumber", mssql.Int, matchNumber)
-        .input("eventCode", mssql.NVarChar, eventCode).query(`
-          SELECT COUNT(*) as count 
-          FROM matchEntries 
-          WHERE teamNumber = @teamNumber 
-            AND matchNumber = @matchNumber 
+        .input("eventCode", mssql.NVarChar, eventCode)
+        .input("year", mssql.Int, year)
+        .input("competitionType", mssql.NVarChar, competitionType).query(`
+          SELECT COUNT(*) as count
+          FROM matchEntries
+          WHERE teamNumber = @teamNumber
+            AND matchNumber = @matchNumber
             AND eventCode = @eventCode
+            AND year = @year
+            AND competitionType = @competitionType
         `);
 
       return result.recordset[0].count > 0;

@@ -597,11 +597,13 @@ export class MariaDbDatabaseService implements DatabaseService {
   async checkPitScoutExists(
     teamNumber: number,
     eventCode: string,
+    year: number,
+    competitionType: CompetitionType,
   ): Promise<boolean> {
     const pool = await this.getPool();
     const [rows] = await pool.execute<Row<{ count: number }>[]>(
-      `SELECT COUNT(*) as count FROM pitEntries WHERE teamNumber = ? AND eventCode = ?`,
-      [teamNumber, eventCode],
+      `SELECT COUNT(*) as count FROM pitEntries WHERE teamNumber = ? AND eventCode = ? AND year = ? AND competitionType = ?`,
+      [teamNumber, eventCode, year, competitionType],
     );
     return rows[0].count > 0;
   }
@@ -748,11 +750,13 @@ export class MariaDbDatabaseService implements DatabaseService {
     teamNumber: number,
     matchNumber: number,
     eventCode: string,
+    year: number,
+    competitionType: CompetitionType,
   ): Promise<boolean> {
     const pool = await this.getPool();
     const [rows] = await pool.execute<Row<{ count: number }>[]>(
-      `SELECT COUNT(*) as count FROM matchEntries WHERE teamNumber = ? AND matchNumber = ? AND eventCode = ?`,
-      [teamNumber, matchNumber, eventCode],
+      `SELECT COUNT(*) as count FROM matchEntries WHERE teamNumber = ? AND matchNumber = ? AND eventCode = ? AND year = ? AND competitionType = ?`,
+      [teamNumber, matchNumber, eventCode, year, competitionType],
     );
     return rows[0].count > 0;
   }
