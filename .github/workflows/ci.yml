@@ -7,6 +7,16 @@ on:
   workflow_call:
 
 jobs:
+  browser-tests:
+    uses: ./.github/workflows/playwright.yml
+    permissions:
+      contents: read
+
+  database-tests:
+    uses: ./.github/workflows/database.yml
+    permissions:
+      contents: read
+
   checks:
     runs-on: ubuntu-latest
     permissions:
