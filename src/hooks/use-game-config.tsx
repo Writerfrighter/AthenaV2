@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, ReactNode } from "react";
-import { usePathname } from "next/navigation";
 import { GAME_CONFIG_UPDATED } from "@/lib/game-config/updates";
+import { startActivePolling } from "@/lib/active-polling";
 import gameConfig from "../../config/game-config-loader";
 import type { YearConfig, GameConfig, CompetitionType } from "@/lib/types";
 import { useSession } from "next-auth/react";
@@ -56,7 +56,6 @@ const GameConfigContext = createContext<GameConfigContextType | undefined>(
 
 export function GameConfigProvider({ children, initialConfig }: { children: ReactNode; initialConfig?: GameConfig }) {
   const { data: session, status } = useSession();
-  const pathname = usePathname();
   const guest = session?.guestEvent;
   const [liveConfig, setLiveConfig] = useState<GameConfig | null>(null);
   const config = liveConfig ?? initialConfig ?? gameConfig as unknown as GameConfig;
@@ -88,23 +87,19 @@ export function GameConfigProvider({ children, initialConfig }: { children: Reac
       if (event.key === GAME_CONFIG_UPDATED) void refresh();
     };
     void refresh();
-    const interval = window.setInterval(refresh, 30_000);
+    // Same-browser edits arrive by event; other devices only need occasional
+    // checks while someone is actually using this tab.
+    const stopPolling = startActivePolling(() => void refresh(), 2 * 60_000);
     window.addEventListener(GAME_CONFIG_UPDATED, refresh);
     window.addEventListener("storage", onStorage);
-    window.addEventListener("focus", refresh);
-    window.addEventListener("online", refresh);
-    document.addEventListener("visibilitychange", refresh);
     return () => {
       disposed = true;
       controller?.abort();
-      window.clearInterval(interval);
+      stopPolling();
       window.removeEventListener(GAME_CONFIG_UPDATED, refresh);
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener("focus", refresh);
-      window.removeEventListener("online", refresh);
-      document.removeEventListener("visibilitychange", refresh);
     };
-  }, [status, session?.user?.id, pathname]);
+  }, [status, session?.user?.id]);
   // True once rendering on the client, where the stored selections are readable
   const isInitialized = useSyncExternalStore(
     subscribeToNothing,

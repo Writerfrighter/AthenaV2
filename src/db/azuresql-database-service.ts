@@ -38,9 +38,13 @@ import {
   toPitEntry,
 } from "./row-mappers";
 
+/** Bump whenever initializeTables() changes so existing databases re-run it once. */
+const SCHEMA_VERSION = 1;
+
 export class AzureSqlDatabaseService implements DatabaseService {
   readonly users = sqlUsers(this.query.bind(this), "azuresql");
   private pool: import("mssql").ConnectionPool | null = null;
+  private connecting: Promise<import("mssql").ConnectionPool> | null = null;
   private config: AzureSqlConfig;
   private tokenExpiresAt: Date | null = null;
 
@@ -59,6 +63,14 @@ export class AzureSqlDatabaseService implements DatabaseService {
       return this.pool;
     }
 
+    // Concurrent cold-start requests share one connection and schema check.
+    this.connecting ??= this.connect().finally(() => {
+      this.connecting = null;
+    });
+    return this.connecting;
+  }
+
+  private async connect(): Promise<import("mssql").ConnectionPool> {
     const mssql = await import("mssql");
     let config: MssqlConfig | string;
 
@@ -121,7 +133,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
     try {
       this.pool = await mssql.connect(config);
       console.log("Azure SQL: Connection pool created successfully");
-      await this.initializeTables();
+      await this.ensureSchema(this.pool);
       return this.pool;
     } catch (error) {
       console.error("Azure SQL: Failed to create connection pool:", error);
@@ -281,6 +293,25 @@ export class AzureSqlDatabaseService implements DatabaseService {
   async revokeGuestLink(id: string, revokedAt: number): Promise<void> {
     await sqlGuestLinks(this.query.bind(this)).revokeGuestLink(id, revokedAt);
   }
+  /** One version read per cold start instead of re-running every DDL statement. */
+  private async ensureSchema(pool: import("mssql").ConnectionPool): Promise<void> {
+    try {
+      const result = await pool
+        .request()
+        .query<{ version: number | null }>(`SELECT MAX(version) AS version FROM athenaSchema`);
+      if ((result.recordset[0]?.version ?? 0) >= SCHEMA_VERSION) return;
+    } catch {
+      // The marker table predates this check or the database is new.
+    }
+    await this.initializeTables();
+    await pool.request().input("version", SCHEMA_VERSION).query(`
+      IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='athenaSchema' AND xtype='U')
+      CREATE TABLE athenaSchema (version INT NOT NULL);
+      DELETE FROM athenaSchema;
+      INSERT INTO athenaSchema (version) VALUES (@version);
+    `);
+  }
+
   private async initializeTables(): Promise<void> {
     const pool = await this.getPool();
 

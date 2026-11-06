@@ -36,6 +36,7 @@ describe("/api/scouting/entries/match", () => {
     service = {
       getAllMatchEntries: vi.fn().mockResolvedValue([]),
       getMatchEntries: vi.fn().mockResolvedValue([]),
+      checkMatchScoutExists: vi.fn().mockResolvedValue(false),
       addMatchEntry: vi.fn().mockResolvedValue(202),
       updateMatchEntry: vi.fn().mockResolvedValue(undefined),
       deleteMatchEntry: vi.fn().mockResolvedValue(undefined),
@@ -73,16 +74,7 @@ describe("/api/scouting/entries/match", () => {
   });
 
   it("rejects duplicate match entry", async () => {
-    service.getAllMatchEntries.mockResolvedValue([
-      {
-        id: 1,
-        teamNumber: 111,
-        matchNumber: 2,
-        year: 2025,
-        eventCode: "EVT",
-        competitionType: "FRC",
-      },
-    ]);
+    service.checkMatchScoutExists.mockResolvedValue(true);
 
     const route = await import("@/app/api/scouting/entries/match/route");
     const req = new Request("http://test/api/scouting/entries/match", {
@@ -103,6 +95,8 @@ describe("/api/scouting/entries/match", () => {
 
     const res = await route.POST(asNextRequest(req));
     expect(res.status).toBe(409);
+    expect(service.checkMatchScoutExists).toHaveBeenCalledWith(111, 2, "EVT", 2025, "FRC");
+    expect(service.addMatchEntry).not.toHaveBeenCalled();
   });
 
   it("returns 400 when delete lacks id", async () => {

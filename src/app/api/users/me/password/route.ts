@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import bcrypt from "bcryptjs";
 import { databaseManager } from "@/db/database-manager";
+import { invalidateSessionUser } from "@/lib/server/session-user-cache";
 
 // PUT /api/users/me/password - Change own password
 export async function PUT(request: NextRequest) {
@@ -67,6 +68,7 @@ export async function PUT(request: NextRequest) {
 
     // Update password
     await service.updateUser(session.user.id, { passwordHash: hashedPassword });
+    invalidateSessionUser(session.user.id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

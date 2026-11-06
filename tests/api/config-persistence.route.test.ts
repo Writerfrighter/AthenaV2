@@ -6,6 +6,7 @@ import { NextRequest } from "next/server";
 import original from "../../config/years/FRC-2026.json";
 
 vi.mock("@/lib/auth/config", () => ({ auth: async () => ({ user: { id: "admin", role: "admin" } }) }));
+vi.mock("@/lib/server/auth-request", () => ({ readSessionToken: async () => ({ id: "admin", role: "admin" }) }));
 let directory: string;
 beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), "athena-config-api-"));
@@ -29,7 +30,7 @@ it("saves, lists, renames and deletes persistent overrides without changing bund
   }));
   expect(saved.status).toBe(200);
   const reader = await import("@/app/api/scouting/config/route");
-  expect((await (await reader.GET()).json()).config.FRC["2026"].gameName).toBe("Custom");
+  expect((await (await reader.GET(new NextRequest("http://test/api/scouting/config"))).json()).config.FRC["2026"].gameName).toBe("Custom");
   const listed = await route.GET(new NextRequest("http://test/api/scouting/admin/configs"));
   expect((await listed.json()).configs).toContainEqual(expect.objectContaining({ filename: "FRC-2026.json", gameName: "Custom", isBuiltin: false }));
   expect((await (await route.GET(new NextRequest("http://test/api/scouting/admin/configs?file=FRC-2026.json"))).json()).config.gameName).toBe("Custom");

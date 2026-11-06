@@ -51,6 +51,9 @@ type SqlParam = string | number | boolean | Date | Buffer | null;
 /** A `SELECT` result row shaped by one of the schema row interfaces. */
 type Row<T> = T & RowDataPacket;
 
+/** Bump whenever initializeTables() changes so existing databases re-run it once. */
+const SCHEMA_VERSION = 1;
+
 /**
  * JSON requests and imports carry dates as ISO strings, while mysql2 expects a
  * Date (or a MariaDB-formatted DATETIME string). Normalize at the provider
@@ -90,8 +93,19 @@ export class MariaDbDatabaseService implements DatabaseService {
   public async getPool(): Promise<Pool> {
     if (this.pool) return this.pool;
     const mysql = await import("mysql2/promise");
+    // mysql2 only closes idle connections when maxIdle < connectionLimit; open
+    // connections would otherwise keep a serverless database awake.
+    const poolOptions = {
+      connectionLimit: 10,
+      maxIdle: 2,
+      idleTimeout: 30_000,
+      namedPlaceholders: false,
+    };
     if (this.config.connectionString) {
-      this.pool = mysql.createPool(this.config.connectionString);
+      this.pool = mysql.createPool({
+        uri: this.config.connectionString,
+        ...poolOptions,
+      });
     } else {
       this.pool = mysql.createPool({
         host: this.config.host || "localhost",
@@ -99,13 +113,33 @@ export class MariaDbDatabaseService implements DatabaseService {
         user: this.config.user,
         password: this.config.password,
         database: this.config.database,
-        connectionLimit: 10,
-        namedPlaceholders: false,
+        ...poolOptions,
       });
     }
 
-    await this.initializeTables();
+    await this.ensureSchema();
     return this.pool;
+  }
+
+  /** One version read per cold start instead of re-running every DDL statement. */
+  private async ensureSchema(): Promise<void> {
+    const pool = this.pool!;
+    try {
+      const [rows] = await pool.query<Row<{ version: number }>[]>(
+        `SELECT MAX(version) AS version FROM athenaSchema`,
+      );
+      if ((rows[0]?.version ?? 0) >= SCHEMA_VERSION) return;
+    } catch {
+      // The marker table predates this check or the database is new.
+    }
+    await this.initializeTables();
+    await pool.query(
+      `CREATE TABLE IF NOT EXISTS athenaSchema (version INT NOT NULL) ENGINE=InnoDB`,
+    );
+    await pool.query(`DELETE FROM athenaSchema`);
+    await pool.query(`INSERT INTO athenaSchema (version) VALUES (?)`, [
+      SCHEMA_VERSION,
+    ]);
   }
 
   public async query<T = unknown>(

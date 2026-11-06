@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { matchApi } from "@/lib/api/database-client";
+import { HttpError } from "@/lib/fetcher";
 import { ScoutSelector } from "@/components/scout-selector";
 import { MatchInfoSection } from "@/components/forms/match-info-section";
 import { ScoringSection } from "@/components/forms/scoring-section";
@@ -325,26 +326,6 @@ export function DynamicMatchScoutForm() {
     setIsSubmitting(true);
 
     try {
-      // Check for duplicate match scout entry (only for new entries, not edits)
-      if (!session?.guestEvent && !isEditMode && selectedEvent?.eventCode) {
-        try {
-          const response = await fetch(
-            `/api/scouting/entries/match/check?teamNumber=${formData.teamNumber}&matchNumber=${formData.matchNumber}&eventCode=${selectedEvent.eventCode}&year=${currentYear}&competitionType=${competitionType}`,
-          );
-          const data = await response.json();
-
-          if (data.exists) {
-            toast.error("Duplicate entry detected", {
-              description: `Team ${formData.teamNumber} has already been scouted for Match ${formData.matchNumber}. Please check existing entries or edit the existing entry.`,
-              icon: <AlertCircle className="h-4 w-4" />,
-            });
-            return;
-          }
-        } catch (error) {
-          console.error("Error checking for duplicate:", error);
-        }
-      }
-
       if (isEditMode && editingEntryId) {
         // Update existing entry
         const response = await fetch("/api/scouting/entries/match", {
@@ -474,6 +455,14 @@ export function DynamicMatchScoutForm() {
         setActiveTab("auto");
       }
     } catch (error) {
+      // The server rejects duplicates, so no separate check request is needed.
+      if (error instanceof HttpError && error.status === 409) {
+        toast.error("Duplicate entry detected", {
+          description: `Team ${formData.teamNumber} has already been scouted for Match ${formData.matchNumber}. Please check existing entries or edit the existing entry.`,
+          icon: <AlertCircle className="h-4 w-4" />,
+        });
+        return;
+      }
       toast.error("Failed to save data", {
         description: error instanceof Error ? error.message : "Unknown error",
         icon: <AlertCircle className="h-4 w-4" />,

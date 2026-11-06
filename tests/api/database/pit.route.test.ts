@@ -36,6 +36,7 @@ describe("/api/scouting/entries/pit", () => {
     service = {
       getAllPitEntries: vi.fn().mockResolvedValue([]),
       getPitEntry: vi.fn().mockResolvedValue(undefined),
+      checkPitScoutExists: vi.fn().mockResolvedValue(false),
       addPitEntry: vi.fn().mockResolvedValue(101),
       updatePitEntry: vi.fn().mockResolvedValue(undefined),
       deletePitEntry: vi.fn().mockResolvedValue(undefined),
@@ -63,15 +64,7 @@ describe("/api/scouting/entries/pit", () => {
   });
 
   it("rejects duplicate pit entry", async () => {
-    service.getAllPitEntries.mockResolvedValue([
-      {
-        id: 1,
-        teamNumber: 111,
-        year: 2025,
-        eventCode: "EVT",
-        competitionType: "FRC",
-      },
-    ]);
+    service.checkPitScoutExists.mockResolvedValue(true);
 
     const route = await import("@/app/api/scouting/entries/pit/route");
     const req = new Request("http://test/api/scouting/entries/pit", {
@@ -92,6 +85,8 @@ describe("/api/scouting/entries/pit", () => {
 
     const res = await route.POST(asNextRequest(req));
     expect(res.status).toBe(409);
+    expect(service.checkPitScoutExists).toHaveBeenCalledWith(111, "EVT", 2025, "FRC");
+    expect(service.addPitEntry).not.toHaveBeenCalled();
   });
 
   it("creates pit entry when valid", async () => {

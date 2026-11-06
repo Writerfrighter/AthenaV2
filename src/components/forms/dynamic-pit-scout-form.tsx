@@ -26,6 +26,7 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { pitApi } from "@/lib/api/database-client";
+import { HttpError } from "@/lib/fetcher";
 import { ScoutSelector } from "@/components/scout-selector";
 import { FieldDrawingCanvas } from "@/components/forms/field-drawing-canvas";
 import { driveTrainSlug, normalizeDriveTrain, type PitEntry } from "@/lib/types";
@@ -282,27 +283,6 @@ export function DynamicPitScoutForm() {
     setIsSubmitting(true);
 
     try {
-      // Check for duplicate pit scout entry (only for new entries, not edits)
-      if (!session?.guestEvent && !isEditMode && selectedEvent?.eventCode) {
-        try {
-          const response = await fetch(
-            `/api/scouting/entries/pit/check?teamNumber=${formData.team}&eventCode=${selectedEvent.eventCode}&year=${currentYear}&competitionType=${competitionType}`,
-          );
-          const data = await response.json();
-
-          if (data.exists) {
-            toast.error("Duplicate entry detected", {
-              description: `Team ${formData.team} has already been pit scouted for this event. Please check existing entries or edit the existing entry.`,
-              icon: <AlertCircle className="h-4 w-4" />,
-            });
-            return;
-          }
-        } catch (error) {
-          console.error("Error checking for duplicate:", error);
-          // Continue with submission even if check fails
-        }
-      }
-
       if (isEditMode && editingEntryId) {
         // Update existing entry
         const response = await fetch("/api/scouting/entries/pit", {
@@ -418,6 +398,14 @@ export function DynamicPitScoutForm() {
         }
       }
     } catch (error) {
+      // The server rejects duplicates, so no separate check request is needed.
+      if (error instanceof HttpError && error.status === 409) {
+        toast.error("Duplicate entry detected", {
+          description: `Team ${formData.team} has already been pit scouted for this event. Please check existing entries or edit the existing entry.`,
+          icon: <AlertCircle className="h-4 w-4" />,
+        });
+        return;
+      }
       toast("Failed to save data", {
         description: error instanceof Error ? error.message : "Unknown error",
         icon: <AlertCircle className="h-4 w-4" />,
