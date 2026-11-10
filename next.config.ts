@@ -3,6 +3,8 @@ import { withSerwist } from "@serwist/turbopack";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Azure credentials use native process helpers that cannot be bundled on Windows.
+  serverExternalPackages: ["@azure/identity"],
   // Deployment credentials and mutable state must never enter release artifacts.
   outputFileTracingExcludes: { "/*": ["./.runtime/**/*", "./.env*"] },
   reactStrictMode: true,

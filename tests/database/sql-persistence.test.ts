@@ -79,6 +79,37 @@ function match(eventCode: string, overrides: Partial<MatchEntry> = {}): MatchEnt
 }
 
 describe(`${provider} real database persistence`, () => {
+  it("upgrades required pit measurements without losing existing values", async () => {
+    const measured = pit("schema-upgrade", { weight: 120, length: 30, width: 28 });
+    const id = await service.addPitEntry(measured);
+    const beforeUpgrade = await service.getAllPitEntries(2026, "schema-upgrade", "FRC");
+    const adapter = service as MariaDbDatabaseService | AzureSqlDatabaseService;
+    // Recreate version 1's constraints, then reconnect through normal initialization.
+    for (const column of ["weight", "length", "width"]) {
+      await adapter.query(`ALTER TABLE pitEntries ${provider === "mariadb" ? "MODIFY" : "ALTER"} COLUMN ${column} DECIMAL(10,2) NOT NULL`);
+    }
+    await adapter.query("UPDATE athenaSchema SET version = 1");
+    await closeService?.();
+    if (provider === "mariadb") {
+      const upgraded = new MariaDbDatabaseService({ host: "127.0.0.1", port, user: "root", password, database });
+      service = upgraded;
+      closeService = async () => { await (await upgraded.getPool()).end(); };
+      await upgraded.getPool();
+    } else {
+      const upgraded = new AzureSqlDatabaseService({
+        connectionString: `Server=127.0.0.1,${port};Database=${database};User Id=sa;Password=${password};Encrypt=false;TrustServerCertificate=true`,
+      });
+      service = upgraded;
+      closeService = async () => { await (await upgraded.getPool()).close(); };
+      await upgraded.getPool();
+    }
+    expect(await service.getAllPitEntries(2026, "schema-upgrade", "FRC")).toEqual(beforeUpgrade);
+    const optionalId = await service.addPitEntry(pit("schema-upgrade", { teamNumber: 492 }));
+    expect(optionalId).toBeGreaterThan(0);
+    await service.deletePitEntry(id);
+    await service.deletePitEntry(optionalId);
+  });
+
   it("round-trips pit and match data, updates by ID, and deletes", async () => {
     const p = pit("crud");
     const m = match("crud");

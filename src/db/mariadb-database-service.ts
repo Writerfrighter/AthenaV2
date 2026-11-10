@@ -52,7 +52,7 @@ type SqlParam = string | number | boolean | Date | Buffer | null;
 type Row<T> = T & RowDataPacket;
 
 /** Bump whenever initializeTables() changes so existing databases re-run it once. */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 /**
  * JSON requests and imports carry dates as ISO strings, while mysql2 expects a
@@ -338,9 +338,9 @@ export class MariaDbDatabaseService implements DatabaseService {
         year INT NOT NULL,
         competitionType VARCHAR(10) DEFAULT 'FRC' NOT NULL,
         driveTrain VARCHAR(50) NOT NULL,
-        weight DECIMAL(10,2) NOT NULL,
-        length DECIMAL(10,2) NOT NULL,
-        width DECIMAL(10,2) NOT NULL,
+        weight DECIMAL(10,2) NULL,
+        length DECIMAL(10,2) NULL,
+        width DECIMAL(10,2) NULL,
         eventName VARCHAR(255),
         eventCode VARCHAR(50),
         userId VARCHAR(255),
@@ -354,6 +354,12 @@ export class MariaDbDatabaseService implements DatabaseService {
         INDEX idx_pit_event (eventCode)
       ) ENGINE=InnoDB;
     `);
+
+    // Measurements are optional in scouting forms, including on existing databases.
+    await pool.query(`ALTER TABLE pitEntries
+      MODIFY COLUMN weight DECIMAL(10,2) NULL,
+      MODIFY COLUMN length DECIMAL(10,2) NULL,
+      MODIFY COLUMN width DECIMAL(10,2) NULL`);
 
     // matchEntries
     await pool.query(`

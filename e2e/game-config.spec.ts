@@ -2,6 +2,9 @@ import { test, expect, type Page } from "@playwright/test";
 import { prepare } from "./helpers/scouting";
 import original from "../config/years/FRC-2026.json";
 
+// Configuration polling runs every two minutes while the tab is active.
+const configRefreshElapsed = 121_000;
+
 async function prepareEditor(page: Page) {
   await prepare(page, "FRC", 2026);
   const state = { config: structuredClone(original), failLoad: false, failSave: false, writes: 0 };
@@ -95,12 +98,15 @@ test("open clients pick up remote edits on the periodic refresh and keep data wh
   await page.locator("#matchNumber").fill("12");
   await page.getByPlaceholder("Enter team number (e.g. 254)").fill("254");
   state.config.scoring.autonomous.fuel_scored.label = "Remote edit";
-  await page.clock.fastForward(31_000);
+  await page.clock.fastForward(configRefreshElapsed);
   await expect(page.getByText("Remote edit", { exact: true })).toBeVisible();
   await expect(page.locator("#matchNumber")).toHaveValue("12");
   await expect(page.getByPlaceholder("Enter team number (e.g. 254)")).toHaveValue("254");
   await page.route("**/api/scouting/config", (route) => route.fulfill({ status: 500, json: { error: "Unavailable" } }));
-  await page.clock.fastForward(31_000);
+  const failedRefresh = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === "/api/scouting/config" && response.status() === 500);
+  await page.clock.fastForward(configRefreshElapsed);
+  await failedRefresh;
   await expect(page.getByText("Remote edit", { exact: true })).toBeVisible();
 });
 
@@ -112,7 +118,7 @@ test("pit scouting retains entered values when configuration changes", async ({ 
   await page.getByPlaceholder("Enter team number (e.g. 254)").fill("254");
   await page.locator("#notes").fill("Keep these pit observations");
   state.config.gameName = "Updated pit configuration";
-  await page.clock.fastForward(31_000);
+  await page.clock.fastForward(configRefreshElapsed);
   await expect(page.getByText("Updated pit configuration", { exact: false }).first()).toBeVisible();
   await expect(page.getByPlaceholder("Enter team number (e.g. 254)")).toHaveValue("254");
   await expect(page.locator("#notes")).toHaveValue("Keep these pit observations");
@@ -130,6 +136,6 @@ test("analysis reloads computed results when scoring configuration changes", asy
   await expect.poll(() => analysisReads).toBeGreaterThan(0);
   const beforeChange = analysisReads;
   state.config.scoring.autonomous.fuel_scored.points = 9;
-  await page.clock.fastForward(31_000);
+  await page.clock.fastForward(configRefreshElapsed);
   await expect.poll(() => analysisReads).toBeGreaterThan(beforeChange);
 });

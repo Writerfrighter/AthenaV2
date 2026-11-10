@@ -39,7 +39,7 @@ import {
 } from "./row-mappers";
 
 /** Bump whenever initializeTables() changes so existing databases re-run it once. */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 export class AzureSqlDatabaseService implements DatabaseService {
   readonly users = sqlUsers(this.query.bind(this), "azuresql");
@@ -346,9 +346,9 @@ export class AzureSqlDatabaseService implements DatabaseService {
         year INT NOT NULL,
         competitionType NVARCHAR(10) DEFAULT 'FRC' NOT NULL,
         driveTrain NVARCHAR(50) NOT NULL,
-        weight DECIMAL(10,2) NOT NULL,
-        length DECIMAL(10,2) NOT NULL,
-        width DECIMAL(10,2) NOT NULL,
+        weight DECIMAL(10,2) NULL,
+        length DECIMAL(10,2) NULL,
+        width DECIMAL(10,2) NULL,
         eventName NVARCHAR(255),
         eventCode NVARCHAR(50),
         userId NVARCHAR(255),
@@ -360,6 +360,13 @@ export class AzureSqlDatabaseService implements DatabaseService {
         FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL,
         CONSTRAINT uq_pit_entry UNIQUE (teamNumber, eventCode, year, competitionType)
       )
+    `);
+
+    // Measurements are optional in scouting forms, including on existing databases.
+    await pool.request().query(`
+      ALTER TABLE pitEntries ALTER COLUMN weight DECIMAL(10,2) NULL;
+      ALTER TABLE pitEntries ALTER COLUMN length DECIMAL(10,2) NULL;
+      ALTER TABLE pitEntries ALTER COLUMN width DECIMAL(10,2) NULL;
     `);
 
     // Add autoDrawing column to pitEntries table if it doesn't exist

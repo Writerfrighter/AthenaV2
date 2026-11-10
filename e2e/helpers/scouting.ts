@@ -29,7 +29,6 @@ export async function prepare(page: Page, competitionType = "FRC", year = 2025) 
     };
     else if (path.includes("/custom-events")) body = [{ name: "E2E Competition", eventCode: "e2e-event", year }];
     else if (path.endsWith("/schedule")) body = { matches: [] };
-    else if (path.endsWith("/check")) body = { exists: state.duplicate };
     else if (url.searchParams.has("id") && state.entry) body = state.entry;
     else if (/\/entries\/(pit|match)$/.test(path) && ["POST", "PUT"].includes(request.method())) {
       const payload = request.postDataJSON();
@@ -41,6 +40,10 @@ export async function prepare(page: Page, competitionType = "FRC", year = 2025) 
       // A validator regression must fail the test even if the UI handles the error.
       expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
       submissions.push(payload);
+      if (state.duplicate && request.method() === "POST") {
+        await route.fulfill({ status: 409, json: { error: "Entry already exists" } });
+        return;
+      }
       await route.fulfill({ status: state.reject ? 400 : 200, json: state.reject ? { error: "Invalid scouting data" } : { id: 101 } });
       return;
     }

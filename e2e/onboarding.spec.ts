@@ -19,8 +19,11 @@ test("tour teaches the existing program switch and persists checklist progress",
   await expect(tour.getByRole("heading", { name: "Choose a season", exact: true })).toBeVisible();
   await tour.getByRole("button", { name: "Skip step" }).click();
   await expect(tour.getByText("3 actions completed")).toBeVisible();
-  // Clicking outside a menu to skip may close it; reopening must not skip the event step.
-  if (!(await page.getByRole("menuitem", { name: "E2E Competition", exact: true }).isVisible())) await page.locator('[data-tour-target="event"]').getByRole("button").click();
+  // Wait for the outside click to close the menu, including its exit animation.
+  const eventSelector = page.locator('[data-tour-target="event"]').getByRole("button");
+  await expect(eventSelector).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("menuitem", { name: "E2E Competition", exact: true })).toBeHidden();
+  await eventSelector.click();
   await page.getByRole("menuitem", { name: "E2E Competition", exact: true }).click();
   await expect(tour.getByRole("heading", { name: "Find your scouting assignment" })).toBeVisible();
   await page.locator('[data-tour-target="competition"]').click();
@@ -48,11 +51,14 @@ test("mobile tour opens the sidebar, can be skipped, and can be replayed", async
   const sidebar = page.getByRole("dialog", { name: "Sidebar", exact: true });
   const tour = sidebar.getByRole("region", { name: "Guided tour" });
   await expect(tour).toBeVisible();
-  const box = await tour.boundingBox();
-  expect(box).not.toBeNull();
-  expect(box!.x).toBeGreaterThanOrEqual(0);
-  expect(box!.x + box!.width).toBeLessThanOrEqual(390);
-  expect(box!.y + box!.height).toBeLessThanOrEqual(844);
+  // The sidebar slides in; visibility alone does not mean it has finished moving.
+  await expect(async () => {
+    const box = await tour.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(844);
+  }).toPass();
   await sidebar.getByRole("button", { name: /Competition Scout/ }).click();
   await expect(page.getByRole("menuitem", { name: "Switch to FTC" })).toBeVisible();
   await page.keyboard.press("Escape");

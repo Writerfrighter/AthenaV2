@@ -67,13 +67,20 @@ for (const kind of ["pit", "match"] as const) {
     expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
   });
 
-  test(`${kind}: duplicate protection prevents submission`, async ({ page }) => {
+  test(`${kind}: a duplicate submission is rejected and preserves entered data`, async ({ page }) => {
     const { state, submissions } = await prepare(page);
     state.duplicate = true;
     await fill(page, kind);
     await save(page, kind).click();
     await expect(page.getByText("Duplicate entry detected", { exact: true })).toBeVisible();
-    expect(submissions).toHaveLength(0);
+    expect(submissions).toHaveLength(1);
+    if (kind === "match") {
+      await expect(page.getByPlaceholder("Any additional observations about this match...")).toHaveValue("Competition regression test");
+      await page.getByRole("tab", { name: "Auto", exact: true }).click();
+      await expect(page.locator("#matchNumber")).toHaveValue("12");
+    }
+    await expect(page.getByPlaceholder("Enter team number (e.g. 254)")).toHaveValue("254");
+    await expect(save(page, kind)).toBeEnabled();
   });
 
   test(`${kind}: validation rejection preserves data for retry`, async ({ page }) => {
