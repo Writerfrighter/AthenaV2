@@ -39,7 +39,7 @@ jobs:
             type=sha,format=long
             type=semver,pattern={{version}}
             type=raw,value=latest,enable=${{ github.event_name == 'release' && !github.event.release.prerelease }}
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           load: true
@@ -61,7 +61,7 @@ jobs:
       - name: Stop test installation
         if: always()
         run: docker compose down --volumes
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           push: true
