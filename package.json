@@ -51,7 +51,7 @@
     "@serwist/turbopack": "^9.5.13",
     "@tailwindcss/postcss": "^4.3.5",
     "@types/mssql": "^12.3.0",
-    "@types/node": "^25.9.9",
+    "@types/node": "^26.6.6",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
