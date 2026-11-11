@@ -6,14 +6,11 @@ import {
   type Column,
   type ColumnDef,
   type ColumnFiltersState,
+  type RowData,
   type RowSelectionState,
   type SortingState,
   flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
+  useTable,
 } from "@tanstack/react-table";
 import { ArrowUpDown, Edit, MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { scoutingTableFeatures, type ScoutingTableFeatures } from "./table-features";
 
 interface ScoutingEntry {
   id?: number;
@@ -38,8 +36,8 @@ export interface ScoutingTableProps<T extends ScoutingEntry> {
   onDeleteSelected?: (ids: number[]) => void;
 }
 
-export function SortableHeader<T>({ column, children }: {
-  column: Column<T>;
+export function SortableHeader<T extends RowData>({ column, children }: {
+  column: Column<ScoutingTableFeatures, T>;
   children: ReactNode;
 }) {
   return (
@@ -55,7 +53,7 @@ export function SortableHeader<T>({ column, children }: {
 /** Shared table behavior; callers supply only their scouting-specific columns. */
 export function ScoutingTable<T extends ScoutingEntry>({
   data, columns, emptyMessage, onEdit, onDelete, onDeleteSelected,
-}: ScoutingTableProps<T> & { columns: ColumnDef<T>[]; emptyMessage: string }) {
+}: ScoutingTableProps<T> & { columns: ColumnDef<ScoutingTableFeatures, T>[]; emptyMessage: string }) {
   const { data: session } = useSession();
   const isGuest = !!session?.guestEvent;
   const canViewNotes = !!session?.guestEvent?.canViewNotes;
@@ -63,7 +61,7 @@ export function ScoutingTable<T extends ScoutingEntry>({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-  const tableColumns = useMemo<ColumnDef<T>[]>(() => {
+  const tableColumns = useMemo<ColumnDef<ScoutingTableFeatures, T>[]>(() => {
     const visibleColumns = columns.filter((column) =>
       !isGuest || canViewNotes || !("accessorKey" in column) || column.accessorKey !== "notes",
     );
@@ -119,7 +117,8 @@ export function ScoutingTable<T extends ScoutingEntry>({
     ];
   }, [columns, isGuest, canViewNotes, onEdit, onDelete]);
 
-  const table = useReactTable({
+  const table = useTable({
+    features: scoutingTableFeatures,
     data,
     columns: tableColumns,
     // Keep selection attached to records when refreshed data changes order.
@@ -128,10 +127,6 @@ export function ScoutingTable<T extends ScoutingEntry>({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onRowSelectionChange: setRowSelection,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     state: { sorting, columnFilters, rowSelection },
   });
   const selectedIds = table.getSelectedRowModel().rows
@@ -170,7 +165,7 @@ export function ScoutingTable<T extends ScoutingEntry>({
           <TableBody>
             {table.getRowModel().rows.length ? table.getRowModel().rows.map((row) => (
               <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                {row.getVisibleCells().map((cell) => (
+                {row.getAllCells().map((cell) => (
                   <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>

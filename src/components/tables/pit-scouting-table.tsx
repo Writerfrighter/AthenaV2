@@ -1,10 +1,11 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import type { ScoutingTableFeatures } from "./table-features";
 import type { PitEntry } from "@/lib/types";
 import { ScoutingTable, SortableHeader, type ScoutingTableProps } from "./scouting-table";
 
-const columns: ColumnDef<PitEntry>[] = [
+const columns: ColumnDef<ScoutingTableFeatures, PitEntry>[] = [
   {
     accessorKey: "teamNumber",
     header: ({ column }) => <SortableHeader column={column}>Team</SortableHeader>,

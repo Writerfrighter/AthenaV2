@@ -2,11 +2,12 @@
 
 import { memo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import type { ScoutingTableFeatures } from "./table-features";
 import { Badge } from "@/components/ui/badge";
 import type { MatchEntry } from "@/lib/types";
 import { ScoutingTable, SortableHeader, type ScoutingTableProps } from "./scouting-table";
 
-const columns: ColumnDef<MatchEntry>[] = [
+const columns: ColumnDef<ScoutingTableFeatures, MatchEntry>[] = [
   {
     accessorKey: "matchNumber",
     header: ({ column }) => <SortableHeader column={column}>Match</SortableHeader>,
