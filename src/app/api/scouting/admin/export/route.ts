@@ -210,7 +210,7 @@ async function convertToXLSX(data: {
   pitEntries: PitEntry[];
   matchEntries: MatchEntry[];
 }): Promise<ArrayBuffer> {
-  const XLSX = await import("xlsx-js-style");
+  const XLSX = await import("xlsx");
 
   // Function to expand gameSpecificData (only one level)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
