@@ -182,17 +182,8 @@ class OfflineQueueManager {
         failedCount++;
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
+        // syncSingleEntry has already recorded pending/error for this entry.
         errors.push(`Entry ${entry.id}: ${errorMessage}`);
-
-        // Update entry status to error if max retries exceeded
-        if (entry.attempts >= config.maxRetries) {
-          await indexedDBService.updateEntryStatus(
-            entry.id,
-            "error",
-            undefined,
-            errorMessage,
-          );
-        }
       }
     }
 
@@ -247,8 +238,9 @@ class OfflineQueueManager {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
 
-      // If we haven't exceeded max retries, schedule a retry
-      if (entry.attempts < config.maxRetries) {
+      // `entry.attempts` predates the attempt that just failed.
+      const attemptsMade = entry.attempts + 1;
+      if (attemptsMade < config.maxRetries) {
         await indexedDBService.updateEntryStatus(
           entry.id,
           "pending",
@@ -464,9 +456,9 @@ class OfflineQueueManager {
     await this.ensureInitialized();
     const failedEntries = await this.getEntriesByStatus("error");
 
-    // Reset failed entries to pending
+    // Reset failed entries to pending with a fresh retry budget
     for (const entry of failedEntries) {
-      await indexedDBService.updateEntryStatus(entry.id, "pending");
+      await indexedDBService.resetEntryForRetry(entry.id);
     }
 
     return this.syncPendingEntries();
