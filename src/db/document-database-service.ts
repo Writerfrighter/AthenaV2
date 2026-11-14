@@ -2,7 +2,6 @@ import { createHash, randomInt, randomUUID } from "node:crypto";
 import type { CompetitionType, CustomEvent, DatabaseService, GuestLinkRecord, MatchEntry, Picklist, PicklistEntry, PicklistNote, PitEntry, ScheduleAssignmentChange, ScheduleAssignmentRecord, ScheduleAssignmentScope, UserCredentials, UserRecord, UserStore, UserUpdates } from "@/lib/types";
 import type { Document, DocumentStore } from "./document-store";
 
-const numericCollections = ["pitEntries", "matchEntries", "customEvents", "picklists", "picklistEntries", "picklistNotes"];
 const usernameKey = (username: string) => `username-${createHash("sha256").update(username.toLowerCase()).digest("hex")}`;
 const userKey = (id: string) => `user-${id}`;
 const scheduleKey = (scope: ScheduleAssignmentScope) => createHash("sha256").update(JSON.stringify([scope.eventCode, scope.year, scope.competitionType])).digest("hex");
@@ -269,7 +268,8 @@ export class DocumentDatabaseService implements DatabaseService {
     for (const entry of data.matchEntries ?? []) { const copy = { ...entry }; delete copy.id; await this.addMatchEntry(copy); }
   }
   async resetDatabase() {
-    for (const collection of [...numericCollections, "users", "avatars", "schedules", "guestLinks"]) {
+    // Scouting entries only, as on every provider; accounts must survive.
+    for (const collection of ["pitEntries", "matchEntries"]) {
       for (const doc of await this.store.list(collection)) await this.store.remove(collection, doc.key);
     }
   }

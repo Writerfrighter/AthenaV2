@@ -115,6 +115,41 @@ describe("offlineQueueManager.syncPendingEntries", () => {
     expect(entry.error).toContain("(500)");
   });
 
+  it("counts an entry the server already has as uploaded, not failed", async () => {
+    fetchMock.mockImplementation(async () => new Response("{}", { status: 409 }));
+    const id = await manager.queueMatchEntry(match());
+
+    const result = await manager.syncPendingEntries();
+
+    expect(result).toMatchObject({ success: true, syncedCount: 1, failedCount: 0 });
+    const entry = await entryById(id);
+    expect(entry.status).toBe("synced");
+    expect(entry.remoteId).toBeUndefined();
+  });
+
+  it("re-sends an entry whose earlier attempt was interrupted", async () => {
+    const id = await manager.queuePitEntry(pit());
+    await storage.updateEntryStatus(id, "syncing");
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.now() + 60_000);
+
+    const result = await manager.syncPendingEntries();
+
+    expect(result.syncedCount).toBe(1);
+    expect((await entryById(id)).status).toBe("synced");
+  });
+
+  it("leaves an attempt that may still be in flight alone", async () => {
+    const id = await manager.queuePitEntry(pit());
+    await storage.updateEntryStatus(id, "syncing");
+
+    const result = await manager.syncPendingEntries();
+
+    expect(result.syncedCount).toBe(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect((await entryById(id)).status).toBe("syncing");
+  });
+
   it("treats a response without an id as a failure", async () => {
     fetchMock.mockImplementation(async () => new Response("{}", { status: 200 }));
     const id = await manager.queueMatchEntry(match());

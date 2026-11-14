@@ -52,7 +52,7 @@ type SqlParam = string | number | boolean | Date | Buffer | null;
 type Row<T> = T & RowDataPacket;
 
 /** Bump whenever initializeTables() changes so existing databases re-run it once. */
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 /**
  * JSON requests and imports carry dates as ISO strings, while mysql2 expects a
@@ -328,6 +328,11 @@ export class MariaDbDatabaseService implements DatabaseService {
     );
     await pool.query(
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS sessionVersion INT NOT NULL DEFAULT 0`,
+    );
+
+    // Push subscriptions are stored per account as a JSON array.
+    await pool.query(
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS push_subscriptions LONGTEXT NULL`,
     );
 
     // pitEntries
@@ -1252,16 +1257,12 @@ export class MariaDbDatabaseService implements DatabaseService {
 
   async resetDatabase(): Promise<void> {
     const pool = await this.getPool();
-    // Drop all tables (careful)
-    await pool.execute(`DROP TABLE IF EXISTS picklistNotes`);
-    await pool.execute(`DROP TABLE IF EXISTS picklistEntries`);
-    await pool.execute(`DROP TABLE IF EXISTS picklists`);
-    await pool.execute(`DROP TABLE IF EXISTS matchAssignments`);
-    await pool.execute(`DROP TABLE IF EXISTS customEvents`);
-    await pool.execute(`DROP TABLE IF EXISTS matchEntries`);
-    await pool.execute(`DROP TABLE IF EXISTS pitEntries`);
-    await pool.execute(`DROP TABLE IF EXISTS users`);
-    await this.initializeTables();
+    // Scouting entries only, as on every provider. Accounts must survive, or
+    // the admin who ran the reset would be locked out of the deployment.
+    await pool.query(`DELETE FROM pitEntries`);
+    await pool.query(`DELETE FROM matchEntries`);
+    await pool.query(`ALTER TABLE pitEntries AUTO_INCREMENT = 1`);
+    await pool.query(`ALTER TABLE matchEntries AUTO_INCREMENT = 1`);
   }
 
   /**

@@ -18,7 +18,12 @@ export default async function middleware(req: NextRequest) {
     response.headers.set("X-Athena-Guest", "1");
     return response;
   }
-  if (req.nextUrl.pathname === "/api/health") return NextResponse.next();
+  // The TBA webhook has no session; its route verifies the HMAC signature.
+  if (
+    req.nextUrl.pathname === "/api/health" ||
+    req.nextUrl.pathname === "/api/webhooks/tba"
+  )
+    return NextResponse.next();
   const publicRequest = withAuthOrigin(req);
   const token = await getToken({
     req,

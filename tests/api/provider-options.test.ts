@@ -79,6 +79,15 @@ describe("GET /api/scouting/admin/provider-options", () => {
     expect(json.config).toHaveProperty("provider", "firebase");
   });
 
+  it("requires a signed-in session", async () => {
+    authSession = null;
+    const route =
+      await import("@/app/api/scouting/admin/provider-options/route");
+    const response = await route.GET();
+    expect(response.status).toBe(403);
+    expect(await response.json()).not.toHaveProperty("config");
+  });
+
   it("updates the active provider", async () => {
     const route =
       await import("@/app/api/scouting/admin/provider-options/route");
