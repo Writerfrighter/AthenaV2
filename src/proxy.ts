@@ -125,6 +125,9 @@ export default async function middleware(req: NextRequest) {
 
   // Redirect to login if not authenticated
   if (!isAuth) {
+    if (req.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/login", publicRequest.url));
   }
 

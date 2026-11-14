@@ -127,9 +127,10 @@ describe("document database domain behavior", () => {
     expect(await service.users.list()).toEqual([]);
     expect(await service.users.getByIds(["one"], true)).toEqual([]);
     expect(await service.users.getSubscriptions()).toEqual([]);
-    expect(await service.users.getById("one")).toMatchObject({ sessionVersion: 1 });
+    // The password change above already ended the account's sessions once.
+    expect(await service.users.getById("one")).toMatchObject({ sessionVersion: 2 });
     await service.users.setActive("one", true);
-    expect(await service.users.getById("one")).toMatchObject({ sessionVersion: 2, deactivatedAt: null });
+    expect(await service.users.getById("one")).toMatchObject({ sessionVersion: 3, deactivatedAt: null });
   });
   it("reserves case-insensitive usernames atomically and releases old names on rename", async () => {
     const results = await Promise.allSettled([service.users.create(account), service.users.create({ ...account, id: "two", username: "SCOUTONE" })]);

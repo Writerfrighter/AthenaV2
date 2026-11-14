@@ -20,6 +20,14 @@ const DEFAULT_SYNC_CONFIG: SyncConfig = {
   autoSyncEnabled: false,
 };
 
+/** The session expired; the entry is fine and must wait for a sign-in. */
+class SignInRequiredError extends Error {
+  constructor() {
+    super("Sign in again to upload queued entries");
+    this.name = "SignInRequiredError";
+  }
+}
+
 /** Upload requests are aborted after this long. */
 const SUBMIT_TIMEOUT_MS = 8000;
 
@@ -258,6 +266,12 @@ class OfflineQueueManager {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
 
+      if (error instanceof SignInRequiredError) {
+        // Not the entry's fault: keep it pending with its full retry budget.
+        await indexedDBService.resetEntryForRetry(entry.id);
+        throw error;
+      }
+
       // `entry.attempts` predates the attempt that just failed.
       const attemptsMade = entry.attempts + 1;
       if (attemptsMade < config.maxRetries) {
@@ -300,6 +314,7 @@ class OfflineQueueManager {
         signal: controller.signal,
       });
       if (response.status === 409) return { alreadyExists: true };
+      if (response.status === 401) throw new SignInRequiredError();
       if (!response.ok) {
         throw new Error(`Failed to sync ${type} entry (${response.status})`);
       }

@@ -150,6 +150,20 @@ describe("offlineQueueManager.syncPendingEntries", () => {
     expect((await entryById(id)).status).toBe("syncing");
   });
 
+  it("does not spend retries while the session is expired", async () => {
+    fetchMock.mockImplementation(async () => new Response("{}", { status: 401 }));
+    const id = await manager.queuePitEntry(pit());
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await manager.syncPendingEntries();
+      manager.clearRetryTimeouts();
+    }
+
+    const entry = await entryById(id);
+    expect(entry.status).toBe("pending");
+    expect(entry.attempts).toBe(0);
+  });
+
   it("treats a response without an id as a failure", async () => {
     fetchMock.mockImplementation(async () => new Response("{}", { status: 200 }));
     const id = await manager.queueMatchEntry(match());

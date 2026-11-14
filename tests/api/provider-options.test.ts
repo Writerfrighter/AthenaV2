@@ -42,6 +42,8 @@ vi.mock("@/lib/auth/roles", () => ({
 vi.mock("node:fs/promises", () => ({
   mkdir: mockMkdir,
   writeFile: mockWriteFile,
+  rename: vi.fn(async () => undefined),
+  unlink: vi.fn(async () => undefined),
 }));
 
 vi.mock("node:fs", () => ({

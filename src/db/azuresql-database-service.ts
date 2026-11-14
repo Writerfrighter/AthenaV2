@@ -130,13 +130,23 @@ export class AzureSqlDatabaseService implements DatabaseService {
       };
     }
 
+    // A pool per service instance: mssql.connect() returns one global pool and
+    // ignores the configuration of every call after the first.
+    const pool =
+      typeof config === "string"
+        ? new mssql.ConnectionPool(config)
+        : new mssql.ConnectionPool(config);
     try {
-      this.pool = await mssql.connect(config);
+      await pool.connect();
       console.log("Azure SQL: Connection pool created successfully");
-      await this.ensureSchema(this.pool);
-      return this.pool;
+      // Publish the pool only once the schema is ready, so no request can
+      // query tables that are still being created.
+      await this.ensureSchema(pool);
+      this.pool = pool;
+      return pool;
     } catch (error) {
       console.error("Azure SQL: Failed to create connection pool:", error);
+      await pool.close().catch(() => {});
       this.pool = null;
       this.tokenExpiresAt = null;
       throw error;
@@ -303,7 +313,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
     } catch {
       // The marker table predates this check or the database is new.
     }
-    await this.initializeTables();
+    await this.initializeTables(pool);
     await pool.request().input("version", SCHEMA_VERSION).query(`
       IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='athenaSchema' AND xtype='U')
       CREATE TABLE athenaSchema (version INT NOT NULL);
@@ -312,8 +322,9 @@ export class AzureSqlDatabaseService implements DatabaseService {
     `);
   }
 
-  private async initializeTables(): Promise<void> {
-    const pool = await this.getPool();
+  private async initializeTables(
+    pool: import("mssql").ConnectionPool,
+  ): Promise<void> {
 
     await pool.request().query(`
       IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='guestLinks' AND xtype='U')
@@ -644,6 +655,7 @@ export class AzureSqlDatabaseService implements DatabaseService {
     teamNumber: number,
     year: number,
     competitionType?: CompetitionType,
+    eventCode?: string,
   ): Promise<PitEntry | undefined> {
     const pool = await this.getPool();
     const mssql = await import("mssql");
@@ -663,6 +675,11 @@ export class AzureSqlDatabaseService implements DatabaseService {
       );
     }
 
+    if (eventCode) {
+      query += " AND eventCode = @eventCode";
+      request = request.input("eventCode", mssql.NVarChar, eventCode);
+    }
+
     const result = await request.query<PitEntryRow>(query);
 
     if (result.recordset.length === 0) {
@@ -670,6 +687,26 @@ export class AzureSqlDatabaseService implements DatabaseService {
     }
 
     return toPitEntry(result.recordset[0]);
+  }
+
+  async getPitEntryById(id: number): Promise<PitEntry | undefined> {
+    const pool = await this.getPool();
+    const mssql = await import("mssql");
+    const result = await pool
+      .request()
+      .input("id", mssql.Int, id)
+      .query<PitEntryRow>("SELECT * FROM pitEntries WHERE id = @id");
+    return result.recordset[0] ? toPitEntry(result.recordset[0]) : undefined;
+  }
+
+  async getMatchEntryById(id: number): Promise<MatchEntry | undefined> {
+    const pool = await this.getPool();
+    const mssql = await import("mssql");
+    const result = await pool
+      .request()
+      .input("id", mssql.Int, id)
+      .query<MatchEntryRow>("SELECT * FROM matchEntries WHERE id = @id");
+    return result.recordset[0] ? toMatchEntry(result.recordset[0]) : undefined;
   }
 
   async getAllPitEntries(
@@ -760,6 +797,10 @@ export class AzureSqlDatabaseService implements DatabaseService {
     if (updates.notes !== undefined) {
       setParts.push("notes = @notes");
       request.input("notes", mssql.NVarChar, updates.notes);
+    }
+    if (updates.autoDrawing !== undefined) {
+      setParts.push("autoDrawing = @autoDrawing");
+      request.input("autoDrawing", mssql.NVarChar, updates.autoDrawing);
     }
 
     if (setParts.length > 0) {
@@ -1706,7 +1747,11 @@ export class AzureSqlDatabaseService implements DatabaseService {
       req.input("username", mssql.NVarChar, updates.username);
     }
     if (updates.passwordHash !== undefined) {
-      setParts.push("password_hash = @passwordHash");
+      // A new password signs out every existing session for the account.
+      setParts.push(
+        "password_hash = @passwordHash",
+        "sessionVersion = sessionVersion + 1",
+      );
       req.input("passwordHash", mssql.NVarChar, updates.passwordHash);
     }
     if (updates.role !== undefined) {

@@ -70,6 +70,7 @@ export function normalizeMariaDbTimestamp(value: unknown): Date {
 export class MariaDbDatabaseService implements DatabaseService {
   readonly users = sqlUsers(this.query.bind(this), "mariadb");
   private pool: Pool | null = null;
+  private connecting: Promise<Pool> | null = null;
   private config: {
     connectionString?: string;
     host?: string;
@@ -92,6 +93,14 @@ export class MariaDbDatabaseService implements DatabaseService {
 
   public async getPool(): Promise<Pool> {
     if (this.pool) return this.pool;
+    // Concurrent cold-start requests share one connection and schema check.
+    this.connecting ??= this.connect().finally(() => {
+      this.connecting = null;
+    });
+    return this.connecting;
+  }
+
+  private async connect(): Promise<Pool> {
     const mysql = await import("mysql2/promise");
     // mysql2 only closes idle connections when maxIdle < connectionLimit; open
     // connections would otherwise keep a serverless database awake.
@@ -101,29 +110,45 @@ export class MariaDbDatabaseService implements DatabaseService {
       idleTimeout: 30_000,
       namedPlaceholders: false,
     };
-    if (this.config.connectionString) {
-      this.pool = mysql.createPool({
-        uri: this.config.connectionString,
-        ...poolOptions,
-      });
-    } else {
-      this.pool = mysql.createPool({
-        host: this.config.host || "localhost",
-        port: this.config.port || 3306,
-        user: this.config.user,
-        password: this.config.password,
-        database: this.config.database,
-        ...poolOptions,
-      });
-    }
+    const pool = this.config.connectionString
+      ? mysql.createPool({
+          uri: this.config.connectionString,
+          ...poolOptions,
+        })
+      : mysql.createPool({
+          host: this.config.host || "localhost",
+          port: this.config.port || 3306,
+          user: this.config.user,
+          password: this.config.password,
+          database: this.config.database,
+          ...poolOptions,
+        });
 
-    await this.ensureSchema();
-    return this.pool;
+    try {
+      // Publish the pool only once the schema is ready. A failure here leaves
+      // nothing cached, so the next request retries the whole setup.
+      await this.ensureSchema(pool);
+    } catch (error) {
+      await pool.end().catch(() => {});
+      throw error;
+    }
+    this.pool = pool;
+    return pool;
   }
 
   /** One version read per cold start instead of re-running every DDL statement. */
-  private async ensureSchema(): Promise<void> {
-    const pool = this.pool!;
+  private async ensureSchema(pool: Pool): Promise<void> {
+    // The schema uses MariaDB-only syntax. Say so, rather than failing later
+    // with a syntax error, when pointed at a MySQL server.
+    const [versionRows] = await pool.query<Row<{ version: string | null }>[]>(
+      `SELECT VERSION() AS version`,
+    );
+    const serverVersion = versionRows?.[0]?.version;
+    if (typeof serverVersion === "string" && !/mariadb/i.test(serverVersion)) {
+      throw new Error(
+        `Athena requires MariaDB, but the server reports "${serverVersion}". MySQL is not supported.`,
+      );
+    }
     try {
       const [rows] = await pool.query<Row<{ version: number }>[]>(
         `SELECT MAX(version) AS version FROM athenaSchema`,
@@ -132,7 +157,7 @@ export class MariaDbDatabaseService implements DatabaseService {
     } catch {
       // The marker table predates this check or the database is new.
     }
-    await this.initializeTables();
+    await this.initializeTables(pool);
     await pool.query(
       `CREATE TABLE IF NOT EXISTS athenaSchema (version INT NOT NULL) ENGINE=InnoDB`,
     );
@@ -295,8 +320,7 @@ export class MariaDbDatabaseService implements DatabaseService {
   async revokeGuestLink(id: string, revokedAt: number): Promise<void> {
     await sqlGuestLinks(this.query.bind(this)).revokeGuestLink(id, revokedAt);
   }
-  private async initializeTables(): Promise<void> {
-    const pool = await this.getPool();
+  private async initializeTables(pool: Pool): Promise<void> {
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS guestLinks (
@@ -544,6 +568,7 @@ export class MariaDbDatabaseService implements DatabaseService {
     teamNumber: number,
     year: number,
     competitionType?: CompetitionType,
+    eventCode?: string,
   ): Promise<PitEntry | undefined> {
     const pool = await this.getPool();
     let sql = `SELECT * FROM pitEntries WHERE teamNumber = ? AND year = ?`;
@@ -552,9 +577,31 @@ export class MariaDbDatabaseService implements DatabaseService {
       sql += ` AND competitionType = ?`;
       params.push(competitionType);
     }
+    if (eventCode) {
+      sql += ` AND eventCode = ?`;
+      params.push(eventCode);
+    }
     const [rows] = await pool.execute<Row<PitEntryRow>[]>(sql, params);
     if (rows.length === 0) return undefined;
     return toPitEntry(rows[0]);
+  }
+
+  async getPitEntryById(id: number): Promise<PitEntry | undefined> {
+    const pool = await this.getPool();
+    const [rows] = await pool.execute<Row<PitEntryRow>[]>(
+      `SELECT * FROM pitEntries WHERE id = ?`,
+      [id],
+    );
+    return rows[0] ? toPitEntry(rows[0]) : undefined;
+  }
+
+  async getMatchEntryById(id: number): Promise<MatchEntry | undefined> {
+    const pool = await this.getPool();
+    const [rows] = await pool.execute<Row<MatchEntryRow>[]>(
+      `SELECT * FROM matchEntries WHERE id = ?`,
+      [id],
+    );
+    return rows[0] ? toMatchEntry(rows[0]) : undefined;
   }
 
   async getAllPitEntries(
@@ -626,6 +673,10 @@ export class MariaDbDatabaseService implements DatabaseService {
     if (updates.notes !== undefined) {
       setParts.push(`notes = ?`);
       params.push(updates.notes);
+    }
+    if (updates.autoDrawing !== undefined) {
+      setParts.push(`autoDrawing = ?`);
+      params.push(updates.autoDrawing);
     }
 
     if (setParts.length === 0) return;
@@ -1287,7 +1338,8 @@ export class MariaDbDatabaseService implements DatabaseService {
       values.push(updates.username);
     }
     if (updates.passwordHash !== undefined) {
-      setParts.push("password_hash = ?");
+      // A new password signs out every existing session for the account.
+      setParts.push("password_hash = ?", "sessionVersion = sessionVersion + 1");
       values.push(updates.passwordHash);
     }
     if (updates.role !== undefined) {
