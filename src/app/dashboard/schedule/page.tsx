@@ -24,9 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Calendar,
-  Clock,
   Users,
-  Handshake,
   Loader2,
   AlertCircle,
   RefreshCw,
@@ -44,6 +42,8 @@ import {
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { toast } from "sonner";
 import { MatchAssignmentRow, ActiveScoutCheckbox } from "@/components/schedule/schedule-rows";
+import { useMatchScheduleTeams } from "@/hooks/use-match-schedule-teams";
+import { flatCards } from "@/lib/utils";
 import { autoAssignMatches, computeUserWorkload, hasPreferredPartnerInMatch as hasPartnerInMatch, type UserWithPartners, type DisplayBlock, type MatchAssignment } from "@/lib/schedule/assignments";
 
 export default function SchedulePage() {
@@ -53,6 +53,7 @@ export default function SchedulePage() {
 }
 
 function ScoutSchedulePage() {
+  const { getTeamsForMatch } = useMatchScheduleTeams();
   const {
     users,
     blocks: dbBlocks,
@@ -625,7 +626,7 @@ function ScoutSchedulePage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Schedule</h1>
+          <h1 className="text-[44px] font-bold leading-[0.95] tracking-[-0.04em]">Schedule</h1>
           <p className="text-muted-foreground">
             Configure virtual groups and manage match assignments.
           </p>
@@ -644,7 +645,7 @@ function ScoutSchedulePage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Schedule</h1>
+        <h1 className="text-[44px] font-bold leading-[0.95] tracking-[-0.04em]">Schedule</h1>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
@@ -654,16 +655,15 @@ function ScoutSchedulePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Schedule</h1>
-          <p className="text-muted-foreground">
-            Select scouts, fill assignments, then save your schedule.
-          </p>
-        </div>
-
-      </div>
+    <div className={`flex flex-col gap-9 ${flatCards}`}>
+      <header className="flex flex-col gap-2.5">
+        <span className="font-mono text-xs text-muted-foreground">schedule · qualifications</span>
+        <h1 className="text-[44px] font-bold leading-[0.95] tracking-[-0.04em]">Schedule</h1>
+        <span className="text-muted-foreground">
+          {matchCount > 0 ? `${matchCount} quals` : "No match count yet"}
+          {blocks.length > 0 && ` · ${blocks.length} virtual groups`} · select scouts, fill assignments, then save
+        </span>
+      </header>
 
       {blocks.length === 0 && (
         <>
@@ -801,69 +801,20 @@ function ScoutSchedulePage() {
 
       {blocks.length > 0 && (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-            <Card className="gap-1">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Matches
-                </CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{matchCount}</div>
-              </CardContent>
-            </Card>
-            <Card className="gap-1">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Filled Positions</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {scheduleSummary.totalAssigned}
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="gap-1">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Open Positions
-                </CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {scheduleSummary.unassigned}
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="gap-1">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Assigned Scouts
-                </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {scheduleSummary.activeAssignedCount}
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="gap-1">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Preferred Pairings
-                </CardTitle>
-                <Handshake className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-primary">
-                  {scheduleSummary.preferredPairings}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <section aria-label="Key numbers" className="grid grid-cols-2 border-y sm:grid-cols-3 lg:grid-cols-5">
+            {[
+              ["Total matches", matchCount],
+              ["Filled positions", scheduleSummary.totalAssigned],
+              ["Open positions", scheduleSummary.unassigned],
+              ["Assigned scouts", scheduleSummary.activeAssignedCount],
+              ["Preferred pairings", scheduleSummary.preferredPairings],
+            ].map(([label, value]) => (
+              <div key={label} className="flex flex-col gap-1.5 py-5 pr-4">
+                <span className="text-sm text-muted-foreground">{label}</span>
+                <span className="text-[34px] font-semibold leading-none tracking-[-0.03em]">{value}</span>
+              </div>
+            ))}
+          </section>
 
           <Collapsible defaultOpen={true}>
             <Card>
@@ -1068,7 +1019,7 @@ function ScoutSchedulePage() {
                   </div>
                 </Collapsible>
 
-                <div className="flex flex-wrap items-end gap-3 rounded-lg bg-muted/40 p-3">
+                <div className="flex flex-wrap items-end gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="find-match">Match number</Label>
                     <Input id="find-match" type="number" min={1} max={matchCount} placeholder="All matches" value={matchQuery} onChange={(event) => setMatchQuery(event.target.value)} className="w-36" />
@@ -1089,7 +1040,7 @@ function ScoutSchedulePage() {
                   </div>
                   {(matchQuery || scoutFilter !== "all" || onlyOpenSlots) && <Button variant="ghost" size="sm" onClick={clearFilters}>Clear filters</Button>}
                 </div>
-                <p className="text-sm text-muted-foreground" role="status">Showing {visibleMatches.length} of {localMatches.length} matches</p>
+                <p className="text-sm text-muted-foreground" role="status">Showing {visibleMatches.length} of {localMatches.length} matches · squares are the scouting positions, filled = assigned</p>
                 {visibleMatches.length === 0 && (
                   <div className="rounded-lg border border-dashed p-8 text-center">
                     <p className="font-medium">No matches fit these filters</p>
@@ -1097,12 +1048,13 @@ function ScoutSchedulePage() {
                     <Button variant="outline" className="mt-4" onClick={clearFilters}>Show all matches</Button>
                   </div>
                 )}
-                <div className="space-y-2">
+                <div className="border-t">
                   {visibleMatches.map((match) => (
                     <MatchAssignmentRow
                       key={match.matchNumber}
                       match={match}
                       scoutsPerAlliance={scoutsPerAlliance}
+                      teams={getTeamsForMatch(match.matchNumber)}
                       getAvailableUsersForMatchSlot={
                         getAvailableUsersForMatchSlot
                       }

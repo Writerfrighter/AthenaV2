@@ -1,13 +1,11 @@
-import { TeamCardSkeleton } from "@/components/team-card-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// app/dashboard/teamlist/loading.tsx
-export default function Page() {
+export default function Loading() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-4">
-      {Array.from({ length: 25 }).map((_, i) => (
-        <div key={i} className="space-y-2 animate-pulse">
-          <TeamCardSkeleton />
-        </div>
+    <div className="flex flex-col gap-2">
+      <Skeleton className="mb-6 h-11 w-48" />
+      {Array.from({ length: 12 }).map((_, i) => (
+        <Skeleton key={i} className="h-10 w-full" />
       ))}
     </div>
   );

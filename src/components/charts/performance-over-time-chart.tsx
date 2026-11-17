@@ -71,19 +71,19 @@ function CustomTooltipContent(props: TooltipProps) {
 const chartConfig = {
   auto: {
     label: "Auto",
-    color: "var(--chart-4)",
+    color: "var(--foreground)",
   },
   teleop: {
     label: "Teleop",
-    color: "var(--chart-3)",
+    color: "#00A63E",
   },
   endgame: {
     label: "Endgame",
-    color: "var(--chart-2)",
+    color: "#0D9488",
   },
   penalties: {
     label: "Penalties",
-    color: "var(--chart-1)",
+    color: "#DC2626",
   },
 };
 
@@ -101,7 +101,7 @@ function CustomLegend({
     "penalties",
   ];
   return (
-    <div className="flex flex-wrap justify-center gap-4 mt-4">
+    <div className="mt-4 flex flex-wrap gap-1">
       {order.map((key) => {
         const config = chartConfig[key];
         const isVisible = visibleCategories[key];
@@ -109,7 +109,9 @@ function CustomLegend({
           <button
             key={key}
             onClick={() => onToggle(key)}
-            className="flex items-center gap-1.5 cursor-pointer transition-all duration-200 hover:opacity-80"
+            type="button"
+            aria-pressed={isVisible}
+            className="flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 transition-all duration-200 hover:opacity-80"
             style={{ opacity: isVisible ? 1 : 0.3 }}
           >
             <div
@@ -192,7 +194,7 @@ export function PerformanceOverTimeChart({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Performance Over Time</CardTitle>
+        <CardTitle>Points per match</CardTitle>
         <CardDescription>
           {isMobile ? "Scroll horizontally • " : ""}
           Points scored per qualification match
@@ -202,7 +204,7 @@ export function PerformanceOverTimeChart({
         <div className={isMobile ? "overflow-x-auto -mx-6 px-6" : ""}>
           <ChartContainer
             config={chartConfig}
-            className={isMobile ? "min-w-[600px]" : ""}
+            className={`aspect-auto h-[240px] w-full ${isMobile ? "min-w-[600px]" : ""}`}
           >
             <AreaChart
               accessibilityLayer
@@ -216,12 +218,7 @@ export function PerformanceOverTimeChart({
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
-                label={{
-                  value: "Qual Match",
-                  position: "insideBottom",
-                  offset: -5,
-                  className: "fill-muted-foreground text-xs",
-                }}
+                tickFormatter={(value) => `Q${value}`}
               />
               <YAxis tickLine={false} axisLine={false} />
               <ChartTooltip content={<CustomTooltipContent />} />
@@ -233,7 +230,7 @@ export function PerformanceOverTimeChart({
                   type="monotone"
                   fill="var(--color-penalties)"
                   stroke="var(--color-penalties)"
-                  fillOpacity={0.4}
+                  fillOpacity={0.12}
                   animationDuration={300}
                 />
               )}
@@ -244,7 +241,7 @@ export function PerformanceOverTimeChart({
                   type="monotone"
                   fill="var(--color-endgame)"
                   stroke="var(--color-endgame)"
-                  fillOpacity={0.4}
+                  fillOpacity={0.12}
                   animationDuration={300}
                 />
               )}
@@ -255,7 +252,7 @@ export function PerformanceOverTimeChart({
                   type="monotone"
                   fill="var(--color-teleop)"
                   stroke="var(--color-teleop)"
-                  fillOpacity={0.4}
+                  fillOpacity={0.12}
                   animationDuration={300}
                 />
               )}
@@ -266,7 +263,7 @@ export function PerformanceOverTimeChart({
                   type="monotone"
                   fill="var(--color-auto)"
                   stroke="var(--color-auto)"
-                  fillOpacity={0.4}
+                  fillOpacity={0.12}
                   animationDuration={300}
                 />
               )}

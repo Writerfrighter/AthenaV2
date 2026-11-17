@@ -71,6 +71,8 @@ export async function GET(request: NextRequest) {
       );
 
       let totalEPA = 0;
+      // Last six per-match scores, oldest first, for the Teams trend line.
+      let recentScores: number[] = [];
 
       if (
         teamMatches.length > 0 &&
@@ -82,6 +84,10 @@ export async function GET(request: NextRequest) {
           const yearConfig = gameConfig[competitionType][year.toString()];
           const epaBreakdown = calculateEPA(teamMatches, year, yearConfig);
           totalEPA = epaBreakdown.totalEPA;
+          recentScores = [...teamMatches]
+            .sort((a, b) => a.matchNumber - b.matchNumber)
+            .slice(-6)
+            .map((match) => calculateEPA([match], year, yearConfig).totalEPA);
         } catch (error) {
           console.error(`Error calculating EPA for team ${teamNumber}:`, error);
           // Fallback to simple sum of numeric game-specific data fields
@@ -112,6 +118,7 @@ export async function GET(request: NextRequest) {
           `Team ${teamNumber}`,
         matchesPlayed: teamMatches.length,
         totalEPA: isNaN(totalEPA) ? 0 : totalEPA,
+        recentScores,
       };
     });
 

@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from "react";
+import Link from "next/link";
 import { ReactSortable, ItemInterface } from "react-sortablejs";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Collapsible,
@@ -94,6 +93,7 @@ export function DraggablePicklist({
   >([]);
   const [localUnlisted, setLocalUnlisted] = useState<SortableTeamItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeList, setActiveList] = useState<PickListType>("1stPick");
   const noteSaveTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
   const notesLoadedRef = useRef(false);
   const pick1IdRef = useRef<number | undefined>(undefined);
@@ -350,35 +350,6 @@ export function DraggablePicklist({
     loadNotes();
   }, [pick1.picklist?.id, pick2.picklist?.id, blacklist.picklist?.id]);
 
-  // Compute EPA min/max for gradient scaling
-  const epaRange = useMemo(() => {
-    const allValues = Array.from(epaData.values()).map((e) => e.totalEPA);
-    if (allValues.length === 0) return { min: 0, max: 1 };
-    return { min: Math.min(...allValues), max: Math.max(...allValues) };
-  }, [epaData]);
-
-  const getEpaColor = useCallback(
-    (value: number) => {
-      const { min, max } = epaRange;
-      if (max === min) return "hsl(60, 70%, 45%)";
-      const t = Math.max(0, Math.min(1, (value - min) / (max - min)));
-      const hue = Math.round(t * 120);
-      return `hsl(${hue}, 75%, 40%)`;
-    },
-    [epaRange],
-  );
-
-  const getEpaBgColor = useCallback(
-    (value: number) => {
-      const { min, max } = epaRange;
-      if (max === min) return "hsla(60, 70%, 45%, 0.12)";
-      const t = Math.max(0, Math.min(1, (value - min) / (max - min)));
-      const hue = Math.round(t * 120);
-      return `hsla(${hue}, 75%, 45%, 0.12)`;
-    },
-    [epaRange],
-  );
-
   // Initialize picklists if needed
   const initializePicklists = useCallback(async () => {
     try {
@@ -604,12 +575,14 @@ export function DraggablePicklist({
     );
   };
 
-  // ── Team card renderer ──
+  // ── Team row renderer ──
+  const fmt = (v?: number) => (v === undefined ? "—" : v.toFixed(1));
   const renderTeamCard = (
     teamNumber: number,
     rank: number | null,
     listType: PickListType,
     blacklisted: boolean,
+    compact = false,
   ) => {
     const isExpanded = expandedTeams.has(teamNumber);
     const qualRank = qualRankings.get(teamNumber);
@@ -622,188 +595,138 @@ export function DraggablePicklist({
           open={isExpanded}
           onOpenChange={() => toggleTeamExpanded(teamNumber)}
         >
-          <div
-            className={`border rounded-lg transition-all ${blacklisted && "bg-muted"}`}
-          >
-            <div className="flex items-center gap-1 p-3 w-full">
-              <div className="sortable-handle cursor-grab active:cursor-grabbing hover:bg-accent rounded p-1 flex-shrink-0">
+          <div className={`border-b border-border/60 ${rank === 1 && listType === "1stPick" ? "bg-accent" : ""}`}>
+            <div className="flex w-full items-center gap-2.5 py-2 tabular-nums">
+              <button
+                type="button"
+                aria-label={`Drag to reorder ${teamNumber}`}
+                className="sortable-handle flex-shrink-0 cursor-grab rounded p-1 text-muted-foreground active:cursor-grabbing"
+              >
                 <GripVertical className="h-4 w-4" />
-              </div>
+              </button>
               {rank !== null && (
-                <div className="flex-shrink-0 font-bold text-lg w-6">
-                  #{rank}
-                </div>
+                <span className="w-6 flex-shrink-0 font-mono text-xs text-muted-foreground">
+                  {String(rank).padStart(2, "0")}
+                </span>
               )}
-              <div className="flex-grow font-semibold text-lg text-left">
+              <b className={`text-[17px] tracking-tight ${blacklisted ? "text-muted-foreground line-through" : ""}`}>
                 {teamNumber}
-              </div>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                {blacklisted && (
-                  <div className="px-2 py-0.5 rounded-md text-xs font-bold bg-gray">
-                    Blacklisted
-                  </div>
-                )}
-                {epa && (
-                  <div
-                    className="px-2 py-0.5 rounded-md text-xs font-bold"
-                    style={{
-                      color: getEpaColor(epa.totalEPA),
-                      backgroundColor: getEpaBgColor(epa.totalEPA),
-                    }}
-                    title={`Auto: ${epa.autoEPA.toFixed(1)} | Teleop: ${epa.teleopEPA.toFixed(1)} | Endgame: ${epa.endgameEPA.toFixed(1)}`}
-                  >
-                    EPA {epa.totalEPA.toFixed(1)}
-                  </div>
-                )}
-                {qualRank !== undefined && !blacklisted && (
-                  <Badge
-                    variant="outline"
-                    className="flex-shrink-0 text-xs min-[60rem]:hidden min-[76rem]:block"
-                  >
-                    R{qualRank}
-                  </Badge>
-                )}
-                <CollapsibleTrigger asChild>
-                  <button className="flex items-center gap-2 flex-grow min-w-0 cursor-pointer">
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4 flex-shrink-0" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                    )}
-                  </button>
-                </CollapsibleTrigger>
-              </div>
+              </b>
+              <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+                {blacklisted ? "Do not pick" : teamName}
+              </span>
+              {!compact && (
+                <span className="hidden gap-4 font-mono text-sm sm:flex">
+                  <span className="w-12 text-right" title="Auto EPA">{fmt(epa?.autoEPA)}</span>
+                  <span className="w-12 text-right" title="Teleop EPA">{fmt(epa?.teleopEPA)}</span>
+                  <span className="w-12 text-right" title="Endgame EPA">{fmt(epa?.endgameEPA)}</span>
+                </span>
+              )}
+              <span className="w-12 text-right font-mono text-sm font-medium" title="EPA">{fmt(epa?.totalEPA)}</span>
+              {!compact && (
+                <span className="hidden w-9 text-right font-mono text-xs text-muted-foreground md:inline" title="Qualification rank">
+                  {qualRank !== undefined ? `R${qualRank}` : ""}
+                </span>
+              )}
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`${isExpanded ? "Hide" : "Show"} details for ${teamNumber}`}
+                  className="flex-shrink-0 cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground"
+                >
+                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </button>
+              </CollapsibleTrigger>
             </div>
 
             <CollapsibleContent>
-              <div className="px-3 pb-3 space-y-3 border-t pt-3 bg-background">
-                <div>
-                  <div className="text-xs text-muted-foreground">Team Name</div>
-                  <div className="font-semibold">{teamName}</div>
+              <div className="space-y-3 pb-4 pl-9 pr-1">
+                <div className="grid grid-cols-2 border-t sm:grid-cols-4">
+                  {[
+                    ["Team", teamName],
+                    ["Auto", fmt(epa?.autoEPA)],
+                    ["Teleop", fmt(epa?.teleopEPA)],
+                    ["Endgame", fmt(epa?.endgameEPA)],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex flex-col border-b border-border/60 py-2.5">
+                      <span className="text-xs text-muted-foreground">{label}</span>
+                      <b className="truncate font-semibold">{value}</b>
+                    </div>
+                  ))}
                 </div>
-                {epa && (
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-md border p-2">
-                      <div className="text-xs text-muted-foreground">Auto</div>
-                      <div
-                        className="text-sm font-bold"
-                        style={{ color: getEpaColor(epa.autoEPA) }}
-                      >
-                        {epa.autoEPA.toFixed(1)}
-                      </div>
-                    </div>
-                    <div className="rounded-md border p-2">
-                      <div className="text-xs text-muted-foreground">
-                        Teleop
-                      </div>
-                      <div
-                        className="text-sm font-bold"
-                        style={{ color: getEpaColor(epa.teleopEPA) }}
-                      >
-                        {epa.teleopEPA.toFixed(1)}
-                      </div>
-                    </div>
-                    <div className="rounded-md border p-2">
-                      <div className="text-xs text-muted-foreground">
-                        Endgame
-                      </div>
-                      <div
-                        className="text-sm font-bold"
-                        style={{ color: getEpaColor(epa.endgameEPA) }}
-                      >
-                        {epa.endgameEPA.toFixed(1)}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <div className="text-sm font-medium mb-1">Notes:</div>
+                <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+                  Notes
                   <Textarea
                     value={teamNotes[teamNumber] || ""}
                     onChange={(e) =>
                       handleNoteChange(teamNumber, e.target.value)
                     }
                     placeholder="Add notes about this team..."
-                    className="min-h-20"
+                    className="min-h-20 bg-card text-foreground"
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Auto-saves after you stop typing
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex justify-start mt-4 gap-2 flex-row min-[56rem]:flex-col min-[76rem]:flex-row">
-                      {listType !== "1stPick" && (
-                        <Button
-                          variant="default"
-                          onClick={() =>
-                            moveTeam(teamNumber, listType, "1stPick")
-                          }
-                        >
-                          Set 1st Pick
-                        </Button>
-                      )}
-                      {listType !== "2ndPick" && (
-                        <Button
-                          variant="default"
-                          onClick={() =>
-                            moveTeam(teamNumber, listType, "2ndPick")
-                          }
-                        >
-                          Set 2nd Pick
-                        </Button>
-                      )}
-                      {listType !== "Unlisted" && (
-                        <Button
-                          variant="default"
-                          onClick={() =>
-                            moveTeam(teamNumber, listType, "Unlisted")
-                          }
-                        >
-                          Set Unlisted
-                        </Button>
-                      )}
-                    </div>
-                    <div className="">
-                      {!blacklisted && (
-                        <Button
-                          variant="destructive"
-                          onClick={() => {
-                            removeTeamFromAllLists(teamNumber);
-                            setLocalBlacklistOrder((prev) => [
-                              ...prev,
-                              {
-                                id: String(teamNumber),
-                                teamNumber,
-                                isBlacklisted: true,
-                              },
-                            ]);
-                            setHasUnsavedChanges(true);
-                          }}
-                        >
-                          Blacklist
-                        </Button>
-                      )}
-                      {blacklisted && (
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            removeTeamFromAllLists(teamNumber);
-                            setLocalUnlisted((prev) => [
-                              ...prev,
-                              {
-                                id: String(teamNumber),
-                                teamNumber,
-                                isBlacklisted: false,
-                              },
-                            ]);
-                            setHasUnsavedChanges(true);
-                          }}
-                        >
-                          Whitelist
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                  <span className="text-xs">Auto-saves after you stop typing</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {listType !== "1stPick" && (
+                    <Button size="sm" variant="outline" className="rounded-full" onClick={() => moveTeam(teamNumber, listType, "1stPick")}>
+                      Set 1st pick
+                    </Button>
+                  )}
+                  {listType !== "2ndPick" && competitionType === "FRC" && (
+                    <Button size="sm" variant="outline" className="rounded-full" onClick={() => moveTeam(teamNumber, listType, "2ndPick")}>
+                      Set 2nd pick
+                    </Button>
+                  )}
+                  {listType !== "Unlisted" && (
+                    <Button size="sm" variant="outline" className="rounded-full" onClick={() => moveTeam(teamNumber, listType, "Unlisted")}>
+                      Set unlisted
+                    </Button>
+                  )}
+                  {!blacklisted ? (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="rounded-full"
+                      onClick={() => {
+                        removeTeamFromAllLists(teamNumber);
+                        setLocalBlacklistOrder((prev) => [
+                          ...prev,
+                          {
+                            id: String(teamNumber),
+                            teamNumber,
+                            isBlacklisted: true,
+                          },
+                        ]);
+                        setHasUnsavedChanges(true);
+                      }}
+                    >
+                      Do not pick
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-full"
+                      onClick={() => {
+                        removeTeamFromAllLists(teamNumber);
+                        setLocalUnlisted((prev) => [
+                          ...prev,
+                          {
+                            id: String(teamNumber),
+                            teamNumber,
+                            isBlacklisted: false,
+                          },
+                        ]);
+                        setHasUnsavedChanges(true);
+                      }}
+                    >
+                      Allow picking
+                    </Button>
+                  )}
+                  <Button asChild size="sm" variant="ghost" className="rounded-full">
+                    <Link href={`/dashboard/team/${teamNumber}`}>Open team page →</Link>
+                  </Button>
                 </div>
               </div>
             </CollapsibleContent>
@@ -813,16 +736,28 @@ export function DraggablePicklist({
     );
   };
 
+  const header = (actions: ReactNode) => (
+    <header className="flex flex-wrap items-end justify-between gap-5">
+      <div className="flex flex-col gap-2">
+        <span className="font-mono text-xs text-muted-foreground">
+          picklist · {competitionType} · {eventCode}
+        </span>
+        <h1 className="text-[44px] font-bold leading-[0.95] tracking-[-0.04em]">Picklist</h1>
+        <span className="text-muted-foreground">
+          {totalTrackedTeams} of {totalEventTeams} teams ranked · excluding {ownTeamNumber}
+        </span>
+      </div>
+      {actions}
+    </header>
+  );
+
   // ── Loading state ──
   if (pick1.isLoading || pick2.isLoading || blacklist.isLoading) {
     return (
-      <Card>
-        <CardContent className="py-8">
-          <div className="text-center text-muted-foreground">
-            Loading picklists...
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-9">
+        {header(null)}
+        <p className="py-8 text-center text-muted-foreground">Loading picklists...</p>
+      </div>
     );
   }
 
@@ -834,156 +769,156 @@ export function DraggablePicklist({
     pull: true as const,
     put: true as const,
   };
+  const sortableProps = {
+    group: sortableGroupOptions,
+    animation: 200,
+    handle: ".sortable-handle",
+    filter: "textarea,input",
+    preventOnFilter: false,
+    ghostClass: "opacity-30",
+    dragClass: "shadow-lg",
+    scroll: true,
+    scrollSpeed: 20,
+    scrollSensitivity: 100,
+  };
 
   const combinedUnlisted: SortableTeamItem[] = [
     ...localUnlisted.map((item) => ({ ...item, isBlacklisted: false })),
     ...localBlacklistOrder.map((item) => ({ ...item, isBlacklisted: true })),
   ];
 
+  const isFrc = competitionType === "FRC";
+  const showingSecond = isFrc && activeList === "2ndPick";
+  const activeItems = showingSecond ? localPick2Order : localPick1Order;
+
+  // Projected alliance: us, then the top of each pick list.
+  const captain = epaData.get(ownTeamNumber);
+  const picks = [localPick1Order[0], isFrc ? localPick2Order[0] : undefined]
+    .filter((p): p is SortableTeamItem => !!p)
+    .map((p) => p.teamNumber);
+  const allianceTeams = [ownTeamNumber, ...picks];
+  const sum = (key: keyof TeamEPAData) =>
+    allianceTeams.reduce((total, team) => total + (epaData.get(team)?.[key] ?? 0), 0);
+  const projected = [
+    { l: "Projected alliance", v: sum("totalEPA").toFixed(1), s: "combined EPA" },
+    { l: "Auto", v: sum("autoEPA").toFixed(1), s: "EPA" },
+    { l: "Teleop", v: sum("teleopEPA").toFixed(1), s: "EPA" },
+    { l: "Endgame", v: sum("endgameEPA").toFixed(1), s: "EPA" },
+  ];
+
+  const tab = (value: PickListType, label: string) => (
+    <Button
+      size="sm"
+      variant={activeList === value ? "default" : "ghost"}
+      className="rounded-full"
+      aria-pressed={activeList === value}
+      onClick={() => setActiveList(value)}
+    >
+      {label}
+    </Button>
+  );
+
   // ── Render ──
   return (
-    <div className="space-y-6">
-      <div className="sm:flex sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">
-            {competitionType === "FRC" ? "FRC" : "FTC"} Picklist - {eventCode}
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalTrackedTeams} / {totalEventTeams} teams (excluding #
-            {ownTeamNumber})
-          </p>
-        </div>
-        <div className="flex flex-col gap-2">
-          <div className="flex gap-2 mt-4 sm:mt-0">
+    <div className="flex flex-col gap-9">
+      {header(
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex gap-2">
             {showInitialize ? (
-              <Button onClick={initializePicklists}>
-                <Plus className="mr-2 h-4 w-4" />
-                Initialize Picklist
+              <Button className="h-10 rounded-full px-4" onClick={initializePicklists}>
+                <Plus className="h-4 w-4" />
+                Initialize picklist
               </Button>
             ) : (
               <>
-                <Button
-                  onClick={handleSave}
-                  disabled={!hasUnsavedChanges || isSaving}
-                  variant="default"
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? "Saving..." : "Save Changes"}
+                <Button variant="outline" className="h-10 rounded-full px-4" onClick={() => setShowResetDialog(true)}>
+                  <Trash2 className="h-4 w-4" />
+                  Reset
                 </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => setShowResetDialog(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Reset Picklist
+                <Button className="h-10 rounded-full px-4" onClick={handleSave} disabled={!hasUnsavedChanges || isSaving}>
+                  <Save className="h-4 w-4" />
+                  {isSaving ? "Saving..." : "Save changes"}
                 </Button>
               </>
             )}
           </div>
-          <div>
-            {!showInitialize && hasUnsavedChanges && (
-              <div className="flex justify-end text-center text-sm text-red-600 dark:text-amber-500 font-medium">
-                ⚠ You have unsaved changes
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+          {!showInitialize && hasUnsavedChanges && (
+            <span className="text-sm font-medium text-destructive">You have unsaved changes</span>
+          )}
+        </div>,
+      )}
 
       {!showInitialize && (
-        <div
-          className={`grid gap-6 ${competitionType === "FRC" ? "grid-cols-1 lg:grid-cols-3" : "grid-cols-1 lg:grid-cols-2"}`}
-        >
-          {/* Pick 1 List */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between -mb-8">
-                <CardTitle>1st Pick</CardTitle>
-                <Badge variant="outline">{localPick1Order.length} teams</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="sm:min-h-96 space-y-2 p-4">
-              <ReactSortable
-                list={localPick1Order}
-                setList={handlePick1Change}
-                group={sortableGroupOptions}
-                animation={200}
-                handle=".sortable-handle"
-                filter="textarea,button,input"
-                preventOnFilter={false}
-                ghostClass="opacity-30"
-                dragClass="shadow-lg"
-                scroll={true}
-                scrollSpeed={20}
-                scrollSensitivity={100}
-                className="space-y-2 sm:min-h-48"
+        <>
+          <section aria-labelledby="alliance" className="flex flex-wrap items-stretch gap-3">
+            <h2 id="alliance" className="sr-only">Projected alliance</h2>
+            {allianceTeams.map((team, i) => (
+              <div
+                key={team}
+                className={`flex flex-[1_1_150px] flex-col gap-0.5 rounded-xl px-4 py-3.5 ${i === 0 ? "bg-primary text-primary-foreground" : "border bg-card"}`}
               >
-                {localPick1Order.map((item, idx) =>
-                  renderTeamCard(item.teamNumber, idx + 1, "1stPick", false),
-                )}
-              </ReactSortable>
-              {localPick1Order.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  Drag teams here
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                <span className={`text-xs ${i === 0 ? "" : "text-muted-foreground"}`}>{i === 0 ? "Captain" : `Pick ${i}`}</span>
+                <span className="text-[30px] font-bold tracking-[-0.03em]">{team}</span>
+                <span className="font-mono text-xs">{fmt((i === 0 ? captain : epaData.get(team))?.totalEPA)} EPA</span>
+              </div>
+            ))}
+            {projected.map((k) => (
+              <div key={k.l} className="flex flex-[1_1_120px] flex-col gap-0.5 border-l py-3.5 pl-4">
+                <span className="text-xs text-muted-foreground">{k.l}</span>
+                <span className="text-[30px] font-semibold tracking-[-0.03em]">{k.v}</span>
+                <span className="font-mono text-xs text-muted-foreground">{k.s}</span>
+              </div>
+            ))}
+          </section>
 
-          {/* Pick 2 List (FRC only) */}
-          {competitionType === "FRC" && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between -mb-8">
-                  <CardTitle>2nd Pick</CardTitle>
-                  <Badge variant="outline">
-                    {localPick2Order.length} teams
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="sm:min-h-96 space-y-2 p-4">
-                <ReactSortable
-                  list={localPick2Order}
-                  setList={handlePick2Change}
-                  group={sortableGroupOptions}
-                  animation={200}
-                  handle=".sortable-handle"
-                  filter="textarea,button,input"
-                  preventOnFilter={false}
-                  ghostClass="opacity-30"
-                  dragClass="shadow-lg"
-                  scroll={true}
-                  scrollSpeed={20}
-                  scrollSensitivity={100}
-                  className="space-y-2 sm:min-h-48"
-                >
-                  {localPick2Order.map((item, idx) =>
-                    renderTeamCard(item.teamNumber, idx + 1, "2ndPick", false),
-                  )}
-                </ReactSortable>
-                {localPick2Order.length === 0 && (
-                  <div className="text-center py-12 text-muted-foreground">
-                    Drag teams here
+          <div className="flex flex-wrap items-start gap-10">
+            <section aria-labelledby="ranked" className="flex min-w-0 flex-[3_1_560px] flex-col">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-1.5">
+                <h2 id="ranked" className="text-lg font-semibold tracking-tight">
+                  {showingSecond ? "Second pick" : "First pick"} · {activeItems.length}
+                </h2>
+                {isFrc && (
+                  <div role="group" aria-label="List" className="flex gap-1">
+                    {tab("1stPick", "First pick")}
+                    {tab("2ndPick", "Second pick")}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Unlisted Teams */}
-          {combinedUnlisted.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              No teams available (check event teams or filters)
-            </div>
-          )}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between -mb-8">
-                <CardTitle>Unlisted</CardTitle>
-                <Badge variant="outline">{localUnlisted.length} teams</Badge>
               </div>
-            </CardHeader>
-            <CardContent className="sm:min-h-96 space-y-2 p-4">
+              <div className="flex gap-2.5 border-b py-2 pl-9 pr-8 text-xs text-muted-foreground tabular-nums">
+                <span className="w-6" />
+                <span className="flex-1">Team</span>
+                <span className="hidden gap-4 sm:flex">
+                  <span className="w-12 text-right">Auto</span>
+                  <span className="w-12 text-right">Teleop</span>
+                  <span className="w-12 text-right">Endgame</span>
+                </span>
+                <span className="w-12 text-right">EPA</span>
+                <span className="hidden w-9 text-right md:inline">Rank</span>
+              </div>
+              <div className="relative">
+              {showingSecond ? (
+                <ReactSortable key="2ndPick" list={localPick2Order} setList={handlePick2Change} {...sortableProps} className="min-h-48">
+                  {localPick2Order.map((item, idx) => renderTeamCard(item.teamNumber, idx + 1, "2ndPick", false))}
+                </ReactSortable>
+              ) : (
+                <ReactSortable key="1stPick" list={localPick1Order} setList={handlePick1Change} {...sortableProps} className="min-h-48">
+                  {localPick1Order.map((item, idx) => renderTeamCard(item.teamNumber, idx + 1, "1stPick", false))}
+                </ReactSortable>
+              )}
+              {activeItems.length === 0 && (
+                <p className="pointer-events-none absolute inset-x-0 top-12 text-center text-muted-foreground">Drag teams here</p>
+              )}
+              </div>
+            </section>
+
+            <aside aria-labelledby="pool" className="flex min-w-0 flex-[2_1_300px] flex-col">
+              <h2 id="pool" className="pb-1.5 text-lg font-semibold tracking-tight">
+                Unlisted · {localUnlisted.length}
+              </h2>
+              <p className="border-b pb-2 text-sm text-muted-foreground">
+                Drag a team into the list, or open it to move it.
+              </p>
+              <div className="relative">
               <ReactSortable
                 list={combinedUnlisted}
                 setList={(newState) => {
@@ -1006,40 +941,22 @@ export function DraggablePicklist({
 
                   setHasUnsavedChanges(true);
                 }}
-                group={sortableGroupOptions}
-                animation={200}
-                handle=".sortable-handle"
-                filter="textarea,button,input"
-                preventOnFilter={false}
-                ghostClass="opacity-30"
-                dragClass="shadow-lg"
-                scroll={true}
-                scrollSpeed={20}
-                scrollSensitivity={100}
-                className="space-y-2 min-h-48"
+                {...sortableProps}
+                className="min-h-48"
               >
                 {combinedUnlisted.map((item) =>
-                  renderTeamCard(
-                    item.teamNumber,
-                    null,
-                    "Unlisted",
-                    item.isBlacklisted ?? false,
-                  ),
+                  renderTeamCard(item.teamNumber, null, "Unlisted", item.isBlacklisted ?? false, true),
                 )}
               </ReactSortable>
-              {localUnlisted.length === 0 && isEventTeamsLoading && (
-                <div className="text-center py-12 text-muted-foreground">
-                  Loading event teams...
-                </div>
+              {combinedUnlisted.length === 0 && (
+                <p className="pointer-events-none absolute inset-x-0 top-12 text-center text-muted-foreground">
+                  {isEventTeamsLoading ? "Loading event teams..." : "All teams assigned"}
+                </p>
               )}
-              {localUnlisted.length === 0 && !isEventTeamsLoading && (
-                <div className="text-center py-12 text-muted-foreground">
-                  All teams assigned
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </div>
+            </aside>
+          </div>
+        </>
       )}
 
       <DeleteConfirmationDialog

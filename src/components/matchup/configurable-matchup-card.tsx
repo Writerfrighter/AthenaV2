@@ -50,13 +50,11 @@ function renderDynamicIcon(iconName?: string) {
   }
 }
 
-export function ConfigurableMatchupCard({ teamNumber, alliance }: MatchupCardProps) {
+export function ConfigurableMatchupCard({ teamNumber }: MatchupCardProps) {
   const { teamData, loading, error } = useTeamData(teamNumber);
   const { getCurrentYearConfig } = useGameConfig();
   const yearConfig = getCurrentYearConfig();
 
-  const borderColor =
-    alliance === "red" ? "border-l-red-500" : "border-l-blue-500";
 
   const stats = yearConfig
     ? calculateDetailedGameStats(teamData?.matchEntries, yearConfig, teamData)
@@ -64,7 +62,7 @@ export function ConfigurableMatchupCard({ teamNumber, alliance }: MatchupCardPro
 
   if (loading) {
     return (
-      <Card className={`border-l-4 ${borderColor}`}>
+      <Card>
         <CardContent className="py-4">
           <p className="text-sm text-muted-foreground">Loading...</p>
         </CardContent>
@@ -74,7 +72,7 @@ export function ConfigurableMatchupCard({ teamNumber, alliance }: MatchupCardPro
 
   if (error || !teamData) {
     return (
-      <Card className={`border-l-4 ${borderColor}`}>
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">
             <Link
@@ -165,7 +163,7 @@ export function ConfigurableMatchupCard({ teamNumber, alliance }: MatchupCardPro
   const hasPlaystyle = offensiveRate > 0 || balancedRate > 0 || defensiveRate > 0;
 
   return (
-    <Card className={`border-l-4 ${borderColor}`}>
+    <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">

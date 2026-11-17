@@ -1,13 +1,8 @@
 import { Suspense } from "react";
-import {
-  Card,
-  CardHeader,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTeamMedia, getEventTeams } from "@/lib/api/tba";
 import { getSelectedEvent } from "@/lib/server-event-utils";
 import { DynamicTeamList } from "./dynamic-team-list";
-import { TeamCardSkeleton } from "@/components/team-card-skeleton";
 import type { TeamWithImages } from "@/lib/types";
 import { auth } from "@/lib/auth/config";
 
@@ -63,56 +58,26 @@ async function loadTeamsWithImages(
   }
 }
 
-// Loading skeleton component
 function TeamListSkeleton() {
   return (
     <>
-      {/* Stats skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i}>
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Skeleton className="h-4 w-20 mb-2" />
-                  <Skeleton className="h-8 w-16" />
-                </div>
-                <Skeleton className="h-9 w-9 rounded-lg" />
-              </div>
-            </div>
-          </Card>
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-3 w-40" />
+        <Skeleton className="h-11 w-48" />
+        <Skeleton className="h-4 w-72" />
+      </div>
+      <div className="flex flex-col gap-2">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
         ))}
       </div>
-
-      {/* Teams grid skeleton */}
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-48" />
-        </CardHeader>
-        <div className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <TeamCardSkeleton key={i} />
-            ))}
-          </div>
-        </div>
-      </Card>
     </>
   );
 }
 
 export default function TeamListPage() {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Team Directory</h1>
-        <p className="text-muted-foreground">
-          Browse all teams competing at the selected event
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-9">
       <Suspense fallback={<TeamListSkeleton />}>
         <InitialTeamList />
       </Suspense>

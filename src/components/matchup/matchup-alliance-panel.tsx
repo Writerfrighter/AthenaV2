@@ -1,7 +1,5 @@
 "use client";
 
-
-import { Badge } from "@/components/ui/badge";
 import type { CompetitionType } from "@/lib/types";
 import { ConfigurableMatchupCard } from "./configurable-matchup-card";
 
@@ -22,37 +20,25 @@ export default function MatchupAlliancePanel({
   alliance,
   teamNumbers,
 }: MatchupAlliancePanelProps) {
-  const allianceColor =
-    alliance === "red"
-      ? "border-red-500/40 bg-red-50/50 dark:bg-red-950/20"
-      : "border-blue-500/40 bg-blue-50/50 dark:bg-blue-950/20";
-
-  const allianceLabel = alliance === "red" ? "Red Alliance" : "Blue Alliance";
+  const red = alliance === "red";
 
   return (
-    <div className={`rounded-lg border-2 p-4 space-y-4 ${allianceColor}`}>
-      <div className="flex items-center gap-2">
-        <div
-          className={`h-3 w-3 rounded-full ${alliance === "red" ? "bg-red-500" : "bg-blue-500"}`}
+    <div className="flex flex-col gap-4">
+      <h3 className={`border-b-2 pb-2 font-semibold ${red ? "border-[#E5484D] text-[#C2272D]" : "border-[#3B7BF6] text-[#2563EB]"}`}>
+        {red ? "Red alliance" : "Blue alliance"} · {teamNumbers.length} robots
+      </h3>
+      {teamNumbers.map((teamNum) => (
+        <ConfigurableMatchupCard
+          key={teamNum}
+          teamNumber={teamNum.toString()}
+          alliance={alliance}
         />
-        <h2 className="text-lg font-bold">{allianceLabel}</h2>
-        <Badge variant="secondary">{teamNumbers.length} robots</Badge>
-      </div>
-
-      <div className="space-y-4">
-        {teamNumbers.map((teamNum) => (
-          <ConfigurableMatchupCard
-            key={teamNum}
-            teamNumber={teamNum.toString()}
-            alliance={alliance}
-          />
-        ))}
-        {teamNumbers.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            No teams assigned
-          </p>
-        )}
-      </div>
+      ))}
+      {teamNumbers.length === 0 && (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          No teams assigned
+        </p>
+      )}
     </div>
   );
 }

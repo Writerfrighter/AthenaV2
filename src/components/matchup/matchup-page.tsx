@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,12 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  ChevronLeft,
-  ChevronRight,
-  RefreshCw,
-  Users,
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { teamApi } from "@/lib/api/database-client";
 import type { TeamData } from "@/lib/types";
 import { useMatchScheduleTeams } from "@/hooks/use-match-schedule-teams";
@@ -245,306 +233,281 @@ export default function MatchupPage() {
     });
   };
 
+  const matchLabel = `${matchType === "qualification" ? "Qual" : "Playoff"} ${matchNumber}`;
+  const alliances = [
+    { key: "red" as const, name: "Red alliance", teams: displayRedTeams, total: redTotalEpa, line: "border-[#E5484D]", text: "text-[#C2272D]" },
+    { key: "blue" as const, name: "Blue alliance", teams: displayBlueTeams, total: blueTotalEpa, line: "border-[#3B7BF6]", text: "text-[#2563EB]" },
+  ];
+  const phases = [
+    { l: "Auto", red: redAutoEpa, blue: blueAutoEpa },
+    { l: "Teleop", red: redTeleopEpa, blue: blueTeleopEpa },
+    { l: "Endgame", red: redEndgameEpa, blue: blueEndgameEpa },
+  ];
+  const phaseMax = Math.max(1, ...phases.flatMap((p) => [p.red, p.blue]));
+  const pill = "h-10 rounded-full px-4";
+  const th = "border-b px-2 py-2.5 font-medium whitespace-nowrap";
+  const td = "border-b border-border/60 px-2 py-2.5 whitespace-nowrap";
+
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Match Preview</h1>
-            <p className="text-muted-foreground">
-              Compare both alliances side by side before the match.
-            </p>
-          </div>
+    <div className="flex flex-col gap-9">
+      <header className="flex flex-wrap items-end justify-between gap-5">
+        <div className="flex flex-col gap-2">
+          <span className="font-mono text-xs text-muted-foreground">
+            match preview · {useManual ? "manual entry" : matchLabel.toLowerCase()}
+            {selectedEvent?.name ? ` · ${selectedEvent.name}` : ""}
+          </span>
+          <h1 className="text-[44px] font-bold leading-[0.95] tracking-[-0.04em]">
+            {useManual ? "Custom match" : matchLabel}
+          </h1>
+          <span className="text-muted-foreground">
+            {useManual
+              ? "Enter team numbers for each alliance below."
+              : scheduleLoading
+                ? "Loading schedule…"
+                : scheduleError
+                  ? <span className="text-destructive">{scheduleError}</span>
+                  : !hasScheduleData
+                    ? "No schedule available — select an event or use manual entry."
+                    : `Match ${matchNumber}${maxMatchNumber ? ` of ${maxMatchNumber}` : ""} · compare both alliances before the match`}
+          </span>
         </div>
+        {!useManual && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" className={pill} onClick={handlePrevMatch} disabled={matchNumber <= 1}>
+              ← Q{Math.max(1, matchNumber - 1)}
+            </Button>
+            <Label className="sr-only" htmlFor="match-number">Match number</Label>
+            <Input
+              id="match-number"
+              type="number"
+              min={1}
+              max={maxMatchNumber || undefined}
+              value={matchNumberInput}
+              onChange={(e) => {
+                const value = e.target.value;
+                setMatchNumberInput(value);
+
+                const parsed = parseInt(value, 10);
+                if (!Number.isNaN(parsed)) {
+                  const clamped = maxMatchNumber
+                    ? Math.min(maxMatchNumber, Math.max(1, parsed))
+                    : Math.max(1, parsed);
+                  setMatchNumber(clamped);
+                }
+              }}
+              onBlur={() => {
+                if (matchNumberInput.trim() === "") {
+                  setMatchNumberInput(matchNumber.toString());
+                }
+              }}
+              className="h-10 w-20 rounded-full bg-card text-center"
+            />
+            <Button
+              variant="outline"
+              className={pill}
+              onClick={handleNextMatch}
+              disabled={!!maxMatchNumber && matchNumber >= maxMatchNumber}
+            >
+              Q{matchNumber + 1} →
+            </Button>
+          </div>
+        )}
+      </header>
+
+      <div className="-mt-4 flex flex-wrap items-center gap-2 text-sm">
+        <div role="group" aria-label="Team source" className="flex gap-1">
+          <Button
+            variant={!useManual ? "default" : "ghost"}
+            size="sm"
+            className="rounded-full"
+            onClick={() => setUseManual(false)}
+            disabled={!hasScheduleData}
+          >
+            From schedule
+          </Button>
+          <Button
+            variant={useManual ? "default" : "ghost"}
+            size="sm"
+            className="rounded-full"
+            onClick={() => setUseManual(true)}
+          >
+            Manual entry
+          </Button>
+        </div>
+        {!useManual && (
+          <>
+            <Select value={matchType} onValueChange={(v) => setMatchType(v as MatchType)}>
+              <SelectTrigger size="sm" className="w-[140px] rounded-full" aria-label="Match type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="qualification">Qualification</SelectItem>
+                <SelectItem value="playoff">Playoff</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="ghost" size="icon" className="size-8 rounded-full" onClick={refreshSchedule} aria-label="Refresh schedule">
+              <RefreshCw className="size-4" />
+            </Button>
+          </>
+        )}
       </div>
 
-      {/* Match Selector */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Match Selection</CardTitle>
-          <CardDescription>
-            Choose a match from the schedule or manually enter team numbers
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4">
-            {/* Source toggle */}
-            <div className="flex items-center gap-3 -mt-6">
-              <Button
-                variant={!useManual ? "default" : "outline"}
-                size="sm"
-                onClick={() => setUseManual(false)}
-                disabled={!hasScheduleData}
-              >
-                From Schedule
-              </Button>
-              <Button
-                variant={useManual ? "default" : "outline"}
-                size="sm"
-                onClick={() => setUseManual(true)}
-              >
-                Manual Entry
-              </Button>
+      {useManual && (
+        <div className="grid gap-6 md:grid-cols-2">
+          {alliances.map((a) => (
+            <div key={a.key} className="flex flex-col gap-2">
+              <span className={`border-b-2 pb-2 font-semibold ${a.line} ${a.text}`}>{a.name}</span>
+              {Array.from({ length: allianceSize }).map((_, i) => (
+                <Input
+                  key={`${a.key}-${i}`}
+                  type="number"
+                  aria-label={`${a.key === "red" ? "Red" : "Blue"} ${i + 1} team number`}
+                  placeholder={`${a.key === "red" ? "Red" : "Blue"} ${i + 1} team number`}
+                  value={manualTeams[a.key][i]}
+                  onChange={(e) => updateManualTeam(a.key, i, e.target.value)}
+                  className="bg-card"
+                />
+              ))}
             </div>
-
-            {!useManual ? (
-              /* Schedule-based selector */
-              <div className="flex flex-wrap items-end gap-4">
-                <div className="space-y-1.5">
-                  <Label>Match Type</Label>
-                  <Select
-                    value={matchType}
-                    onValueChange={(v) => setMatchType(v as MatchType)}
-                  >
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="qualification">
-                        Qualification
-                      </SelectItem>
-                      <SelectItem value="playoff">Playoff</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>Match #</Label>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9"
-                      onClick={handlePrevMatch}
-                      disabled={matchNumber <= 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={maxMatchNumber || undefined}
-                      value={matchNumberInput}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setMatchNumberInput(value);
-
-                        const parsed = parseInt(value, 10);
-                        if (!Number.isNaN(parsed)) {
-                          const clamped = maxMatchNumber
-                            ? Math.min(maxMatchNumber, Math.max(1, parsed))
-                            : Math.max(1, parsed);
-                          setMatchNumber(clamped);
-                        }
-                      }}
-                      onBlur={() => {
-                        if (matchNumberInput.trim() === "") {
-                          setMatchNumberInput(matchNumber.toString());
-                        }
-                      }}
-                      className="w-20 text-center"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9"
-                      onClick={handleNextMatch}
-                      disabled={
-                        !!maxMatchNumber && matchNumber >= maxMatchNumber
-                      }
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    {maxMatchNumber > 0 && (
-                      <span className="text-sm text-muted-foreground ml-2">
-                        of {maxMatchNumber}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={refreshSchedule}
-                  title="Refresh schedule"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-
-                {scheduleLoading && (
-                  <span className="text-sm text-muted-foreground">
-                    Loading schedule...
-                  </span>
-                )}
-                {scheduleError && (
-                  <span className="text-sm text-destructive">
-                    {scheduleError}
-                  </span>
-                )}
-                {!hasScheduleData && !scheduleLoading && (
-                  <span className="text-sm text-muted-foreground">
-                    No schedule available â€” select an event or use manual entry
-                  </span>
-                )}
-              </div>
-            ) : (
-              /* Manual team entry */
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Red alliance manual */}
-                <div className="space-y-2">
-                  <Label className="text-red-600 dark:text-red-400 font-semibold">
-                    Red Alliance
-                  </Label>
-                  {Array.from({ length: allianceSize }).map((_, i) => (
-                    <Input
-                      key={`red-${i}`}
-                      type="number"
-                      placeholder={`Red ${i + 1} team number`}
-                      value={manualTeams.red[i]}
-                      onChange={(e) =>
-                        updateManualTeam("red", i, e.target.value)
-                      }
-                    />
-                  ))}
-                </div>
-                {/* Blue alliance manual */}
-                <div className="space-y-2">
-                  <Label className="text-blue-600 dark:text-blue-400 font-semibold">
-                    Blue Alliance
-                  </Label>
-                  {Array.from({ length: allianceSize }).map((_, i) => (
-                    <Input
-                      key={`blue-${i}`}
-                      type="number"
-                      placeholder={`Blue ${i + 1} team number`}
-                      value={manualTeams.blue[i]}
-                      onChange={(e) =>
-                        updateManualTeam("blue", i, e.target.value)
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Alliance Matchup Display */}
-      {hasTeams ? (
-        <div className="space-y-4">
-          {/* Match Header */}
-          <div className="flex items-center justify-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="h-4 w-4 rounded-full bg-red-500" />
-              <span className="font-semibold text-red-600 dark:text-red-400">
-                Red Alliance
-              </span>
-            </div>
-            <Badge variant="secondary" className="text-lg px-4 py-1">
-              {matchType === "qualification" ? "Qual" : "Playoff"} Match{" "}
-              {matchNumber}
-            </Badge>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-blue-600 dark:text-blue-400 text-right">
-                Blue Alliance
-              </span>
-              <div className="h-4 w-4 rounded-full bg-blue-500" />
-            </div>
-          </div>
-
-          {/* EPA Prediction Summary */}
-          <Card>
-            <CardContent className="py-4">
-              {epaLoading ? (
-                <div className="flex items-center justify-center gap-4 py-2">
-                  <Skeleton className="h-8 w-32" />
-                  <Skeleton className="h-10 w-40" />
-                  <Skeleton className="h-8 w-32" />
-                </div>
-              ) : epaReady ? (
-                <div className="mx-auto max-w-xl">
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-5 gap-y-2 text-sm sm:gap-x-10">
-                    <span />
-                    <span className="text-right font-semibold text-red-600 dark:text-red-400">Red</span>
-                    <span className="text-right font-semibold text-blue-600 dark:text-blue-400">Blue</span>
-
-                    <span className="font-medium">Win chance</span>
-                    <span className="text-right text-xl font-bold tabular-nums text-red-600 dark:text-red-400">
-                      {winProbability ? `${redWinPercent}%` : "N/A"}
-                    </span>
-                    <span className="text-right text-xl font-bold tabular-nums text-blue-600 dark:text-blue-400">
-                      {winProbability ? `${100 - redWinPercent}%` : "N/A"}
-                    </span>
-
-                    <span className="border-t pt-2 text-muted-foreground">Estimated points</span>
-                    <span className="border-t pt-2 text-right font-medium tabular-nums">{redTotalEpa.toFixed(1)}</span>
-                    <span className="border-t pt-2 text-right font-medium tabular-nums">{blueTotalEpa.toFixed(1)}</span>
-
-                    <span className="text-muted-foreground">Auto</span>
-                    <span className="text-right tabular-nums">{redAutoEpa.toFixed(1)}</span>
-                    <span className="text-right tabular-nums">{blueAutoEpa.toFixed(1)}</span>
-
-                    <span className="text-muted-foreground">Teleop</span>
-                    <span className="text-right tabular-nums">{redTeleopEpa.toFixed(1)}</span>
-                    <span className="text-right tabular-nums">{blueTeleopEpa.toFixed(1)}</span>
-
-                    <span className="text-muted-foreground">Endgame</span>
-                    <span className="text-right tabular-nums">{redEndgameEpa.toFixed(1)}</span>
-                    <span className="text-right tabular-nums">{blueEndgameEpa.toFixed(1)}</span>
-                  </div>
-                  {winProbability ? (
-                    <details className="mt-3 text-xs text-muted-foreground">
-                      <summary className="cursor-pointer">About this estimate</summary>
-                      <p className="mt-1">
-                        Win chance uses a normal model of scouted match scores. Variation is pooled for small samples; ties are not modeled, and estimates are not calibrated against results.
-                      </p>
-                    </details>
-                  ) : (
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      Win chance needs complete alliances, scouting data for every team, and at least one team with two matches.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-center text-sm text-muted-foreground py-2">
-                  No EPA data available for prediction
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Alliance panels side by side */}
-          <div className="grid lg:grid-cols-2 gap-6">
-            <MatchupAlliancePanel
-              alliance="red"
-              teamNumbers={displayRedTeams}
-              currentYear={currentYear}
-              competitionType={competitionType}
-            />
-            <MatchupAlliancePanel
-              alliance="blue"
-              teamNumbers={displayBlueTeams}
-              currentYear={currentYear}
-              competitionType={competitionType}
-            />
-          </div>
+          ))}
         </div>
+      )}
+
+      {!hasTeams ? (
+        <p className="py-12 text-center text-muted-foreground">
+          {hasScheduleData
+            ? "Choose a match number above to preview both alliances."
+            : "Load a schedule by selecting an event, or use manual entry to input team numbers."}
+        </p>
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Teams Selected</h3>
-            <p className="text-muted-foreground max-w-md">
-              {hasScheduleData
-                ? "Choose a match number above to preview both alliances."
-                : "Load a schedule by selecting an event, or use manual entry to input team numbers."}
-            </p>
-          </CardContent>
-        </Card>
+        <>
+          <section aria-labelledby="pred" className="flex flex-col gap-2.5">
+            {epaLoading ? (
+              <Skeleton className="h-16 w-full" />
+            ) : epaReady ? (
+              <>
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="text-[52px] font-semibold tracking-[-0.03em] text-[#C2272D]">{redTotalEpa.toFixed(0)}</span>
+                  <span id="pred" className="text-center font-mono text-sm text-muted-foreground">
+                    predicted score
+                    <br />
+                    {winProbability
+                      ? redWinPercent >= 50
+                        ? `red favored ${redWinPercent}%`
+                        : `blue favored ${100 - redWinPercent}%`
+                      : "win chance needs more data"}
+                  </span>
+                  <span className="text-[52px] font-semibold tracking-[-0.03em] text-[#2563EB]">{blueTotalEpa.toFixed(0)}</span>
+                </div>
+                <div
+                  role="img"
+                  aria-label={winProbability ? `Red ${redWinPercent}% to win, blue ${100 - redWinPercent}%` : "Win chance unavailable"}
+                  className="flex h-2.5 gap-[3px] overflow-hidden rounded-full"
+                >
+                  <div className="bg-[#E5484D]" style={{ flex: `${winProbability ? redWinPercent : 50} 1 0` }} />
+                  <div className="bg-[#3B7BF6]" style={{ flex: `${winProbability ? 100 - redWinPercent : 50} 1 0` }} />
+                </div>
+                {winProbability ? (
+                  <details className="text-xs text-muted-foreground">
+                    <summary className="cursor-pointer">About this estimate</summary>
+                    <p className="mt-1">
+                      Win chance uses a normal model of scouted match scores. Variation is pooled for small samples; ties are not modeled, and estimates are not calibrated against results.
+                    </p>
+                  </details>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Win chance needs complete alliances, scouting data for every team, and at least one team with two matches.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p id="pred" className="text-sm text-muted-foreground">No EPA data available for prediction</p>
+            )}
+          </section>
+
+          <div className="grid gap-10 [grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))]">
+            {alliances.map((a) => (
+              <section key={a.key} aria-labelledby={`${a.key}-h`} className="flex flex-col">
+                <div className={`flex items-baseline justify-between border-b-2 pb-2 ${a.line}`}>
+                  <h2 id={`${a.key}-h`} className={`text-lg font-semibold tracking-tight ${a.text}`}>{a.name}</h2>
+                  <span className="font-mono text-sm text-muted-foreground">combined EPA {a.total.toFixed(1)}</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[420px] border-collapse text-sm tabular-nums">
+                    <thead>
+                      <tr className="text-left text-xs text-muted-foreground">
+                        <th scope="col" className={`${th} pl-0`}>Team</th>
+                        <th scope="col" className={th}>EPA</th>
+                        <th scope="col" className={`${th} text-right`}>Auto</th>
+                        <th scope="col" className={`${th} text-right`}>Teleop</th>
+                        <th scope="col" className={`${th} text-right`}>Endgame</th>
+                        <th scope="col" className={`${th} pr-0 text-right`}>Matches</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {a.teams.map((team) => {
+                        const t = teamEpaMap[team];
+                        const num = (v?: number) => (epaLoading ? "…" : t?.matchCount ? v!.toFixed(1) : "—");
+                        return (
+                          <tr key={team}>
+                            <td className={`${td} pl-0`}>
+                              <Link href={`/dashboard/team/${team}`} className="text-xl font-bold tracking-[-0.03em] text-foreground">{team}</Link>
+                            </td>
+                            <td className={`${td} font-mono font-medium`}>{num(t?.epa)}</td>
+                            <td className={`${td} text-right font-mono`}>{num(t?.auto)}</td>
+                            <td className={`${td} text-right font-mono`}>{num(t?.teleop)}</td>
+                            <td className={`${td} text-right font-mono`}>{num(t?.endgame)}</td>
+                            <td className={`${td} pr-0 text-right font-mono text-muted-foreground`}>{epaLoading ? "…" : t?.matchCount ?? 0}</td>
+                          </tr>
+                        );
+                      })}
+                      {a.teams.length === 0 && (
+                        <tr><td colSpan={6} className={`${td} px-0 text-muted-foreground`}>No teams assigned</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            ))}
+          </div>
+
+          {epaReady && (
+            <section aria-labelledby="phase" className="flex flex-col gap-3.5">
+              <h2 id="phase" className="text-lg font-semibold tracking-tight">Where the match is won</h2>
+              {phases.map((p) => (
+                <div key={p.l} className="grid grid-cols-[minmax(0,1fr)_110px_minmax(0,1fr)] items-center gap-4">
+                  <div className="flex items-center justify-end gap-2.5">
+                    <span className="font-mono text-sm">{p.red.toFixed(1)}</span>
+                    <div className="h-2 rounded-full bg-[#E5484D]" style={{ width: `${(p.red / phaseMax) * 100}%` }} />
+                  </div>
+                  <span className="text-center text-sm text-muted-foreground">{p.l}</span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-2 rounded-full bg-[#3B7BF6]" style={{ width: `${(p.blue / phaseMax) * 100}%` }} />
+                    <span className="font-mono text-sm">{p.blue.toFixed(1)}</span>
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
+
+          <section aria-labelledby="details" className="flex flex-col gap-4 border-t pt-7">
+            <h2 id="details" className="text-lg font-semibold tracking-tight">Team details</h2>
+            <div className="grid gap-10 lg:grid-cols-2">
+              <MatchupAlliancePanel
+                alliance="red"
+                teamNumbers={displayRedTeams}
+                currentYear={currentYear}
+                competitionType={competitionType}
+              />
+              <MatchupAlliancePanel
+                alliance="blue"
+                teamNumbers={displayBlueTeams}
+                currentYear={currentYear}
+                competitionType={competitionType}
+              />
+            </div>
+          </section>
+        </>
       )}
     </div>
   );
