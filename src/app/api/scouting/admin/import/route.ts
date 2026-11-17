@@ -9,6 +9,7 @@ import {
   parseCsvImport,
   parseXlsxImport,
 } from "@/lib/server/scouting-import-parser";
+import { ScoutingError } from "@/lib/server/scouting-service";
 import { MatchEntry, normalizeDriveTrain, PitEntry } from "@/lib/types";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -72,10 +73,24 @@ export async function POST(request: NextRequest) {
       data = await request.json();
     }
 
+    const isRecord = (value: unknown) =>
+      typeof value === "object" && value !== null && !Array.isArray(value);
+    if (!isRecord(data)) {
+      return NextResponse.json(
+        { error: "Import data must be an object with pitEntries and matchEntries" },
+        { status: 400 },
+      );
+    }
     data.pitEntries = Array.isArray(data.pitEntries) ? data.pitEntries : [];
     data.matchEntries = Array.isArray(data.matchEntries)
       ? data.matchEntries
       : [];
+    if (![...data.pitEntries, ...data.matchEntries].every(isRecord)) {
+      return NextResponse.json(
+        { error: "Every imported entry must be an object" },
+        { status: 400 },
+      );
+    }
 
     // JSON imports (and hand-edited sheets) may carry string numbers or
     // lowercase drivetrains, so normalize before anything hits the database.
@@ -138,6 +153,20 @@ export async function POST(request: NextRequest) {
     invalidateSessionUser();
     return NextResponse.json({ success: true });
   } catch (error) {
+    // The import is one transaction, so say why nothing was saved. Azure SQL
+    // reports a duplicate as a ScoutingError, MariaDB as ER_DUP_ENTRY.
+    if (error instanceof ScoutingError) {
+      return NextResponse.json(
+        { error: `${error.message}. Nothing was imported.` },
+        { status: error.status },
+      );
+    }
+    if ((error as { code?: unknown } | null)?.code === "ER_DUP_ENTRY") {
+      return NextResponse.json(
+        { error: "The file contains an entry that already exists for the same team and event. Nothing was imported." },
+        { status: 409 },
+      );
+    }
     console.error("Error importing data:", error);
     return NextResponse.json(
       { error: "Failed to import data" },

@@ -68,4 +68,28 @@ describe("export CSV integration", () => {
     expect(text).toContain("type");
     expect(text).toContain("pit");
   });
+
+  it("exports every field the importer reads back", async () => {
+    const pit = {
+      teamNumber: 111, year: 2025, competitionType: "FRC", driveTrain: "Tank",
+      eventCode: "EVT", userId: "scout-1", notes: "Fast intake", autoDrawing: "[[1,2]]",
+      gameSpecificData: { auto: { left: 1 } },
+    };
+    const match = {
+      teamNumber: 111, year: 2025, competitionType: "FRC", matchNumber: 4,
+      alliance: "red", alliancePosition: 2, eventCode: "EVT", userId: "scout-2",
+      notes: "Tipped", timestamp: new Date("2025-03-01T12:00:00Z"),
+      gameSpecificData: { teleop: { score: 9 } },
+    };
+    service.exportData = vi.fn().mockResolvedValue({ pitEntries: [pit], matchEntries: [match] });
+    const route = await import("@/app/api/scouting/admin/export/route");
+    const res = await route.GET(asNextRequest(new Request("http://test/api/scouting/admin/export?format=csv")));
+    const { parseCsvImport } = await import("@/lib/server/scouting-import-parser");
+    const imported = await parseCsvImport(await res.text());
+    expect(imported.pitEntries[0]).toMatchObject({ userId: "scout-1", notes: "Fast intake", autoDrawing: "[[1,2]]" });
+    expect(imported.matchEntries[0]).toMatchObject({
+      matchNumber: 4, alliance: "red", alliancePosition: 2, userId: "scout-2", notes: "Tipped",
+      timestamp: match.timestamp, gameSpecificData: { teleop: { score: "9" } },
+    });
+  });
 });

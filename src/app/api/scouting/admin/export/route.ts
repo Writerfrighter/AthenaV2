@@ -131,42 +131,30 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Helper functions for data conversion
-async function convertToCSV(data: {
-  pitEntries: PitEntry[];
-  matchEntries: MatchEntry[];
-}): Promise<string> {
-  const Papa = await import("papaparse");
+type ExportData = { pitEntries: PitEntry[]; matchEntries: MatchEntry[] };
 
-  // Function to expand gameSpecificData (only one level)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const expandGameSpecificData = (gameSpecificData: Record<string, any>) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const expanded: Record<string, any> = {};
-
+/**
+ * One spreadsheet row per entry, shared by CSV and XLSX. The columns are the
+ * ones the import parser reads back, so an export can be restored.
+ */
+function flattenEntries(data: ExportData): Record<string, unknown>[] {
+  // Expand one level of gameSpecificData into `group_field` columns.
+  const expand = (gameSpecificData: Record<string, unknown> = {}) => {
+    const expanded: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(gameSpecificData)) {
-      if (
-        typeof value === "object" &&
-        value !== null &&
-        !Array.isArray(value)
-      ) {
-        // If it's an object, expand its properties as key_value pairs (one level only)
+      if (typeof value === "object" && value !== null && !Array.isArray(value)) {
         for (const [subKey, subValue] of Object.entries(value)) {
           expanded[`${key}_${subKey}`] = subValue;
         }
       } else {
-        // For simple values, keep as is
         expanded[key] = value;
       }
     }
-
     return expanded;
   };
 
-  // Expand pit entries
-  const expandedPitEntries = data.pitEntries.map((entry) => {
-    const gameSpecificExpanded = expandGameSpecificData(entry.gameSpecificData);
-    return {
+  return [
+    ...data.pitEntries.map((entry) => ({
       type: "pit",
       id: entry.id,
       teamNumber: entry.teamNumber,
@@ -178,14 +166,12 @@ async function convertToCSV(data: {
       width: entry.width,
       eventName: entry.eventName,
       eventCode: entry.eventCode,
-      ...gameSpecificExpanded,
-    };
-  });
-
-  // Expand match entries
-  const expandedMatchEntries = data.matchEntries.map((entry) => {
-    const gameSpecificExpanded = expandGameSpecificData(entry.gameSpecificData);
-    return {
+      userId: entry.userId,
+      notes: entry.notes,
+      autoDrawing: entry.autoDrawing,
+      ...expand(entry.gameSpecificData),
+    })),
+    ...data.matchEntries.map((entry) => ({
       type: "match",
       id: entry.id,
       matchNumber: entry.matchNumber,
@@ -193,106 +179,42 @@ async function convertToCSV(data: {
       year: entry.year,
       competitionType: entry.competitionType || "FRC",
       alliance: entry.alliance,
+      alliancePosition: entry.alliancePosition,
       eventName: entry.eventName,
       eventCode: entry.eventCode,
+      userId: entry.userId,
       notes: entry.notes,
       timestamp: entry.timestamp,
-      ...gameSpecificExpanded,
-    };
-  });
-
-  // Combine all entries into one CSV
-  // Scout-entered text opens in a spreadsheet. Prefix anything that would be
-  // read as a formula; numbers (including negative ones) are left alone.
-  const allEntries = [...expandedPitEntries, ...expandedMatchEntries].map(
-    (entry) =>
-      Object.fromEntries(
-        Object.entries(entry).map(([key, value]) => [
-          key,
-          typeof value === "string" && /^[=+\-@\t\r]/.test(value)
-            ? `'${value}`
-            : value,
-        ]),
-      ),
-  );
-  return Papa.unparse(allEntries);
+      ...expand(entry.gameSpecificData),
+    })),
+  ];
 }
 
-async function convertToXLSX(data: {
-  pitEntries: PitEntry[];
-  matchEntries: MatchEntry[];
-}): Promise<ArrayBuffer> {
+async function convertToCSV(data: ExportData): Promise<string> {
+  const Papa = await import("papaparse");
+  // Scout-entered text opens in a spreadsheet. Prefix anything that would be
+  // read as a formula; numbers (including negative ones) are left alone.
+  const rows = flattenEntries(data).map((entry) =>
+    Object.fromEntries(
+      Object.entries(entry).map(([key, value]) => [
+        key,
+        typeof value === "string" && /^[=+\-@\t\r]/.test(value)
+          ? `'${value}`
+          : value,
+      ]),
+    ),
+  );
+  // Papa takes its columns from the first row only, which is a pit entry
+  // whenever there is one; name them all so match-only columns survive.
+  return Papa.unparse(rows, {
+    columns: [...new Set(rows.flatMap((row) => Object.keys(row)))],
+  });
+}
+
+async function convertToXLSX(data: ExportData): Promise<ArrayBuffer> {
   const XLSX = await import("xlsx");
-
-  // Function to expand gameSpecificData (only one level)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const expandGameSpecificData = (gameSpecificData: Record<string, any>) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const expanded: Record<string, any> = {};
-
-    for (const [key, value] of Object.entries(gameSpecificData)) {
-      if (
-        typeof value === "object" &&
-        value !== null &&
-        !Array.isArray(value)
-      ) {
-        // If it's an object, expand its properties as key_value pairs (one level only)
-        for (const [subKey, subValue] of Object.entries(value)) {
-          expanded[`${key}_${subKey}`] = subValue;
-        }
-      } else {
-        // For simple values, keep as is
-        expanded[key] = value;
-      }
-    }
-
-    return expanded;
-  };
-
   const workbook = XLSX.utils.book_new();
-
-  // Expand pit entries
-  const expandedPitEntries = data.pitEntries.map((entry) => {
-    const gameSpecificExpanded = expandGameSpecificData(entry.gameSpecificData);
-    return {
-      type: "pit",
-      id: entry.id,
-      teamNumber: entry.teamNumber,
-      year: entry.year,
-      competitionType: entry.competitionType || "FRC",
-      driveTrain: entry.driveTrain,
-      weight: entry.weight,
-      length: entry.length,
-      width: entry.width,
-      eventName: entry.eventName,
-      eventCode: entry.eventCode,
-      ...gameSpecificExpanded,
-    };
-  });
-
-  // Expand match entries
-  const expandedMatchEntries = data.matchEntries.map((entry) => {
-    const gameSpecificExpanded = expandGameSpecificData(entry.gameSpecificData);
-    return {
-      type: "match",
-      id: entry.id,
-      matchNumber: entry.matchNumber,
-      teamNumber: entry.teamNumber,
-      year: entry.year,
-      competitionType: entry.competitionType || "FRC",
-      alliance: entry.alliance,
-      eventName: entry.eventName,
-      eventCode: entry.eventCode,
-      notes: entry.notes,
-      timestamp: entry.timestamp,
-      ...gameSpecificExpanded,
-    };
-  });
-
-  // Combine all entries into one sheet
-  const allEntries = [...expandedPitEntries, ...expandedMatchEntries];
-  const worksheet = XLSX.utils.json_to_sheet(allEntries);
+  const worksheet = XLSX.utils.json_to_sheet(flattenEntries(data));
   XLSX.utils.book_append_sheet(workbook, worksheet, "Scouting Data");
-
   return XLSX.write(workbook, { type: "array", bookType: "xlsx" });
 }
