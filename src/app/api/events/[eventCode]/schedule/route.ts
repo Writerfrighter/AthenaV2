@@ -25,6 +25,8 @@ export interface MatchScheduleTeam {
 export interface MatchScheduleEntry {
   matchNumber: number;
   compLevel: string;
+  /** Official name of a playoff match, e.g. "SF 3-1"; absent for qualifications. */
+  label?: string;
   teams: MatchScheduleTeam[];
   startTime?: string | null;
 }
@@ -34,10 +36,22 @@ export interface MatchScheduleResponse {
   competitionType: "FRC" | "FTC";
 }
 
-function parseTbaMatches(matches: TbaMatch[]): MatchScheduleEntry[] {
-  return matches
-    .filter((m) => m.comp_level === "qm") // Only qualification matches for auto-assign
-    .map((m) => {
+const TBA_PLAYOFF_ORDER: string[] = ["ef", "qf", "sf", "f"];
+
+/**
+ * Playoff match numbers restart in every set, so they are renumbered 1..n in
+ * play order and keep their official name as a label.
+ */
+function numberPlayoffs(matches: MatchScheduleEntry[]): MatchScheduleEntry[] {
+  return matches.map((match, index) => ({ ...match, matchNumber: index + 1 }));
+}
+
+function parseTbaMatches(matches: TbaMatch[], playoff = false): MatchScheduleEntry[] {
+  const level = (m: TbaMatch) => TBA_PLAYOFF_ORDER.indexOf(m.comp_level);
+  const parsed = matches
+    .filter((m) => (m.comp_level === "qm") !== playoff)
+    .sort((a, b) => level(a) - level(b) || a.set_number - b.set_number || a.match_number - b.match_number)
+    .map((m): MatchScheduleEntry => {
       const teams: MatchScheduleTeam[] = [];
 
       // Parse red alliance teams
@@ -67,17 +81,21 @@ function parseTbaMatches(matches: TbaMatch[]): MatchScheduleEntry[] {
       return {
         matchNumber: m.match_number,
         compLevel: m.comp_level,
+        ...(playoff ? { label: `${m.comp_level.toUpperCase()} ${m.set_number}-${m.match_number}` } : {}),
         teams,
         startTime: m.time ? new Date(m.time * 1000).toISOString() : null,
       };
-    })
-    .sort((a, b) => a.matchNumber - b.matchNumber);
+    });
+  return playoff
+    ? numberPlayoffs(parsed)
+    : parsed.sort((a, b) => a.matchNumber - b.matchNumber);
 }
 
-function parseFtcSchedule(schedule: FtcScheduledMatch[]): MatchScheduleEntry[] {
-  return schedule
-    .filter((m) => m.tournamentLevel === "QUALIFICATION")
-    .map((m) => {
+function parseFtcSchedule(schedule: FtcScheduledMatch[], playoff = false): MatchScheduleEntry[] {
+  const parsed = schedule
+    .filter((m) => (m.tournamentLevel === "QUALIFICATION") !== playoff)
+    .sort((a, b) => a.series - b.series || a.matchNumber - b.matchNumber)
+    .map((m): MatchScheduleEntry => {
       const teams: MatchScheduleTeam[] = [];
 
       if (m.teams) {
@@ -98,18 +116,20 @@ function parseFtcSchedule(schedule: FtcScheduledMatch[]): MatchScheduleEntry[] {
 
       return {
         matchNumber: m.matchNumber,
-        compLevel: "qm",
+        compLevel: playoff ? "playoff" : "qm",
+        ...(playoff ? { label: `Playoff ${m.series}-${m.matchNumber}` } : {}),
         teams,
         startTime: m.startTime,
       };
-    })
-    .sort((a, b) => a.matchNumber - b.matchNumber);
+    });
+  return playoff ? numberPlayoffs(parsed) : parsed;
 }
 
-function parseFtcMatchResults(matches: FtcMatchResult[]): MatchScheduleEntry[] {
-  return matches
-    .filter((m) => m.tournamentLevel === "QUALIFICATION")
-    .map((m) => {
+function parseFtcMatchResults(matches: FtcMatchResult[], playoff = false): MatchScheduleEntry[] {
+  const parsed = matches
+    .filter((m) => (m.tournamentLevel === "QUALIFICATION") !== playoff)
+    .sort((a, b) => a.series - b.series || a.matchNumber - b.matchNumber)
+    .map((m): MatchScheduleEntry => {
       const teams: MatchScheduleTeam[] = [];
 
       if (m.teams) {
@@ -129,12 +149,13 @@ function parseFtcMatchResults(matches: FtcMatchResult[]): MatchScheduleEntry[] {
 
       return {
         matchNumber: m.matchNumber,
-        compLevel: "qm",
+        compLevel: playoff ? "playoff" : "qm",
+        ...(playoff ? { label: `Playoff ${m.series}-${m.matchNumber}` } : {}),
         teams,
         startTime: m.actualStartTime,
       };
-    })
-    .sort((a, b) => a.matchNumber - b.matchNumber);
+    });
+  return playoff ? numberPlayoffs(parsed) : parsed;
 }
 
 export async function GET(
@@ -148,6 +169,9 @@ export async function GET(
     const parsed = parseEventRequest(request, { requireFtcYear: true });
     if (parsed.error) return parsed.error;
     const { competitionType, year: seasonNum } = parsed.data;
+    // Qualifications unless asked: scouting assignments and offline caches rely on it.
+    const playoff = request.nextUrl.searchParams.get("level") === "playoff";
+    const ftcLevel = playoff ? "playoff" : "qual";
 
     if (!eventCode) {
       return NextResponse.json({ error: "Missing eventCode" }, { status: 400 });
@@ -161,10 +185,10 @@ export async function GET(
         const scheduleResponse = await getFtcEventSchedule(
           seasonNum!,
           eventCode,
-          "qual",
+          ftcLevel,
         );
         if (scheduleResponse.schedule && scheduleResponse.schedule.length > 0) {
-          matches = parseFtcSchedule(scheduleResponse.schedule);
+          matches = parseFtcSchedule(scheduleResponse.schedule, playoff);
         }
       } catch {
         // Schedule endpoint might fail if not available yet
@@ -177,10 +201,10 @@ export async function GET(
           const matchesResponse = await getFtcEventMatches(
             seasonNum!,
             eventCode,
-            "qual",
+            ftcLevel,
           );
           if (matchesResponse.matches && matchesResponse.matches.length > 0) {
-            matches = parseFtcMatchResults(matchesResponse.matches);
+            matches = parseFtcMatchResults(matchesResponse.matches, playoff);
           }
         } catch {
           console.log("FTC matches endpoint also failed");
@@ -196,7 +220,7 @@ export async function GET(
     // FRC via TBA
     const matches = await getTbaEventMatches(eventCode);
     return NextResponse.json({
-      matches: parseTbaMatches(matches),
+      matches: parseTbaMatches(matches, playoff),
       competitionType: "FRC",
     } as MatchScheduleResponse);
   } catch (err) {

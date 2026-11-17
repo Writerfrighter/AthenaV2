@@ -46,18 +46,20 @@ export default function MatchupPage() {
   const { currentYear, competitionType, getCurrentYearConfig } = useGameConfig();
   const yearConfig = getCurrentYearConfig();
   const selectedEvent = useSelectedEvent();
+  const [matchType, setMatchType] = useState<MatchType>("qualification");
+  const isPlayoff = matchType === "playoff";
   const {
+    scheduleData,
     isLoading: scheduleLoading,
     error: scheduleError,
     hasScheduleData,
     maxMatchNumber,
     getTeamsForMatch,
     refreshSchedule,
-  } = useMatchScheduleTeams();
+  } = useMatchScheduleTeams(isPlayoff ? "playoff" : "qual");
 
   const [matchNumber, setMatchNumber] = useState<number>(1);
   const [matchNumberInput, setMatchNumberInput] = useState("1");
-  const [matchType, setMatchType] = useState<MatchType>("qualification");
   const [manualTeams, setManualTeams] = useState<{
     red: string[];
     blue: string[];
@@ -240,7 +242,12 @@ export default function MatchupPage() {
     });
   };
 
-  const matchLabel = `${matchType === "qualification" ? "Qual" : "Playoff"} ${matchNumber}`;
+  // Playoff matches are numbered in play order; show their official name too.
+  const officialLabel = scheduleData?.matches.find((m) => m.matchNumber === matchNumber)?.label;
+  const matchLabel = isPlayoff
+    ? `Playoff ${matchNumber}${officialLabel ? ` · ${officialLabel}` : ""}`
+    : `Qual ${matchNumber}`;
+  const shortPrefix = isPlayoff ? "P" : "Q";
   const alliances = [
     { key: "red" as const, name: "Red alliance", teams: displayRedTeams, total: redTotalEpa, line: "border-[#E5484D]", text: "text-[#C2272D]" },
     { key: "blue" as const, name: "Blue alliance", teams: displayBlueTeams, total: blueTotalEpa, line: "border-[#3B7BF6]", text: "text-[#2563EB]" },
@@ -274,14 +281,16 @@ export default function MatchupPage() {
                 : scheduleError
                   ? <span className="text-destructive">{scheduleError}</span>
                   : !hasScheduleData
-                    ? "No schedule available — select an event or use manual entry."
+                    ? isPlayoff
+                      ? "No playoff matches are scheduled yet — switch to qualifications or use manual entry."
+                      : "No schedule available — select an event or use manual entry."
                     : `Match ${matchNumber}${maxMatchNumber ? ` of ${maxMatchNumber}` : ""} · compare both alliances before the match`}
           </span>
         </div>
         {!useManual && (
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" className={pill} onClick={handlePrevMatch} disabled={matchNumber <= 1}>
-              ← Q{Math.max(1, matchNumber - 1)}
+              ← {shortPrefix}{Math.max(1, matchNumber - 1)}
             </Button>
             <Label className="sr-only" htmlFor="match-number">Match number</Label>
             <Input
@@ -315,7 +324,7 @@ export default function MatchupPage() {
               onClick={handleNextMatch}
               disabled={!!maxMatchNumber && matchNumber >= maxMatchNumber}
             >
-              Q{matchNumber + 1} →
+              {shortPrefix}{matchNumber + 1} →
             </Button>
           </div>
         )}
@@ -343,7 +352,11 @@ export default function MatchupPage() {
         </div>
         {!useManual && (
           <>
-            <Select value={matchType} onValueChange={(v) => setMatchType(v as MatchType)}>
+            <Select value={matchType} onValueChange={(v) => {
+              setMatchType(v as MatchType);
+              // Numbers restart for the other set of matches.
+              setMatchNumber(1);
+            }}>
               <SelectTrigger size="sm" className="w-[140px] rounded-full" aria-label="Match type">
                 <SelectValue />
               </SelectTrigger>
@@ -465,12 +478,13 @@ export default function MatchupPage() {
                             <td className={`${td} text-right font-mono`}>{num(t?.auto)}</td>
                             <td className={`${td} text-right font-mono`}>{num(t?.teleop)}</td>
                             <td className={`${td} text-right font-mono`}>{num(t?.endgame)}</td>
-                            <td className={`${td} pr-0 text-right font-mono text-muted-foreground`}>{epaLoading ? "…" : t?.matchCount ?? 0}</td>
+                            <td className={`${td} text-right font-mono text-muted-foreground`}>{epaLoading ? "…" : t?.matchCount ?? 0}</td>
+                            <td className={`${td} pr-0`}><NotesBar notes={(t?.notes ?? []).map((n) => n.text)} /></td>
                           </tr>
                         );
                       })}
                       {a.teams.length === 0 && (
-                        <tr><td colSpan={6} className={`${td} px-0 text-muted-foreground`}>No teams assigned</td></tr>
+                        <tr><td colSpan={7} className={`${td} px-0 text-muted-foreground`}>No teams assigned</td></tr>
                       )}
                     </tbody>
                   </table>
