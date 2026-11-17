@@ -96,7 +96,10 @@ container image containing the previous embedded signing secret.
 - Terminate HTTPS at the reverse proxy. Overwrite forwarded host/protocol headers;
   restrict direct access to port 3000. Set `RATE_LIMIT_IP_HEADER` only to a header
   the proxy overwrites (for example `x-real-ip`). Otherwise all clients share one
-  conservative authentication rate-limit bucket. Add edge limits for traffic spikes.
+  conservative authentication rate-limit bucket: anyone who sends 20 failed logins
+  a minute for a username locks that account out, and 300 a minute blocks every
+  login. Set the header on any internet-facing deployment. Limits are counted per
+  server process. Add edge limits for traffic spikes.
 - Apply proxy request-body limits and timeouts suitable for your CSV/image imports.
 - `GET /api/health` reports process liveness without exposing configuration. It
   does not test database readiness. Monitor a staging/test account's login and

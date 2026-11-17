@@ -19,6 +19,9 @@ export type TeamImage = { url: string };
 const BASE = "https://thebluealliance.com/api/v3/";
 
 async function getFromTba<T>(path: string): Promise<T> {
+  // Event and match keys come from request URLs. Anything but key characters
+  // ("..", "?", "#") would reach a different TBA endpoint with our API key.
+  if (!/^\w+(\/\w+)*$/.test(path)) throw new Error("Invalid TBA request path");
   const url = `${BASE}${path}`;
   return fetchJSON<T>(url, {
     headers: { "X-TBA-Auth-Key": loadApiKeys().tbaApiKey },

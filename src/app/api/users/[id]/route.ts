@@ -86,7 +86,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params;
-    const { name, username, password, role } = await request.json();
+    const { name, username, password, role } =
+      (await request.json().catch(() => null)) ?? {};
+    if ([name, username, password, role].some((value) => value != null && typeof value !== "string")) {
+      return NextResponse.json(
+        { error: "name, username, password and role must be text" },
+        { status: 400 },
+      );
+    }
 
     // Validate that at least one field is provided
     if (!name && !username && !password && !role) {

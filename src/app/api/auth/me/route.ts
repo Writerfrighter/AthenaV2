@@ -44,10 +44,15 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, username } = await request.json();
+    const { name, username } = (await request.json().catch(() => null)) ?? {};
 
     // Validate input
-    if (!name?.trim() || !username?.trim()) {
+    if (
+      typeof name !== "string" ||
+      typeof username !== "string" ||
+      !name.trim() ||
+      !username.trim()
+    ) {
       return NextResponse.json(
         { error: "Name and username are required" },
         { status: 400 },

@@ -24,6 +24,7 @@ type RateLimitOptions = {
   subject?: string;
 };
 
+// shortcut: counts live in this process, so each instance has its own limit and a restart clears it; move them to the database before running more than one instance.
 const rateLimitStore = new Map<string, RateLimitEntry>();
 const CLEANUP_INTERVAL = 100;
 
