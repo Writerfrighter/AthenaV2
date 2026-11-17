@@ -1,24 +1,21 @@
 "use client";
 
-import { type LucideIcon, ChevronRight } from "lucide-react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { type LucideIcon } from "lucide-react";
 import {
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useOnboarding, useTourHighlight } from "@/components/onboarding/onboarding-provider";
+
+// Minimal text nav: active link is bold foreground, the rest muted.
+export const navLinkClass =
+  "h-8 px-2 text-muted-foreground hover:bg-transparent hover:text-foreground data-[active=true]:bg-transparent data-[active=true]:font-semibold data-[active=true]:text-foreground";
 
 export function NavMain({
   items,
@@ -38,92 +35,52 @@ export function NavMain({
   const { completeAction } = useOnboarding();
   const competitionHighlight = useTourHighlight("competition");
   const settingsHighlight = useTourHighlight("settings");
-  const { isMobile, setOpenMobile, setOpen, state } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const closeMobileSidebar = () => {
     if (isMobile) setOpenMobile(false);
   };
   const routeIsActive = (url: string) =>
-    url === "/" ? pathname === url : pathname === url || pathname.startsWith(`${url}/`);
+    url === "/dashboard" ? pathname === url : pathname === url || pathname.startsWith(`${url}/`);
+
+  const link = (title: string, url: string, onClick?: () => void, extra?: string) => (
+    <SidebarMenuItem key={title}>
+      <SidebarMenuButton asChild isActive={routeIsActive(url)} className={`${navLinkClass} ${extra ?? ""}`}>
+        <Link href={url} onClick={() => { onClick?.(); closeMobileSidebar(); }}>
+          {title}
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
 
   return (
-    <SidebarGroup>
-      <SidebarMenu>
-        {items.map((item) => {
-          const hasChildren = !!item.items?.length;
-          const sectionIsActive = item.items?.some((subItem) =>
-            routeIsActive(subItem.url),
-          );
-
-          if (hasChildren) {
-            return (
-              <Collapsible
-                key={item.title}
-                defaultOpen={sectionIsActive}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      data-tour-target={item.title === "Competition" ? "competition" : undefined}
-                      className={item.title === "Competition" ? competitionHighlight : undefined}
-                      tooltip={item.title}
-                      isActive={sectionIsActive}
-                      onClick={() => {
-                        if (item.title === "Competition") completeAction("competition");
-                        if (!isMobile && state === "collapsed") setOpen(true);
-                      }}
-                    >
-                      {item.icon && <item.icon />}
-                      <span className="flex w-full items-center group-data-[collapsible=icon]:hidden">
-                        {item.title}
-                        <ChevronRight className="p-1 ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                      </span>
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-
-                  <CollapsibleContent className="group-data-[collapsible=icon]:hidden">
-                    <SidebarMenuSub>
-                      {item.items!.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={routeIsActive(subItem.url)}
-                          >
-                            <Link href={subItem.url} onClick={closeMobileSidebar}>
-                              {subItem.title}
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-            );
-          }
-
-          // no children
+    <>
+      {items.map((item) => {
+        if (!item.items?.length) {
+          const isSettings = item.title === "Settings";
           return (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                data-tour-target={item.title === "Settings" ? "settings" : undefined}
-                className={item.title === "Settings" ? settingsHighlight : undefined}
-                asChild
-                tooltip={item.title}
-                isActive={routeIsActive(item.url!)}
-              >
-                <Link href={item.url!} onClick={() => { if (item.title === "Settings") completeAction("settings"); closeMobileSidebar(); }}>
-                  {item.icon && <item.icon className="size-4" />}
-
-                  <span className="group-data-[collapsible=icon]:hidden">
-                    {item.title}
-                  </span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <SidebarGroup key={item.title} className="py-0" data-tour-target={isSettings ? "settings" : undefined}>
+              <SidebarMenu>
+                {link(item.title, item.url!, isSettings ? () => completeAction("settings") : undefined, isSettings ? settingsHighlight : undefined)}
+              </SidebarMenu>
+            </SidebarGroup>
           );
-        })}
-      </SidebarMenu>
-    </SidebarGroup>
+        }
+        const isCompetition = item.title === "Competition";
+        return (
+          <SidebarGroup
+            key={item.title}
+            className={`py-0 ${isCompetition ? competitionHighlight : ""}`}
+            data-tour-target={isCompetition ? "competition" : undefined}
+          >
+            <SidebarGroupLabel className="h-7 pt-3 text-[11px] font-normal uppercase tracking-wider text-muted-foreground">
+              {item.title}
+            </SidebarGroupLabel>
+            <SidebarMenu>
+              {item.items.map((sub) => link(sub.title, sub.url, isCompetition ? () => completeAction("competition") : undefined))}
+            </SidebarMenu>
+          </SidebarGroup>
+        );
+      })}
+    </>
   );
 }

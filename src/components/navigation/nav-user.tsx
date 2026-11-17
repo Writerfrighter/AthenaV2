@@ -8,8 +8,8 @@ import {
   Trophy,
 } from "lucide-react";
 
-import { useAccountSettingsDialog } from "@/app/dashboard/dashboard-shell";
-import { useNotificationSettingsDialog } from "@/app/dashboard/dashboard-shell";
+import { useAccountSettingsDialog } from "@/app/dashboard/settings-dialogs-context";
+import { useNotificationSettingsDialog } from "@/app/dashboard/settings-dialogs-context";
 import { signOut } from "next-auth/react";
 import { useGameConfig } from "@/hooks/use-game-config";
 import { useOnboarding, useTourHighlight } from "@/components/onboarding/onboarding-provider";

@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { loadGameConfig } from "@/lib/server/game-config-store";
 import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GameConfigProvider } from "@/hooks/use-game-config";
@@ -11,6 +12,9 @@ import { SonnerToaster } from "@/components/sonner-toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { APP_DESCRIPTION, APP_LOGO, APP_NAME } from "@/lib/app-config";
 import { GuestAccessBoundary } from "@/components/auth/guest-access-boundary";
+
+const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
   title: APP_NAME,
@@ -28,7 +32,7 @@ export default async function RootLayout({
   await connection();
   const gameConfig = loadGameConfig();
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="font-sans">
         <TooltipProvider>
           <SessionProvider>

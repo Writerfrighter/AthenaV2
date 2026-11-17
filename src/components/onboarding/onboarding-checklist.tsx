@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { CheckCircle2, Circle, Compass } from "lucide-react";
-import { useAccountSettingsDialog, useNotificationSettingsDialog } from "@/app/dashboard/dashboard-shell";
+import { useAccountSettingsDialog, useNotificationSettingsDialog } from "@/app/dashboard/settings-dialogs-context";
 import { useEventConfig } from "@/hooks/use-event-config";
 import { useGameConfig } from "@/hooks/use-game-config";
 import { hasPermission, PERMISSIONS, ROLES } from "@/lib/auth/roles";
@@ -65,7 +65,7 @@ export function OnboardingChecklist({ settings = false }: { settings?: boolean }
   if (!settings && count === tasks.length) return null;
 
   return (
-    <section id="getting-started" aria-labelledby="getting-started-heading" className="scroll-mt-6 space-y-4 rounded-xl border border-primary/25 bg-card p-4 sm:p-6">
+    <section id="getting-started" aria-labelledby="getting-started-heading" className="scroll-mt-6 space-y-4 border-b pb-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h2 id="getting-started-heading" className="flex items-center gap-2 text-lg font-semibold"><Compass className="size-5 text-primary" aria-hidden="true" />{canScout ? "Get ready to scout" : "Get started with Athena"}</h2><p className="mt-1 text-sm text-muted-foreground">A quick setup checklist. Check off reviews when you’re done; event and download status update automatically.</p></div>
         <div className="flex flex-wrap gap-2">
@@ -74,8 +74,8 @@ export function OnboardingChecklist({ settings = false }: { settings?: boolean }
         </div>
       </div>
       <div className="space-y-2"><p className="text-xs text-muted-foreground" role="status">{count} of {tasks.length} complete · Saved for your account on this device</p><Progress value={count / tasks.length * 100} aria-label="Getting started progress" /></div>
-      <ul className="grid gap-3 lg:grid-cols-2">
-        {tasks.map((task) => <li key={task.id} className="flex items-start gap-3 rounded-lg border p-3">
+      <ul className="grid gap-x-10 lg:grid-cols-2">
+        {tasks.map((task) => <li key={task.id} className="flex items-start gap-3 border-b border-border/60 py-3">
           {task.automatic ? <span className="mt-1">{isDone(task) ? <CheckCircle2 className="size-4 text-primary" aria-label="Complete" /> : <Circle className="size-4 text-muted-foreground" aria-label="Incomplete" />}</span> : <Checkbox className="mt-1" aria-label={`Mark ${task.title.toLowerCase()} complete`} checked={isDone(task)} onCheckedChange={(checked) => setCompleted(task.id, checked === true)} />}
           <div className="min-w-0 flex-1">
             {task.href ? <Link href={task.href} className="rounded-sm text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring">{task.title}</Link> : <button type="button" onClick={task.action} className="rounded-sm text-left text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring">{task.title}</button>}

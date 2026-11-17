@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Bell, ChevronRight, Compass, Info, Layers, Search, UserRound, type LucideIcon } from "lucide-react";
-import { useAccountSettingsDialog, useNotificationSettingsDialog } from "@/app/dashboard/dashboard-shell";
+import { useAccountSettingsDialog, useNotificationSettingsDialog } from "@/app/dashboard/settings-dialogs-context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAdministrationSettings } from "@/components/settings/settings-navigation";
