@@ -223,50 +223,47 @@ export function PerformanceOverTimeChart({
               <YAxis tickLine={false} axisLine={false} />
               <ChartTooltip content={<CustomTooltipContent />} />
 
-              {visibleCategories.penalties && (
-                <Area
-                  dataKey="penalties"
-                  stackId="1"
-                  type="monotone"
-                  fill="var(--color-penalties)"
-                  stroke="var(--color-penalties)"
-                  fillOpacity={0.12}
-                  animationDuration={300}
-                />
-              )}
-              {visibleCategories.endgame && (
-                <Area
-                  dataKey="endgame"
-                  stackId="1"
-                  type="monotone"
-                  fill="var(--color-endgame)"
-                  stroke="var(--color-endgame)"
-                  fillOpacity={0.12}
-                  animationDuration={300}
-                />
-              )}
-              {visibleCategories.teleop && (
-                <Area
-                  dataKey="teleop"
-                  stackId="1"
-                  type="monotone"
-                  fill="var(--color-teleop)"
-                  stroke="var(--color-teleop)"
-                  fillOpacity={0.12}
-                  animationDuration={300}
-                />
-              )}
-              {visibleCategories.auto && (
-                <Area
-                  dataKey="auto"
-                  stackId="1"
-                  type="monotone"
-                  fill="var(--color-auto)"
-                  stroke="var(--color-auto)"
-                  fillOpacity={0.12}
-                  animationDuration={300}
-                />
-              )}
+              {/* hide, don't unmount: a remounted series registers last and moves to the top of the stack */}
+              <Area
+                hide={!visibleCategories.penalties}
+                dataKey="penalties"
+                stackId="1"
+                type="monotone"
+                fill="var(--color-penalties)"
+                stroke="var(--color-penalties)"
+                fillOpacity={0.12}
+                animationDuration={300}
+              />
+              <Area
+                hide={!visibleCategories.endgame}
+                dataKey="endgame"
+                stackId="1"
+                type="monotone"
+                fill="var(--color-endgame)"
+                stroke="var(--color-endgame)"
+                fillOpacity={0.12}
+                animationDuration={300}
+              />
+              <Area
+                hide={!visibleCategories.teleop}
+                dataKey="teleop"
+                stackId="1"
+                type="monotone"
+                fill="var(--color-teleop)"
+                stroke="var(--color-teleop)"
+                fillOpacity={0.12}
+                animationDuration={300}
+              />
+              <Area
+                hide={!visibleCategories.auto}
+                dataKey="auto"
+                stackId="1"
+                type="monotone"
+                fill="var(--color-auto)"
+                stroke="var(--color-auto)"
+                fillOpacity={0.12}
+                animationDuration={300}
+              />
             </AreaChart>
           </ChartContainer>
         </div>

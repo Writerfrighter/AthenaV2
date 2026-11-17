@@ -398,42 +398,39 @@ export function StackedEPAChart({ data }: { data?: TeamEPAChartDatum[] }) {
                   }
                 />
                 <ChartTooltip content={<CustomChartTooltipContent />} />
-                {visibleCategories.penalties && (
-                  <Bar
-                    dataKey="penalties"
-                    stackId="a"
-                    fill="var(--color-penalties)"
-                    radius={[4, 4, 0, 0]}
-                    animationDuration={300}
-                  />
-                )}
-                {visibleCategories.endgame && (
-                  <Bar
-                    dataKey="endgame"
-                    stackId="a"
-                    fill="var(--color-endgame)"
-                    radius={[0, 0, 0, 0]}
-                    animationDuration={300}
-                  />
-                )}
-                {visibleCategories.teleop && (
-                  <Bar
-                    dataKey="teleop"
-                    stackId="a"
-                    fill="var(--color-teleop)"
-                    radius={[0, 0, 0, 0]}
-                    animationDuration={300}
-                  />
-                )}
-                {visibleCategories.auto && (
-                  <Bar
-                    dataKey="auto"
-                    stackId="a"
-                    fill="var(--color-auto)"
-                    radius={[4, 4, 0, 0]}
-                    animationDuration={300}
-                  />
-                )}
+                {/* Keep series mounted so legend toggles preserve stack order. */}
+                <Bar
+                  hide={!visibleCategories.penalties}
+                  dataKey="penalties"
+                  stackId="a"
+                  fill="var(--color-penalties)"
+                  radius={[4, 4, 0, 0]}
+                  animationDuration={300}
+                />
+                <Bar
+                  hide={!visibleCategories.endgame}
+                  dataKey="endgame"
+                  stackId="a"
+                  fill="var(--color-endgame)"
+                  radius={[0, 0, 0, 0]}
+                  animationDuration={300}
+                />
+                <Bar
+                  hide={!visibleCategories.teleop}
+                  dataKey="teleop"
+                  stackId="a"
+                  fill="var(--color-teleop)"
+                  radius={[0, 0, 0, 0]}
+                  animationDuration={300}
+                />
+                <Bar
+                  hide={!visibleCategories.auto}
+                  dataKey="auto"
+                  stackId="a"
+                  fill="var(--color-auto)"
+                  radius={[4, 4, 0, 0]}
+                  animationDuration={300}
+                />
                 <YAxis domain={yDomain} />
               </BarChart>
             ) : (
