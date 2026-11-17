@@ -1,3 +1,4 @@
+import { ScoutingError } from "@/lib/server/scouting-service";
 import { sqlUsers } from "./sql-users";
 import { sqlGuestLinks } from "./sql-guest-links";
 import type { GuestLinkRecord } from "@/lib/types";
@@ -556,7 +557,8 @@ export class MariaDbDatabaseService implements DatabaseService {
         getDriverErrorCode(error) === "ER_DUP_ENTRY" ||
         getErrorMessage(error).includes("uq_pit_entry")
       ) {
-        throw new Error(
+        throw new ScoutingError(
+          409,
           `Duplicate pit entry: Team ${entry.teamNumber} already has a pit scouting entry for this event`,
         );
       }
@@ -729,7 +731,8 @@ export class MariaDbDatabaseService implements DatabaseService {
         getDriverErrorCode(error) === "ER_DUP_ENTRY" ||
         getErrorMessage(error).includes("uq_match_entry")
       ) {
-        throw new Error(
+        throw new ScoutingError(
+          409,
           `Duplicate match entry: Team ${entry.teamNumber} already has an entry for match ${entry.matchNumber} at this event`,
         );
       }

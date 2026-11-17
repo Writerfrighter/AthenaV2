@@ -6,6 +6,21 @@ import { calculateEPA } from "@/lib/statistics";
 import { CompetitionType } from "@/lib/types";
 import { NextRequest, NextResponse } from "next/server";
 import { loadGameConfig } from "@/lib/server/game-config-store";
+import { z } from "zod";
+
+const createPicklistSchema = z.object({
+  eventCode: z.string().trim().min(1),
+  year: z.number().int().min(1992).max(2100),
+  competitionType: z.enum(["FRC", "FTC"]),
+  picklistType: z.enum(["pick1", "pick2", "blacklist", "main"]).default("main"),
+  entries: z
+    .array(z.object({ teamNumber: z.number().int().positive(), rank: z.number().int() }))
+    .default([])
+    .refine(
+      (entries) => new Set(entries.map((e) => e.teamNumber)).size === entries.length,
+      "Each team may appear only once",
+    ),
+});
 
 
 interface TeamPicklistData {
@@ -368,15 +383,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { eventCode, year, competitionType, picklistType, entries } = body;
-
-    if (!eventCode || !year || !competitionType) {
+    // Validate everything before the first write: the writes below are not one transaction.
+    const parsed = createPicklistSchema.safeParse(await request.json().catch(() => undefined));
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Invalid picklist data", details: parsed.error.issues },
         { status: 400 },
       );
     }
+    const { eventCode, year, competitionType, picklistType, entries } = parsed.data;
 
     const service = getDbService();
 
@@ -388,15 +403,12 @@ export async function POST(request: NextRequest) {
       picklistType: picklistType || "main",
     });
 
-    // Add entries if provided
-    if (entries && Array.isArray(entries) && entries.length > 0) {
-      for (const entry of entries) {
-        await service.addPicklistEntry({
-          picklistId,
-          teamNumber: entry.teamNumber,
-          rank: entry.rank,
-        });
-      }
+    for (const entry of entries) {
+      await service.addPicklistEntry({
+        picklistId,
+        teamNumber: entry.teamNumber,
+        rank: entry.rank,
+      });
     }
 
     return NextResponse.json({
