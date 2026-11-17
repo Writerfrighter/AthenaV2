@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts"],
     webpackMemoryOptimizations: true,
+    agentUpgrade: "security",
   },
   async headers() {
     const securityHeaders = [
