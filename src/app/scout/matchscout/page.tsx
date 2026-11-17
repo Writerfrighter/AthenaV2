@@ -1,9 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
 import { ThemeSelector } from "@/components/settings/theme-selector";
@@ -17,48 +15,29 @@ export default function Page() {
 
   return (
     <div className="scout-form-page min-h-screen bg-background dark:bg-background">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Overview</span>
-                </Button>
-              </Link>
-              <div className="h-6 w-px bg-border"></div>
-              <h1 className="text-lg font-semibold dark:text-white">
-                Match Scouting
-              </h1>
-            </div>
-            <div className="ml-auto flex items-center gap-2">
-              <ModeToggle />
-              <ThemeSelector />
-            </div>
-          </div>
-          {/* Year selector on second row for mobile */}
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
-            <div className="flex items-center gap-3">
-              {selectedEvent && (
-                <Badge
-                  variant="outline"
-                  className="max-w-[14rem] truncate text-xs"
-                  title={selectedEvent.name}
-                >
-                  {selectedEvent.name}
-                </Badge>
-              )}
-            </div>
+      <div aria-hidden="true" className="fixed inset-x-0 top-0 z-[60] flex h-[3px]">
+        <div className="flex-1 bg-[#E5484D]" />
+        <div className="flex-1 bg-[#3B7BF6]" />
+      </div>
+      <header className="sticky top-0 z-50 border-b bg-background/95 pt-[3px] backdrop-blur-sm supports-[backdrop-filter]:bg-background/80">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+          <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
+            ← Exit
+          </Link>
+          <h1 className="font-mono text-[13px] text-muted-foreground">
+            match scouting{selectedEvent ? ` · ${selectedEvent.name}` : ""}
+          </h1>
+          <div className="ml-auto flex items-center gap-2">
             <OfflineStatusWidget />
+            <ModeToggle />
+            <ThemeSelector />
           </div>
         </div>
-      </div>
+      </header>
 
       {!selectedEvent ? (
         <div className="mx-auto max-w-2xl px-4 py-12">
-          <Card className="border-dashed text-center">
+          <Card className="rounded-2xl border-dashed text-center shadow-none">
             <CardHeader>
               <CardTitle>Select an event before scouting</CardTitle>
             </CardHeader>

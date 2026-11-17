@@ -11,7 +11,6 @@ import { useScoutingAssignment } from "@/hooks/use-scouting-assignment";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Zap,
@@ -20,8 +19,6 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { matchApi } from "@/lib/api/database-client";
@@ -665,15 +662,21 @@ export function DynamicMatchScoutForm() {
         }
       `}</style>
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        <div className="text-center">
-          <Badge variant="outline" className="text-lg px-4 py-2">
-            {gameConfig?.gameName || "Unknown Game"} -{" "}
-            {isEditMode ? "Edit Match Entry" : "Match Scouting"}
-          </Badge>
+        <div className="flex flex-col gap-1">
+          <span className="font-mono text-xs text-muted-foreground">
+            {gameConfig?.gameName || "Unknown game"} · {isEditMode ? "edit entry" : "match scouting"}
+          </span>
+          <h1 className="text-[34px] font-bold leading-none tracking-[-0.03em]">
+            {formData.matchNumber ? `Q${formData.matchNumber}` : "Match"}
+            {formData.teamNumber ? <span className="text-muted-foreground"> · {formData.teamNumber}</span> : null}
+            <span className={`ml-3 inline-block rounded-full px-2.5 py-1 align-middle text-[13px] font-semibold tracking-normal ${formData.alliance === "red" ? "bg-[#FBE9E9] text-[#C2272D]" : "bg-[#E8EFFE] text-[#2563EB]"}`}>
+              {formData.alliance === "red" ? "Red" : "Blue"}{formData.alliancePosition ? ` ${formData.alliancePosition}` : ""}
+            </span>
+          </h1>
         </div>
 
         {isLoadingEdit && (
-          <Card className="border rounded-xl shadow-sm">
+          <Card variant="panel">
             <CardContent className="pt-6 text-center">
               <div className="text-muted-foreground">
                 Loading entry for editing...
@@ -716,16 +719,15 @@ export function DynamicMatchScoutForm() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4">
-            <TabsList className="w-full grid grid-cols-3 h-auto">
+          <div className="sticky top-[3px] z-10 mb-5 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <TabsList className="grid h-auto w-full grid-cols-3 rounded-none bg-transparent p-0">
               {tabs.map((tab) => (
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
-                  className="flex flex-col gap-1 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  className="rounded-none border-0 py-3.5 text-[15px] text-muted-foreground shadow-none data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-[inset_0_-2px_0_var(--primary)]"
                 >
-                  {tab.icon}
-                  <span className="text-xs">{tab.label}</span>
+                  {tab.label}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -823,18 +825,19 @@ export function DynamicMatchScoutForm() {
                   />
                 )}
 
-                <Card className="border rounded-xl shadow-sm">
+                <Card variant="panel">
                   <CardContent className="space-y-2">
-                    <label className="font-medium text-primary/90 font-semibold">
-                      Additional Notes
+                    <label htmlFor="match-notes" className="font-semibold">
+                      Quick note
                     </label>
                     <Textarea
+                      id="match-notes"
                       placeholder="Any additional observations about this match..."
                       value={formData.notes}
                       onChange={(e) =>
                         handleBasicInputChange("notes", e.target.value)
                       }
-                      className="focus:border-green-500 min-h-[200px] mt-2"
+                      className="mt-2 min-h-[160px] rounded-xl bg-background"
                       required={true}
                     />
                   </CardContent>
@@ -850,10 +853,9 @@ export function DynamicMatchScoutForm() {
               size="lg"
               onClick={goToPreviousTab}
               disabled={activeTab === tabs[0].id}
-              className="flex items-center gap-2"
+              className="h-12 rounded-full px-5"
             >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
+              ← {tabs[Math.max(0, tabs.findIndex((t) => t.id === activeTab) - 1)].label}
             </Button>
 
             <div className="flex gap-1">
@@ -870,14 +872,12 @@ export function DynamicMatchScoutForm() {
             </div>
 
             <Button
-              variant="outline"
               size="lg"
               onClick={goToNextTab}
               disabled={activeTab === tabs[tabs.length - 1].id}
-              className="flex items-center gap-2"
+              className="h-12 rounded-full px-5"
             >
-              Next
-              <ChevronRight className="h-4 w-4" />
+              {tabs[Math.min(tabs.length - 1, tabs.findIndex((t) => t.id === activeTab) + 1)].label} →
             </Button>
           </div>
         </Tabs>

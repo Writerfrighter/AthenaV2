@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Minus, CheckCircle } from "lucide-react";
+import { Minus, CheckCircle } from "lucide-react";
 import { getFieldType } from "./match-form-utils";
 import type { ScoringDefinition } from "@/lib/types";
 
@@ -41,7 +41,7 @@ export function ScoringField({
     case "boolean":
       return (
         <div className="space-y-2">
-          <Label className="text-sm font-medium">{fieldConfig.label}</Label>
+          <Label className="text-base font-semibold text-foreground">{fieldConfig.label}</Label>
           <div className="flex items-center justify-center">
             <Button
               variant={Boolean(currentValue) ? "default" : "outline"}
@@ -49,7 +49,8 @@ export function ScoringField({
               onClick={() =>
                 onValueChange(section, fieldKey, !Boolean(currentValue))
               }
-              className="h-16 w-full font-semibold transition-all duration-200 border-2"
+              aria-pressed={Boolean(currentValue)}
+              className="h-14 w-full rounded-xl font-semibold"
             >
               {Boolean(currentValue) ? (
                 <>
@@ -78,13 +79,13 @@ export function ScoringField({
       );
       return (
         <div className="space-y-2">
-          <Label className="text-sm font-medium">{fieldConfig.label}</Label>
+          <Label className="text-base font-semibold text-foreground">{fieldConfig.label}</Label>
           <div className="flex items-center justify-center">
             <Select
               value={selectValue}
               onValueChange={(value) => onValueChange(section, fieldKey, value)}
             >
-              <SelectTrigger className="h-16 w-full text-base font-semibold focus:ring-2 focus:ring-primary/20 bg-muted border-">
+              <SelectTrigger aria-label={fieldConfig.label} className="!h-14 w-full rounded-xl text-base font-semibold">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -124,112 +125,61 @@ export function ScoringField({
     case "number":
     default:
       const numValue = Number(currentValue) || 0;
-
-      // Check if this field has custom increments configured
-      if (
-        fieldConfig.increments &&
-        Array.isArray(fieldConfig.increments) &&
-        fieldConfig.increments.length > 0
-      ) {
-        const increments = fieldConfig.increments;
-        const decrements = [...increments].reverse();
-        const handleIncrementChange = (amount: number) => {
-          const newValue = Math.max(0, numValue + amount);
-          onValueChange(section, fieldKey, newValue);
-        };
-
-        return (
-          <div className="space-y-2 sm:col-span-2 lg:col-span-3">
-            <Label className="text-sm font-medium">{fieldConfig.label}</Label>
-            <div className="flex items-center gap-1 w-full">
-              {decrements.map((inc) => (
-                <Button
-                  key={`sub-${inc}`}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleIncrementChange(-inc)}
-                  className="h-14 min-w-0 flex-1 px-1 text-sm font-semibold"
-                >
-                  -{inc}
-                </Button>
-              ))}
-              <Input
-                type="number"
-                min={0}
-                value={numValue}
-                onChange={(e) =>
-                  onValueChange(
-                    section,
-                    fieldKey,
-                    Math.max(0, Number(e.target.value)),
-                  )
-                }
-                className="hide-spinners w-12 sm:w-28 flex-shrink-0 text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-primary/20"
-                style={{ height: "3.5rem" }}
-              />
-              {increments.map((inc) => (
-                <Button
-                  key={`add-${inc}`}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleIncrementChange(inc)}
-                  className="h-14 min-w-0 flex-1 px-1 text-sm font-semibold"
-                >
-                  +{inc}
-                </Button>
-              ))}
-            </div>
-            {fieldConfig.points ? (
-              <div className="text-xs text-center text-muted-foreground">
-                {fieldConfig.points} points each
-              </div>
-            ) : null}
-          </div>
-        );
-      }
+      // Design counter: [−] [value] then filled steps (+1 green, +5 dark, +10 grey).
+      const steps =
+        fieldConfig.increments && fieldConfig.increments.length > 0
+          ? fieldConfig.increments
+          : [1];
+      const stepColors = ["bg-primary text-primary-foreground", "bg-[#3D4146] text-white", "bg-[#6B6F75] text-white"];
+      const setValue = (amount: number) =>
+        onValueChange(section, fieldKey, Math.max(0, numValue + amount));
 
       return (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">{fieldConfig.label}</Label>
-          <div className="flex items-center justify-center gap-3">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => onNumberChange(section, fieldKey, false)}
-              className="h-16 w-16 p-0 flex-shrink-0"
-            >
-              <Minus className="h-5 w-5" />
-            </Button>
-            <div className="flex flex-col justify-center items-center flex-grow">
-              <Input
-                type="number"
-                min={0}
-                value={numValue}
-                onChange={(e) =>
-                  onValueChange(
-                    section,
-                    fieldKey,
-                    Math.max(0, Number(e.target.value)),
-                  )
-                }
-                className="hide-spinners min-w-[4rem] w-full text-center text-lg font-mono font-semibold bg-muted rounded-md border-none focus:ring-2 focus:ring-primary/20"
-                style={{ height: "4rem" }}
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => onNumberChange(section, fieldKey, true)}
-              className="h-16 w-16 p-0 flex-shrink-0"
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
+        <div className="flex flex-col gap-3 sm:col-span-2">
+          <div className="flex items-baseline justify-between gap-3">
+            <Label htmlFor={`${section}-${fieldKey}`} className="text-base font-semibold text-foreground">{fieldConfig.label}</Label>
+            {fieldConfig.points ? (
+              <span className="text-xs text-muted-foreground">{fieldConfig.points} pts each</span>
+            ) : null}
           </div>
-          {fieldConfig.points ? (
-            <div className="text-xs text-center text-muted-foreground">
-              {fieldConfig.points} points each
-            </div>
-          ) : null}
+          <div
+            className="grid items-center gap-2"
+            style={{ gridTemplateColumns: `64px minmax(72px,1fr) repeat(${steps.length}, minmax(56px, 72px))` }}
+          >
+            <Button
+              type="button"
+              variant="outline"
+              aria-label={`Subtract one from ${fieldConfig.label}`}
+              onClick={() => (fieldConfig.increments?.length ? setValue(-1) : onNumberChange(section, fieldKey, false))}
+              className="h-14 rounded-xl text-[22px]"
+            >
+              −
+            </Button>
+            <Input
+              id={`${section}-${fieldKey}`}
+              type="number"
+              min={0}
+              value={numValue}
+              onChange={(e) =>
+                onValueChange(
+                  section,
+                  fieldKey,
+                  Math.max(0, Number(e.target.value)),
+                )
+              }
+              className="hide-spinners h-14 border-0 bg-transparent text-center !text-[44px] font-bold tracking-[-0.03em] tabular-nums shadow-none focus-visible:ring-2"
+            />
+            {steps.map((inc, i) => (
+              <Button
+                key={`add-${inc}`}
+                type="button"
+                onClick={() => (steps.length === 1 && inc === 1 && !fieldConfig.increments?.length ? onNumberChange(section, fieldKey, true) : setValue(inc))}
+                className={`h-14 rounded-xl text-lg font-semibold hover:opacity-90 ${stepColors[Math.min(i, stepColors.length - 1)]}`}
+              >
+                +{inc}
+              </Button>
+            ))}
+          </div>
         </div>
       );
   }
