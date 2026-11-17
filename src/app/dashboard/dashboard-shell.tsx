@@ -68,7 +68,7 @@ export default function DashboardShell({
           <SidebarInset>
             {/* The design has no top bar: the menu button only appears where the sidebar is hidden. */}
             <SidebarTrigger className="fixed top-3 left-3 z-40 bg-background md:hidden" />
-            <div className="flex w-full max-w-[1260px] flex-1 flex-col gap-9 px-4 pt-14 pb-16 md:px-12 md:pt-8">
+            <div className="flex w-full flex-1 flex-col gap-9 px-4 pt-14 pb-16 md:px-12 md:pt-8">
               {!isInitialLoading && pathname === "/dashboard" && <OnboardingChecklist />}
               {isInitialLoading ? <DashboardLoading /> : children}
             </div>

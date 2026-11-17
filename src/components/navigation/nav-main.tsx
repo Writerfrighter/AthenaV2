@@ -15,7 +15,7 @@ import { useOnboarding, useTourHighlight } from "@/components/onboarding/onboard
 
 // Minimal text nav: active link is bold foreground, the rest muted.
 export const navLinkClass =
-  "h-8 px-2 text-muted-foreground hover:bg-transparent hover:text-foreground data-[active=true]:bg-transparent data-[active=true]:font-semibold data-[active=true]:text-foreground";
+  "h-8 px-2 text-foreground/75 hover:bg-transparent hover:text-foreground data-[active=true]:bg-transparent data-[active=true]:font-semibold data-[active=true]:text-foreground";
 
 export function NavMain({
   items,
@@ -72,7 +72,7 @@ export function NavMain({
             className={`py-0 ${isCompetition ? competitionHighlight : ""}`}
             data-tour-target={isCompetition ? "competition" : undefined}
           >
-            <SidebarGroupLabel className="h-7 pt-3 text-[11px] font-normal uppercase tracking-wider text-muted-foreground">
+            <SidebarGroupLabel className="mt-4 h-6 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
               {item.title}
             </SidebarGroupLabel>
             <SidebarMenu>

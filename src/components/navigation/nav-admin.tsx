@@ -28,7 +28,7 @@ export function NavAdmin({
 
   return (
     <SidebarGroup className="py-0">
-      <SidebarGroupLabel className="h-7 pt-3 text-[11px] font-normal uppercase tracking-wider text-muted-foreground">Admin</SidebarGroupLabel>
+      <SidebarGroupLabel className="mt-4 h-6 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">Admin</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const isActive = pathname === item.url || (item.url !== "/dashboard/admin" && pathname.startsWith(item.url + "/"));
