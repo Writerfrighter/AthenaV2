@@ -127,8 +127,7 @@ function FieldImage({ value, onChange }: {
         )}
       </div>
       <p className={hint}>
-        Scouts draw autonomous paths on this. Any shape works, including a square FTC
-        field. Drawings already saved are not moved if you change it mid-season.
+        Scouts draw autonomous paths on this. Drawings already saved are not moved if you change it mid-season.
       </p>
     </Field>
   );
