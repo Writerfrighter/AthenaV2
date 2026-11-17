@@ -1152,10 +1152,22 @@ export class MariaDbDatabaseService implements DatabaseService {
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
+      // The saved list replaces the stored one, as on Azure SQL: the page
+      // creates picklists empty and adds or removes teams only through here.
+      const teams = entries.map((e) => e.teamNumber);
+      await conn.execute(
+        `DELETE FROM picklistEntries WHERE picklistId = ?${
+          teams.length
+            ? ` AND teamNumber NOT IN (${teams.map(() => "?").join(", ")})`
+            : ""
+        }`,
+        [picklistId, ...teams],
+      );
       for (const e of entries) {
         await conn.execute(
-          `UPDATE picklistEntries SET rank = ? WHERE picklistId = ? AND teamNumber = ?`,
-          [e.rank, picklistId, e.teamNumber],
+          `INSERT INTO picklistEntries (picklistId, teamNumber, rank) VALUES (?, ?, ?)
+           ON DUPLICATE KEY UPDATE rank = VALUES(rank)`,
+          [picklistId, e.teamNumber, e.rank],
         );
       }
       await conn.commit();

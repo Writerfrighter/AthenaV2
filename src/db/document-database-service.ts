@@ -271,8 +271,14 @@ export class DocumentDatabaseService implements DatabaseService {
   deletePicklistEntry(id: number) { return this.remove("picklistEntries", { numericId: id }); }
   updatePicklistEntryRank(picklistId: number, teamNumber: number, rank: number) { return this.update("picklistEntries", { picklistId, teamNumber }, { rank }); }
   async reorderPicklistEntries(picklistId: number, entries: Array<{ teamNumber: number; rank: number }>) {
+    // The saved list replaces the stored one, as on the SQL providers: the page
+    // creates picklists empty and adds or removes teams only through here.
     const ranks = new Map(entries.map((e) => [e.teamNumber, e.rank]));
-    const docs = (await this.store.list("picklistEntries", { picklistId })).filter((d) => ranks.has(Number(d.data.teamNumber)));
+    const stored = await this.store.list("picklistEntries", { picklistId });
+    const docs = stored.filter((d) => ranks.has(Number(d.data.teamNumber)));
+    for (const doc of stored) if (!docs.includes(doc)) await this.store.remove("picklistEntries", doc.key);
+    const known = new Set(docs.map((d) => Number(d.data.teamNumber)));
+    for (const [teamNumber, rank] of ranks) if (!known.has(teamNumber)) await this.addPicklistEntry({ picklistId, teamNumber, rank });
     const updates = new Map(docs.map((doc) => [doc.key, { rank: ranks.get(Number(doc.data.teamNumber)), updated_at: now() }]));
     if (this.store.updateMany) await this.store.updateMany("picklistEntries", updates);
     else for (const [key, patch] of updates) await this.store.transact("picklistEntries", [key], (current) => {

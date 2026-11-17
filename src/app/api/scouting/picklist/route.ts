@@ -8,20 +8,42 @@ import { NextRequest, NextResponse } from "next/server";
 import { loadGameConfig } from "@/lib/server/game-config-store";
 import { z } from "zod";
 
+const entriesSchema = z
+  .array(z.object({ teamNumber: z.number().int().positive(), rank: z.number().int() }))
+  .max(1000)
+  .refine(
+    (entries) => new Set(entries.map((e) => e.teamNumber)).size === entries.length,
+    "Each team may appear only once",
+  );
+
 const createPicklistSchema = z.object({
   eventCode: z.string().trim().min(1),
   year: z.number().int().min(1992).max(2100),
   competitionType: z.enum(["FRC", "FTC"]),
   picklistType: z.enum(["pick1", "pick2", "blacklist", "main"]).default("main"),
-  entries: z
-    .array(z.object({ teamNumber: z.number().int().positive(), rank: z.number().int() }))
-    .default([])
-    .refine(
-      (entries) => new Set(entries.map((e) => e.teamNumber)).size === entries.length,
-      "Each team may appear only once",
-    ),
+  entries: entriesSchema.default([]),
 });
 
+const reorderPicklistSchema = z.object({
+  picklistId: z.coerce.number().int().positive(),
+  entries: entriesSchema,
+});
+
+
+/**
+ * Ranking fallback when a season has no usable game config: the mean per match
+ * of every top-level number, so a team is not ranked up for playing more.
+ */
+function averageRawScore(matches: { gameSpecificData?: Record<string, unknown> }[]) {
+  if (matches.length === 0) return 0;
+  let total = 0;
+  for (const match of matches) {
+    for (const value of Object.values(match.gameSpecificData ?? {})) {
+      if (typeof value === "number") total += value;
+    }
+  }
+  return total / matches.length;
+}
 
 interface TeamPicklistData {
   teamNumber: number;
@@ -318,32 +340,10 @@ export async function GET(request: NextRequest) {
           teamData[teamNumber].totalEPA = epaBreakdown.totalEPA;
         } catch (error) {
           console.error(`Error calculating EPA for team ${teamNumber}:`, error);
-          // Fallback to simple calculation
-          let totalEPA = 0;
-          teamMatches.forEach((match) => {
-            if (match.gameSpecificData) {
-              Object.values(match.gameSpecificData).forEach((value) => {
-                if (typeof value === "number") {
-                  totalEPA += value;
-                }
-              });
-            }
-          });
-          teamData[teamNumber].totalEPA = totalEPA;
+          teamData[teamNumber].totalEPA = averageRawScore(teamMatches);
         }
       } else {
-        // Fallback to simple calculation if no year config
-        let totalEPA = 0;
-        teamMatches.forEach((match) => {
-          if (match.gameSpecificData) {
-            Object.values(match.gameSpecificData).forEach((value) => {
-              if (typeof value === "number") {
-                totalEPA += value;
-              }
-            });
-          }
-        });
-        teamData[teamNumber].totalEPA = totalEPA;
+        teamData[teamNumber].totalEPA = averageRawScore(teamMatches);
       }
     });
 
@@ -436,20 +436,20 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { picklistId, entries } = body;
-
-    if (!picklistId || !entries || !Array.isArray(entries)) {
+    // The save replaces the stored list, so a malformed list must not reach it.
+    const parsed = reorderPicklistSchema.safeParse(await request.json().catch(() => undefined));
+    if (!parsed.success) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
       );
     }
+    const { picklistId, entries } = parsed.data;
 
     const service = getDbService();
 
     // Update the order of entries
-    await service.reorderPicklistEntries(parseInt(picklistId), entries);
+    await service.reorderPicklistEntries(picklistId, entries);
 
     return NextResponse.json({
       success: true,

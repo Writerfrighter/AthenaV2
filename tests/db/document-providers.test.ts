@@ -235,6 +235,15 @@ for (const provider of ["firebase", "cosmos"] as const) describe(`${provider} SD
     await service.resetDatabase();
     expect(await service.getAllMatchEntries()).toEqual([]);
   });
+  it("saves a picklist by replacing its entries, starting from an empty list", async () => {
+    const id = await service.addPicklist({ ...scope, picklistType: "pick1" });
+    await service.reorderPicklistEntries(id, [{ teamNumber: 254, rank: 1 }, { teamNumber: 1678, rank: 2 }]);
+    expect((await service.getPicklistEntries(id)).map((entry) => entry.teamNumber)).toEqual([254, 1678]);
+    await service.reorderPicklistEntries(id, [{ teamNumber: 1678, rank: 1 }, { teamNumber: 492, rank: 2 }]);
+    expect((await service.getPicklistEntries(id)).map((entry) => entry.teamNumber)).toEqual([1678, 492]);
+    await service.reorderPicklistEntries(id, []);
+    expect(await service.getPicklistEntries(id)).toEqual([]);
+  });
   it("reorders picklists larger than the Cosmos batch limit", async () => {
     const id = await service.addPicklist({ ...scope, picklistType: "main" });
     const entries = Array.from({ length: 201 }, (_, rank) => ({ teamNumber: rank + 1, rank: 200 - rank }));

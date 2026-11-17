@@ -736,7 +736,7 @@ export function DraggablePicklist({
     );
   };
 
-  const header = (actions: ReactNode) => (
+  const header = (actions: ReactNode, notStarted = false) => (
     <header className="flex flex-wrap items-end justify-between gap-5">
       <div className="flex flex-col gap-2">
         <span className="font-mono text-xs text-muted-foreground">
@@ -744,7 +744,9 @@ export function DraggablePicklist({
         </span>
         <h1 className="text-[44px] font-bold leading-[0.95] tracking-[-0.04em]">Picklist</h1>
         <span className="text-muted-foreground">
-          {totalTrackedTeams} of {totalEventTeams} teams ranked · excluding {ownTeamNumber}
+          {notStarted
+            ? `Not started · ${totalEventTeams} teams at this event`
+            : `${totalTrackedTeams} of ${totalEventTeams} teams ranked · excluding ${ownTeamNumber}`}
         </span>
       </div>
       {actions}
@@ -846,6 +848,16 @@ export function DraggablePicklist({
             <span className="text-sm font-medium text-destructive">You have unsaved changes</span>
           )}
         </div>,
+        showInitialize,
+      )}
+
+      {showInitialize && (
+        <div className="rounded-lg border border-dashed p-8 text-center">
+          <p className="font-medium">No picklist for this event yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Initialize it to get empty first-pick and second-pick lists, then drag teams in from Unlisted.
+          </p>
+        </div>
       )}
 
       {!showInitialize && (
