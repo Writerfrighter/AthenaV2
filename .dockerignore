@@ -20,3 +20,5 @@ docker-compose.yml
 npm-debug.log
 Dockerfile
 .dockerignore
+graphify-out
+scripts
