@@ -57,7 +57,7 @@
     "@types/web-push": "^3.6.4",
     "baseline-browser-mapping": "^2.11.35",
     "esbuild": "^0.28.2",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "eslint-config-next": "16.4.6",
     "fake-indexeddb": "^6.2.8",
     "happy-dom": "^21.0.4",
