@@ -20,11 +20,6 @@ import { useSession } from "next-auth/react";
 
 const subscribeToLocalStorage = () => () => undefined;
 
-function greeting() {
-  const hour = new Date().getHours();
-  return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-}
-
 function percent(current: number, total: number) {
   if (total <= 0) return 0;
   return Math.round(Math.min(100, Math.max(0, (current / total) * 100)));
@@ -54,7 +49,7 @@ export default function Page() {
     () => 0,
   );
   // Server render has no clock of the viewer; greet only on the client.
-  const title = useSyncExternalStore(subscribeToLocalStorage, greeting, () => "Overview");
+  const title = useSyncExternalStore(subscribeToLocalStorage, () => `Welcome, ${session?.user?.name?.split(" ")[0] || "Guest"}`, () => "Overview");
   const nextAssignment = getNextAssignment(lastSubmittedMatch);
   const pit = stats.pitScoutingProgress;
   const quals = stats.qualificationProgress;
@@ -105,7 +100,7 @@ export default function Page() {
     { l: "Teams scouted", v: stats.teamsScouted, s: `pit ${pit.current} of ${pit.total}` },
     { l: "Match entries", v: stats.matchesRecorded, s: `${percent(quals.current, quals.total)}% of quals` },
     { l: "Pit coverage", v: `${percent(pit.current, pit.total)}%`, s: `${missingPitTeams} to go` },
-    { l: "Data completeness", v: `${stats.dataQuality.toFixed(0)}%`, s: "of expected fields" },
+    { l: "Data completeness", v: `${stats.dataQuality.toFixed(0)}%`, s: "of expected entries" },
     { l: "Sync", v: isOnline ? "Online" : "Offline", s: syncInProgress ? "syncing…" : `${pendingCount} queued` },
   ];
 
