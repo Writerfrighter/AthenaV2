@@ -23,6 +23,7 @@ import { useSelectedEvent } from "@/hooks/use-event-config";
 import { calculateEPA } from "@/lib/statistics";
 import { estimateWinProbability } from "@/lib/matchup-probability";
 import MatchupAlliancePanel from "./matchup-alliance-panel";
+import { NoteDot, NotesBar } from "@/components/note-sentiment";
 
 type MatchType = "qualification" | "playoff";
 
@@ -35,6 +36,7 @@ type TeamEpaMap = Record<
         endgame: number;
         matchCount: number;
         scores: number[];
+        notes: { match: number; text: string }[];
       } | null
     >;
 
@@ -121,6 +123,9 @@ export default function MatchupPage() {
               endgame: epa?.endgameEPA ?? 0,
               matchCount: data.matchCount ?? 0,
               scores,
+              notes: data.matchEntries
+                .filter((match) => match.notes?.trim())
+                .map((match) => ({ match: match.matchNumber, text: match.notes.trim() })),
             };
           } catch {
             return {
@@ -131,6 +136,7 @@ export default function MatchupPage() {
               endgame: 0,
               matchCount: 0,
               scores: [],
+              notes: [],
             };
           }
         }),
@@ -144,6 +150,7 @@ export default function MatchupPage() {
           endgame: r.endgame,
           matchCount: r.matchCount,
           scores: r.scores,
+          notes: r.notes,
         };
       });
       return map;
@@ -441,7 +448,8 @@ export default function MatchupPage() {
                         <th scope="col" className={`${th} text-right`}>Auto</th>
                         <th scope="col" className={`${th} text-right`}>Teleop</th>
                         <th scope="col" className={`${th} text-right`}>Endgame</th>
-                        <th scope="col" className={`${th} pr-0 text-right`}>Matches</th>
+                        <th scope="col" className={`${th} text-right`}>Matches</th>
+                        <th scope="col" className={`${th} pr-0`}>Notes</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -488,6 +496,33 @@ export default function MatchupPage() {
                 </div>
               ))}
             </section>
+          )}
+
+          {alliances.some((a) => a.teams.some((team) => teamEpaMap[team]?.notes.length)) && (
+            <div className="grid gap-10 border-t pt-7 [grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))]">
+              {alliances.map((a) => {
+                // Latest notes first: what a team did recently matters most before a match.
+                const notes = a.teams
+                  .flatMap((team) => (teamEpaMap[team]?.notes ?? []).map((note) => ({ team, ...note })))
+                  .sort((x, y) => y.match - x.match)
+                  .slice(0, 8);
+                return (
+                  <section key={a.key} aria-labelledby={`${a.key}-notes`} className="flex flex-col">
+                    <h2 id={`${a.key}-notes`} className="pb-1.5 text-lg font-semibold tracking-tight">
+                      {a.key === "red" ? "Red notes" : "Blue notes"}
+                    </h2>
+                    {notes.length === 0 && <p className="py-2 text-sm text-muted-foreground">No scouting notes yet</p>}
+                    {notes.map((note, index) => (
+                      <div key={index} className="grid grid-cols-[9px_44px_minmax(0,1fr)] items-baseline gap-2.5 border-b border-border/60 py-2 text-sm leading-snug">
+                        <NoteDot note={note.text} className="self-center" />
+                        <span className={`font-mono text-xs ${a.text}`}>{note.team}</span>
+                        <span>{note.text}</span>
+                      </div>
+                    ))}
+                  </section>
+                );
+              })}
+            </div>
           )}
 
           <section aria-labelledby="details" className="flex flex-col gap-4 border-t pt-7">

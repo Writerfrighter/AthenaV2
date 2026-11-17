@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import TeamImage from "@/components/team-pages-common/TeamImage";
 import TeamNotes from "@/components/team-pages-common/TeamNotes";
+import { NoteDot } from "@/components/note-sentiment";
 import { FieldDrawingCanvas } from "@/components/forms/field-drawing-canvas";
 import { PerformanceOverTimeChart } from "@/components/charts/performance-over-time-chart";
 import { useTeamData } from "@/hooks/use-team-data";
@@ -445,6 +446,7 @@ export function ConfigurableTeamPage({
                         <td className={cell}>{epa.endgame.toFixed(1)}</td>
                         <td className={`${cell} font-medium`}>{epa.totalEPA.toFixed(1)}</td>
                         <td className="max-w-[420px] truncate border-b border-border/60 py-2.5 pl-4 text-muted-foreground" title={match.notes || undefined}>
+                          <NoteDot note={match.notes} className="mr-2" />
                           {match.notes || "—"}
                         </td>
                       </tr>
@@ -458,7 +460,7 @@ export function ConfigurableTeamPage({
 
       {teamData.pitEntry?.autoDrawing && (
         <Section title="Autonomous path" description="Drawn during pit scouting">
-          <FieldDrawingCanvas initialData={teamData.pitEntry.autoDrawing} readOnly />
+          <FieldDrawingCanvas fieldImageSrc={yearConfig?.fieldImage} initialData={teamData.pitEntry.autoDrawing} readOnly />
         </Section>
       )}
 

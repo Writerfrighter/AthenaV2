@@ -4,6 +4,7 @@ import { memo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { ScoutingTableFeatures } from "./table-features";
 import { Badge } from "@/components/ui/badge";
+import { NoteDot } from "@/components/note-sentiment";
 import type { MatchEntry } from "@/lib/types";
 import { ScoutingTable, SortableHeader, type ScoutingTableProps } from "./scouting-table";
 
@@ -50,6 +51,7 @@ const columns: ColumnDef<ScoutingTableFeatures, MatchEntry>[] = [
     header: "Notes",
     cell: ({ row }) => (
       <div className="text-xs max-w-xs truncate" title={row.original.notes}>
+        <NoteDot note={row.original.notes} className="mr-2" />
         {row.original.notes}
       </div>
     ),
