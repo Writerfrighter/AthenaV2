@@ -10,6 +10,9 @@ export interface ValidationResult {
   warnings: string[];
 }
 
+/** About 750 KB of image once base64 is decoded. */
+export const MAX_FIELD_IMAGE_LENGTH = 1_000_000;
+
 /**
  * Validates whether an object adheres to the YearConfig interface specifications.
  */
@@ -46,6 +49,18 @@ export function validateYearConfig(data: unknown): ValidationResult {
     !config.gameName.trim()
   ) {
     errors.push("Missing or invalid 'gameName'. Must be a non-empty string.");
+  }
+
+  // Field image (optional): stored inline, so keep it an image and keep it small
+  if (config.fieldImage !== undefined) {
+    if (
+      typeof config.fieldImage !== "string" ||
+      !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(config.fieldImage)
+    ) {
+      errors.push("'fieldImage' must be a PNG, JPEG or WebP image data URL.");
+    } else if (config.fieldImage.length > MAX_FIELD_IMAGE_LENGTH) {
+      errors.push("'fieldImage' is too large. Upload it through the studio, which resizes it.");
+    }
   }
 
   // 3. Start Positions (optional but if present must be array of strings)

@@ -8,12 +8,13 @@ import { PERMISSIONS } from "@/lib/auth/roles";
 export default function GameConfigAdminPage() {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight">Game Configuration</h1>
+      <header className="flex flex-col gap-2">
+        <span className="font-mono text-xs text-muted-foreground">admin · game configuration</span>
+        <h1 className="text-[44px] font-bold leading-[0.95] tracking-[-0.04em]">Game configuration</h1>
         <p className="text-muted-foreground">
-          Visual game configuration builder for scouting metrics, field layouts, and analytics.
+          Design each season&apos;s scouting forms, matchup card, team page and analysis.
         </p>
-      </div>
+      </header>
 
       <PermissionGuard
         permissions={[

@@ -1,5 +1,6 @@
 "use client";
 
+import { imageFileToDataUrl } from "@/lib/image-upload";
 import {
   Dialog,
   DialogContent,
@@ -132,13 +133,8 @@ export function AccountSettingsDialog({
       let avatarUrl = session?.user?.image;
 
       if (avatarFile) {
-        const reader = new FileReader();
-
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = reject;
-          reader.readAsDataURL(avatarFile);
-        });
+        // Scaled down first, so large photos and non-JPEG formats still upload
+        const dataUrl = await imageFileToDataUrl(avatarFile, 512, 500_000);
 
         const avatarResponse = await fetch("/api/users/me/avatar", {
           method: "POST",

@@ -833,6 +833,7 @@ export function DynamicPitScoutForm() {
                         {/* Field Drawing Canvas for Autonomous Path */}
                         <div className="mt-6">
                           <FieldDrawingCanvas
+                            fieldImageSrc={gameConfig.fieldImage}
                             initialData={formData.autoDrawing}
                             onChange={(strokeJson) =>
                               setFormData((f) => ({
@@ -855,6 +856,7 @@ export function DynamicPitScoutForm() {
                           Autonomous Path
                         </h3>
                         <FieldDrawingCanvas
+                          fieldImageSrc={gameConfig.fieldImage}
                           initialData={formData.autoDrawing}
                           onChange={(strokeJson) =>
                             setFormData((f) => ({

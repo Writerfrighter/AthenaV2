@@ -1,26 +1,22 @@
 "use client";
 
-import { useState } from "react";
-
+import { useRef, useState, type ReactNode } from "react";
+import { Copy, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Sliders, Trash2, Copy, X, Plus, Trophy, MapPin, Layers, Info } from "lucide-react";
 import type {
   YearConfig,
   ScoringDefinition,
   PitScoutingFieldDefinition,
 } from "@/lib/types";
-import { slugifyKey } from "./types";
+import { getFieldType } from "@/components/forms/match-form-utils";
+import { MAX_FIELD_IMAGE_LENGTH } from "@/lib/game-config/config-validator";
+import { imageFileToDataUrl } from "@/lib/image-upload";
+import { getErrorMessage } from "@/lib/utils";
+import { getSection, renameField, renameKey, slugifyKey, updateSection } from "./types";
+import { Choice, Field, NumberField, TextField, heading, hint, panel } from "./fields";
 
 export interface SelectedComponentInfo {
   mode: "match" | "pit";
@@ -38,6 +34,106 @@ interface PropertyInspectorProps {
   onDeleteComponent: (comp: SelectedComponentInfo) => void;
 }
 
+function AddRow({ placeholder, type, onAdd }: {
+  placeholder: string;
+  type?: "number";
+  onAdd: (text: string) => void;
+}) {
+  const [text, setText] = useState("");
+  const submit = () => {
+    if (!text.trim()) return;
+    onAdd(text.trim());
+    setText("");
+  };
+  return (
+    <div className="flex gap-1.5">
+      <Input
+        aria-label={placeholder}
+        type={type}
+        placeholder={placeholder}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          submit();
+        }}
+      />
+      <Button type="button" variant="outline" onClick={submit}>Add</Button>
+    </div>
+  );
+}
+
+function Chips({ items, onRemove }: { items: string[]; onRemove: (index: number) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((item, index) => (
+        <span key={`${item}-${index}`} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs">
+          {item}
+          <button
+            type="button"
+            aria-label={`Remove ${item}`}
+            className="text-muted-foreground hover:text-destructive"
+            onClick={() => onRemove(index)}
+          >
+            <X className="size-3" />
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+const NO_DEPENDENCY = "__none__";
+
+// shortcut: the image is kept in the config as a JPEG data URL, so it reaches
+// offline scouts with the config and needs no upload endpoint. Move it to file
+// storage if configs become slow to load.
+function FieldImage({ value, onChange }: {
+  value: string | undefined;
+  onChange: (value: string | undefined) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <Field label="Field image">
+      {/* eslint-disable-next-line @next/next/no-img-element -- a data URL, nothing to optimise */}
+      {value && <img src={value} alt="Field diagram" className="w-full rounded-lg border" />}
+      <input
+        ref={input}
+        type="file"
+        accept="image/*"
+        aria-label="Field image file"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (!file) return;
+          try {
+            // Scaled down automatically; any aspect ratio is kept.
+            onChange(await imageFileToDataUrl(file, 1600, MAX_FIELD_IMAGE_LENGTH));
+          } catch (error) {
+            toast.error(getErrorMessage(error));
+          }
+        }}
+      />
+      <div className="flex gap-1.5">
+        <Button type="button" variant="outline" size="sm" onClick={() => input.current?.click()}>
+          {value ? "Replace" : "Upload"}
+        </Button>
+        {value && (
+          <Button type="button" variant="ghost" size="sm" onClick={() => onChange(undefined)}>
+            Use default
+          </Button>
+        )}
+      </div>
+      <p className={hint}>
+        Scouts draw autonomous paths on this. Any shape works, including a square FTC
+        field. Drawings already saved are not moved if you change it mid-season.
+      </p>
+    </Field>
+  );
+}
+
 export function PropertyInspector({
   config,
   year,
@@ -47,647 +143,278 @@ export function PropertyInspector({
   onDuplicateComponent,
   onDeleteComponent,
 }: PropertyInspectorProps) {
-  const [newPosition, setNewPosition] = useState("");
-  const [newIncrementInput, setNewIncrementInput] = useState("");
-  const [newOptionInput, setNewOptionInput] = useState("");
-
-  // Handler to add starting position
-  const handleAddPosition = () => {
-    const trimmed = newPosition.trim();
-    if (!trimmed) return;
-    const current = config.startPositions || [];
-    if (!current.includes(trimmed)) {
-      onUpdateConfig((prev) => ({
-        ...prev,
-        startPositions: [...(prev.startPositions || []), trimmed],
-      }));
-    }
-    setNewPosition("");
-  };
-
-  const handleRemovePosition = (idx: number) => {
-    onUpdateConfig((prev) => ({
-      ...prev,
-      startPositions: (prev.startPositions || []).filter((_, i) => i !== idx),
-    }));
-  };
-
-  // If no component is selected, show Game & Canvas Settings
   if (!selectedComponent) {
-    const totalMatchFields = Object.values(config.scoring || {}).reduce(
-      (acc, sec) => acc + Object.keys(sec || {}).length,
-      0,
-    );
-    const totalPitFields = Object.values(config.pitScouting || {}).reduce(
-      (acc, sec) => acc + Object.keys(sec || {}).length,
-      0,
-    );
-
+    const positions = config.startPositions || [];
     return (
-      <div className="w-full h-full flex flex-col bg-card/60 rounded-xl border border-border overflow-hidden">
-        <div className="p-3 border-b border-border bg-muted/30">
-          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <Sliders className="h-3.5 w-3.5 text-primary" />
-            Canvas Properties
-          </span>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Configure global game attributes and start positions
+      <div className={`${panel} space-y-4`}>
+        <div>
+          <h2 className={heading}>Game</h2>
+          <p className={hint}>
+            {config.competitionType} {year}. Use Rename to change the program or year.
           </p>
         </div>
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-5">
-          {/* Game General Info */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
-              <Trophy className="h-3.5 w-3.5 text-amber-500" />
-              Game Season & Title
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Competition Program</Label>
-              <Select
-                value={config.competitionType || "FRC"}
-                disabled
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="FRC">FRC (FIRST Robotics)</SelectItem>
-                  <SelectItem value="FTC">FTC (FIRST Tech Challenge)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Year</Label>
-                <Input
-                  type="number"
-                  value={year || ""}
-                  readOnly
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Game Name</Label>
-                <Input
-                  value={config.gameName || ""}
-                  onChange={(e) =>
-                    onUpdateConfig((prev) => ({ ...prev, gameName: e.target.value }))
-                  }
-                  className="h-8 text-xs"
-                  placeholder="REEFSCAPE"
-                />
-              </div>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Use Rename in the toolbar to change the program or year safely.
-            </p>
-          </div>
-
-          {/* Starting Positions */}
-          <div className="space-y-3 pt-3 border-t border-border">
-            <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
-              <MapPin className="h-3.5 w-3.5 text-primary" />
-              Field Starting Positions
-            </div>
-
-            <div className="flex gap-1.5">
-              <Input
-                placeholder="e.g. Left Trench, Center..."
-                value={newPosition}
-                onChange={(e) => setNewPosition(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddPosition();
-                  }
-                }}
-                className="h-8 text-xs flex-1"
-              />
-              <Button size="sm" variant="secondary" onClick={handleAddPosition} className="h-8 px-2.5 text-xs">
-                <Plus className="h-3.5 w-3.5 mr-1" /> Add
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
-              {(config.startPositions || []).map((pos, idx) => (
-                <Badge
-                  key={idx}
-                  variant="outline"
-                  className="text-xs px-2 py-0.5 flex items-center gap-1 bg-muted/40 border-border"
-                >
-                  <span>{pos}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePosition(idx)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="space-y-2 pt-3 border-t border-border">
-            <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
-              <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-              Configuration Summary
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
-              <div className="p-2 rounded bg-muted/30 border">
-                <span className="font-semibold text-foreground text-sm block">{totalMatchFields}</span>
-                Match Scoring Fields
-              </div>
-              <div className="p-2 rounded bg-muted/30 border">
-                <span className="font-semibold text-foreground text-sm block">{totalPitFields}</span>
-                Pit Scouting Questions
-              </div>
-            </div>
-          </div>
-
-          <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 text-[11px] text-muted-foreground flex gap-2">
-            <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-            <span>Select any component on the canvas to inspect and edit its live properties.</span>
-          </div>
-        </div>
+        <TextField
+          label="Game name"
+          value={config.gameName}
+          onChange={(gameName) => onUpdateConfig((prev) => ({ ...prev, gameName }))}
+        />
+        <Field label="Starting positions">
+          <Chips
+            items={positions}
+            onRemove={(index) =>
+              onUpdateConfig((prev) => ({
+                ...prev,
+                startPositions: (prev.startPositions || []).filter((_, i) => i !== index),
+              }))
+            }
+          />
+          <AddRow
+            placeholder="Add a position"
+            onAdd={(position) => {
+              if (positions.includes(position)) return;
+              onUpdateConfig((prev) => ({
+                ...prev,
+                startPositions: [...(prev.startPositions || []), position],
+              }));
+            }}
+          />
+        </Field>
+        <FieldImage
+          value={config.fieldImage}
+          onChange={(fieldImage) => onUpdateConfig((prev) => ({ ...prev, fieldImage }))}
+        />
+        <p className={hint}>Select a field on the form to edit it.</p>
       </div>
     );
   }
 
-  // A component IS selected
   const { mode, section, fieldKey } = selectedComponent;
+  const fields = getSection(config, mode, section);
+  const definition = fields[fieldKey];
 
-  if (mode === "match") {
-    const sectionScoring = (config.scoring?.[section as keyof typeof config.scoring] || {}) as Record<string, ScoringDefinition>;
-    const fieldDef = sectionScoring[fieldKey];
+  if (!definition) {
+    return (
+      <div className={`${panel} ${hint}`}>
+        This field no longer exists.{" "}
+        <Button variant="link" size="sm" onClick={() => onSelectComponent(null)}>Deselect</Button>
+      </div>
+    );
+  }
 
-    if (!fieldDef) {
-      return (
-        <div className="p-4 text-xs text-muted-foreground">
-          Component not found or deleted.
-          <Button variant="link" size="sm" onClick={() => onSelectComponent(null)}>
-            Deselect
-          </Button>
-        </div>
-      );
+  const update = (patch: Partial<ScoringDefinition> | Partial<PitScoutingFieldDefinition>) =>
+    onUpdateConfig((prev) =>
+      updateSection(prev, mode, section, (current) => ({
+        ...current,
+        [fieldKey]: { ...current[fieldKey], ...patch } as (typeof current)[string],
+      })),
+    );
+
+  const rename = (raw: string) => {
+    const next = slugifyKey(raw);
+    if (!next || next === fieldKey) return false;
+    if (next in fields) {
+      toast.error(`"${next}" is already used in this section`);
+      return false;
     }
-
-    const updateField = (patch: Partial<ScoringDefinition>) => {
-      onUpdateConfig((prev) => {
-        const scoring = { ...prev.scoring };
-        const sec = { ...((scoring[section as keyof typeof scoring] || {}) as Record<string, ScoringDefinition>) };
-        sec[fieldKey] = { ...sec[fieldKey], ...patch };
-        return {
-          ...prev,
-          scoring: {
-            ...scoring,
-            [section]: sec,
-          },
-        };
-      });
-    };
-
-    const handleKeyChange = (newKey: string) => {
-      const sanitized = slugifyKey(newKey);
-      if (!sanitized || sanitized === fieldKey) return;
-      onUpdateConfig((prev) => {
-        const scoring = { ...prev.scoring };
-        const sec = { ...((scoring[section as keyof typeof scoring] || {}) as Record<string, ScoringDefinition>) };
-        const existing = sec[fieldKey];
-        delete sec[fieldKey];
-        sec[sanitized] = existing;
-        return {
-          ...prev,
-          scoring: {
-            ...scoring,
-            [section]: sec,
-          },
-        };
-      });
-      onSelectComponent({ mode, section, fieldKey: sanitized });
-    };
-
-    const isBool = fieldDef.type === "boolean";
-    const isSelect = fieldDef.type === "select" || !!fieldDef.pointValues;
-    const isCounter = !!fieldDef.increments && fieldDef.increments.length > 0;
-
-    // Available boolean keys in the current section for "dependsOn"
-    const availableDependencies = Object.entries(sectionScoring)
-      .filter(([k, d]) => k !== fieldKey && d.type === "boolean")
-      .map(([k, d]) => ({ key: k, label: d.label }));
-
-    return (
-      <div className="w-full h-full flex flex-col bg-card/60 rounded-xl border border-border overflow-hidden">
-        {/* Header */}
-        <div className="p-3 border-b border-border bg-muted/30 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Badge variant="secondary" className="text-[10px] uppercase font-bold text-primary">
-              {isBool ? "Toggle" : isSelect ? "Select" : isCounter ? "Stepper" : "Number"}
-            </Badge>
-            <span className="text-xs font-mono font-semibold truncate max-w-[120px]">{fieldKey}</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-              onClick={() => onDuplicateComponent(selectedComponent)}
-              title="Duplicate Component"
-            >
-              <Copy className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-              onClick={() => onDeleteComponent(selectedComponent)}
-              title="Delete Component"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 text-muted-foreground"
-              onClick={() => onSelectComponent(null)}
-              title="Close Inspector"
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Live Properties */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Display Label */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">Display Label</Label>
-            <Input
-              value={fieldDef.label}
-              onChange={(e) => updateField({ label: e.target.value })}
-              className="h-8 text-xs font-medium"
-              placeholder="e.g. Fuel Scored (Auto)"
-            />
-          </div>
-
-          {/* Identifier Key */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">Field Key</Label>
-            <Input
-              defaultValue={fieldKey}
-              key={fieldKey}
-              onBlur={(e) => handleKeyChange(e.target.value)}
-              className="h-8 text-xs font-mono"
-              placeholder="e.g. fuel_scored"
-            />
-            <p className="text-[10px] text-muted-foreground">Unique identifier stored in match data records.</p>
-          </div>
-
-          {/* Points / Multiplier */}
-          {!isSelect && (
-            <div className="space-y-1.5">
-              <Label className="text-xs">Points Value</Label>
-              <Input
-                type="number"
-                value={fieldDef.points ?? 0}
-                onChange={(e) => updateField({ points: parseFloat(e.target.value) || 0 })}
-                className="h-8 text-xs"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                {isBool ? "Points awarded when achieved" : "Points awarded per count"}
-              </p>
-            </div>
-          )}
-
-          {/* Stepper Increments */}
-          {isCounter && (
-            <div className="space-y-2 pt-2 border-t border-border">
-              <Label className="text-xs">Stepper Increments</Label>
-              <div className="flex flex-wrap gap-1">
-                {(fieldDef.increments || []).map((inc, i) => (
-                  <Badge key={i} variant="secondary" className="text-xs px-2 py-0.5 flex items-center gap-1 font-mono">
-                    +{inc}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const nextInc = (fieldDef.increments || []).filter((_, idx) => idx !== i);
-                        updateField({ increments: nextInc.length > 0 ? nextInc : [1] });
-                      }}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-
-              <div className="flex gap-1.5 mt-1">
-                <Input
-                  type="number"
-                  placeholder="Step amount (e.g. 5)"
-                  value={newIncrementInput}
-                  onChange={(e) => setNewIncrementInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const val = parseInt(newIncrementInput, 10);
-                      if (val > 0 && !(fieldDef.increments || []).includes(val)) {
-                        updateField({ increments: [...(fieldDef.increments || []), val].sort((a, b) => a - b) });
-                        setNewIncrementInput("");
-                      }
-                    }
-                  }}
-                  className="h-8 text-xs flex-1"
-                />
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    const val = parseInt(newIncrementInput, 10);
-                    if (val > 0 && !(fieldDef.increments || []).includes(val)) {
-                      updateField({ increments: [...(fieldDef.increments || []), val].sort((a, b) => a - b) });
-                      setNewIncrementInput("");
-                    }
-                  }}
-                  className="h-8 text-xs"
-                >
-                  <Plus className="h-3 w-3 mr-1" /> Add
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Select Options & Points */}
-          {isSelect && (
-            <div className="space-y-2 pt-2 border-t border-border">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Option Point Values</Label>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 text-[11px] text-primary"
-                  onClick={() => {
-                    const next = { ...(fieldDef.pointValues || {}) };
-                    next[`option_${Object.keys(next).length + 1}`] = 0;
-                    updateField({ pointValues: next });
-                  }}
-                >
-                  <Plus className="h-3 w-3 mr-1" /> Add Option
-                </Button>
-              </div>
-
-              <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                {Object.entries(fieldDef.pointValues || {}).map(([opt, pts], idx) => (
-                  <div key={idx} className="flex items-center gap-1.5 bg-muted/40 p-1.5 rounded border">
-                    <Input
-                      defaultValue={opt}
-                      onBlur={(e) => {
-                        const newName = e.target.value.trim();
-                        if (newName && newName !== opt) {
-                          const next: Record<string, number> = {};
-                          Object.entries(fieldDef.pointValues || {}).forEach(([k, v]) => {
-                            if (k === opt) next[newName] = v;
-                            else next[k] = v;
-                          });
-                          updateField({ pointValues: next });
-                        }
-                      }}
-                      className="h-7 text-xs flex-1"
-                      placeholder="Option name"
-                    />
-                    <Input
-                      type="number"
-                      value={pts}
-                      onChange={(e) => {
-                        const next = { ...(fieldDef.pointValues || {}) };
-                        next[opt] = parseFloat(e.target.value) || 0;
-                        updateField({ pointValues: next });
-                      }}
-                      className="h-7 w-16 text-xs text-center font-mono"
-                      placeholder="Pts"
-                    />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-destructive"
-                      onClick={() => {
-                        const next = { ...(fieldDef.pointValues || {}) };
-                        delete next[opt];
-                        updateField({ pointValues: next });
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Conditional Dependency */}
-          <div className="space-y-1.5 pt-2 border-t border-border">
-            <Label className="text-xs">Conditional Display (dependsOn)</Label>
-            <Select
-              value={fieldDef.dependsOn || "__none__"}
-              onValueChange={(val) => updateField({ dependsOn: val === "__none__" ? undefined : val })}
-            >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Always Visible" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Always Visible</SelectItem>
-                {availableDependencies.map((dep) => (
-                  <SelectItem key={dep.key} value={dep.key}>
-                    Only if "{dep.label}" is Yes
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Help Description */}
-          <div className="space-y-1.5 pt-2 border-t border-border">
-            <Label className="text-xs">Description / Scouter Instructions</Label>
-            <Textarea
-              value={fieldDef.description || ""}
-              onChange={(e) => updateField({ description: e.target.value })}
-              rows={2}
-              className="text-xs"
-              placeholder="Guidance for scouters during the match..."
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Pit Scouting component selected
-  const pitSection = (config.pitScouting?.[
-    section as keyof typeof config.pitScouting
-  ] || {}) as Record<string, PitScoutingFieldDefinition>;
-  const pitDef = pitSection[fieldKey];
-
-  if (!pitDef) {
-    return (
-      <div className="p-4 text-xs text-muted-foreground">
-        Question not found.
-        <Button variant="link" size="sm" onClick={() => onSelectComponent(null)}>
-          Deselect
-        </Button>
-      </div>
-    );
-  }
-
-  const updatePitField = (patch: Partial<PitScoutingFieldDefinition>) => {
-    onUpdateConfig((prev) => {
-      const pit = { ...prev.pitScouting };
-      const sec = {
-        ...((pit[section as keyof typeof pit] ||
-          {}) as Record<string, PitScoutingFieldDefinition>),
-      };
-      sec[fieldKey] = { ...sec[fieldKey], ...patch };
-      return {
-        ...prev,
-        pitScouting: {
-          ...pit,
-          [section]: sec,
-        },
-      };
-    });
+    onUpdateConfig((prev) => renameField(prev, mode, section, fieldKey, next));
+    onSelectComponent({ mode, section, fieldKey: next });
+    return true;
   };
 
-  return (
-    <div className="w-full h-full flex flex-col bg-card/60 rounded-xl border border-border overflow-hidden">
-      <div className="p-3 border-b border-border bg-muted/30 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Badge variant="secondary" className="text-[10px] uppercase font-bold text-primary">
-            {pitDef.type}
-          </Badge>
-          <span className="text-xs font-mono font-semibold truncate max-w-[120px]">{fieldKey}</span>
-        </div>
+  // The real forms only honour dependsOn within a match section, and within
+  // the pit form's endgame section.
+  const canDepend = mode === "match" || section === "endgame";
+  const dependencies = Object.entries(fields).filter(
+    ([key, other]) => key !== fieldKey && other.type === "boolean",
+  );
 
-        <div className="flex items-center gap-1">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-            onClick={() => onDeleteComponent(selectedComponent)}
-            title="Delete Question"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 text-muted-foreground"
-            onClick={() => onSelectComponent(null)}
-            title="Close"
-          >
-            <X className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
+  const match = mode === "match" ? (definition as ScoringDefinition) : null;
+  const pit = mode === "pit" ? (definition as PitScoutingFieldDefinition) : null;
+  const matchType = match ? getFieldType(match) : null;
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className="space-y-1.5">
-          <Label className="text-xs">Question Label</Label>
-          <Input
-            value={pitDef.label}
-            onChange={(e) => updatePitField({ label: e.target.value })}
-            className="h-8 text-xs font-medium"
-          />
-        </div>
+  let body: ReactNode = null;
 
-        <div className="space-y-1.5">
-          <Label className="text-xs">Field Key</Label>
-          <Input
-            defaultValue={fieldKey}
-            key={fieldKey}
-            onBlur={(e) => {
-              const sanitized = slugifyKey(e.target.value);
-              if (sanitized && sanitized !== fieldKey) {
-                onUpdateConfig((prev) => {
-                  const pit = { ...prev.pitScouting };
-                  const sec = {
-        ...((pit[section as keyof typeof pit] ||
-          {}) as Record<string, PitScoutingFieldDefinition>),
-      };
-                  const existing = sec[fieldKey];
-                  delete sec[fieldKey];
-                  sec[sanitized] = existing;
-                  return { ...prev, pitScouting: { ...pit, [section]: sec } };
-                });
-                onSelectComponent({ mode, section, fieldKey: sanitized });
-              }
-            }}
-            className="h-8 text-xs font-mono"
-          />
-        </div>
-
-        {(pitDef.type === "select" || pitDef.type === "multiselect") && (
-          <div className="space-y-2 pt-2 border-t border-border">
-            <Label className="text-xs">Options List</Label>
-            <div className="flex gap-1.5">
-              <Input
-                placeholder="New option..."
-                value={newOptionInput}
-                onChange={(e) => setNewOptionInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    const trimmed = newOptionInput.trim();
-                    if (trimmed && !(pitDef.options || []).includes(trimmed)) {
-                      updatePitField({ options: [...(pitDef.options || []), trimmed] });
-                      setNewOptionInput("");
-                    }
-                  }
-                }}
-                className="h-8 text-xs flex-1"
-              />
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  const trimmed = newOptionInput.trim();
-                  if (trimmed && !(pitDef.options || []).includes(trimmed)) {
-                    updatePitField({ options: [...(pitDef.options || []), trimmed] });
-                    setNewOptionInput("");
-                  }
-                }}
-                className="h-8 text-xs"
-              >
-                <Plus className="h-3 w-3 mr-1" /> Add
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-              {(pitDef.options || []).map((opt: string, i: number) => (
-                <Badge key={i} variant="secondary" className="text-xs px-2 py-0.5 flex items-center gap-1">
-                  <span>{opt}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updatePitField({
-                        options: (pitDef.options || []).filter(
-                          (_opt: string, idx: number) => idx !== i,
-                        ),
-                      });
-                    }}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
+  if (match && matchType === "select") {
+    const options = match.pointValues || {};
+    body = (
+      <Field label="Options and points">
+        {Object.entries(options).map(([option, points]) => (
+          <div key={option} className="flex items-center gap-1.5">
+            <Input
+              aria-label={`Option ${option}`}
+              defaultValue={option}
+              onBlur={(e) => {
+                const name = e.target.value.trim();
+                if (name && name !== option && !(name in options)) {
+                  update({ pointValues: renameKey(options, option, name) });
+                } else {
+                  e.target.value = option;
+                }
+              }}
+            />
+            <Input
+              aria-label={`Points for ${option}`}
+              type="number"
+              value={points}
+              onChange={(e) => update({ pointValues: { ...options, [option]: Number(e.target.value) || 0 } })}
+              className="w-20 text-center"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label={`Remove ${option}`}
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => {
+                const next = { ...options };
+                delete next[option];
+                update({ pointValues: next });
+              }}
+            >
+              <Trash2 />
+            </Button>
           </div>
+        ))}
+        <AddRow
+          placeholder="Add an option"
+          onAdd={(option) => {
+            if (!(option in options)) update({ pointValues: { ...options, [option]: 0 } });
+          }}
+        />
+      </Field>
+    );
+  } else if (match) {
+    const increments = match.increments || [];
+    body = (
+      <>
+        <NumberField
+          label={matchType === "boolean" ? "Points when achieved" : "Points each"}
+          value={match.points}
+          onChange={(points) => update({ points: points ?? 0 })}
+        />
+        {matchType === "number" && (
+          <Field label="Step buttons">
+            <Chips
+              items={(increments.length ? increments : [1]).map((step) => `+${step}`)}
+              onRemove={(index) => {
+                const next = increments.filter((_, i) => i !== index);
+                update({ increments: next.length ? next : [1] });
+              }}
+            />
+            <AddRow
+              type="number"
+              placeholder="Add a step, such as 5"
+              onAdd={(text) => {
+                const step = parseInt(text, 10);
+                if (step > 0 && !increments.includes(step)) {
+                  update({ increments: [...increments, step].sort((a, b) => a - b) });
+                }
+              }}
+            />
+          </Field>
         )}
+      </>
+    );
+  } else if (pit) {
+    const options = pit.options || [];
+    const hasOptions = pit.type === "select" || pit.type === "multiselect";
+    body = (
+      <>
+        <Choice
+          label="Answer type"
+          value={pit.type}
+          options={[
+            ["text", "Text"],
+            ["number", "Number"],
+            ["boolean", "Yes / No"],
+            ["select", "Single choice"],
+            ["multiselect", "Multiple choice"],
+          ]}
+          onChange={(type) => update({ type })}
+        />
+        {hasOptions && (
+          <Field label="Options">
+            <Chips
+              items={options}
+              onRemove={(index) => update({ options: options.filter((_, i) => i !== index) })}
+            />
+            <AddRow
+              placeholder="Add an option"
+              onAdd={(option) => {
+                if (!options.includes(option)) update({ options: [...options, option] });
+              }}
+            />
+          </Field>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <div className={`${panel} space-y-4`}>
+      <div className="flex items-center gap-1">
+        <h2 className={`${heading} min-w-0 flex-1 truncate`}>
+          {mode === "match" ? "Match field" : "Pit question"}
+        </h2>
+        <Button variant="ghost" size="icon-xs" aria-label="Duplicate field" onClick={() => onDuplicateComponent(selectedComponent)}>
+          <Copy />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label="Delete field"
+          className="hover:text-destructive"
+          onClick={() => onDeleteComponent(selectedComponent)}
+        >
+          <Trash2 />
+        </Button>
+        <Button variant="ghost" size="icon-xs" aria-label="Close" onClick={() => onSelectComponent(null)}>
+          <X />
+        </Button>
       </div>
+
+      <TextField label="Label" value={definition.label} onChange={(label) => update({ label })} />
+
+      <Field label="Key">
+        <Input
+          key={fieldKey}
+          aria-label="Key"
+          defaultValue={fieldKey}
+          className="font-mono"
+          onBlur={(e) => {
+            if (!rename(e.target.value)) e.target.value = fieldKey;
+          }}
+        />
+        <p className={hint}>
+          Stored with every entry. Renaming updates references in this config, but
+          entries already recorded keep the old key.
+        </p>
+      </Field>
+
+      {body}
+
+      {canDepend && (
+        <Choice
+          label="Show"
+          value={definition.dependsOn || NO_DEPENDENCY}
+          options={[
+            [NO_DEPENDENCY, "Always"],
+            ...dependencies.map(([key, other]) => [key, `Only if "${other.label}" is yes`] as const),
+          ]}
+          onChange={(key) => update({ dependsOn: key === NO_DEPENDENCY ? undefined : key })}
+        />
+      )}
+
+      {match && (
+        <Field label="Help text for scouts">
+          <Textarea
+            aria-label="Help text for scouts"
+            rows={2}
+            value={match.description || ""}
+            onChange={(e) => update({ description: e.target.value })}
+          />
+        </Field>
+      )}
     </div>
   );
 }

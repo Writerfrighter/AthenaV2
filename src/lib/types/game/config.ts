@@ -162,6 +162,8 @@ export interface YearConfig {
   competitionType: CompetitionType;
   gameName: string;
   startPositions?: string[];
+  /** Field diagram scouts draw on, as an image data URL of any aspect ratio. */
+  fieldImage?: string;
   scoring: {
     autonomous: Record<string, ScoringDefinition>;
     teleop: Record<string, ScoringDefinition>;

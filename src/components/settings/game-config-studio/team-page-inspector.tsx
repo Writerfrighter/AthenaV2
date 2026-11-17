@@ -1,55 +1,18 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Choice, Item, NumberField, TextField, Toggle, hint } from "./fields";
 import { DatapointPicker } from "./datapoint-picker";
 import { buildDatapointRegistry } from "@/lib/game-config/datapoint-registry";
 import type { TeamPageConfig, YearConfig } from "@/lib/types";
 
-function TextField({ label, value, onChange }: {
-  label: string; value?: string; onChange: (value: string) => void;
-}) {
-  return <label className="block space-y-1 text-xs">{label}
-    <Input aria-label={label} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
-  </label>;
-}
+export type TeamPageSection =
+  | "kpi" | "autoPerformance" | "teleopPerformance" | "chart" | "endgame" | "penalties" | "custom";
 
-function NumberField({ label, value, onChange }: {
-  label: string; value?: number; onChange: (value: number | undefined) => void;
-}) {
-  return <label className="block space-y-1 text-xs">{label}
-    <Input aria-label={label} type="number" step="any" value={value ?? ""}
-      onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))} />
-  </label>;
-}
-
-function Choice<T extends string>({ label, value, options, onChange }: {
-  label: string; value: T; options: readonly T[]; onChange: (value: T) => void;
-}) {
-  return <div className="space-y-1 text-xs">
-    <span>{label}</span>
-    <Select value={value} onValueChange={(nextValue) => onChange(nextValue as T)}>
-      <SelectTrigger aria-label={label} className="w-full">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option} value={option}>{option}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>;
-}
+const CHART_COLORS = ["#f97316", "#ef4444", "#3b82f6", "#22c55e", "#a855f7", "#ec4899", "#14b8a6"];
 
 export function TeamPageInspector({ section, config, value, onChange }: {
-  section: "kpi" | "autoPerformance" | "teleopPerformance" | "chart" | "endgame" | "penalties";
+  section: TeamPageSection;
   config: YearConfig;
   value: TeamPageConfig;
   onChange: (patch: Partial<TeamPageConfig>) => void;
@@ -58,13 +21,13 @@ export function TeamPageInspector({ section, config, value, onChange }: {
   const numeric = datapoints.filter((d) => d.valueType === "number" || d.valueType === "boolean");
   const field = (label: string, key: string | undefined, change: (key: string) => void, enums = false) => (
     <div className="space-y-1">
-      <span className="text-xs">{label}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
       <DatapointPicker value={key} onChange={change}
         datapoints={enums ? datapoints.filter((d) => d.valueType === "enum") : numeric} />
     </div>
   );
   const remove = (label: string, action: () => void) => (
-    <Button type="button" variant="destructive" size="sm" onClick={action}>{label}</Button>
+    <Button type="button" variant="outline" size="sm" onClick={action}>{label}</Button>
   );
 
   if (section === "kpi") {
@@ -99,7 +62,7 @@ export function TeamPageInspector({ section, config, value, onChange }: {
         const edit = (patch: Partial<typeof metric>) => update({
           metrics: performance.metrics.map((item, i) => i === index ? { ...item, ...patch } : item),
         });
-        return <div key={index} className="space-y-2 rounded-md border p-2">
+        return <div key={index} className="space-y-2 border-t pt-3">
           <TextField label="Metric label" value={metric.label} onChange={(label) => edit({ label })} />
           {field("Metric field", metric.key, (key) => edit({ key }))}
           <Choice label="Display" value={metric.type ?? "number"} options={["number", "rate", "badge"]}
@@ -108,16 +71,14 @@ export function TeamPageInspector({ section, config, value, onChange }: {
           {remove("Remove metric", () => update({ metrics: performance.metrics.filter((_, i) => i !== index) }))}
         </div>;
       })}
-      <Button type="button" variant="outline" onClick={() => update({
+      <Button type="button" variant="outline" size="sm" onClick={() => update({
         metrics: [...performance.metrics, { key: numeric[0]?.key ?? "", label: numeric[0]?.label ?? "New metric" }],
       })}>Add metric</Button>
-      <label className="flex items-center gap-2 text-xs">
-        <input type="checkbox" checked={!!performance.showPointsEstimate}
-          onChange={(e) => update({ showPointsEstimate: e.target.checked })} />Show points estimate
-      </label>
-      <p className="text-xs text-muted-foreground">Without a custom formula, estimates use the scouting field points.</p>
+      <Toggle label="Show points estimate" checked={!!performance.showPointsEstimate}
+        onChange={(showPointsEstimate) => update({ showPointsEstimate })} />
+      <p className={hint}>Without a custom formula, estimates use the scouting field points.</p>
       {(performance.pointsFormula ?? []).map((term, index) => (
-        <div key={index} className="space-y-2 rounded-md border p-2">
+        <div key={index} className="space-y-2 border-t pt-3">
           {field("Points field", term.key, (key) => update({
             pointsFormula: performance.pointsFormula?.map((item, i) => i === index ? { ...item, key } : item),
           }))}
@@ -130,7 +91,7 @@ export function TeamPageInspector({ section, config, value, onChange }: {
           })}
         </div>
       ))}
-      <Button type="button" variant="outline" onClick={() => update({
+      <Button type="button" variant="outline" size="sm" onClick={() => update({
         pointsFormula: [...(performance.pointsFormula ?? []), { key: numeric[0]?.key ?? "", points: 1 }],
       })}>Add formula term</Button>
     </div>;
@@ -147,13 +108,69 @@ export function TeamPageInspector({ section, config, value, onChange }: {
         const edit = (patch: Partial<typeof item>) => update({
           items: chart.items.map((entry, i) => i === index ? { ...entry, ...patch } : entry),
         });
-        return <div key={index} className="space-y-2 rounded-md border p-2">
+        return <div key={index} className="space-y-2 border-t pt-3">
           <TextField label="Item name" value={item.name} onChange={(name) => edit({ name })} />
           {field("Item field", item.key, (key) => edit({ key }))}
           <TextField label="Color" value={item.fill} onChange={(fill) => edit({ fill })} />
           {remove("Remove chart item", () => update({ items: chart.items.filter((_, i) => i !== index) }))}
         </div>;
       })}
+      <Button type="button" variant="outline" size="sm" onClick={() => update({
+        items: [...chart.items, {
+          name: numeric[0]?.label ?? "New item", key: numeric[0]?.key ?? "",
+          fill: CHART_COLORS[chart.items.length % CHART_COLORS.length],
+        }],
+      })}>Add chart item</Button>
+    </div>;
+  }
+
+  if (section === "custom") {
+    const sections = value.customSections ?? [];
+    const set = (next: typeof sections) => onChange({ customSections: next.length ? next : undefined });
+    const enums = datapoints.filter((d) => d.valueType === "enum");
+    return <div className="space-y-3">
+      <p className={hint}>Extra sections shown after the built-in ones.</p>
+      {sections.map((custom, index) => {
+        const edit = (patch: Partial<typeof custom>) =>
+          set(sections.map((item, i) => i === index ? { ...item, ...patch } : item));
+        const items = custom.items ?? [];
+        const editItem = (itemIndex: number, patch: Partial<(typeof items)[number]>) =>
+          edit({ items: items.map((item, i) => i === itemIndex ? { ...item, ...patch } : item) });
+        const states = enums.find((d) => d.key === custom.fieldKey)?.states ?? [];
+        const distribution = custom.type === "distribution";
+        return <Item key={custom.id} title={custom.title || "Section"}
+          onRemove={() => set(sections.filter((_, i) => i !== index))}>
+          <TextField label="Title" value={custom.title} onChange={(title) => edit({ title })} />
+          <TextField label="Description" value={custom.description}
+            onChange={(description) => edit({ description: description || undefined })} />
+          <Choice label="Shows" value={custom.type}
+            options={[["distribution", "How often each choice is picked"], ["summaryCards", "Averages of fields"]]}
+            onChange={(type) => edit({ type, fieldKey: undefined, items: [] })} />
+          {distribution && field("Choice field", custom.fieldKey, (fieldKey) => edit({
+            fieldKey,
+            items: (enums.find((d) => d.key === fieldKey)?.states ?? []).map((state) => ({ key: state, label: state })),
+          }), true)}
+          {items.map((item, itemIndex) => <div key={itemIndex} className="space-y-2 border-l pl-3">
+            {distribution
+              ? states.length > 0
+                ? <Choice label="Choice" value={item.key} options={states} onChange={(key) => editItem(itemIndex, { key })} />
+                : <TextField label="Choice" value={item.key} onChange={(key) => editItem(itemIndex, { key })} />
+              : field("Field", item.key, (key) => editItem(itemIndex, { key }))}
+            <TextField label="Label" value={item.label} onChange={(label) => editItem(itemIndex, { label })} />
+            {!distribution && <NumberField label="Points each (optional)" value={item.pointsMultiplier}
+              onChange={(pointsMultiplier) => editItem(itemIndex, { pointsMultiplier })} />}
+            {remove("Remove item", () => edit({ items: items.filter((_, i) => i !== itemIndex) }))}
+          </div>)}
+          <Button type="button" variant="outline" size="sm" onClick={() => edit({
+            items: [...items, distribution
+              ? { key: states[0] ?? "", label: states[0] ?? "New item" }
+              : { key: numeric[0]?.key ?? "", label: numeric[0]?.label ?? "New item" }],
+          })}>Add item</Button>
+        </Item>;
+      })}
+      <Button type="button" variant="outline" size="sm" onClick={() => set([...sections, {
+        id: `custom_${Date.now()}`, title: "New section", type: "summaryCards", items: [],
+      }])}>Add section</Button>
     </div>;
   }
 
@@ -181,7 +198,7 @@ export function TeamPageInspector({ section, config, value, onChange }: {
         const edit = (patch: Partial<typeof state>) => update({
           states: endgame.states.map((item, i) => i === index ? { ...item, ...patch } : item),
         });
-        return <div key={index} className="space-y-2 rounded-md border p-2">
+        return <div key={index} className="space-y-2 border-t pt-3">
           <TextField label="State value" value={state.value} onChange={(value) => edit({ value })} />
           <TextField label="State label" value={state.label} onChange={(label) => edit({ label })} />
           <NumberField label="State points" value={state.points} onChange={(points) => edit({ points })} />
@@ -190,7 +207,7 @@ export function TeamPageInspector({ section, config, value, onChange }: {
           {remove("Remove state", () => update({ states: endgame.states.filter((_, i) => i !== index) }))}
         </div>;
       })}
-      <Button type="button" variant="outline" onClick={() => update({
+      <Button type="button" variant="outline" size="sm" onClick={() => update({
         states: [...endgame.states, { value: "", label: "New state" }],
       })}>Add state</Button>
     </div>;

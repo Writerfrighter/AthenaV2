@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { mkdir, rename, writeFile, unlink } from "node:fs/promises";
+import { mkdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { randomUUID } from "node:crypto";
+import { writePrivateFile } from "./private-file";
 import bundled from "../../../config/game-config-loader";
 import type { GameConfig, YearConfig } from "@/lib/types";
 
@@ -25,22 +25,10 @@ export function findGameConfigPath(filename: string) {
   return [join(/* turbopackIgnore: true */ runtime, filename), join(/* turbopackIgnore: true */ builtin, filename)].find((path) => existsSync(/* turbopackIgnore: true */ path)) ?? null;
 }
 
-async function atomicWrite(path: string, content: string) {
-  const temporary = `${path}.${randomUUID()}.tmp`;
-  try {
-    await writeFile(temporary, content, { encoding: "utf8", mode: 0o600 });
-    await rename(temporary, path);
-  } finally {
-    await unlink(temporary).catch((error: NodeJS.ErrnoException) => {
-      if (error.code !== "ENOENT") throw error;
-    });
-  }
-}
-
 export async function saveGameConfig(filename: string, config: YearConfig) {
   const { runtime, deleted } = configDirectories();
   await mkdir(runtime, { recursive: true });
-  await atomicWrite(join(/* turbopackIgnore: true */ runtime, filename), `${JSON.stringify(config, null, 2)}\n`);
+  await writePrivateFile(join(/* turbopackIgnore: true */ runtime, filename),`${JSON.stringify(config, null, 2)}\n`);
   await unlink(join(/* turbopackIgnore: true */ deleted, filename)).catch((error: NodeJS.ErrnoException) => {
     if (error.code !== "ENOENT") throw error;
   });
@@ -50,7 +38,7 @@ export async function saveGameConfig(filename: string, config: YearConfig) {
 export async function deleteGameConfig(filename: string) {
   const { deleted } = configDirectories();
   await mkdir(deleted, { recursive: true });
-  await atomicWrite(join(/* turbopackIgnore: true */ deleted, filename), "{}\n");
+  await writePrivateFile(join(/* turbopackIgnore: true */ deleted, filename), "{}\n");
 }
 
 /** Read at request time so forms, imports and analytics share the same config. */

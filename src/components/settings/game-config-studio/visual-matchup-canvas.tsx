@@ -1,620 +1,362 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Swords, Flame, Zap, Target, Activity, Sparkles, Package, Puzzle, AlertTriangle, Plus, Trash2, Sliders } from "lucide-react";
 import type { YearConfig, MetricDisplayConfig, MatchupCardConfig } from "@/lib/types";
-import {
-  buildDatapointRegistry,
-  findDatapoint,
-} from "@/lib/game-config/datapoint-registry";
-import {
-  buildPreviewStats,
-  formatPreviewMetric,
-} from "@/lib/game-config/preview-stats";
+import { buildDatapointRegistry, findDatapoint } from "@/lib/game-config/datapoint-registry";
+import { buildPreviewStats, formatPreviewMetric } from "@/lib/game-config/preview-stats";
+import { cn } from "@/lib/utils";
 import { DatapointPicker } from "./datapoint-picker";
+import { Choice, Field, Item, NumberField, TextField, Toggle, heading, hint, panel } from "./fields";
 
-interface VisualMatchupCanvasProps {
+type MetricList = "autoMetrics" | "teleopMetrics";
+
+const ICONS = ["Flame", "Zap", "Target", "Activity", "Package", "Puzzle", "Sparkles"] as const;
+
+const WARNINGS = [
+  ["breakdownThreshold", "Breakdown rate (%)", 15],
+  ["foulThreshold", "Fouls per match", 1],
+  ["techFoulThreshold", "Tech fouls per match", 0.5],
+  ["majorPenaltyThreshold", "Major penalties per match", 0.3],
+  ["minorPenaltyThreshold", "Minor penalties per match", 1],
+] as const;
+
+const EMPTY: MatchupCardConfig = { autoMetrics: [], teleopMetrics: [], endgame: { states: [] } };
+
+export function VisualMatchupCanvas({ config, onUpdateConfig }: {
   config: YearConfig;
   onUpdateConfig: (updater: (prev: YearConfig) => YearConfig) => void;
-}
-
-// Icon helper
-function getIconComponent(iconName?: string) {
-  const className = "h-4 w-4";
-  switch (iconName?.toLowerCase()) {
-    case "flame":
-      return <Flame className={`${className} text-amber-500`} />;
-    case "zap":
-      return <Zap className={`${className} text-yellow-500`} />;
-    case "target":
-      return <Target className={`${className} text-emerald-500`} />;
-    case "activity":
-      return <Activity className={`${className} text-blue-500`} />;
-    case "package":
-      return <Package className={`${className} text-purple-500`} />;
-    case "puzzle":
-      return <Puzzle className={`${className} text-pink-500`} />;
-    default:
-      return <Sparkles className={`${className} text-primary`} />;
-  }
-}
-
-export function VisualMatchupCanvas({
-  config,
-  onUpdateConfig,
-}: VisualMatchupCanvasProps) {
-  const [allianceColor, setAllianceColor] = useState<"red" | "blue">("blue");
-  const [selectedMetricKey, setSelectedMetricKey] = useState<string | null>(null);
-  const datapoints = React.useMemo(
-    () => buildDatapointRegistry(config),
-    [config],
-  );
+}) {
+  const [selected, setSelected] = useState<{ list: MetricList; index: number } | null>(null);
+  const datapoints = React.useMemo(() => buildDatapointRegistry(config), [config]);
   const previewStats = React.useMemo(() => buildPreviewStats(config), [config]);
 
-  const previewValue = (key: string) =>
-    formatPreviewMetric(previewStats, key, !!findDatapoint(datapoints, key));
+  const matchFields = datapoints.filter((d) => !d.pitSection);
+  const enumFields = matchFields.filter((d) => d.valueType === "enum");
+  const pitFields = datapoints.filter((d) => d.pitSection);
 
-  const metricValueClass = (key: string) =>
-    findDatapoint(datapoints, key)
-      ? "text-base font-bold font-mono text-foreground"
-      : "text-base font-bold font-mono text-amber-500";
-
-  const endgameStateRate = (stateKey: string) => {
-    const field = config.matchupCardConfig?.endgame?.stateKey;
-    const rate =
-      previewStats?.rates[`${field}.${stateKey}`] ??
-      previewStats?.rates[`${field?.split(".").pop()}.${stateKey}`];
-    return rate === undefined ? "—" : `${rate}%`;
-  };
-
-  const matchupConfig: MatchupCardConfig = config.matchupCardConfig || {
-    autoIcon: "Flame",
-    autoMetrics: [{ key: "autonomous.fuel_scored", label: "Avg Fuel" }],
-    teleopIcon: "Flame",
-    teleopMetrics: [{ key: "teleop.fuel_scored", label: "Fuel Scored" }],
-    endgame: {
-      stateKey: "endgame.ending_robot_state",
-      states: [
-        { key: "L3", label: "L3 Rate" },
-        { key: "L2", label: "L2 Rate" },
-        { key: "L1", label: "L1 Rate" },
-      ],
-    },
-    warnings: {
-      breakdownThreshold: 15,
-      foulThreshold: 1.0,
-      techFoulThreshold: 0.5,
-    },
-    pitHighlights: [
-      { section: "endgame", field: "climbCapability", label: "Climb" },
-      { section: "teleoperated", field: "intakeType", label: "Intake" },
-    ],
-  };
-
-  const updateMatchup = (patch: Partial<MatchupCardConfig>) => {
+  const matchup = config.matchupCardConfig ?? EMPTY;
+  const update = (patch: Partial<MatchupCardConfig>) =>
     onUpdateConfig((prev) => ({
       ...prev,
-      matchupCardConfig: {
-        ...(prev.matchupCardConfig || matchupConfig),
-        ...patch,
-      },
+      matchupCardConfig: { ...(prev.matchupCardConfig ?? EMPTY), ...patch },
     }));
-  };
 
-  // Add a new metric to Auto or Teleop
-  const handleAddMetric = (section: "auto" | "teleop") => {
-    const newMetric: MetricDisplayConfig = {
-      key: section === "auto" ? "autonomous.new_metric" : "teleop.new_metric",
-      label: section === "auto" ? "New Auto Metric" : "New Teleop Metric",
-      type: "number",
-    };
+  const endgame = matchup.endgame ?? EMPTY.endgame;
+  const updateEndgame = (patch: Partial<MatchupCardConfig["endgame"]>) =>
+    update({ endgame: { ...endgame, ...patch } });
+  const stateOptions = findDatapoint(enumFields, endgame.stateKey)?.states ?? [];
 
-    if (section === "auto") {
-      updateMatchup({
-        autoMetrics: [...(matchupConfig.autoMetrics || []), newMetric],
-      });
-    } else {
-      updateMatchup({
-        teleopMetrics: [...(matchupConfig.teleopMetrics || []), newMetric],
-      });
-    }
-    setSelectedMetricKey(newMetric.key);
-  };
+  const highlights = matchup.pitHighlights ?? [];
+  const setHighlights = (pitHighlights: NonNullable<MatchupCardConfig["pitHighlights"]>) =>
+    update({ pitHighlights: pitHighlights.length ? pitHighlights : undefined });
 
-  // Remove a metric
-  const handleRemoveMetric = (section: "auto" | "teleop", keyToRemove: string) => {
-    if (section === "auto") {
-      updateMatchup({
-        autoMetrics: (matchupConfig.autoMetrics || []).filter((m) => m.key !== keyToRemove),
-      });
-    } else {
-      updateMatchup({
-        teleopMetrics: (matchupConfig.teleopMetrics || []).filter((m) => m.key !== keyToRemove),
-      });
-    }
-    if (selectedMetricKey === keyToRemove) setSelectedMetricKey(null);
-  };
-
-  // Add Pit Highlight
-  const handleAddPitHighlight = () => {
-    const newHighlight = {
-      section: "teleoperated" as const,
-      field: "intakeType",
-      label: "New Highlight",
-    };
-    updateMatchup({
-      pitHighlights: [...(matchupConfig.pitHighlights || []), newHighlight],
+  const metric = selected ? matchup[selected.list]?.[selected.index] : undefined;
+  const updateMetric = (patch: Partial<MetricDisplayConfig>) => {
+    if (!selected) return;
+    update({
+      [selected.list]: matchup[selected.list].map((m, i) =>
+        i === selected.index ? { ...m, ...patch } : m,
+      ),
     });
   };
 
-  // Find currently selected metric
-  const currentMetric =
-    matchupConfig.autoMetrics?.find((m) => m.key === selectedMetricKey) ||
-    matchupConfig.teleopMetrics?.find((m) => m.key === selectedMetricKey);
-
-  const updateSelectedMetric = (patch: Partial<MetricDisplayConfig>) => {
-    if (!selectedMetricKey) return;
-    const isAuto = matchupConfig.autoMetrics?.some((m) => m.key === selectedMetricKey);
-
-    if (isAuto) {
-      updateMatchup({
-        autoMetrics: (matchupConfig.autoMetrics || []).map((m) =>
-          m.key === selectedMetricKey ? { ...m, ...patch } : m,
-        ),
-      });
-    } else {
-      updateMatchup({
-        teleopMetrics: (matchupConfig.teleopMetrics || []).map((m) =>
-          m.key === selectedMetricKey ? { ...m, ...patch } : m,
-        ),
-      });
-    }
-
-    if (patch.key && patch.key !== selectedMetricKey) {
-      setSelectedMetricKey(patch.key);
-    }
+  const stateRate = (state: string) => {
+    const field = endgame.stateKey;
+    const rate =
+      previewStats?.rates[`${field}.${state}`] ??
+      previewStats?.rates[`${field?.split(".").pop()}.${state}`];
+    return rate === undefined ? "—" : `${rate}%`;
   };
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      {/* Left Control Column (3 cols) */}
-      <div className="lg:col-span-3 space-y-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-bold flex items-center gap-1.5">
-              <Swords className="h-4 w-4 text-primary" />
-              Matchup Card Designer
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Configure how robot metrics appear on the alliance matchup comparison screen.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Alliance Preview Color</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={allianceColor === "blue" ? "default" : "outline"}
-                  onClick={() => setAllianceColor("blue")}
-                  className={`text-xs ${allianceColor === "blue" ? "bg-blue-600 hover:bg-blue-700" : ""}`}
-                >
-                  Blue Alliance
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={allianceColor === "red" ? "default" : "outline"}
-                  onClick={() => setAllianceColor("red")}
-                  className={`text-xs ${allianceColor === "red" ? "bg-red-600 hover:bg-red-700" : ""}`}
-                >
-                  Red Alliance
-                </Button>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t space-y-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
-                Add Elements
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-xs"
-                onClick={() => handleAddMetric("auto")}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1.5 text-amber-500" /> Add Auto Metric
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-xs"
-                onClick={() => handleAddMetric("teleop")}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1.5 text-blue-500" /> Add Teleop Metric
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-xs"
-                onClick={handleAddPitHighlight}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1.5 text-emerald-500" /> Add Pit Highlight Badge
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Global Matchup Settings */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Alerts & Thresholds
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Breakdown Alert Threshold (%)</Label>
-              <Input
-                type="number"
-                value={matchupConfig.warnings?.breakdownThreshold ?? 15}
-                onChange={(e) =>
-                  updateMatchup({
-                    warnings: {
-                      ...matchupConfig.warnings,
-                      breakdownThreshold: parseFloat(e.target.value) || 0,
-                    },
-                  })
-                }
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Foul Alert Threshold (per match)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                value={matchupConfig.warnings?.foulThreshold ?? 1.0}
-                onChange={(e) =>
-                  updateMatchup({
-                    warnings: {
-                      ...matchupConfig.warnings,
-                      foulThreshold: parseFloat(e.target.value) || 0,
-                    },
-                  })
-                }
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Tech Foul Alert Threshold</Label>
-              <Input
-                type="number"
-                step="0.1"
-                value={matchupConfig.warnings?.techFoulThreshold ?? 0.5}
-                onChange={(e) =>
-                  updateMatchup({
-                    warnings: {
-                      ...matchupConfig.warnings,
-                      techFoulThreshold: parseFloat(e.target.value) || 0,
-                    },
-                  })
-                }
-                className="h-8 text-xs"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Center Live WYSIWYG Card Preview (6 cols) */}
-      <div className="lg:col-span-6 flex flex-col items-center">
-        <span className="text-xs font-mono text-muted-foreground mb-2 flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-primary" /> Live Matchup Card Preview (Click any metric to edit)
-        </span>
-
-        {/* The Exact Matchup Card Component Layout */}
-        <div
-          className={`w-full max-w-lg rounded-xl border-2 bg-card overflow-hidden transition-all ${
-            allianceColor === "red" ? "border-l-8 border-l-red-500" : "border-l-8 border-l-blue-500"
-          }`}
+  const metricSection = (list: MetricList, title: string, iconKey: "autoIcon" | "teleopIcon") => (
+    <section className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">{title}</h3>
+        <Button
+          size="xs"
+          variant="ghost"
+          onClick={() => {
+            const first = matchFields.find((d) => d.valueType === "number");
+            update({
+              [list]: [...(matchup[list] || []), { key: first?.key ?? "", label: first?.label ?? "New metric" }],
+            });
+            setSelected({ list, index: (matchup[list] || []).length });
+          }}
         >
-          {/* Card Header */}
-          <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-extrabold tracking-tight">Team 492</span>
-                <span className="text-xs font-semibold text-muted-foreground">Team scouting workspace</span>
-              </div>
-              <div className="flex items-center gap-1.5 mt-1">
-                <Badge variant="outline" className="text-[10px] uppercase font-bold">
-                  Rank #3
-                </Badge>
-                <Badge variant="outline" className="text-[10px] font-mono">
-                  EPA: 48.2
-                </Badge>
-              </div>
-            </div>
-
-            {/* Warning Badges Simulation */}
-            <div className="flex flex-col gap-1 items-end">
-              <Badge variant="destructive" className="text-[10px] font-semibold flex items-center gap-1 px-1.5 py-0.5">
-                <AlertTriangle className="h-3 w-3" /> Breakdown {matchupConfig.warnings?.breakdownThreshold ?? 15}%
-              </Badge>
-              <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/40">
-                Fouls: {(matchupConfig.warnings?.foulThreshold ?? 1.0).toFixed(1)}/match
-              </Badge>
-            </div>
-          </div>
-
-          {/* Card Body Metrics */}
-          <div className="p-4 space-y-4">
-            {/* Auto Metrics Section */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  {getIconComponent(matchupConfig.autoIcon)}
-                  Autonomous Metrics
-                </span>
-                <Select
-                  value={matchupConfig.autoIcon || "Flame"}
-                  onValueChange={(icon) => updateMatchup({ autoIcon: icon })}
-                >
-                  <SelectTrigger className="h-6 text-[10px] w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Flame">Flame</SelectItem>
-                    <SelectItem value="Zap">Zap</SelectItem>
-                    <SelectItem value="Target">Target</SelectItem>
-                    <SelectItem value="Activity">Activity</SelectItem>
-                    <SelectItem value="Sparkles">Sparkles</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {(matchupConfig.autoMetrics || []).map((metric) => {
-                  const isSelected = selectedMetricKey === metric.key;
-                  return (
-                    <div
-                      key={metric.key}
-                      onClick={() => setSelectedMetricKey(metric.key)}
-                      className={`p-2 rounded-lg border cursor-pointer transition-all ${
-                        isSelected
-                          ? "ring-2 ring-primary border-primary bg-primary/10 shadow-sm"
-                          : "bg-muted/40 hover:border-primary/50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted-foreground truncate">{metric.label}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveMetric("auto", metric.key);
-                          }}
-                          className="text-muted-foreground hover:text-destructive p-0.5"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                      <div className="flex items-baseline gap-1 mt-1">
-                        <span className={metricValueClass(metric.key)}>
-                          {previewValue(metric.key)}
-                        </span>
-                        {metric.unit && <span className="text-[10px] text-muted-foreground">{metric.unit}</span>}
-                        {metric.type === "badge" && (
-                          <Badge variant="secondary" className="text-[10px] ml-auto">
-                            Badge
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Teleop Metrics Section */}
-            <div className="space-y-1.5 pt-2 border-t">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  {getIconComponent(matchupConfig.teleopIcon)}
-                  Teleoperated Metrics
-                </span>
-                <Select
-                  value={matchupConfig.teleopIcon || "Flame"}
-                  onValueChange={(icon) => updateMatchup({ teleopIcon: icon })}
-                >
-                  <SelectTrigger className="h-6 text-[10px] w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Flame">Flame</SelectItem>
-                    <SelectItem value="Zap">Zap</SelectItem>
-                    <SelectItem value="Target">Target</SelectItem>
-                    <SelectItem value="Activity">Activity</SelectItem>
-                    <SelectItem value="Sparkles">Sparkles</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {(matchupConfig.teleopMetrics || []).map((metric) => {
-                  const isSelected = selectedMetricKey === metric.key;
-                  return (
-                    <div
-                      key={metric.key}
-                      onClick={() => setSelectedMetricKey(metric.key)}
-                      className={`p-2 rounded-lg border cursor-pointer transition-all ${
-                        isSelected
-                          ? "ring-2 ring-primary border-primary bg-primary/10 shadow-sm"
-                          : "bg-muted/40 hover:border-primary/50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted-foreground truncate">{metric.label}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveMetric("teleop", metric.key);
-                          }}
-                          className="text-muted-foreground hover:text-destructive p-0.5"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                      <div className="flex items-baseline gap-1 mt-1">
-                        <span className={metricValueClass(metric.key)}>
-                          {previewValue(metric.key)}
-                        </span>
-                        {metric.unit && <span className="text-[10px] text-muted-foreground">{metric.unit}</span>}
-                        {metric.type === "badge" && (
-                          <Badge variant="secondary" className="text-[10px] ml-auto">
-                            Badge
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Endgame Rates Simulation */}
-            <div className="space-y-1.5 pt-2 border-t">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Endgame Success Rates
+          <Plus /> Add metric
+        </Button>
+      </div>
+      {(matchup[list] || []).length === 0 && <p className={hint}>No metrics yet.</p>}
+      <div className="grid grid-cols-2 gap-2">
+        {(matchup[list] || []).map((m, index) => {
+          const resolved = !!findDatapoint(datapoints, m.key);
+          return (
+            <button
+              key={index}
+              type="button"
+              aria-pressed={selected?.list === list && selected.index === index}
+              onClick={() => setSelected({ list, index })}
+              className={cn(
+                "flex items-baseline justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                selected?.list === list && selected.index === index
+                  ? "border-foreground"
+                  : "hover:border-foreground/40",
+              )}
+            >
+              <span className="truncate text-muted-foreground">{m.label}</span>
+              <span className={cn("font-medium tabular-nums", !resolved && "text-amber-600")}>
+                {formatPreviewMetric(previewStats, m.key, resolved)}
+                {m.unit}
               </span>
-              <div className="flex gap-2">
-                {(matchupConfig.endgame?.states || []).map((st) => (
-                  <div key={st.key} className="flex-1 p-2 bg-muted/30 rounded-lg border text-center">
-                    <span className="text-[10px] text-muted-foreground block truncate">{st.label}</span>
-                    <span className="text-xs font-mono font-bold text-primary">
-                      {endgameStateRate(st.key)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            </button>
+          );
+        })}
+      </div>
+      <div className="w-40">
+        <Choice
+          label="Section icon"
+          value={matchup[iconKey] ?? "Flame"}
+          options={ICONS}
+          onChange={(icon) => update({ [iconKey]: icon })}
+        />
+      </div>
+    </section>
+  );
 
-            {/* Pit Highlights Simulation */}
-            {(matchupConfig.pitHighlights || []).length > 0 && (
-              <div className="space-y-1.5 pt-2 border-t">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Pit Highlights
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {(matchupConfig.pitHighlights || []).map((ph, idx) => (
-                    <Badge key={idx} variant="outline" className="text-xs px-2 py-0.5 bg-muted/40">
-                      <span className="text-muted-foreground mr-1">{ph.label}:</span>
-                      <span className="font-semibold text-foreground">Swerve</span>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+  return (
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)_300px]">
+      {/* Card-wide settings */}
+      <div className="space-y-4">
+        <div className={`${panel} space-y-3`}>
+          <h2 className={heading}>Endgame</h2>
+          <Field label="Robot state field">
+            <DatapointPicker
+              datapoints={enumFields}
+              value={endgame.stateKey}
+              onChange={(stateKey) =>
+                updateEndgame({
+                  stateKey,
+                  states: (findDatapoint(enumFields, stateKey)?.states ?? []).map((state) => ({
+                    key: state,
+                    label: state,
+                  })),
+                })
+              }
+            />
+          </Field>
+          <Toggle
+            label="Show most common result"
+            checked={!!endgame.bestClimbKey}
+            onChange={(on) => updateEndgame({ bestClimbKey: on ? endgame.stateKey : undefined })}
+          />
+          <p className={hint}>List the states best first. Each shows how often a team ends there.</p>
+          {endgame.states.map((state, index) => {
+            const edit = (patch: Partial<typeof state>) =>
+              updateEndgame({ states: endgame.states.map((s, i) => (i === index ? { ...s, ...patch } : s)) });
+            return (
+              <Item
+                key={index}
+                title={state.label || state.key || "State"}
+                onRemove={() => updateEndgame({ states: endgame.states.filter((_, i) => i !== index) })}
+              >
+                {stateOptions.length > 0 ? (
+                  <Choice label="State" value={state.key} options={stateOptions} onChange={(key) => edit({ key })} />
+                ) : (
+                  <TextField label="State" mono value={state.key} onChange={(key) => edit({ key })} />
+                )}
+                <TextField label="Label" value={state.label} onChange={(label) => edit({ label })} />
+                <NumberField
+                  label="Highlight above (%)"
+                  value={state.threshold}
+                  onChange={(threshold) => edit({ threshold })}
+                />
+              </Item>
+            );
+          })}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              updateEndgame({
+                states: [...endgame.states, { key: stateOptions[0] ?? "", label: stateOptions[0] ?? "New state" }],
+              })
+            }
+          >
+            <Plus /> Add state
+          </Button>
+        </div>
+
+        <div className={`${panel} space-y-3`}>
+          <h2 className={heading}>Playstyle</h2>
+          <p className={hint}>A choice field with offensive, balanced and defensive options.</p>
+          <DatapointPicker
+            datapoints={enumFields}
+            value={matchup.playstyleKey}
+            placeholder="Default (endgame.robot_playstyle)"
+            onChange={(playstyleKey) => update({ playstyleKey: playstyleKey || undefined })}
+          />
+          {matchup.playstyleKey && (
+            <Button variant="ghost" size="sm" onClick={() => update({ playstyleKey: undefined })}>
+              Use default
+            </Button>
+          )}
+        </div>
+
+        <div className={`${panel} space-y-3`}>
+          <h2 className={heading}>Warnings</h2>
+          <p className={hint}>A team is flagged when its average goes above these.</p>
+          {WARNINGS.map(([key, label, fallback]) => (
+            <NumberField
+              key={key}
+              label={label}
+              placeholder={String(fallback)}
+              value={matchup.warnings?.[key]}
+              onChange={(value) => update({ warnings: { ...matchup.warnings, [key]: value } })}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Right Inspector Column (3 cols) */}
-      <div className="lg:col-span-3 space-y-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Sliders className="h-3.5 w-3.5 text-primary" />
-              Metric Property Inspector
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {currentMetric ? (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Display Label</Label>
-                  <Input
-                    value={currentMetric.label}
-                    onChange={(e) => updateSelectedMetric({ label: e.target.value })}
-                    className="h-8 text-xs font-semibold"
-                  />
+      {/* Preview against sample data */}
+      <div className="mx-auto w-full max-w-xl space-y-2">
+        <p className={hint}>Preview with sample data. Select a metric to edit it.</p>
+        <div className="space-y-5 rounded-xl border p-5">
+          <div className="flex items-baseline justify-between gap-3 border-b pb-3">
+            <span className="text-[22px] font-bold tracking-[-0.03em]">Team 492</span>
+            <span className="font-mono text-xs text-muted-foreground">sample · rank 3</span>
+          </div>
+          {metricSection("autoMetrics", "Autonomous", "autoIcon")}
+          {metricSection("teleopMetrics", "Teleop", "teleopIcon")}
+          <section className="space-y-2">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">Endgame</h3>
+            {endgame.states.length === 0 && <p className={hint}>No endgame states yet.</p>}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+              {endgame.states.map((state, index) => (
+                <div key={index} className="flex justify-between">
+                  <span className="text-muted-foreground">{state.label}</span>
+                  <span className="font-medium tabular-nums">{stateRate(state.key)}</span>
                 </div>
+              ))}
+            </div>
+          </section>
+          {highlights.length > 0 && (
+            <section className="space-y-2">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">From the pit</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {highlights.map((highlight, index) => (
+                  <span key={index} className="rounded-full border px-2.5 py-0.5 text-xs">
+                    <span className="text-muted-foreground">{highlight.label}: </span>
+                    {findDatapoint(pitFields, highlight.field)?.states?.[0] ?? "—"}
+                    {highlight.unit}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
 
-                <div className="space-y-1">
-                  <Label className="text-xs">Field</Label>
+      {/* Selected metric, then pit highlights */}
+      <div className="space-y-4">
+        <div className={`${panel} space-y-3`}>
+          <h2 className={heading}>Metric</h2>
+          {metric && selected ? (
+            <>
+              <TextField label="Label" value={metric.label} onChange={(label) => updateMetric({ label })} />
+              <Field label="Field">
+                <DatapointPicker
+                  datapoints={matchFields}
+                  value={metric.key}
+                  onChange={(key) => updateMetric({ key })}
+                />
+              </Field>
+              <Choice
+                label="Shown as"
+                value={metric.type ?? "number"}
+                options={[
+                  ["number", "Average"],
+                  ["rate", "Rate (%)"],
+                  ["badge", "Badge, highlighted above a threshold"],
+                ]}
+                onChange={(type) => updateMetric({ type })}
+              />
+              {metric.type === "badge" && (
+                <NumberField
+                  label="Highlight above"
+                  placeholder="50"
+                  value={metric.threshold}
+                  onChange={(threshold) => updateMetric({ threshold })}
+                />
+              )}
+              <TextField label="Unit" placeholder="%" value={metric.unit} onChange={(unit) => updateMetric({ unit: unit || undefined })} />
+              <Toggle
+                label="Hide when zero"
+                checked={!!metric.hideIfZero}
+                onChange={(hideIfZero) => updateMetric({ hideIfZero: hideIfZero || undefined })}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  update({ [selected.list]: matchup[selected.list].filter((_, i) => i !== selected.index) });
+                  setSelected(null);
+                }}
+              >
+                Remove metric
+              </Button>
+            </>
+          ) : (
+            <p className={hint}>Select a metric in the preview to edit it.</p>
+          )}
+        </div>
+
+        <div className={`${panel} space-y-3`}>
+          <h2 className={heading}>Pit highlights</h2>
+          <p className={hint}>Pit answers shown as badges. With none set, the card picks its own.</p>
+          {highlights.map((highlight, index) => {
+            const edit = (patch: Partial<typeof highlight>) =>
+              setHighlights(highlights.map((h, i) => (i === index ? { ...h, ...patch } : h)));
+            return (
+              <Item
+                key={index}
+                title={highlight.label || highlight.field}
+                onRemove={() => setHighlights(highlights.filter((_, i) => i !== index))}
+              >
+                <Field label="Pit question">
                   <DatapointPicker
-                    datapoints={datapoints}
-                    value={currentMetric.key}
-                    onChange={(key) => updateSelectedMetric({ key })}
+                    datapoints={pitFields}
+                    value={highlight.field}
+                    onChange={(field) => {
+                      const picked = pitFields.find((d) => d.key === field);
+                      edit({
+                        field,
+                        section: picked?.pitSection ?? highlight.section,
+                        label: picked && highlight.label === "New highlight" ? picked.label : highlight.label,
+                      });
+                    }}
                   />
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs">Display Style</Label>
-                  <Select
-                    value={currentMetric.type || "number"}
-                    onValueChange={(val: "number" | "rate" | "badge") =>
-                      updateSelectedMetric({ type: val })
-                    }
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="number">Numeric Average</SelectItem>
-                      <SelectItem value="rate">Percentage Rate (%)</SelectItem>
-                      <SelectItem value="badge">Badge Pill</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Unit (e.g. % or s)</Label>
-                    <Input
-                      value={currentMetric.unit || ""}
-                      onChange={(e) => updateSelectedMetric({ unit: e.target.value })}
-                      className="h-8 text-xs"
-                      placeholder="%"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Threshold</Label>
-                    <Input
-                      type="number"
-                      value={currentMetric.threshold ?? ""}
-                      onChange={(e) =>
-                        updateSelectedMetric({ threshold: parseFloat(e.target.value) || undefined })
-                      }
-                      className="h-8 text-xs"
-                      placeholder="50"
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="py-8 text-center text-xs text-muted-foreground">
-                Click any metric card on the center matchup preview to inspect and customize its settings.
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                </Field>
+                <TextField label="Label" value={highlight.label} onChange={(label) => edit({ label })} />
+                <TextField label="Unit" placeholder="s" value={highlight.unit} onChange={(unit) => edit({ unit: unit || undefined })} />
+              </Item>
+            );
+          })}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pitFields.length === 0}
+            onClick={() =>
+              setHighlights([
+                ...highlights,
+                { section: pitFields[0].pitSection!, field: pitFields[0].key, label: "New highlight" },
+              ])
+            }
+          >
+            <Plus /> Add highlight
+          </Button>
+        </div>
       </div>
     </div>
   );
