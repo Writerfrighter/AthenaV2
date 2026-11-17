@@ -173,100 +173,39 @@ export async function sendPushNotification(params: {
   failed: number;
   skipped: boolean;
 }> {
-  const vapidOk = ensureVapidConfigured();
-  if (!vapidOk) {
+  // Checked here as well, so an unconfigured server skips the database read.
+  if (!ensureVapidConfigured()) {
     return { results: [], successful: 0, failed: 0, skipped: true };
   }
 
   const { payload, targetEndpoint } = params;
-
-  const notificationData = {
-    title: payload.title,
-    body: payload.body || "",
-    icon: payload.icon || APP_LOGO,
-    badge: payload.badge || APP_LOGO,
-    data: {
-      ...payload.data,
-      url: payload.url || "/dashboard",
-    },
-  };
-
   const subscriptions = await loadAllSubscriptions();
-  const results: SendResult[] = [];
+  if (!targetEndpoint) {
+    return sendPushNotificationToSubscriptions({
+      subscriptions: [...subscriptions.values()],
+      payload,
+    });
+  }
 
-  if (targetEndpoint) {
-    const subscription = subscriptions.get(targetEndpoint);
-    if (!subscription) {
-      return {
-        results: [
-          {
-            endpoint: targetEndpoint,
-            success: false,
-            error: "Subscription not found",
-          },
-        ],
-        successful: 0,
-        failed: 1,
-        skipped: false,
-      };
-    }
-
-    try {
-      await webPush.sendNotification(
-        subscription as webPush.PushSubscription,
-        JSON.stringify(notificationData),
-      );
-      results.push({ endpoint: targetEndpoint, success: true });
-    } catch (error: unknown) {
-      if (isGone(error)) await pruneSubscriptions([targetEndpoint]);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      results.push({
-        endpoint: targetEndpoint,
-        success: false,
-        error: errorMessage,
-      });
-    }
-
+  const subscription = subscriptions.get(targetEndpoint);
+  if (!subscription) {
     return {
-      results,
-      successful: results.filter((r) => r.success).length,
-      failed: results.filter((r) => !r.success).length,
+      results: [
+        {
+          endpoint: targetEndpoint,
+          success: false,
+          error: "Subscription not found",
+        },
+      ],
+      successful: 0,
+      failed: 1,
       skipped: false,
     };
   }
-
-  const expired: string[] = [];
-  const promises = Array.from(subscriptions.entries()).map(
-    async ([endpoint, subscription]) => {
-      try {
-        await webPush.sendNotification(
-          subscription as webPush.PushSubscription,
-          JSON.stringify(notificationData),
-        );
-        return { endpoint, success: true } satisfies SendResult;
-      } catch (error: unknown) {
-        if (isGone(error)) expired.push(endpoint);
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        return {
-          endpoint,
-          success: false,
-          error: errorMessage,
-        } satisfies SendResult;
-      }
-    },
-  );
-
-  results.push(...(await Promise.all(promises)));
-  await pruneSubscriptions(expired);
-
-  return {
-    results,
-    successful: results.filter((r) => r.success).length,
-    failed: results.filter((r) => !r.success).length,
-    skipped: false,
-  };
+  return sendPushNotificationToSubscriptions({
+    subscriptions: [subscription],
+    payload,
+  });
 }
 
 /** Push subscriptions keyed by user ID, from a single database read. */

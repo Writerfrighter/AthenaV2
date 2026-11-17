@@ -104,11 +104,16 @@ export function useNotifications() {
     try {
       const registration = await navigator.serviceWorker.ready;
 
-      // Get VAPID public key from environment
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      // Ask the server: the key is runtime configuration, not part of the build.
+      const keyResponse = await fetch("/api/notifications/subscribe", {
+        cache: "no-store",
+      });
+      const vapidPublicKey: unknown = keyResponse.ok
+        ? (await keyResponse.json()).publicKey
+        : null;
 
-      if (!vapidPublicKey) {
-        throw new Error("VAPID public key not configured");
+      if (typeof vapidPublicKey !== "string" || !vapidPublicKey) {
+        throw new Error("Push notifications are not configured on this server");
       }
 
       const subscription = await registration.pushManager.subscribe({
