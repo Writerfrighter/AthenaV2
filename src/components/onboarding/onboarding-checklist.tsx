@@ -28,6 +28,8 @@ export function OnboardingChecklist({ settings = false }: { settings?: boolean }
   const eventCode = selectedEvent?.eventCode;
   const scope = `${competitionType}:${currentYear}:${eventCode ?? ""}`;
   const [cached, setCached] = useState<string | null>(null);
+  // On the dashboard the steps start collapsed so the event numbers stay on the first screen.
+  const [open, setOpen] = useState(settings);
 
   useEffect(() => {
     if (!enabled || !eventCode) return;
@@ -65,16 +67,17 @@ export function OnboardingChecklist({ settings = false }: { settings?: boolean }
   if (!settings && count === tasks.length) return null;
 
   return (
-    <section id="getting-started" aria-labelledby="getting-started-heading" className="scroll-mt-6 space-y-4 border-b pb-8">
+    <section id="getting-started" aria-labelledby="getting-started-heading" className={`scroll-mt-6 space-y-4 border-b ${open ? "pb-8" : "pb-5"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><h2 id="getting-started-heading" className="flex items-center gap-2 text-lg font-semibold"><Compass className="size-5 text-primary" aria-hidden="true" />{canScout ? "Get ready to scout" : "Get started with Athena"}</h2><p className="mt-1 text-sm text-muted-foreground">A quick setup checklist. Check off reviews when you’re done; event and download status update automatically.</p></div>
+        <div><h2 id="getting-started-heading" className="flex items-center gap-2 text-lg font-semibold"><Compass className="size-5 text-primary" aria-hidden="true" />{canScout ? "Get ready to scout" : "Get started with Athena"}</h2>{open && <p className="mt-1 text-sm text-muted-foreground">A quick setup checklist. Check off reviews when you’re done; event and download status update automatically.</p>}</div>
         <div className="flex flex-wrap gap-2">
+          {!settings && <Button size="sm" variant="outline" aria-expanded={open} aria-controls="getting-started-steps" onClick={() => setOpen(!open)}>{open ? "Hide steps" : "Show steps"}</Button>}
           <Button size="sm" onClick={() => startTour()}>Take a guided tour</Button>
           {settings ? <Button size="sm" variant="outline" onClick={progress.dismissed ? restore : dismiss}>{progress.dismissed ? "Show on dashboard" : "Hide from dashboard"}</Button> : <Button size="sm" variant="ghost" onClick={dismiss}>Dismiss checklist</Button>}
         </div>
       </div>
       <div className="space-y-2"><p className="text-xs text-muted-foreground" role="status">{count} of {tasks.length} complete · Saved for your account on this device</p><Progress value={count / tasks.length * 100} aria-label="Getting started progress" /></div>
-      <ul className="grid gap-x-10 lg:grid-cols-2">
+      <ul id="getting-started-steps" hidden={!open} className="grid gap-x-10 lg:grid-cols-2">
         {tasks.map((task) => <li key={task.id} className="flex items-start gap-3 border-b border-border/60 py-3">
           {task.automatic ? <span className="mt-1">{isDone(task) ? <CheckCircle2 className="size-4 text-primary" aria-label="Complete" /> : <Circle className="size-4 text-muted-foreground" aria-label="Incomplete" />}</span> : <Checkbox className="mt-1" aria-label={`Mark ${task.title.toLowerCase()} complete`} checked={isDone(task)} onCheckedChange={(checked) => setCompleted(task.id, checked === true)} />}
           <div className="min-w-0 flex-1">

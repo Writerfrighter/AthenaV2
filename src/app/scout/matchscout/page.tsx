@@ -20,17 +20,18 @@ export default function Page() {
         <div className="flex-1 bg-[#3B7BF6]" />
       </div>
       <header className="sticky top-0 z-50 border-b bg-background/95 pt-[3px] backdrop-blur-sm supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-          <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
+        <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-2">
+          <Link href="/dashboard" className="shrink-0 text-sm text-muted-foreground hover:text-foreground">
             ← Exit
           </Link>
-          <h1 className="font-mono text-[13px] text-muted-foreground">
-            match scouting{selectedEvent ? ` · ${selectedEvent.name}` : ""}
+          <h1 className="min-w-0 flex-1 truncate font-mono text-[13px] text-muted-foreground">
+            <span className="sr-only">match scouting · </span>
+            {selectedEvent?.name ?? "match scouting"}
           </h1>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <OfflineStatusWidget />
             <ModeToggle />
-            <ThemeSelector />
+            <div className="hidden sm:block"><ThemeSelector /></div>
           </div>
         </div>
       </header>
