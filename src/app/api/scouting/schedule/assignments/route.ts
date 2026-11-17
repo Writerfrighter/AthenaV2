@@ -149,14 +149,15 @@ export async function POST(request: NextRequest) {
     const userIds = [
       ...new Set(changes.map((change) => change.userId).filter(Boolean)),
     ] as string[];
-    for (const userId of userIds) {
-      const user = await service.users.getById(userId);
-      if (!user || user.deactivatedAt) {
-        return NextResponse.json(
-          { error: `Unknown or inactive scout: ${userId}` },
-          { status: 400 },
-        );
-      }
+    const active = new Set(
+      (await service.users.getByIds(userIds, true)).map((user) => user.id),
+    );
+    const missing = userIds.find((userId) => !active.has(userId));
+    if (missing) {
+      return NextResponse.json(
+        { error: `Unknown or inactive scout: ${missing}` },
+        { status: 400 },
+      );
     }
 
     await service.applyScheduleAssignmentChanges(

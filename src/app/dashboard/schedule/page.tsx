@@ -46,6 +46,9 @@ import { useMatchScheduleTeams } from "@/hooks/use-match-schedule-teams";
 import { flatCards } from "@/lib/utils";
 import { autoAssignMatches, computeUserWorkload, hasPreferredPartnerInMatch as hasPartnerInMatch, type UserWithPartners, type DisplayBlock, type MatchAssignment } from "@/lib/schedule/assignments";
 
+// Six selects per match: rendering all ~100 at once makes the page unusably long.
+const MATCH_ROW_LIMIT = 20;
+
 export default function SchedulePage() {
   const { data: session, status } = useSession();
   if (status === "loading") return <p>Loading schedule…</p>;
@@ -89,6 +92,7 @@ function ScoutSchedulePage() {
   const [matchQuery, setMatchQuery] = useState("");
   const [scoutFilter, setScoutFilter] = useState("all");
   const [onlyOpenSlots, setOnlyOpenSlots] = useState(false);
+  const [showAllMatches, setShowAllMatches] = useState(false);
 
   const clearFilters = () => {
     setMatchQuery("");
@@ -654,6 +658,29 @@ function ScoutSchedulePage() {
     );
   }
 
+  // Groups are built as soon as a match count exists, so this is shown both
+  // during setup and beside the groups; it only changes the ranges offered.
+  const groupSizePicker = (
+    <div className="flex items-center gap-4">
+      <Label htmlFor="block-size">Matches per virtual group:</Label>
+      <Select
+        value={blockSize.toString()}
+        onValueChange={(value) => setBlockSize(parseInt(value))}
+      >
+        <SelectTrigger id="block-size" className="w-24">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {[3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+            <SelectItem key={n} value={n.toString()}>
+              {n}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
   return (
     <div className={`flex flex-col gap-9 ${flatCards}`}>
       <header className="flex flex-col gap-2.5">
@@ -674,26 +701,7 @@ function ScoutSchedulePage() {
                 Virtual groups are only templates for quick assignment ranges.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <Label htmlFor="block-size">Matches per virtual group:</Label>
-                <Select
-                  value={blockSize.toString()}
-                  onValueChange={(value) => setBlockSize(parseInt(value))}
-                >
-                  <SelectTrigger id="block-size" className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                      <SelectItem key={n} value={n.toString()}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
+            <CardContent>{groupSizePicker}</CardContent>
           </Card>
 
           <Card>
@@ -923,6 +931,7 @@ function ScoutSchedulePage() {
                     <CollapsibleContent>
                       {showGroupTemplates && (
                         <div className="mt-4 space-y-3">
+                          {groupSizePicker}
                           {blocks.map((block) => (
                             <div key={block.id} className="rounded border p-3">
                               <div className="text-sm font-medium mb-2">
@@ -1040,7 +1049,7 @@ function ScoutSchedulePage() {
                   </div>
                   {(matchQuery || scoutFilter !== "all" || onlyOpenSlots) && <Button variant="ghost" size="sm" onClick={clearFilters}>Clear filters</Button>}
                 </div>
-                <p className="text-sm text-muted-foreground" role="status">Showing {visibleMatches.length} of {localMatches.length} matches · squares are the scouting positions, filled = assigned</p>
+                <p className="text-sm text-muted-foreground" role="status">Showing {showAllMatches ? visibleMatches.length : Math.min(visibleMatches.length, MATCH_ROW_LIMIT)} of {localMatches.length} matches · squares are the scouting positions, filled = assigned</p>
                 {visibleMatches.length === 0 && (
                   <div className="rounded-lg border border-dashed p-8 text-center">
                     <p className="font-medium">No matches fit these filters</p>
@@ -1049,7 +1058,7 @@ function ScoutSchedulePage() {
                   </div>
                 )}
                 <div className="border-t">
-                  {visibleMatches.map((match) => (
+                  {visibleMatches.slice(0, showAllMatches ? undefined : MATCH_ROW_LIMIT).map((match) => (
                     <MatchAssignmentRow
                       key={match.matchNumber}
                       match={match}
@@ -1062,6 +1071,11 @@ function ScoutSchedulePage() {
                     />
                   ))}
                 </div>
+                {visibleMatches.length > MATCH_ROW_LIMIT && (
+                  <Button variant="outline" className="w-full" onClick={() => setShowAllMatches(!showAllMatches)}>
+                    {showAllMatches ? `Show first ${MATCH_ROW_LIMIT} only` : `Show all ${visibleMatches.length} matches`}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -61,6 +61,7 @@ export function DynamicMatchScoutForm() {
     recommendedAlliance,
     recommendedPosition,
     getNextAssignment,
+    getAssignmentForMatch,
   } = useScoutingAssignment();
   const [formData, setFormData] = useState<DynamicMatchData>(() =>
     gameConfig ? initializeFormData(gameConfig) : defaultData,
@@ -205,7 +206,22 @@ export function DynamicMatchScoutForm() {
     const eventCode = selectedEvent?.eventCode;
     const lastSubmitted = eventCode ? getLastSubmittedMatch(eventCode) : 0;
 
-    if (lastSubmitted > 0) {
+    // A "match coming up" notification links to its match. Ignore it once that
+    // match has been submitted, so an old notification cannot move the form back.
+    const linkedMatch = Number(searchParams.get("match"));
+    const linkedAssignment =
+      Number.isInteger(linkedMatch) && linkedMatch > lastSubmitted
+        ? getAssignmentForMatch(linkedMatch)
+        : null;
+
+    if (linkedAssignment) {
+      setFormData((prev) => ({
+        ...prev,
+        matchNumber: linkedAssignment.matchNumber,
+        alliance: linkedAssignment.alliance,
+        alliancePosition: linkedAssignment.position,
+      }));
+    } else if (lastSubmitted > 0) {
       // We have a previously submitted match – jump to the next scheduled assignment
       const nextAssignment = getNextAssignment(lastSubmitted);
       const nextMatch = lastSubmitted + 1;

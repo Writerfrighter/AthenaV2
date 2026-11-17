@@ -8,6 +8,8 @@ const usersCache = new Map<string, UserWithPartners[]>();
 const matchCountCache = new Map<string, number>();
 const assignmentsCache = new Map<string, MatchAssignmentRow[]>();
 
+const BLOCK_SIZE_KEY = "schedule-block-size";
+
 const getAssignmentsCacheKey = (
   eventCode: string,
   year: number,
@@ -78,7 +80,23 @@ export function useScheduleData() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Configuration state
-  const [blockSize, setBlockSize] = useState<number>(5);
+  // shortcut: the group size is remembered per browser, not per event or team; store it with the event if leads need to share it.
+  const [blockSize, setBlockSizeState] = useState<number>(() => {
+    try {
+      const saved = Number(localStorage.getItem(BLOCK_SIZE_KEY));
+      return Number.isInteger(saved) && saved >= 3 && saved <= 10 ? saved : 5;
+    } catch {
+      return 5;
+    }
+  });
+  const setBlockSize = useCallback((size: number) => {
+    setBlockSizeState(size);
+    try {
+      localStorage.setItem(BLOCK_SIZE_KEY, String(size));
+    } catch {
+      // Private browsing: the choice still applies until the page reloads.
+    }
+  }, []);
   const [matchCount, setMatchCount] = useState<number>(0);
   const [apiMatchCount, setApiMatchCount] = useState<number>(0);
   const [isApiMatchCountAvailable, setIsApiMatchCountAvailable] =
