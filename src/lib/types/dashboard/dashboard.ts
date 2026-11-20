@@ -9,6 +9,7 @@ export interface DashboardStats {
     name: string;
     matchesPlayed: number;
     totalEPA: number;
+    recentScores?: number[];
   }>;
   recentActivity: Array<{
     teamNumber: number;

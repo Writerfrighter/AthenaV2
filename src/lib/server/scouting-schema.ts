@@ -2,18 +2,23 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { DRIVE_TRAINS } from "@/lib/types";
 
-const scalar = z.union([z.number().finite(), z.string(), z.boolean()]);
+// Entries are stored as sent and returned on every list read, and guest links
+// may create them, so every field is bounded well above what the forms produce.
+const MAX_TEXT = 10_000;
+const MAX_KEYS = 200;
+const fewKeys = (data: Record<string, unknown>) => Object.keys(data).length <= MAX_KEYS;
+const scalar = z.union([z.number().finite(), z.string().max(MAX_TEXT), z.boolean()]);
 // Multiselect pit fields submit string arrays.
-const value = z.union([scalar, z.array(scalar)]);
-const gameSpecificData = z.record(z.string(), z.union([
-  value, z.record(z.string(), value),
-]));
+const value = z.union([scalar, z.array(scalar).max(MAX_KEYS)]);
+const gameSpecificData = z.record(z.string().max(200), z.union([
+  value, z.record(z.string().max(200), value).refine(fewKeys),
+])).refine(fewKeys);
 const common = {
-  teamNumber: z.number().int().positive(),
+  teamNumber: z.number().int().positive().max(999_999),
   year: z.number().int().min(1992).max(2100),
   competitionType: z.enum(["FRC", "FTC"]),
-  eventName: z.string().optional(),
-  eventCode: z.string().min(1).optional(),
+  eventName: z.string().max(200).optional(),
+  eventCode: z.string().min(1).max(120).optional(),
   gameSpecificData,
 };
 const pitFields = z.object({
@@ -22,15 +27,16 @@ const pitFields = z.object({
   weight: z.number().finite().nonnegative().optional(),
   length: z.number().finite().nonnegative().optional(),
   width: z.number().finite().nonnegative().optional(),
-  autoDrawing: z.string().optional(),
-  notes: z.string().optional(),
+  // Stroke JSON from the field drawing canvas.
+  autoDrawing: z.string().max(500_000).optional(),
+  notes: z.string().max(MAX_TEXT).optional(),
 });
 const matchFields = z.object({
   ...common,
-  matchNumber: z.number().int().positive(),
+  matchNumber: z.number().int().positive().max(500),
   alliance: z.enum(["red", "blue"]),
   alliancePosition: z.number().int().min(1).max(3).optional(),
-  notes: z.string(),
+  notes: z.string().max(MAX_TEXT),
   timestamp: z.iso.datetime({ offset: true }).transform((value) => new Date(value)),
 });
 const scoutingForUserId = z.string().min(1).optional();

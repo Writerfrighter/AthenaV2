@@ -1,19 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Code,
-  Copy,
-  Check,
-  Download,
-  Upload,
-  Sparkles,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react";
+import { Copy, Check, Download, Upload, AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import type { YearConfig } from "@/lib/types";
 import { validateYearConfig } from "@/lib/game-config/config-validator";
@@ -141,53 +131,21 @@ export function BuilderJsonEditor({
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Code className="h-5 w-5 text-primary" />
-                Raw JSON Schema Inspector & Editor
-              </CardTitle>
-              <CardDescription>
-                Edit or import JSON, apply it to the editor, then choose Save Config to publish.
-              </CardDescription>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handlePrettify}>
-                <Sparkles className="h-3.5 w-3.5 mr-1" /> Format
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleCopy}>
-                {copied ? (
-                  <Check className="h-3.5 w-3.5 mr-1 text-emerald-500" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5 mr-1" />
-                )}
-                {copied ? "Copied" : "Copy"}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleDownload}>
-                <Download className="h-3.5 w-3.5 mr-1" /> Download
-              </Button>
-
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept=".json"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                />
-                <Button variant="secondary" size="sm" asChild>
-                  <span>
-                    <Upload className="h-3.5 w-3.5 mr-1" /> Import File
-                  </span>
-                </Button>
-              </label>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" size="sm" onClick={handlePrettify}>Format</Button>
+        <Button variant="outline" size="sm" onClick={handleCopy}>
+          {copied ? <Check /> : <Copy />}
+          {copied ? "Copied" : "Copy"}
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleDownload}><Download /> Download</Button>
+        <label className="cursor-pointer">
+          <input type="file" accept=".json" className="hidden" onChange={handleFileUpload} />
+          <Button variant="outline" size="sm" asChild>
+            <span><Upload /> Import file</span>
+          </Button>
+        </label>
+      </div>
           {/* Syntax / Validation Status Banner */}
           {parseError ? (
             <div className="flex items-center gap-2 p-2.5 rounded-md bg-destructive/10 text-destructive text-xs">
@@ -206,9 +164,9 @@ export function BuilderJsonEditor({
               </ul>
             </div>
           ) : (
-            <div className="flex items-center gap-2 p-2 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs">
+            <div className="flex items-center gap-2 p-2 rounded-md text-xs text-muted-foreground">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span>Valid YearConfig JSON schema</span>
+              <span>Valid configuration</span>
             </div>
           )}
 
@@ -226,7 +184,7 @@ export function BuilderJsonEditor({
               aria-label="Configuration JSON"
               value={jsonText}
               onChange={(e) => handleTextChange(e.target.value)}
-              className="font-mono text-xs h-[500px] leading-relaxed p-4 bg-muted/30 resize-y border-border"
+              className="h-[500px] resize-y p-4 font-mono text-xs leading-relaxed"
               placeholder="{ ... }"
               spellCheck={false}
             />
@@ -234,8 +192,6 @@ export function BuilderJsonEditor({
           <Button onClick={handleApply} disabled={!!parseError || validationErrors.length > 0}>
             Apply JSON to editor
           </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }

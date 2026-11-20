@@ -22,20 +22,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Save, Plus, Copy, Code, FileJson, Sparkles, MousePointer, Play, Monitor, Tablet, Smartphone, Swords, LayoutDashboard, AlertTriangle, Pencil } from "lucide-react";
+import { Code, Copy, Monitor, Pencil, Plus, Save, Smartphone, Tablet, Trash2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
-import type {
-  YearConfig,
-  ScoringDefinition,
-  PitScoutingFieldDefinition,
-} from "@/lib/types";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
+import type { YearConfig } from "@/lib/types";
 import { getErrorMessage } from "@/lib/utils";
-import { DEFAULT_NEW_CONFIG } from "./types";
-import { ComponentPalette, PaletteComponentType } from "./component-palette";
+import { DEFAULT_NEW_CONFIG, getSection, uniqueKey, updateSection } from "./types";
+import { ComponentPalette, PALETTE, PaletteComponentType } from "./component-palette";
 import { VisualCanvas } from "./visual-canvas";
 import { PropertyInspector, SelectedComponentInfo } from "./property-inspector";
 import { VisualMatchupCanvas } from "./visual-matchup-canvas";
 import { VisualTeamPageCanvas } from "./visual-teampage-canvas";
+import { AnalysisEditor } from "./analysis-editor";
 import { BuilderJsonEditor } from "./builder-json-editor";
 import { validateYearConfig } from "@/lib/game-config/config-validator";
 
@@ -47,7 +48,15 @@ interface ConfigOption {
   isBuiltin: boolean;
 }
 
-export type StudioDesignerMode = "match" | "pit" | "matchup" | "teampage";
+export type StudioDesignerMode = "match" | "pit" | "matchup" | "teampage" | "analysis";
+
+const MODES: [StudioDesignerMode, string][] = [
+  ["match", "Match form"],
+  ["pit", "Pit form"],
+  ["matchup", "Matchup card"],
+  ["teampage", "Team page"],
+  ["analysis", "Analysis"],
+];
 
 async function loadConfigList(): Promise<ConfigOption[]> {
   const res = await fetch("/api/scouting/admin/configs", { cache: "no-store" });
@@ -89,6 +98,8 @@ export function GameConfigStudio() {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [createCompetitionType, setCreateCompetitionType] = useState<"FRC" | "FTC">("FRC");
   const [createYear, setCreateYear] = useState(new Date().getFullYear() + 1);
   const [createGameName, setCreateGameName] = useState("NEW_GAME");
@@ -122,7 +133,10 @@ export function GameConfigStudio() {
       if (version !== loadVersion.current) return;
       if (data.configs) setConfigList(data.configs);
       setSelectedFile(data.filename);
-      if (!data.config) return;
+      if (!data.config) {
+        setCurrentConfig(structuredClone(DEFAULT_NEW_CONFIG));
+        return;
+      }
       setCurrentConfig(data.config);
       setSavedConfig(JSON.stringify(data.config));
       setCurrentYear(Number(data.filename.match(/-(\d{4})\.json$/i)?.[1]));
@@ -264,6 +278,26 @@ export function GameConfigStudio() {
     }
   };
 
+  const handleDeleteConfig = async () => {
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/scouting/admin/configs?file=${encodeURIComponent(selectedFile)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete configuration");
+      setIsDeleteDialogOpen(false);
+      toast.success(`Deleted ${selectedFile}`);
+      notifyGameConfigUpdated();
+      setIsLoading(true);
+      await loadSelectedConfig();
+    } catch (err) {
+      toast.error(getErrorMessage(err) || "Failed to delete configuration");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Duplicate current config
   const handleDuplicateCurrent = () => {
     let nextYear = currentYear + 1;
@@ -314,253 +348,71 @@ export function GameConfigStudio() {
     }
   };
 
-  // Handle adding a component from palette (via click or drag-and-drop)
+  const formMode = studioMode === "match" || studioMode === "pit" ? studioMode : null;
+  const isSavedFile = configList.some((config) => config.filename === selectedFile);
+
+  // Add a field from the palette, by click or drop.
   const handleAddComponent = (type: PaletteComponentType, sectionTarget?: string) => {
-    const targetSec = sectionTarget || activeSection;
-    const timestamp = Date.now().toString().slice(-4);
-
-    if (studioMode === "match") {
-      let newKey = `scoring_${timestamp}`;
-      let newDef: ScoringDefinition;
-
-      switch (type) {
-        case "multi-stepper":
-          newKey = `stepper_${timestamp}`;
-          newDef = {
-            label: "Game Element Scored",
-            points: 1,
-            description: "Count of items scored during match",
-            increments: [1, 5, 10],
-          };
-          break;
-        case "simple-stepper":
-          newKey = `counter_${timestamp}`;
-          newDef = {
-            label: "Scored Action",
-            points: 2,
-            description: "Number of completed actions",
-            increments: [1],
-          };
-          break;
-        case "boolean-toggle":
-          newKey = `toggle_${timestamp}`;
-          newDef = {
-            label: "Action Achieved",
-            points: 15,
-            description: "Status achieved during match",
-            type: "boolean",
-          };
-          break;
-        case "select-dropdown":
-          newKey = `select_${timestamp}`;
-          newDef = {
-            label: "Robot Stage / Position",
-            description: "Final robot state",
-            type: "select",
-            pointValues: {
-              none: 0,
-              level_1: 10,
-              level_2: 20,
-              level_3: 30,
-            },
-          };
-          break;
-        case "number-input":
-        default:
-          newKey = `numeric_${timestamp}`;
-          newDef = {
-            label: "Numeric Metric",
-            points: 1,
-            type: "number",
-            description: "Numeric score metric",
-          };
-          break;
-      }
-
-      setCurrentConfig((prev) => {
-        const scoring = { ...prev.scoring };
-        const sec = { ...((scoring[targetSec as keyof typeof scoring] || {}) as Record<string, ScoringDefinition>) };
-        sec[newKey] = newDef;
-        return {
-          ...prev,
-          scoring: {
-            ...scoring,
-            [targetSec]: sec,
-          },
-        };
-      });
-
-      setSelectedComponent({
-        mode: "match",
-        section: targetSec,
-        fieldKey: newKey,
-      });
-
-      toast.success(`Added ${newDef.label} to ${targetSec}`);
-    } else {
-      // Pit Scouting
-      let newKey = `pit_${timestamp}`;
-      let newField: PitScoutingFieldDefinition;
-
-      switch (type) {
-        case "pit-text":
-          newKey = `notes_${timestamp}`;
-          newField = { label: "Design Specifications", type: "text" };
-          break;
-        case "pit-number":
-          newKey = `capacity_${timestamp}`;
-          newField = { label: "Capacity / Weight", type: "number" };
-          break;
-        case "pit-boolean":
-          newKey = `capability_${timestamp}`;
-          newField = { label: "Has Subsystem Capability", type: "boolean" };
-          break;
-        case "pit-select":
-          newKey = `type_${timestamp}`;
-          newField = {
-            label: "Mechanism Type",
-            type: "select",
-            options: ["Type A", "Type B", "Custom"],
-          };
-          break;
-        case "pit-multiselect":
-        default:
-          newKey = `features_${timestamp}`;
-          newField = {
-            label: "Active Features",
-            type: "multiselect",
-            options: ["Autonomous Mode", "Auto Align", "Vision Tracking"],
-          };
-          break;
-      }
-
-      setCurrentConfig((prev) => {
-        const pit = { ...prev.pitScouting };
-        const sec = {
-          ...((pit[targetSec as keyof typeof pit] ||
-            {}) as Record<string, PitScoutingFieldDefinition>),
-        };
-        sec[newKey] = newField;
-        return {
-          ...prev,
-          pitScouting: {
-            ...pit,
-            [targetSec]: sec,
-          },
-        };
-      });
-
-      setSelectedComponent({
-        mode: "pit",
-        section: targetSec,
-        fieldKey: newKey,
-      });
-
-      toast.success(`Added ${newField.label} to ${targetSec}`);
-    }
+    if (!formMode) return;
+    const section = sectionTarget || activeSection;
+    const item = PALETTE[formMode].find((entry) => entry.type === type);
+    if (!item) return;
+    const fieldKey = uniqueKey(getSection(currentConfig, formMode, section), item.key);
+    setCurrentConfig((prev) =>
+      updateSection(prev, formMode, section, (fields) => ({
+        ...fields,
+        [fieldKey]: structuredClone(item.definition),
+      })),
+    );
+    setSelectedComponent({ mode: formMode, section, fieldKey });
   };
 
-  // Reorder components on canvas
-  const handleReorderComponents = (section: string, newKeysOrder: string[]) => {
-    setCurrentConfig((prev) => {
-      if (studioMode === "match") {
-        const scoring = { ...prev.scoring };
-        const existing = (scoring[section as keyof typeof scoring] || {}) as Record<string, ScoringDefinition>;
-        const reordered: Record<string, ScoringDefinition> = {};
-        newKeysOrder.forEach((k) => {
-          if (existing[k]) reordered[k] = existing[k];
-        });
-        return {
-          ...prev,
-          scoring: {
-            ...scoring,
-            [section]: reordered,
-          },
-        };
-      } else {
-        const pit = { ...prev.pitScouting };
-        const existing = (pit[section as keyof typeof pit] ||
-          {}) as Record<string, PitScoutingFieldDefinition>;
-        const reordered: Record<string, PitScoutingFieldDefinition> = {};
-        newKeysOrder.forEach((k) => {
-          if (existing[k]) reordered[k] = existing[k];
-        });
-        return {
-          ...prev,
-          pitScouting: {
-            ...pit,
-            [section]: reordered,
-          },
-        };
-      }
-    });
+  const handleReorderComponents = (section: string, order: string[]) => {
+    if (!formMode) return;
+    setCurrentConfig((prev) =>
+      updateSection(prev, formMode, section, (fields) =>
+        Object.fromEntries(order.filter((key) => key in fields).map((key) => [key, fields[key]])),
+      ),
+    );
   };
 
-  // Duplicate component
   const handleDuplicateComponent = (comp: SelectedComponentInfo) => {
-    const newKey = `${comp.fieldKey}_copy`;
-    setCurrentConfig((prev) => {
-      if (comp.mode === "match") {
-        const scoring = { ...prev.scoring };
-        const sec = { ...((scoring[comp.section as keyof typeof scoring] || {}) as Record<string, ScoringDefinition>) };
-        if (sec[comp.fieldKey]) {
-          sec[newKey] = {
-            ...sec[comp.fieldKey],
-            label: `${sec[comp.fieldKey].label} (Copy)`,
-          };
-        }
-        return { ...prev, scoring: { ...scoring, [comp.section]: sec } };
-      } else {
-        const pit = { ...prev.pitScouting };
-        const sec = {
-          ...((pit[comp.section as keyof typeof pit] ||
-            {}) as Record<string, PitScoutingFieldDefinition>),
-        };
-        if (sec[comp.fieldKey]) {
-          sec[newKey] = {
-            ...sec[comp.fieldKey],
-            label: `${sec[comp.fieldKey].label} (Copy)`,
-          };
-        }
-        return { ...prev, pitScouting: { ...pit, [comp.section]: sec } };
-      }
-    });
-
-    setSelectedComponent({ ...comp, fieldKey: newKey });
-    toast.info(`Duplicated as ${newKey}`);
+    const fields = getSection(currentConfig, comp.mode, comp.section);
+    const source = fields[comp.fieldKey];
+    if (!source) return;
+    const fieldKey = uniqueKey(fields, `${comp.fieldKey}_copy`);
+    setCurrentConfig((prev) =>
+      updateSection(prev, comp.mode, comp.section, (current) => ({
+        ...current,
+        [fieldKey]: { ...source, label: `${source.label} (Copy)` },
+      })),
+    );
+    setSelectedComponent({ ...comp, fieldKey });
   };
 
-  // Delete component
   const handleDeleteComponent = (comp: SelectedComponentInfo) => {
-    setCurrentConfig((prev) => {
-      if (comp.mode === "match") {
-        const scoring = { ...prev.scoring };
-        const sec = { ...((scoring[comp.section as keyof typeof scoring] || {}) as Record<string, ScoringDefinition>) };
-        delete sec[comp.fieldKey];
-        return { ...prev, scoring: { ...scoring, [comp.section]: sec } };
-      } else {
-        const pit = { ...prev.pitScouting };
-        const sec = {
-          ...((pit[comp.section as keyof typeof pit] ||
-            {}) as Record<string, PitScoutingFieldDefinition>),
-        };
-        delete sec[comp.fieldKey];
-        return { ...prev, pitScouting: { ...pit, [comp.section]: sec } };
-      }
-    });
-
-    if (selectedComponent?.fieldKey === comp.fieldKey) {
+    setCurrentConfig((prev) =>
+      updateSection(prev, comp.mode, comp.section, (fields) => {
+        const next = { ...fields };
+        delete next[comp.fieldKey];
+        return next;
+      }),
+    );
+    if (
+      selectedComponent?.mode === comp.mode &&
+      selectedComponent.section === comp.section &&
+      selectedComponent.fieldKey === comp.fieldKey
+    ) {
       setSelectedComponent(null);
     }
-    toast.info(`Removed component`);
   };
 
   if (isLoading) {
-    return <p role="status" className="p-6 text-muted-foreground">Loading saved configuration…</p>;
+    return <p role="status" className="py-6 text-muted-foreground">Loading saved configuration…</p>;
   }
 
   if (loadError && !selectedFile) {
-    return <div role="alert" className="space-y-3 rounded-lg border p-6">
+    return <div role="alert" className="space-y-3 rounded-xl border p-6">
       <p>{loadError}</p>
       <Button onClick={() => {
         setIsLoading(true);
@@ -570,250 +422,128 @@ export function GameConfigStudio() {
     </div>;
   }
 
+  const sideColumn = "lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto";
+
   return (
-    <div className="space-y-4" inert={isSaving || isCreating || isRenaming}>
+    <div className="flex flex-col gap-5" inert={isSaving || isCreating || isRenaming || isDeleting}>
       {loadError && <p role="alert" className="text-destructive">{loadError}. Your previous configuration is still open.</p>}
-      <p role="status" className="text-sm text-muted-foreground">
-        {!selectedFile ? "No saved configurations. Choose New to create one." : isDirty ? "Unsaved changes" : "All changes saved"}
-        {" · Online scouting sessions refresh after saving, on focus, and every 30 seconds."}
-      </p>
-      {/* Studio Master Header */}
-      <div className="rounded-xl border border-border bg-card p-3 sm:px-5">
-        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
-          {/* Title & Config Switcher */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
-                  Config Studio
-                </h2>
-                <p className="text-xs text-muted-foreground hidden sm:block">
-                  Direct visual manipulation scouting form & analytics designer
-                </p>
-              </div>
-            </div>
 
-            <div className="h-6 w-px bg-border hidden sm:block mx-1" />
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={selectedFile} onValueChange={handleSelectConfig}>
+          <SelectTrigger aria-label="Configuration" className="w-64">
+            <SelectValue placeholder="Select a configuration" />
+          </SelectTrigger>
+          <SelectContent>
+            {configList.map((cfg) => (
+              <SelectItem key={cfg.filename} value={cfg.filename}>
+                {cfg.competitionType} {cfg.year} · {cfg.gameName || cfg.filename}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="sm" onClick={openCreateDialog}><Plus /> New</Button>
+        <Button variant="outline" size="sm" onClick={openRenameDialog} disabled={!isSavedFile}><Pencil /> Rename</Button>
+        <Button variant="outline" size="sm" onClick={handleDuplicateCurrent} disabled={!selectedFile}><Copy /> Clone</Button>
+        <Button variant="outline" size="sm" onClick={() => setIsDeleteDialogOpen(true)} disabled={!isSavedFile}><Trash2 /> Delete</Button>
 
-            {/* Config Selector */}
-            <Select value={selectedFile} onValueChange={handleSelectConfig}>
-              <SelectTrigger className="w-52 h-9 text-xs font-semibold">
-                <SelectValue placeholder="Select Config" />
-              </SelectTrigger>
-              <SelectContent>
-                {configList.map((cfg) => (
-                  <SelectItem key={cfg.filename} value={cfg.filename} className="text-xs">
-                    {cfg.competitionType} {cfg.year} ({cfg.gameName || cfg.filename})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <p role="status" className="ml-auto text-sm text-muted-foreground">
+          {!selectedFile
+            ? "No saved configurations. Choose New to create one."
+            : !isSavedFile
+              ? `Unsaved changes: saving creates ${selectedFile}`
+              : isDirty ? "Unsaved changes" : "All changes saved"}
+        </p>
+        <Button variant="outline" size="sm" onClick={() => setIsJsonDialogOpen(true)}><Code /> JSON</Button>
+        <Button size="sm" onClick={handleSaveToServer} disabled={isSaving || !isDirty}>
+          <Save /> {isSaving ? "Saving..." : "Save Config"}
+        </Button>
+      </div>
 
-            <Button variant="outline" size="sm" onClick={openCreateDialog} className="h-9 text-xs">
-              <Plus className="h-3.5 w-3.5 mr-1" /> New
-            </Button>
-            <Button
-              variant="outline"
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+        <Tabs
+          value={studioMode}
+          onValueChange={(mode) => {
+            setStudioMode(mode as StudioDesignerMode);
+            setActiveSection("autonomous");
+            setSelectedComponent(null);
+          }}
+        >
+          <TabsList>
+            {MODES.map(([mode, label]) => (
+              <TabsTrigger key={mode} value={mode} className="flex-none">{label}</TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+
+        {formMode && (
+          <div className="flex items-center gap-4">
+            <ToggleGroup
+              type="single"
               size="sm"
-              onClick={openRenameDialog}
-              disabled={!configList.some((config) => config.filename === selectedFile)}
-              className="h-9 text-xs"
+              aria-label="Preview width"
+              value={viewportDevice}
+              onValueChange={(value) => {
+                if (value) setViewportDevice(value as typeof viewportDevice);
+              }}
+              className="hidden sm:flex"
             >
-              <Pencil className="h-3.5 w-3.5 mr-1" /> Rename
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleDuplicateCurrent} className="h-9 text-xs">
-              <Copy className="h-3.5 w-3.5 mr-1" /> Clone
-            </Button>
+              <ToggleGroupItem value="responsive" aria-label="Full width"><Monitor /></ToggleGroupItem>
+              <ToggleGroupItem value="tablet" aria-label="Tablet width"><Tablet /></ToggleGroupItem>
+              <ToggleGroupItem value="phone" aria-label="Phone width"><Smartphone /></ToggleGroupItem>
+            </ToggleGroup>
+            <label className="flex items-center gap-2 text-sm">
+              <Switch
+                checked={isTestMode}
+                onCheckedChange={(on) => {
+                  setIsTestMode(on);
+                  if (on) setSelectedComponent(null);
+                }}
+              />
+              Test the form
+            </label>
           </div>
-
-          {/* Controls: Mode, Viewport, Interactive Test, and Save */}
-          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-between xl:justify-end">
-            {/* 4-Way Studio Mode Switcher */}
-            <div className="bg-muted p-0.5 rounded-lg flex flex-wrap items-center border">
-              <button
-                type="button"
-                onClick={() => {
-                  setStudioMode("match");
-                  setActiveSection("autonomous");
-                  setSelectedComponent(null);
-                }}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-                  studioMode === "match" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Match Scouting
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStudioMode("pit");
-                  setActiveSection("autonomous");
-                  setSelectedComponent(null);
-                }}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
-                  studioMode === "pit" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Pit Scouting
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStudioMode("matchup");
-                  setSelectedComponent(null);
-                }}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1 ${
-                  studioMode === "matchup" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Swords className="h-3 w-3" /> Matchup Card
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStudioMode("teampage");
-                  setSelectedComponent(null);
-                }}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1 ${
-                  studioMode === "teampage" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <LayoutDashboard className="h-3 w-3" /> Team Page
-              </button>
-            </div>
-
-            {/* Viewport Frame Toggle (for Match/Pit Canvas) */}
-            {(studioMode === "match" || studioMode === "pit") && (
-              <div className="bg-muted p-0.5 rounded-lg hidden sm:flex items-center border">
-                <button
-                  type="button"
-                  onClick={() => setViewportDevice("responsive")}
-                  title="Full Responsive View"
-                  className={`p-1.5 rounded-md ${viewportDevice === "responsive" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground"}`}
-                >
-                  <Monitor className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewportDevice("tablet")}
-                  title="Tablet View (iPad)"
-                  className={`p-1.5 rounded-md ${viewportDevice === "tablet" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground"}`}
-                >
-                  <Tablet className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewportDevice("phone")}
-                  title="Mobile Phone View"
-                  className={`p-1.5 rounded-md ${viewportDevice === "phone" ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground"}`}
-                >
-                  <Smartphone className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
-
-            {/* Interactive Test Mode Toggle (for Match/Pit) */}
-            {(studioMode === "match" || studioMode === "pit") && (
-              <Button
-                variant={isTestMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setIsTestMode(!isTestMode);
-                  if (!isTestMode) setSelectedComponent(null);
-                }}
-                className={`h-9 text-xs transition-colors ${
-                  isTestMode ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""
-                }`}
-              >
-                {isTestMode ? (
-                  <>
-                    <Play className="h-3.5 w-3.5 mr-1 fill-current" /> Testing Live
-                  </>
-                ) : (
-                  <>
-                    <MousePointer className="h-3.5 w-3.5 mr-1" /> Test Form
-                  </>
-                )}
-              </Button>
-            )}
-
-            {/* Raw JSON Modal Trigger */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsJsonDialogOpen(true)}
-              className="h-9 text-xs"
-              title="Inspect & Edit Raw JSON"
-            >
-              <Code className="h-3.5 w-3.5 mr-1 text-orange-500" /> JSON
-            </Button>
-
-            {/* Save to Server */}
-            <Button size="sm" onClick={handleSaveToServer} disabled={isSaving || !isDirty} className="h-9 text-xs">
-              <Save className="h-3.5 w-3.5 mr-1.5" />
-              {isSaving ? "Saving..." : "Save Config"}
-            </Button>
-          </div>
-        </div>
+        )}
       </div>
 
       {referenceWarnings.length > 0 && (
-        <div className="rounded-lg border border-amber-500/50 bg-amber-500/5 px-4 py-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-500">
-            <AlertTriangle className="h-4 w-4" />
-            {referenceWarnings.length} unresolved reference
-            {referenceWarnings.length === 1 ? "" : "s"}
-          </div>
-          <ul className="mt-2 space-y-1">
-            {referenceWarnings.map((warning, idx) => (
-              <li
-                key={idx}
-                className="text-xs text-muted-foreground before:mr-1.5 before:content-['—']"
-              >
-                {warning}
-              </li>
-            ))}
+        <details className="border-b pb-3 text-sm">
+          <summary className="flex cursor-pointer items-center gap-2 font-medium">
+            <TriangleAlert className="size-4 text-amber-600" />
+            {referenceWarnings.length} reference{referenceWarnings.length === 1 ? "" : "s"} to check
+          </summary>
+          <ul className="mt-2 list-disc space-y-1 pl-9 text-xs text-muted-foreground">
+            {referenceWarnings.map((warning) => <li key={warning}>{warning}</li>)}
           </ul>
-        </div>
+        </details>
       )}
 
-      {/* Main Designer Workspace depending on active mode */}
-      {studioMode === "match" || studioMode === "pit" ? (
-        /* Figma-Style 3-Column Studio Workspace for Match/Pit */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-          {/* Left Column: Component Palette (2.5 cols) */}
-          <div className="lg:col-span-3 h-[750px] sticky top-4">
-            <ComponentPalette
-              scoutingMode={studioMode}
-              onAddComponent={(type) => handleAddComponent(type)}
-            />
+      {formMode ? (
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[240px_minmax(0,1fr)_300px]">
+          <div className={sideColumn}>
+            <ComponentPalette scoutingMode={formMode} onAddComponent={(type) => handleAddComponent(type)} />
           </div>
-
-          {/* Center Column: Direct Manipulation WYSIWYG Canvas (6 cols) */}
-          <div className="lg:col-span-6 overflow-y-auto max-h-[850px] pr-1">
-            <VisualCanvas
-              config={currentConfig}
-              year={currentYear}
-              scoutingMode={studioMode}
-              activeSection={activeSection}
-              isTestMode={isTestMode}
-              viewportDevice={viewportDevice}
-              selectedComponent={selectedComponent}
-              onSectionChange={setActiveSection}
-              onSelectComponent={setSelectedComponent}
-              onDuplicateComponent={handleDuplicateComponent}
-              onDeleteComponent={handleDeleteComponent}
-              onDropComponent={handleAddComponent}
-              onReorderComponents={handleReorderComponents}
-            />
-          </div>
-
-          {/* Right Column: Property Inspector (3.5 cols) */}
-          <div className="lg:col-span-3 h-[750px] sticky top-4">
+          <VisualCanvas
+            config={currentConfig}
+            year={currentYear}
+            scoutingMode={formMode}
+            activeSection={activeSection}
+            isTestMode={isTestMode}
+            viewportDevice={viewportDevice}
+            selectedComponent={selectedComponent}
+            onSectionChange={(section) => {
+              setActiveSection(section);
+              setSelectedComponent(null);
+            }}
+            onSelectComponent={setSelectedComponent}
+            onDuplicateComponent={handleDuplicateComponent}
+            onDeleteComponent={handleDeleteComponent}
+            onDropComponent={handleAddComponent}
+            onReorderComponents={handleReorderComponents}
+          />
+          <div className={sideColumn}>
             <PropertyInspector
+              // Remount per field so half-typed "add" inputs never carry over
+              key={selectedComponent ? `${selectedComponent.section}.${selectedComponent.fieldKey}` : "game"}
               config={currentConfig}
               year={currentYear}
               selectedComponent={selectedComponent}
@@ -825,21 +555,22 @@ export function GameConfigStudio() {
           </div>
         </div>
       ) : studioMode === "matchup" ? (
-        /* Matchup Card Designer */
-        <VisualMatchupCanvas
-          config={currentConfig}
-          onUpdateConfig={setCurrentConfig}
-        />
+        <VisualMatchupCanvas config={currentConfig} onUpdateConfig={setCurrentConfig} />
+      ) : studioMode === "teampage" ? (
+        <VisualTeamPageCanvas config={currentConfig} year={currentYear} onUpdateConfig={setCurrentConfig} />
       ) : (
-        /* Team Profile Page Designer */
-        <VisualTeamPageCanvas
-          config={currentConfig}
-          year={currentYear}
-          onUpdateConfig={setCurrentConfig}
-        />
+        <AnalysisEditor config={currentConfig} onUpdateConfig={setCurrentConfig} />
       )}
 
-      {/* Raw JSON Code Modal Dialog */}
+      <DeleteConfirmationDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleDeleteConfig}
+        loading={isDeleting}
+        title={`Delete ${selectedFile}?`}
+        description="Scouting forms, team pages and analysis for this season stop working until a configuration for it exists again. Entries already recorded are kept."
+      />
+
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -919,10 +650,10 @@ export function GameConfigStudio() {
       <Dialog open={isJsonDialogOpen} onOpenChange={setIsJsonDialogOpen}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileJson className="h-5 w-5 text-primary" />
-              Raw Configuration Schema Inspector & Exporter
-            </DialogTitle>
+            <DialogTitle>Configuration JSON</DialogTitle>
+            <DialogDescription>
+              Edit or import JSON and apply it to the editor, then choose Save Config to publish.
+            </DialogDescription>
           </DialogHeader>
           <BuilderJsonEditor
             config={currentConfig}

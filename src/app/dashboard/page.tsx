@@ -2,33 +2,15 @@
 
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowRight,
-  BarChart3,
-  CheckCircle2,
-  ClipboardList,
-  Clock,
-  MapPin,
-  RadioTower,
-  Target,
-  Trophy,
-  Users,
-  Wifi,
-  WifiOff,
-} from "lucide-react";
+import { MapPin } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getLastSubmittedMatch } from "@/components/forms/match-form-utils";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { useEventConfig } from "@/hooks/use-event-config";
@@ -38,10 +20,13 @@ import { useSession } from "next-auth/react";
 
 const subscribeToLocalStorage = () => () => undefined;
 
-function progressPercent(current: number, total: number) {
+function percent(current: number, total: number) {
   if (total <= 0) return 0;
-  return Math.min(100, Math.max(0, (current / total) * 100));
+  return Math.round(Math.min(100, Math.max(0, (current / total) * 100)));
 }
+
+const h2 = "text-lg font-semibold tracking-tight";
+const row = "border-b border-border/60";
 
 export default function Page() {
   const { data: session } = useSession();
@@ -63,26 +48,21 @@ export default function Page() {
         : 0,
     () => 0,
   );
+  // Server render has no clock of the viewer; greet only on the client.
+  const title = useSyncExternalStore(subscribeToLocalStorage, () => `Welcome, ${session?.user?.name?.split(" ")[0] || "Guest"}`, () => "Overview");
   const nextAssignment = getNextAssignment(lastSubmittedMatch);
-  const missingPitTeams = Math.max(
-    0,
-    stats.pitScoutingProgress.total - stats.pitScoutingProgress.current,
-  );
-  const missingMatches = Math.max(
-    0,
-    stats.qualificationProgress.total - stats.qualificationProgress.current,
-  );
-  const defaultView = isGuest || stats.eventComplete ? "review" : "live";
+  const pit = stats.pitScoutingProgress;
+  const quals = stats.qualificationProgress;
+  const missingPitTeams = Math.max(0, pit.total - pit.current);
+  const missingMatches = Math.max(0, quals.total - quals.current);
+  const show = (value: string | number) => (loading ? "…" : value);
 
   if (eventLoading) {
     return (
       <div className="space-y-4" aria-live="polite">
-        <div className="h-9 w-48 animate-pulse rounded-lg bg-muted" />
+        <div className="h-11 w-64 animate-pulse rounded-lg bg-muted" />
         <div className="h-5 w-80 max-w-full animate-pulse rounded bg-muted" />
-        <div className="grid gap-6 pt-4 lg:grid-cols-2">
-          <div className="h-56 animate-pulse rounded-xl bg-muted" />
-          <div className="h-56 animate-pulse rounded-xl bg-muted" />
-        </div>
+        <div className="h-24 animate-pulse rounded-xl bg-muted" />
         <span className="sr-only">Loading event overview</span>
       </div>
     );
@@ -107,383 +87,181 @@ export default function Page() {
     );
   }
 
+  const nextLine = isGuest
+    ? null
+    : assignmentsLoading
+      ? "loading your schedule…"
+      : nextAssignment
+        ? `you scout ${nextAssignment.alliance === "red" ? "Red" : "Blue"} ${nextAssignment.position} next, in Q${nextAssignment.matchNumber}`
+        : "no scouting assignments left";
+
+  const kpis = [
+    { l: "Team ranking", v: stats.ranking > 0 ? `#${stats.ranking}` : "—", s: stats.eventComplete ? "event complete" : "live" },
+    { l: "Teams scouted", v: stats.teamsScouted, s: `pit ${pit.current} of ${pit.total}` },
+    { l: "Match entries", v: stats.matchesRecorded, s: `${percent(quals.current, quals.total)}% of quals` },
+    { l: "Pit coverage", v: `${percent(pit.current, pit.total)}%`, s: `${missingPitTeams} to go` },
+    { l: "Data completeness", v: `${stats.dataQuality.toFixed(0)}%`, s: "of expected entries" },
+    { l: "Sync", v: isOnline ? "Online" : "Offline", s: syncInProgress ? "syncing…" : `${pendingCount} queued` },
+  ];
+
+  const alerts = [
+    missingMatches > 0 && { c: "bg-[#DC2626]", t: `${missingMatches} ${missingMatches === 1 ? "match is" : "matches are"} not yet covered`, href: "/dashboard/matchscouting" },
+    missingPitTeams > 0 && { c: "bg-[#B7791F]", t: `${missingPitTeams} ${missingPitTeams === 1 ? "team still needs" : "teams still need"} pit scouting`, href: "/dashboard/pitscouting" },
+    pendingCount > 0 && { c: "bg-[#B7791F]", t: `${pendingCount} ${pendingCount === 1 ? "entry is" : "entries are"} waiting to sync`, href: "/dashboard/settings" },
+  ].filter((a): a is { c: string; t: string; href: string } => !!a);
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-            <Badge variant={stats.eventComplete ? "secondary" : "default"}>
-              {stats.eventComplete ? "Event complete" : "Live workspace"}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground">
-            Your operational view for {selectedEvent.name}.
-          </p>
+    <div className="flex flex-col gap-9">
+      <header className="flex flex-wrap items-end justify-between gap-5">
+        <div className="flex flex-col gap-2">
+          <span className="font-mono text-xs text-muted-foreground">overview · {selectedEvent.name}</span>
+          <h1 className="text-[44px] font-bold leading-[0.95] tracking-[-0.04em]">{title}</h1>
+          <span className="text-muted-foreground">
+            Quals {show(quals.current)} of {show(quals.total)} scouted
+            {nextLine && ` · ${nextLine}`}
+          </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="max-w-full gap-1.5 py-1.5">
-            <MapPin className="size-3.5 shrink-0" />
-            <span className="truncate">{selectedEvent.name}</span>
-          </Badge>
-          <Badge
-            variant="outline"
-            className={isOnline ? "gap-1.5 py-1.5" : "gap-1.5 border-destructive py-1.5 text-destructive"}
-          >
-            {isOnline ? <Wifi className="size-3.5" /> : <WifiOff className="size-3.5" />}
-            {isOnline ? "Online" : "Offline"}
-          </Badge>
-          {(pendingCount > 0 || syncInProgress) && (
-            <Badge variant="secondary" className="gap-1.5 py-1.5">
-              <Clock className="size-3.5" />
-              {syncInProgress ? "Syncing" : `${pendingCount} queued`}
-            </Badge>
+        {!isGuest && (
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" className="h-10 rounded-full px-4">
+              <Link href="/scout/pitscout">Pit scouting</Link>
+            </Button>
+            <Button asChild className="h-10 rounded-full px-4">
+              <Link href="/scout/matchscout">
+                {nextAssignment ? `Start scouting Q${nextAssignment.matchNumber}` : "Start match scouting"}
+              </Link>
+            </Button>
+          </div>
+        )}
+      </header>
+
+      <section aria-label="Key numbers" className="grid grid-cols-2 border-y sm:grid-cols-3 xl:grid-cols-6">
+        {kpis.map((k) => (
+          <div key={k.l} className="flex flex-col gap-1.5 py-5 pr-4">
+            <span className="text-sm text-muted-foreground">{k.l}</span>
+            <span className="text-[34px] font-semibold leading-none tracking-[-0.03em]">{show(k.v)}</span>
+            <span className="font-mono text-xs text-muted-foreground">{show(k.s)}</span>
+          </div>
+        ))}
+      </section>
+
+      <div className="grid gap-12 [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
+        {!isGuest && (
+          <section aria-labelledby="next" className="flex flex-col">
+            <h2 id="next" className={`${h2} pb-2`}>Up next for you</h2>
+            {assignmentsError ? (
+              <p className="py-3 text-sm text-destructive">Your assignment could not be loaded. You can still scout manually.</p>
+            ) : nextAssignment ? (
+              <Link href="/scout/matchscout" className={`grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3.5 py-3 text-foreground ${row}`}>
+                <b className="text-[22px] tracking-[-0.03em]">Q{nextAssignment.matchNumber}</b>
+                <span className="text-sm text-muted-foreground">Filled from the event schedule</span>
+                <span className={`rounded-full px-2.5 py-1 text-sm text-white ${nextAssignment.alliance === "red" ? "bg-[#C2272D]" : "bg-[#2563EB]"}`}>
+                  {nextAssignment.alliance === "red" ? "Red" : "Blue"} {nextAssignment.position}
+                </span>
+              </Link>
+            ) : (
+              <p className={`py-3 text-sm text-muted-foreground ${row}`}>
+                {assignmentsLoading ? "Loading your schedule…" : "No remaining scheduled assignments."}
+              </p>
+            )}
+            <Link href="/dashboard/schedule" className="pt-3 text-sm text-muted-foreground hover:text-foreground">View schedule →</Link>
+          </section>
+        )}
+
+        <section aria-labelledby="top" className="flex flex-col">
+          <div className="flex items-baseline justify-between pb-1">
+            <h2 id="top" className={h2}>Top teams by EPA</h2>
+            <Link href="/dashboard/teamlist" className="text-sm text-muted-foreground hover:text-foreground">All teams →</Link>
+          </div>
+          {loading ? (
+            <p className="py-3 text-sm text-muted-foreground">Loading performance data…</p>
+          ) : stats.topTeams.length === 0 ? (
+            <p className="py-3 text-sm text-muted-foreground">No performance data is available yet.</p>
+          ) : (
+            <table className="border-collapse text-sm tabular-nums">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th scope="col" className="border-b py-2.5 pr-2 font-medium">#</th>
+                  <th scope="col" className="border-b px-2 py-2.5 font-medium">Team</th>
+                  <th scope="col" className="border-b py-2.5 pl-2 text-right font-medium">EPA</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.topTeams.slice(0, 8).map((team, i) => (
+                  <tr key={team.teamNumber}>
+                    <td className={`${row} py-2.5 pr-2 font-mono text-muted-foreground`}>{i + 1}</td>
+                    <td className={`${row} px-2 py-2.5`}>
+                      <Link href={`/dashboard/team/${team.teamNumber}`} className="text-foreground">
+                        <b>{team.teamNumber}</b>{" "}
+                        {team.name !== `Team ${team.teamNumber}` && <span className="text-muted-foreground">{team.name}</span>}
+                      </Link>
+                    </td>
+                    <td className={`${row} py-2.5 pl-2 text-right font-mono`}>{team.epa.toFixed(1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
-        </div>
+        </section>
+
+        <section aria-labelledby="cov" className="flex flex-col gap-3">
+          <h2 id="cov" className={h2}>Scouting coverage</h2>
+          <CoverageBar label="Qualification matches" current={quals.current} total={quals.total} loading={loading} />
+          <CoverageBar label="Pit scouting" current={pit.current} total={pit.total} loading={loading} />
+          <span className="pt-2 text-sm text-muted-foreground">Needs attention</span>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Checking event coverage…</p>
+          ) : alerts.length === 0 ? (
+            <p className="text-sm">Scouting coverage is up to date.</p>
+          ) : (
+            alerts.map((a) => (
+              <Link key={a.t} href={a.href} className="grid grid-cols-[9px_minmax(0,1fr)] items-baseline gap-2.5 py-1 text-foreground">
+                <span className={`size-2 rounded-full ${a.c}`} aria-hidden="true" />
+                <span>{a.t}</span>
+              </Link>
+            ))
+          )}
+          {error && <p className="text-sm text-destructive">Some overview data could not be refreshed.</p>}
+        </section>
       </div>
 
-      <Tabs key={defaultView} defaultValue={defaultView} className="space-y-6">
-        <TabsList className={`grid h-11 w-full ${isGuest ? "grid-cols-1" : "grid-cols-2"} sm:w-[360px]`}>
-          {!isGuest && <TabsTrigger value="live" className="gap-2">
-            <RadioTower className="size-4" />
-            Live operations
-          </TabsTrigger>}
-          <TabsTrigger value="review" className="gap-2">
-            <BarChart3 className="size-4" />
-            Review event
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="live" className="space-y-6">
-          <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-            <Card className="border-primary/30 bg-primary/[0.035]">
-              <CardHeader>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <CardDescription className="font-semibold uppercase tracking-wide text-primary">
-                      Next assignment
-                    </CardDescription>
-                    <CardTitle className="mt-1 text-2xl">
-                      {assignmentsLoading
-                        ? "Loading your schedule…"
-                        : nextAssignment
-                          ? `Match ${nextAssignment.matchNumber}`
-                          : "No upcoming assignment"}
-                    </CardTitle>
-                  </div>
-                  {nextAssignment && (
-                    <Badge
-                      className={
-                        nextAssignment.alliance === "red"
-                          ? "bg-red-600 text-white"
-                          : "bg-blue-600 text-white"
-                      }
-                    >
-                      {nextAssignment.alliance === "red" ? "Red" : "Blue"} {nextAssignment.position}
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {assignmentsError ? (
-                  <p className="text-sm text-destructive">
-                    Your assignment could not be loaded. You can still scout manually.
-                  </p>
-                ) : nextAssignment ? (
-                  <p className="text-sm text-muted-foreground">
-                    Your match, alliance, position, and team will be filled from the event schedule.
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    You have no remaining scheduled assignments. Start a manual entry or check the schedule.
-                  </p>
-                )}
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button asChild size="lg" className="h-11 sm:min-w-48">
-                    <Link href="/scout/matchscout">
-                      <ClipboardList className="size-4" />
-                      {nextAssignment ? "Start assigned match" : "Start match scouting"}
-                      <ArrowRight className="ml-auto size-4" />
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="lg" className="h-11">
-                    <Link href="/scout/pitscout">
-                      <Users className="size-4" />
-                      Start pit scouting
-                    </Link>
-                  </Button>
-                  <Button asChild variant="ghost" size="lg" className="h-11">
-                    <Link href="/dashboard/schedule">View schedule</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="size-5" />
-                  Coverage
-                </CardTitle>
-                <CardDescription>Current scouting completion</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <ProgressRow
-                  label="Pit scouting"
-                  current={stats.pitScoutingProgress.current}
-                  total={stats.pitScoutingProgress.total}
-                  loading={loading}
-                />
-                <ProgressRow
-                  label="Qualification matches"
-                  current={stats.qualificationProgress.current}
-                  total={stats.qualificationProgress.total}
-                  loading={loading}
-                />
-                <div className="flex items-center justify-between border-t pt-4 text-sm">
-                  <span className="text-muted-foreground">Data completeness</span>
-                  <span className="font-semibold">
-                    {loading ? "…" : `${stats.dataQuality.toFixed(1)}%`}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="size-5" />
-                  Attention needed
-                </CardTitle>
-                <CardDescription>Items that may affect event coverage</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {loading ? (
-                  <p className="text-sm text-muted-foreground">Checking event coverage…</p>
-                ) : missingPitTeams === 0 && missingMatches === 0 && pendingCount === 0 ? (
-                  <div className="flex items-center gap-3 rounded-lg bg-primary/5 p-3 text-sm">
-                    <CheckCircle2 className="size-5 text-primary" />
-                    Scouting coverage is up to date.
-                  </div>
-                ) : (
-                  <>
-                    {missingPitTeams > 0 && (
-                      <AttentionItem
-                        label={`${missingPitTeams} ${missingPitTeams === 1 ? "team needs" : "teams need"} pit scouting`}
-                        href="/dashboard/pitscouting"
-                      />
-                    )}
-                    {missingMatches > 0 && (
-                      <AttentionItem
-                        label={`${missingMatches} ${missingMatches === 1 ? "match is" : "matches are"} not yet covered`}
-                        href="/dashboard/matchscouting"
-                      />
-                    )}
-                    {pendingCount > 0 && (
-                      <AttentionItem
-                        label={`${pendingCount} ${pendingCount === 1 ? "entry is" : "entries are"} waiting to sync`}
-                        href="/dashboard/settings"
-                      />
-                    )}
-                  </>
-                )}
-                {error && (
-                  <p className="text-sm text-destructive">
-                    Some overview data could not be refreshed.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent entries</CardTitle>
-                <CardDescription>Latest match data received</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <RecentActivity loading={loading} activity={stats.recentActivity} />
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="review" className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Teams scouted" value={loading ? "…" : stats.teamsScouted} icon={Users} />
-            <StatCard label="Match entries" value={loading ? "…" : stats.matchesRecorded} icon={ClipboardList} />
-            <StatCard
-              label="Team ranking"
-              value={loading ? "…" : stats.ranking > 0 ? `#${stats.ranking}` : "—"}
-              icon={Trophy}
-            />
-            <StatCard
-              label="Data completeness"
-              value={loading ? "…" : `${stats.dataQuality.toFixed(1)}%`}
-              icon={CheckCircle2}
-            />
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-            <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <CardTitle>Performance snapshot</CardTitle>
-                    <CardDescription>Highest EPA teams from current data</CardDescription>
-                  </div>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href="/dashboard/analysis">Full analysis</Link>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {loading ? (
-                  <p className="text-sm text-muted-foreground">Loading performance data…</p>
-                ) : stats.topTeams.length > 0 ? (
-                  stats.topTeams.slice(0, 5).map((team, index) => (
-                    <Link
-                      key={team.teamNumber}
-                      href={`/dashboard/team/${team.teamNumber}`}
-                      className="flex items-center justify-between rounded-lg p-2 transition-colors hover:bg-muted"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge variant="secondary" className="w-8 justify-center">
-                          {index + 1}
-                        </Badge>
-                        <div>
-                          <p className="font-medium">Team {team.teamNumber}</p>
-                          <p className="text-xs text-muted-foreground">{team.name}</p>
-                        </div>
-                      </div>
-                      <Badge>{team.epa.toFixed(1)} EPA</Badge>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">No performance data is available yet.</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <CardTitle>Event record</CardTitle>
-                    <CardDescription>Coverage and latest submissions</CardDescription>
-                  </div>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href="/dashboard/teamlist">Browse teams</Link>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <ProgressRow
-                  label="Pit scouting"
-                  current={stats.pitScoutingProgress.current}
-                  total={stats.pitScoutingProgress.total}
-                  loading={loading}
-                />
-                <ProgressRow
-                  label="Qualification matches"
-                  current={stats.qualificationProgress.current}
-                  total={stats.qualificationProgress.total}
-                  loading={loading}
-                />
-                <RecentActivity loading={loading} activity={stats.recentActivity.slice(0, 3)} />
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
-
-function ProgressRow({
-  label,
-  current,
-  total,
-  loading,
-}: {
-  label: string;
-  current: number;
-  total: number;
-  loading: boolean;
-}) {
-  const value = progressPercent(current, total);
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-sm">
-        <span>{label}</span>
-        <span className="font-medium">{loading ? "…" : `${current}/${total}`}</span>
-      </div>
-      <Progress value={loading ? 0 : value} aria-label={`${label} completion`} />
-    </div>
-  );
-}
-
-function AttentionItem({ label, href }: { label: string; href: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm transition-colors hover:bg-muted"
-    >
-      <span>{label}</span>
-      <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
-    </Link>
-  );
-}
-
-function RecentActivity({
-  loading,
-  activity,
-}: {
-  loading: boolean;
-  activity: Array<{ message: string; timestamp: Date }>;
-}) {
-  if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading recent entries…</p>;
-  }
-  if (activity.length === 0) {
-    return <p className="text-sm text-muted-foreground">No entries have been recorded yet.</p>;
-  }
-  return (
-    <div className="space-y-3">
-      {activity.slice(0, 5).map((item, index) => (
-        <div key={`${item.timestamp.toISOString()}-${index}`} className="flex gap-3">
-          <div className="mt-2 size-2 shrink-0 rounded-full bg-primary" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">{item.message}</p>
-            <p className="text-xs text-muted-foreground">
-              {item.timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-            </p>
-          </div>
+      <section aria-labelledby="rec" className="flex flex-col">
+        <div className="flex items-baseline justify-between pb-1.5">
+          <h2 id="rec" className={h2}>Recent entries</h2>
+          <Link href="/dashboard/matchscouting" className="text-sm text-muted-foreground hover:text-foreground">All match entries →</Link>
         </div>
-      ))}
+        {loading ? (
+          <p className="py-3 text-sm text-muted-foreground">Loading recent entries…</p>
+        ) : stats.recentActivity.length === 0 ? (
+          <p className="py-3 text-sm text-muted-foreground">No entries have been recorded yet.</p>
+        ) : (
+          stats.recentActivity.slice(0, 6).map((item, index) => (
+            <div key={`${item.timestamp.toISOString()}-${index}`} className={`grid grid-cols-[12px_minmax(0,1fr)_auto] items-center gap-3.5 py-2.5 ${row}`}>
+              <span className="size-2 rounded-full bg-chart-1" aria-hidden="true" />
+              <span>{item.message}</span>
+              <span className="font-mono text-xs text-muted-foreground">
+                {item.timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              </span>
+            </div>
+          ))
+        )}
+      </section>
     </div>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string | number;
-  icon: typeof Users;
-}) {
+function CoverageBar({ label, current, total, loading }: { label: string; current: number; total: number; loading: boolean }) {
+  const done = loading ? 0 : percent(current, total);
   return (
-    <Card className="gap-2">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-sm font-medium">{label}</CardTitle>
-        <Icon className="size-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <p className="text-2xl font-bold">{value}</p>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex justify-between text-sm">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-mono">{loading ? "…" : `${current} of ${total}`}</span>
+      </div>
+      <div role="img" aria-label={`${label}: ${done}% covered`} className="flex h-2.5 gap-0.5 overflow-hidden rounded-full">
+        <div className="bg-chart-1" style={{ flex: `${done} 1 0` }} />
+        <div className="bg-border" style={{ flex: `${100 - done} 1 0` }} />
+      </div>
+    </div>
   );
 }

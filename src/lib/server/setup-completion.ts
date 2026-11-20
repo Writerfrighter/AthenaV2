@@ -1,6 +1,7 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { mkdir, rename, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
+import { writePrivateFile } from "./private-file";
 import { join } from "node:path";
 import type { DatabaseConfig } from "@/lib/types";
 
@@ -33,9 +34,7 @@ export async function saveSetupCompletion(
   memory = state;
   try {
     await mkdir(directory, { recursive: true });
-    const temporaryPath = `${path}.${randomUUID()}.tmp`;
-    await writeFile(temporaryPath, `${JSON.stringify(state)}\n`, "utf8");
-    await rename(temporaryPath, path);
+    await writePrivateFile(path, `${JSON.stringify(state)}\n`);
   } catch (error) {
     // Keep the in-process marker on read-only deployments. A restart there
     // requires one fresh verification, rather than querying on every visit.

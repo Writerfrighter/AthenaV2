@@ -13,6 +13,7 @@ interface MatchScheduleTeam {
 interface MatchScheduleEntry {
   matchNumber: number;
   compLevel: string;
+  label?: string;
   teams: MatchScheduleTeam[];
   startTime?: string | null;
 }
@@ -22,7 +23,7 @@ interface MatchScheduleData {
   competitionType: "FRC" | "FTC";
 }
 
-export function useMatchScheduleTeams() {
+export function useMatchScheduleTeams(level: "qual" | "playoff" = "qual") {
   const selectedEvent = useSelectedEvent();
   const selectedEventCode = selectedEvent?.eventCode;
   const { currentYear, competitionType } = useGameConfig();
@@ -46,7 +47,7 @@ export function useMatchScheduleTeams() {
 
       try {
         const response = await fetch(
-          `/api/events/${selectedEvent.eventCode}/schedule?competitionType=${competitionType}&season=${currentYear}`,
+          `/api/events/${selectedEvent.eventCode}/schedule?competitionType=${competitionType}&season=${currentYear}${level === "playoff" ? "&level=playoff" : ""}`,
         );
 
         if (!response.ok) {
@@ -67,7 +68,7 @@ export function useMatchScheduleTeams() {
     };
 
     fetchSchedule();
-  }, [selectedEvent?.eventCode, currentYear, competitionType]);
+  }, [selectedEvent?.eventCode, currentYear, competitionType, level]);
 
   // Get team number for a specific match, alliance, and position
   const getTeamForPosition = useCallback(
@@ -125,7 +126,7 @@ export function useMatchScheduleTeams() {
 
     try {
       const response = await fetch(
-        `/api/events/${selectedEventCode}/schedule?competitionType=${competitionType}&season=${currentYear}`,
+        `/api/events/${selectedEventCode}/schedule?competitionType=${competitionType}&season=${currentYear}${level === "playoff" ? "&level=playoff" : ""}`,
       );
 
       if (!response.ok) {
@@ -140,7 +141,7 @@ export function useMatchScheduleTeams() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedEventCode, currentYear, competitionType]);
+  }, [selectedEventCode, currentYear, competitionType, level]);
 
   return {
     scheduleData,

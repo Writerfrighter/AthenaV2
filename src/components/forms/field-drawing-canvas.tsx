@@ -199,7 +199,8 @@ export function FieldDrawingCanvas({
   // Track which stroke indices are highlighted for removal while eraser is held
   const eraserHitsRef = useRef<Set<number>>(new Set());
   const bgImageRef = useRef<HTMLImageElement | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  // Holds the loaded source, so a changed image re-runs the sizing below
+  const [imageLoaded, setImageLoaded] = useState<string | false>(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
@@ -209,11 +210,11 @@ export function FieldDrawingCanvas({
     img.crossOrigin = "anonymous";
     img.onload = () => {
       bgImageRef.current = img;
-      setImageLoaded(true);
+      setImageLoaded(fieldImageSrc);
     };
     img.onerror = () => {
       console.error("Failed to load field image");
-      setImageLoaded(true); // Still allow drawing even without bg
+      setImageLoaded(fieldImageSrc); // Still allow drawing even without bg
     };
     img.src = fieldImageSrc;
   }, [fieldImageSrc]);

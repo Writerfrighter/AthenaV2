@@ -31,6 +31,18 @@ describe("scouting request boundary", () => {
     expect(createPitSchema.safeParse({ ...pit, weight: -1 }).success).toBe(false);
     expect(createPitSchema.safeParse({ ...pit, driveTrain: "unknown" }).success).toBe(false);
   });
+  it.each([
+    { notes: "x".repeat(10_001) }, { teamNumber: 1_000_000 }, { matchNumber: 501 },
+    { gameSpecificData: { teleop: { comment: "x".repeat(10_001) } } },
+    { gameSpecificData: Object.fromEntries(Array.from({ length: 201 }, (_, i) => [`k${i}`, 1])) },
+  ])("rejects oversized scouting fields", (updates) => {
+    expect(createMatchSchema.safeParse({ ...match, ...updates }).success).toBe(false);
+  });
+  it("bounds the pit drawing", () => {
+    const pit = { teamNumber: 254, year: 2026, competitionType: "FRC", driveTrain: "Swerve", gameSpecificData: {} };
+    expect(createPitSchema.safeParse({ ...pit, autoDrawing: "x".repeat(500_000) }).success).toBe(true);
+    expect(createPitSchema.safeParse({ ...pit, autoDrawing: "x".repeat(500_001) }).success).toBe(false);
+  });
   it("reports malformed JSON as a client error", async () => {
     const result = await parseScoutingBody(new Request("http://test", { method: "POST", body: "{" }), createMatchSchema);
     expect(result.error?.status).toBe(400);

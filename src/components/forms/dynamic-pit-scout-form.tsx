@@ -21,8 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { MultiSelect } from "@/components/ui/multi-select";
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { pitApi } from "@/lib/api/database-client";
@@ -459,13 +457,16 @@ export function DynamicPitScoutForm() {
     options?: string[];
   }) => {
     const value = formData.gameSpecificData[field.name] || "";
+    const row = "flex flex-wrap items-center justify-between gap-3 border-b border-border/60 py-2.5";
+    const chip = (active: boolean) =>
+      `min-h-11 rounded-full px-4 py-2 text-sm transition-colors ${active ? "bg-primary text-primary-foreground" : "border bg-card hover:bg-accent"}`;
 
     switch (field.type) {
       case "text":
       case "number":
         return (
-          <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base font-medium">
+          <div key={field.name} className={row}>
+            <Label htmlFor={field.name} className="text-[15px] font-normal text-foreground">
               {field.label}
             </Label>
             <Input
@@ -481,78 +482,63 @@ export function DynamicPitScoutForm() {
                     : e.target.value,
                 )
               }
-              className="h-12 text-base"
+              className={`h-11 rounded-xl bg-card text-base ${field.type === "number" ? "w-28 text-center" : "w-full sm:w-64"}`}
             />
           </div>
         );
 
       case "boolean":
         return (
-          <div key={field.name} className="flex items-center space-x-4">
+          <div key={field.name} className={row}>
+            <Label htmlFor={field.name} className="cursor-pointer text-[15px] font-normal text-foreground">
+              {field.label}
+            </Label>
             <Switch
               id={field.name}
               checked={Boolean(value)}
               onCheckedChange={(checked) =>
                 handleGameSpecificChange(field.name, checked)
               }
-              className="scale-125"
+              className="shrink-0"
             />
-            <Label
-              htmlFor={field.name}
-              className="text-base font-medium cursor-pointer"
-            >
-              {field.label}
-            </Label>
           </div>
         );
 
       case "select":
+      case "multiselect": {
+        const multi = field.type === "multiselect";
+        const selected = multi ? (Array.isArray(value) ? (value as string[]) : []) : [String(value || "")];
         return (
-          <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base font-medium">
-              {field.label}
-            </Label>
-            <Select
-              value={String(value || "")}
-              onValueChange={(value) =>
-                handleGameSpecificChange(field.name, value)
-              }
-            >
-              <SelectTrigger className="h-12 text-base">
-                <SelectValue
-                  placeholder={`Select ${field.label.toLowerCase()}`}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {field.options?.map((option: string) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+          <div key={field.name} className={row}>
+            <span id={`${field.name}-label`} className="text-[15px]">{field.label}</span>
+            <div role="group" aria-labelledby={`${field.name}-label`} className="flex flex-wrap justify-end gap-1.5">
+              {field.options?.map((option) => {
+                const active = selected.includes(option);
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={active}
+                    className={chip(active)}
+                    onClick={() =>
+                      handleGameSpecificChange(
+                        field.name,
+                        multi
+                          ? active
+                            ? selected.filter((o) => o !== option)
+                            : [...selected, option]
+                          : option,
+                      )
+                    }
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         );
-
-      case "multiselect":
-        return (
-          <div key={field.name} className="space-y-2">
-            <Label htmlFor={field.name} className="text-base font-medium">
-              {field.label}
-            </Label>
-            <MultiSelect
-              options={field.options || []}
-              selected={Array.isArray(value) ? value : []}
-              onChange={(selected) =>
-                handleGameSpecificChange(field.name, selected)
-              }
-              placeholder={`Select ${field.label.toLowerCase()}`}
-              className="w-full"
-            />
-          </div>
-        );
+      }
 
       default:
         return null;
@@ -562,16 +548,18 @@ export function DynamicPitScoutForm() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
       {/* Game Title */}
-      <div className="text-center">
-        <Badge variant="outline" className="text-lg px-4 py-2">
-          {gameConfig?.gameName || "Unknown Game"} -{" "}
-          {isEditMode ? "Edit Pit Entry" : "Pit Scouting"}
-        </Badge>
+      <div className="flex flex-col gap-1">
+        <span className="font-mono text-xs text-muted-foreground">
+          {gameConfig?.gameName || "Unknown game"} · {isEditMode ? "edit pit entry" : "pit scouting"}
+        </span>
+        <h1 className="text-[34px] font-bold leading-none tracking-[-0.03em]">
+          {formData.team ? formData.team : "New pit entry"}
+        </h1>
       </div>
 
       {/* Loading indicator for edit mode */}
       {isLoadingEdit && (
-        <Card className="border rounded-xl shadow-sm">
+        <Card variant="panel">
           <CardContent className="pt-6 text-center">
             <div className="text-muted-foreground">
               Loading entry for editing...
@@ -615,16 +603,16 @@ export function DynamicPitScoutForm() {
       )}
 
       {/* Main Form */}
-      <Card className="shadow-sm">
-        <CardContent className="pt-6">
+      <Card className="border-0 bg-transparent py-0 shadow-none">
+        <CardContent className="px-0">
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Team Information */}
             <div className="space-y-6">
-              <div className="border-b pb-4">
-                <h2 className="text-xl font-semibold mb-4">Team Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h2 className="mb-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Team Information</h2>
+                <div className="grid grid-cols-1 gap-x-6 gap-y-4 pt-2 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="team" className="text-base font-medium">
+                    <Label htmlFor="team">
                       Team Number
                     </Label>
                     {isEditMode ? (
@@ -638,7 +626,7 @@ export function DynamicPitScoutForm() {
                             handleSelectChange("team", value)
                           }
                         >
-                          <SelectTrigger className="h-12 text-base">
+                          <SelectTrigger className="h-12! w-full rounded-xl bg-card text-base">
                             <SelectValue placeholder="Select team number" />
                           </SelectTrigger>
                           <SelectContent>
@@ -661,7 +649,7 @@ export function DynamicPitScoutForm() {
                           placeholder="Enter team number (e.g. 254)"
                           required
                           min="1"
-                          className="h-12 text-base"
+                          className="h-12 rounded-xl bg-card text-base"
                         />
                       )
                     ) : unscoutedTeamNumbers.length > 0 ? (
@@ -671,7 +659,7 @@ export function DynamicPitScoutForm() {
                           handleSelectChange("team", value)
                         }
                       >
-                        <SelectTrigger className="h-12 text-base">
+                        <SelectTrigger className="h-12! w-full rounded-xl bg-card text-base">
                           <SelectValue placeholder="Select team number" />
                         </SelectTrigger>
                         <SelectContent>
@@ -693,7 +681,7 @@ export function DynamicPitScoutForm() {
                       </Select>
                     ) : unscoutedLoading || teamsLoading ? (
                       <Select disabled>
-                        <SelectTrigger className="h-12 text-base">
+                        <SelectTrigger className="h-12! w-full rounded-xl bg-card text-base">
                           <SelectValue placeholder="Loading teams..." />
                         </SelectTrigger>
                       </Select>
@@ -707,7 +695,7 @@ export function DynamicPitScoutForm() {
                         required
                         min="1"
                         max="9999"
-                        className="h-12 text-base"
+                        className="h-12 rounded-xl bg-card text-base"
                       />
                     )}
                   </div>
@@ -715,16 +703,13 @@ export function DynamicPitScoutForm() {
               </div>
 
               {/* Robot Information */}
-              <div className="border-b pb-4">
-                <h3 className="text-lg font-semibold mb-4">
+              <div>
+                <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                   Robot Information
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-4 pt-2 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="drivetrain"
-                      className="text-base font-medium"
-                    >
+                    <Label htmlFor="drivetrain">
                       Drivetrain
                     </Label>
                     <Select
@@ -733,7 +718,7 @@ export function DynamicPitScoutForm() {
                         handleSelectChange("drivetrain", value)
                       }
                     >
-                      <SelectTrigger className="h-12 text-base">
+                      <SelectTrigger className="h-12! w-full rounded-xl bg-card text-base">
                         <SelectValue placeholder="Select drivetrain" />
                       </SelectTrigger>
                       <SelectContent>
@@ -754,13 +739,13 @@ export function DynamicPitScoutForm() {
               </div>
 
               {/* Robot Specifications */}
-              <div className="border-b pb-4">
-                <h3 className="text-lg font-semibold mb-4">
+              <div>
+                <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                   Robot Specifications
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-4 pt-2 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor="length" className="text-base font-medium">
+                    <Label htmlFor="length">
                       Length (inches)
                     </Label>
                     <Input
@@ -770,12 +755,12 @@ export function DynamicPitScoutForm() {
                       value={formData.length}
                       onChange={handleChange}
                       placeholder="30"
-                      className="h-12 text-base"
+                      className="h-12 rounded-xl bg-card text-base"
                       min={0}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="width" className="text-base font-medium">
+                    <Label htmlFor="width">
                       Width (inches)
                     </Label>
                     <Input
@@ -785,12 +770,12 @@ export function DynamicPitScoutForm() {
                       value={formData.width}
                       onChange={handleChange}
                       placeholder="30"
-                      className="h-12 text-base"
+                      className="h-12 rounded-xl bg-card text-base"
                       min={0}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="weight" className="text-base font-medium">
+                    <Label htmlFor="weight">
                       Weight (lbs)
                     </Label>
                     <Input
@@ -800,7 +785,7 @@ export function DynamicPitScoutForm() {
                       value={formData.weight}
                       onChange={handleChange}
                       placeholder="125"
-                      className="h-12 text-base"
+                      className="h-12 rounded-xl bg-card text-base"
                       min={0}
                     />
                   </div>
@@ -808,22 +793,17 @@ export function DynamicPitScoutForm() {
               </div>
 
               {/* Autonomous Capabilities */}
-              <div
-                className={`space-y-6 ${!formData.hasAuto ? "border-b pb-4" : ""}`}
-              >
-                <div className="flex items-center space-x-4">
+              <div>
+                <div className="flex items-center justify-between gap-4 border-y border-border/60 py-2.5">
+                  <Label htmlFor="hasAuto" className="cursor-pointer text-[15px] font-normal text-foreground">
+                    Has autonomous
+                  </Label>
                   <Switch
                     id="hasAuto"
                     checked={formData.hasAuto}
                     onCheckedChange={handleToggleAuto}
-                    className="scale-125"
+                    className="shrink-0"
                   />
-                  <Label
-                    htmlFor="hasAuto"
-                    className="text-base font-medium cursor-pointer"
-                  >
-                    Has Autonomous Capabilities
-                  </Label>
                 </div>
               </div>
 
@@ -834,11 +814,11 @@ export function DynamicPitScoutForm() {
                   {gameConfig.pitScouting.autonomous &&
                     Object.keys(gameConfig.pitScouting.autonomous).length > 0 &&
                     formData.hasAuto && (
-                      <div className="border-b pb-4">
-                        <h3 className="text-lg font-semibold mb-4">
+                      <div>
+                        <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                           Autonomous Capabilities
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="flex flex-col border-t">
                           {Object.entries(
                             gameConfig.pitScouting.autonomous,
                           ).map(([name, field]) =>
@@ -853,6 +833,7 @@ export function DynamicPitScoutForm() {
                         {/* Field Drawing Canvas for Autonomous Path */}
                         <div className="mt-6">
                           <FieldDrawingCanvas
+                            fieldImageSrc={gameConfig.fieldImage}
                             initialData={formData.autoDrawing}
                             onChange={(strokeJson) =>
                               setFormData((f) => ({
@@ -870,11 +851,12 @@ export function DynamicPitScoutForm() {
                     Object.keys(gameConfig.pitScouting.autonomous).length ===
                       0) &&
                     formData.hasAuto && (
-                      <div className="border-b pb-4">
-                        <h3 className="text-lg font-semibold mb-4">
+                      <div>
+                        <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                           Autonomous Path
                         </h3>
                         <FieldDrawingCanvas
+                          fieldImageSrc={gameConfig.fieldImage}
                           initialData={formData.autoDrawing}
                           onChange={(strokeJson) =>
                             setFormData((f) => ({
@@ -890,11 +872,11 @@ export function DynamicPitScoutForm() {
                   {gameConfig.pitScouting.teleoperated &&
                     Object.keys(gameConfig.pitScouting.teleoperated).length >
                       0 && (
-                      <div className="border-b pb-4">
-                        <h3 className="text-lg font-semibold mb-4">
+                      <div>
+                        <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                           Teleop Capabilities
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="flex flex-col border-t">
                           {Object.entries(
                             gameConfig.pitScouting.teleoperated,
                           ).map(([name, field]) =>
@@ -913,11 +895,11 @@ export function DynamicPitScoutForm() {
                   {gameConfig.pitScouting.driveTeam &&
                     Object.keys(gameConfig.pitScouting.driveTeam).length >
                       0 && (
-                      <div className="border-b pb-4">
-                        <h3 className="text-lg font-semibold mb-4">
+                      <div>
+                        <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                           Drive Team
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="flex flex-col border-t">
                           {Object.entries(gameConfig.pitScouting.driveTeam).map(
                             ([name, field]) =>
                               renderCustomField({
@@ -934,11 +916,11 @@ export function DynamicPitScoutForm() {
                   {/* Endgame */}
                   {gameConfig.pitScouting.endgame &&
                     Object.keys(gameConfig.pitScouting.endgame).length > 0 && (
-                      <div className="border-b pb-4">
-                        <h3 className="text-lg font-semibold mb-4">
+                      <div>
+                        <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                           Endgame Capabilities
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="flex flex-col border-t">
                           {Object.entries(gameConfig.pitScouting.endgame)
                             .filter(([, field]) => {
                               if (!field.dependsOn) return true;
@@ -964,7 +946,7 @@ export function DynamicPitScoutForm() {
 
               {/* Notes */}
               <div className="space-y-4">
-                <Label htmlFor="notes" className="text-base font-medium">
+                <Label htmlFor="notes">
                   Additional Notes
                 </Label>
                 <Textarea
@@ -973,7 +955,7 @@ export function DynamicPitScoutForm() {
                   value={formData.notes || ""}
                   onChange={handleChange}
                   placeholder="Any additional observations about this team..."
-                  className="min-h-[4rem]"
+                  className="min-h-24 rounded-xl bg-card"
                 />
               </div>
 
@@ -987,7 +969,7 @@ export function DynamicPitScoutForm() {
                       onClick={() => router.push("/dashboard/pitscouting")}
                       size="lg"
                       disabled={isSubmitting}
-                      className="flex-1 h-12 text-base"
+                      className="h-12 flex-1 rounded-full text-base"
                     >
                       Cancel
                     </Button>
@@ -995,7 +977,7 @@ export function DynamicPitScoutForm() {
                       type="submit"
                       size="lg"
                       disabled={isSubmitting}
-                      className="flex-1 h-12 text-base"
+                      className="h-12 flex-1 rounded-full text-base"
                     >
                       {isSubmitting ? (
                         "Updating..."
@@ -1012,7 +994,7 @@ export function DynamicPitScoutForm() {
                     type="submit"
                     size="lg"
                     disabled={isSubmitting}
-                    className="w-full h-12 text-base"
+                    className="h-12 w-full rounded-full text-base"
                   >
                     {isSubmitting ? (
                       "Saving..."

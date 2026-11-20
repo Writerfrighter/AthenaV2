@@ -30,7 +30,19 @@ export function useServiceWorker() {
   });
 
   useEffect(() => {
-    if (!isServiceWorkerSupported()) return;
+    if (!isServiceWorkerSupported()) {
+      // A worker left by an earlier production build on this address would
+      // keep serving its cached pages over the development server.
+      if (process.env.NODE_ENV !== "production" && "serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((registrations) =>
+            Promise.all(registrations.map((registration) => registration.unregister())),
+          )
+          .catch(() => {});
+      }
+      return;
+    }
 
     const NEW_SW_URL = "/serwist/sw.js";
 

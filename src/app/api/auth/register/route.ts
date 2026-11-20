@@ -5,6 +5,7 @@ import { loadSystemSettings } from "@/lib/server/env-file";
 
 const REGISTER_WINDOW_MS = 60 * 1000;
 const REGISTER_MAX_REQUESTS = 20;
+const REGISTER_MAX_REQUESTS_TOTAL = 100;
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,11 +21,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const rateLimit = checkRateLimit(request, {
+    const body = await request.json().catch(() => ({}));
+    const { name, username, password } = body ?? {};
+    // Without a trusted client IP every caller shares one bucket, so a whole
+    // team signing up at once would be refused. Limit per requested username,
+    // under a higher ceiling across all sign-ups.
+    const total = checkRateLimit(request, {
+      keyPrefix: "register-total",
+      windowMs: REGISTER_WINDOW_MS,
+      maxRequests: REGISTER_MAX_REQUESTS_TOTAL,
+    });
+    const perUsername = checkRateLimit(request, {
       keyPrefix: "register",
       windowMs: REGISTER_WINDOW_MS,
       maxRequests: REGISTER_MAX_REQUESTS,
+      subject:
+        typeof username === "string" && username.trim()
+          ? `user:${username.trim().toLowerCase().slice(0, 64)}`
+          : undefined,
     });
+    const rateLimit = total.limited ? total : perUsername;
 
     if (rateLimit.limited) {
       return NextResponse.json(
@@ -37,8 +53,6 @@ export async function POST(request: NextRequest) {
         },
       );
     }
-
-    const { name, username, password } = await request.json();
 
     const result = await createUser(
       {

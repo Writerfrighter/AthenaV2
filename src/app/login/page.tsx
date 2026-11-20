@@ -3,20 +3,15 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ModeToggle } from "@/components/ui/light-dark-toggle";
 import { ThemeSelector } from "@/components/settings/theme-selector";
-import { ArrowLeft, Eye, EyeOff, UserRound } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { toast } from "sonner";
-import { APP_NAME } from "@/lib/app-config";
+import { APP_DESCRIPTION, APP_LOGO, APP_NAME } from "@/lib/app-config";
 
 interface LoginFormData {
   username: string;
@@ -76,112 +71,85 @@ export default function Page() {
   };
 
   return (
-    <div className="min-h-screen bg-background dark:bg-background">
-      <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10">
-        <div className="fixed top-4 left-4">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="h-11 md:h-8">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Home
-            </Button>
-          </Link>
-        </div>
-
-        <div className="fixed top-4 right-4">
-          <div className="flex gap-x-2">
-            <ModeToggle />
-            <ThemeSelector />
+    <div className="flex min-h-screen flex-col bg-background">
+      <div aria-hidden="true" className="flex h-[3px]">
+        <div className="flex-1 bg-[#E5484D]" />
+        <div className="flex-1 bg-[#3B7BF6]" />
+      </div>
+      <div className="flex flex-1 flex-wrap">
+        <section className="flex flex-[1_1_420px] flex-col justify-between gap-10 p-8 md:p-14">
+          <div className="flex items-center justify-between gap-4">
+            <Link href="/" className="text-xl font-bold tracking-tight lowercase">
+              {APP_NAME}<span className="text-chart-1">.</span>
+            </Link>
+            <div className="flex gap-2">
+              <ModeToggle />
+              <ThemeSelector />
+            </div>
           </div>
-        </div>
-
-        <div className="w-full max-w-md">
-          <Card>
-            <CardHeader className="text-center mt-2">
-              <h1 className="text-2xl font-semibold text-primary">
-                Log In
-              </h1>
-              <CardDescription className="text-muted-foreground">
-                Log in to your {APP_NAME} account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Email */}
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="Enter your username"
-                    value={formData.username}
-                    onChange={(e) =>
-                      handleInputChange("username", e.target.value)
-                    }
-                    className="h-11 focus:ring-2 focus:ring-primary/30 md:h-9"
-                    required
-                  />
-                </div>
-                {/* Password */}
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) =>
-                        handleInputChange("password", e.target.value)
-                      }
-                      className="h-11 pr-12 focus:ring-2 focus:ring-primary/30 md:h-9 md:pr-10"
-                      autoComplete="current-password"
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-0 top-0 size-11 md:size-9"
-                      onClick={() => setShowPassword((value) => !value)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? <EyeOff /> : <Eye />}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Submit Button */}
+          <div className="flex max-w-[420px] flex-col gap-4">
+            <h1 className="text-[44px] font-bold leading-[0.95] tracking-[-0.04em]">
+              Log in to {APP_NAME}
+            </h1>
+            <p className="leading-relaxed text-muted-foreground">
+              Sign in with your team account to scout, plan and review the event.
+            </p>
+          </div>
+          <form onSubmit={handleSubmit} className="flex max-w-[380px] flex-col gap-3.5">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Enter your username"
+                value={formData.username}
+                onChange={(e) => handleInputChange("username", e.target.value)}
+                className="h-12 text-[15px]"
+                autoComplete="username"
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  className="h-12 pr-12 text-[15px]"
+                  autoComplete="current-password"
+                  required
+                />
                 <Button
-                  type="submit"
-                  className="mt-6 h-11 w-full md:h-9"
-                  disabled={isSubmitting}
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-1 right-1"
+                  onClick={() => setShowPassword((value) => !value)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <UserRound className="mr-2 h-4 w-4 animate-spin" />
-                      Logging In...
-                    </>
-                  ) : (
-                    <>
-                      <UserRound className="mr-2 h-4 w-4" />
-                      Log In
-                    </>
-                  )}
+                  {showPassword ? <EyeOff /> : <Eye />}
                 </Button>
-
-              </form>
-
-              <div className="mt-6 text-center text-sm">
-                Don't have an account?{" "}
-                <Link
-                  href="/signup"
-                  className="underline underline-offset-4 hover:text-primary"
-                >
-                  Sign up
-                </Link>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <Button type="submit" className="mt-1 h-12 w-full text-[15px] font-semibold" disabled={isSubmitting}>
+              {isSubmitting ? "Logging in…" : "Log In"}
+            </Button>
+            <div className="flex justify-between gap-4 text-[13px]">
+              <Link href="/signup" className="text-muted-foreground hover:text-foreground">
+                Create an account
+              </Link>
+              <Link href="/" className="text-muted-foreground hover:text-foreground">
+                Back to home
+              </Link>
+            </div>
+          </form>
+          <span className="font-mono text-xs text-muted-foreground">{APP_DESCRIPTION}</span>
+        </section>
+        <section aria-hidden="true" className="relative m-4 hidden min-h-[600px] flex-[1.2_1_480px] items-center justify-center overflow-hidden rounded-[20px] bg-[#ECECEA] md:flex dark:bg-muted">
+          <Image src={APP_LOGO} alt="" width={112} height={112} unoptimized className="size-28 opacity-90" />
+        </section>
       </div>
     </div>
   );

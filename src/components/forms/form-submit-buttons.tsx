@@ -60,8 +60,8 @@ export function FormSubmitButtons({
         </AlertDialogContent>
       </AlertDialog>
 
-      <Card className="sticky bottom-0 z-20 rounded-xl border bg-background/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/85 sm:py-4">
-        <CardContent className="">
+      <Card className="sticky bottom-0 z-20 -mx-4 bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+        <CardContent>
           {isEditMode ? (
             <div className="grid grid-cols-2 items-center gap-3 md:flex md:justify-between">
               <div className="order-3 col-span-2 text-center text-xs text-muted-foreground md:order-1 md:col-span-1 md:text-left md:text-sm">
@@ -72,7 +72,7 @@ export function FormSubmitButtons({
                   type="button"
                   variant="outline"
                   onClick={onCancel}
-                  className="h-11 hover:bg-muted"
+                  className="h-12"
                   size="lg"
                 >
                   Cancel
@@ -80,7 +80,7 @@ export function FormSubmitButtons({
                 <Button
                   onClick={onSubmit}
                   disabled={isSubmitting}
-                  className="h-11 min-w-[140px] text-base"
+                  className="h-12 min-w-[140px] text-base"
                   size="lg"
                 >
                   {isSubmitting ? (
@@ -101,7 +101,7 @@ export function FormSubmitButtons({
                   type="button"
                   variant="outline"
                   onClick={() => setShowClearConfirm(true)}
-                  className="h-11 w-full hover:bg-muted md:w-auto"
+                  className="h-12 w-full md:w-auto"
                   size="lg"
                 >
                   Clear Form
@@ -114,7 +114,7 @@ export function FormSubmitButtons({
                 <Button
                   onClick={onSubmit}
                   disabled={isSubmitting}
-                  className="h-11 w-full min-w-[140px] text-base md:w-auto"
+                  className="h-12 w-full min-w-[140px] text-base md:w-auto"
                   size="lg"
                 >
                   {isSubmitting ? (

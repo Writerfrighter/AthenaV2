@@ -19,7 +19,9 @@
     "AGENTS.md",
     "CLAUDE.md",
     "database-schema.sql",
-    "docker-compose.yml"
+    "docker-compose.yml",
+    "graphify-out{,/**}",
+    "scripts{,/**}"
   ],
   "sqltools.connections": [
     {

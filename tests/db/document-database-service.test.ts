@@ -72,9 +72,31 @@ describe("document database domain behavior", () => {
   it("does not generate duplicate IDs in rapid concurrent writes", async () => {
     vi.spyOn(Date, "now").mockReturnValue(1000);
     try {
-      const ids = await Promise.all(Array.from({ length: 100 }, () => service.addPitEntry(pit)));
+      const ids = await Promise.all(Array.from({ length: 100 }, (_, index) => service.addPitEntry({ ...pit, teamNumber: index + 1 })));
       expect(new Set(ids).size).toBe(ids.length);
     } finally { vi.restoreAllMocks(); }
+  });
+  it("stores one entry when the same scouting slot is submitted concurrently", async () => {
+    const results = await Promise.allSettled([service.addMatchEntry(match), service.addMatchEntry(match), service.addPitEntry(pit), service.addPitEntry(pit)]);
+    expect(results.map((r) => r.status)).toEqual(["fulfilled", "rejected", "fulfilled", "rejected"]);
+    expect(results.filter((r) => r.status === "rejected").map((r) => (r.reason as { status?: number }).status)).toEqual([409, 409]);
+    expect(await service.getAllMatchEntries()).toHaveLength(1);
+    expect(await service.getAllPitEntries()).toHaveLength(1);
+  });
+  it("frees a slot whose entry was edited to another team", async () => {
+    const id = await service.addMatchEntry(match);
+    await service.updateMatchEntry(id, { teamNumber: 255 });
+    await expect(service.addMatchEntry(match)).resolves.toEqual(expect.any(Number));
+    expect(await service.getAllMatchEntries()).toHaveLength(2);
+  });
+  it("refuses a whole import that repeats or re-imports an entry, writing nothing", async () => {
+    await service.addMatchEntry(match);
+    const fresh = { ...match, teamNumber: 1678 };
+    await expect(service.importData({ matchEntries: [fresh, match] })).rejects.toMatchObject({ name: "ScoutingError", status: 409 });
+    await expect(service.importData({ matchEntries: [fresh, fresh] })).rejects.toMatchObject({ status: 409 });
+    await expect(service.importData({ pitEntries: [pit, pit] })).rejects.toMatchObject({ status: 409 });
+    expect(await service.getAllMatchEntries()).toHaveLength(1);
+    expect(await service.getAllPitEntries()).toEqual([]);
   });
   it("exports the requested scope and imports more than 500 rows with fresh editable IDs", async () => {
     await service.addMatchEntry(match);
@@ -83,7 +105,7 @@ describe("document database domain behavior", () => {
     const exported = await service.exportData(2026, "FRC");
     expect(exported.matchEntries).toHaveLength(1);
     const originalId = exported.matchEntries[0].id;
-    await service.importData({ matchEntries: Array.from({ length: 501 }, () => exported.matchEntries[0]) });
+    await service.importData({ matchEntries: Array.from({ length: 501 }, (_, index) => ({ ...exported.matchEntries[0], teamNumber: 1000 + index })) });
     const entries = await service.getAllMatchEntries(2026, undefined, "FRC");
     expect(entries).toHaveLength(502);
     expect(new Set(entries.map((e) => e.id)).size).toBe(502);

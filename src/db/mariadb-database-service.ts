@@ -1,3 +1,4 @@
+import { ScoutingError } from "@/lib/server/scouting-service";
 import { sqlUsers } from "./sql-users";
 import { sqlGuestLinks } from "./sql-guest-links";
 import type { GuestLinkRecord } from "@/lib/types";
@@ -556,7 +557,8 @@ export class MariaDbDatabaseService implements DatabaseService {
         getDriverErrorCode(error) === "ER_DUP_ENTRY" ||
         getErrorMessage(error).includes("uq_pit_entry")
       ) {
-        throw new Error(
+        throw new ScoutingError(
+          409,
           `Duplicate pit entry: Team ${entry.teamNumber} already has a pit scouting entry for this event`,
         );
       }
@@ -729,7 +731,8 @@ export class MariaDbDatabaseService implements DatabaseService {
         getDriverErrorCode(error) === "ER_DUP_ENTRY" ||
         getErrorMessage(error).includes("uq_match_entry")
       ) {
-        throw new Error(
+        throw new ScoutingError(
+          409,
           `Duplicate match entry: Team ${entry.teamNumber} already has an entry for match ${entry.matchNumber} at this event`,
         );
       }
@@ -1149,10 +1152,22 @@ export class MariaDbDatabaseService implements DatabaseService {
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
+      // The saved list replaces the stored one, as on Azure SQL: the page
+      // creates picklists empty and adds or removes teams only through here.
+      const teams = entries.map((e) => e.teamNumber);
+      await conn.execute(
+        `DELETE FROM picklistEntries WHERE picklistId = ?${
+          teams.length
+            ? ` AND teamNumber NOT IN (${teams.map(() => "?").join(", ")})`
+            : ""
+        }`,
+        [picklistId, ...teams],
+      );
       for (const e of entries) {
         await conn.execute(
-          `UPDATE picklistEntries SET rank = ? WHERE picklistId = ? AND teamNumber = ?`,
-          [e.rank, picklistId, e.teamNumber],
+          `INSERT INTO picklistEntries (picklistId, teamNumber, rank) VALUES (?, ?, ?)
+           ON DUPLICATE KEY UPDATE rank = VALUES(rank)`,
+          [picklistId, e.teamNumber, e.rank],
         );
       }
       await conn.commit();

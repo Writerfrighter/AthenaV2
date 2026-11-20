@@ -224,16 +224,30 @@ for (const provider of ["firebase", "cosmos"] as const) describe(`${provider} SD
     await service.addMatchEntry({ ...match, competitionType: "FTC" });
     const exported = await service.exportData(2026, "FRC");
     expect(exported.matchEntries).toHaveLength(1);
+    // Re-importing into the same data is refused as a duplicate, as on SQL.
+    await expect(service.importData(exported)).rejects.toMatchObject({ status: 409 });
+    await service.resetDatabase();
     await service.importData(exported);
-    expect(await service.getAllMatchEntries(2026, undefined, "FRC")).toHaveLength(2);
+    const [restored] = await service.getAllMatchEntries(2026, undefined, "FRC");
+    await service.updateMatchEntry(restored.id!, { notes: "edited" });
+    expect(await service.getAllMatchEntries(2026, undefined, "FRC")).toEqual([expect.objectContaining({ id: restored.id, notes: "edited" })]);
   });
   it("imports and resets more than 500 rows without a single oversized batch", async () => {
-    await service.importData({ matchEntries: Array.from({ length: 501 }, () => ({ ...match, id: 1 })) });
+    await service.importData({ matchEntries: Array.from({ length: 501 }, (_, index) => ({ ...match, id: 1, teamNumber: 1000 + index })) });
     const rows = await service.getAllMatchEntries();
     expect(rows).toHaveLength(501);
     expect(new Set(rows.map((row) => row.id)).size).toBe(501);
     await service.resetDatabase();
     expect(await service.getAllMatchEntries()).toEqual([]);
+  });
+  it("saves a picklist by replacing its entries, starting from an empty list", async () => {
+    const id = await service.addPicklist({ ...scope, picklistType: "pick1" });
+    await service.reorderPicklistEntries(id, [{ teamNumber: 254, rank: 1 }, { teamNumber: 1678, rank: 2 }]);
+    expect((await service.getPicklistEntries(id)).map((entry) => entry.teamNumber)).toEqual([254, 1678]);
+    await service.reorderPicklistEntries(id, [{ teamNumber: 1678, rank: 1 }, { teamNumber: 492, rank: 2 }]);
+    expect((await service.getPicklistEntries(id)).map((entry) => entry.teamNumber)).toEqual([1678, 492]);
+    await service.reorderPicklistEntries(id, []);
+    expect(await service.getPicklistEntries(id)).toEqual([]);
   });
   it("reorders picklists larger than the Cosmos batch limit", async () => {
     const id = await service.addPicklist({ ...scope, picklistType: "main" });

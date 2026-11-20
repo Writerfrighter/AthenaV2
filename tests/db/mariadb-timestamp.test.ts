@@ -51,4 +51,25 @@ describe("normalizeMariaDbTimestamp", () => {
       "2026-09-18T06:06:41.750Z",
     );
   });
+
+  it("reports a unique-constraint race as a 409 scouting conflict", async () => {
+    const execute = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error("dup"), { code: "ER_DUP_ENTRY" }));
+    const service = new MariaDbDatabaseService({});
+    (service as unknown as { pool: { execute: typeof execute } }).pool = { execute };
+
+    await expect(
+      service.addMatchEntry({
+        matchNumber: 1,
+        teamNumber: 492,
+        year: 2026,
+        competitionType: "FRC",
+        alliance: "red",
+        gameSpecificData: {},
+        notes: "",
+        timestamp: new Date(),
+      }),
+    ).rejects.toMatchObject({ name: "ScoutingError", status: 409 });
+  });
 });

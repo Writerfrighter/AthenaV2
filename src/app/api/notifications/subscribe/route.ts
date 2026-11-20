@@ -7,6 +7,28 @@ import {
   parseSubscription,
 } from "@/lib/notifications";
 
+// GET /api/notifications/subscribe - The public key a browser needs to subscribe.
+// Served at request time: a NEXT_PUBLIC_ value is fixed when the image is
+// built, so prebuilt deployments never had one.
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const publicKey =
+    process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!publicKey) {
+    return NextResponse.json(
+      { error: "Push notifications are not configured on this server" },
+      { status: 503 },
+    );
+  }
+  return NextResponse.json(
+    { publicKey },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+}
+
 // POST /api/notifications/subscribe - Register a push subscription for the current user
 export async function POST(request: NextRequest) {
   try {

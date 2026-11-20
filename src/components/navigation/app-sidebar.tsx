@@ -13,7 +13,6 @@ import {
   Bell,
   RadioTower,
   LogOut,
-  CalendarDays,
 } from "lucide-react";
 
 import { NavMain } from "@/components/navigation/nav-main";
@@ -32,10 +31,12 @@ import {
 } from "@/components/ui/sidebar";
 import { SearchForm } from "@/components/forms/search-form";
 import { useSession, signOut } from "next-auth/react";
-import { useGameConfig } from "@/hooks/use-game-config";
+import { useOffline } from "@/hooks/use-offline";
+import { ModeToggle } from "@/components/ui/light-dark-toggle";
+import { ThemeSelector } from "@/components/settings/theme-selector";
 import { PermissionGuard } from "../auth/PermissionGuard";
 import { ROLES } from "@/lib/auth/roles";
-import { APP_LOGO } from "@/lib/app-config";
+import { APP_LOGO, APP_NAME } from "@/lib/app-config";
 import { isGuestPage } from "@/lib/auth/guest-policy";
 import { GuidedTour } from "@/components/onboarding/guided-tour";
 import { useTourHighlight } from "@/components/onboarding/onboarding-provider";
@@ -127,7 +128,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const eventHighlight = useTourHighlight("event");
   const guest = session?.guestEvent;
   const navigation = guest ? data.navMain.filter((item) => !item.url || isGuestPage(item.url)).map((item) => ({ ...item, items: item.items?.filter((child) => isGuestPage(child.url)) })) : data.navMain;
-  const { competitionType } = useGameConfig();
 
   // Use session data if available, otherwise fallback to default
   const userData = session?.user
@@ -145,69 +145,78 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         avatar: APP_LOGO,
       };
 
-  const competitionName =
-    competitionType === "FRC"
-      ? "FIRST Robotics Competition"
-      : "FIRST Tech Challenge";
+  const { isOnline, pendingCount, syncInProgress } = useOffline();
+
+  const eventBlock = guest ? (
+    <div className="px-2">
+      <p className="truncate font-mono text-xs text-muted-foreground" title={guest.name}>
+        {guest.name} · {guest.year}
+      </p>
+      <p className="text-xs text-muted-foreground">{guest.competitionType} · Guest</p>
+    </div>
+  ) : (
+    <div data-tour-target="event" className={`rounded-lg ${eventHighlight}`}>
+      <EventSwitcher />
+    </div>
+  );
 
   return (
-    <Sidebar collapsible="icon" {...props} variant="floating">
-      <SidebarHeader
-        className={`${competitionType === "FRC" ? "bg-blue-200 dark:bg-blue-900" : "bg-orange-200 dark:bg-orange-900"} rounded-t-sm mb-1.5 text-slate-900 dark:text-slate-100`}
-      >
-        <div className={`px-2 group-data-[collapsible=icon]:hidden`}>
-          <p className="text-xs font-semibold text-center uppercase tracking-wider">
-            {competitionName}
-          </p>
-        </div>
+    <Sidebar collapsible="offcanvas" {...props} className="pt-[3px]">
+      <SidebarHeader className="px-5 pt-7 pb-3">
+        <span className="text-[17px] font-bold tracking-tight lowercase">
+          {APP_NAME}<span className="text-chart-1">.</span>
+        </span>
       </SidebarHeader>
       <GuidedTour />
-      <SidebarContent>
-        <div className="mx-2 mt-1">
-          {guest ? (
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  size="lg"
-                  tooltip={`${guest.name} · ${guest.competitionType} ${guest.year} · Guest`}
-                  className="h-auto min-h-12 cursor-default group-data-[collapsible=icon]:min-h-8 group-data-[collapsible=icon]:justify-center"
-                  asChild
-                >
-                  <div>
-                    <CalendarDays className="shrink-0" aria-hidden="true" />
-                    <div className="min-w-0 space-y-1 group-data-[collapsible=icon]:hidden">
-                      <p className="whitespace-normal break-words text-sm font-semibold">{guest.name}</p>
-                      <p className="whitespace-normal text-xs text-muted-foreground">{guest.competitionType} {guest.year} · Guest</p>
-                    </div>
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          ) : <div data-tour-target="event" className={`rounded-lg ${eventHighlight}`}><EventSwitcher /></div>}
-        </div>
-        <SearchForm className="mt-1 ms-2" />
+      <SidebarContent className="gap-0 px-3">
         <NavMain items={navigation} />
         <PermissionGuard roles={[ROLES.ADMIN, ROLES.LEAD_SCOUT]}>
           <NavAdmin items={data.navAdmin} />
         </PermissionGuard>
-        
       </SidebarContent>
-      <SidebarFooter>
-        {guest ? (
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                variant="outline"
-                tooltip="Leave guest access"
-                aria-label="Leave guest access"
-                onClick={() => signOut({ callbackUrl: "/login" })}
-              >
-                <LogOut aria-hidden="true" />
-                <span className="group-data-[collapsible=icon]:hidden">Leave guest access</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        ) : <NavUser user={userData} />}
+      <SidebarFooter className="gap-2 px-3 pb-4">
+        <SearchForm />
+        <div className="mx-2 flex flex-col gap-1 border-t pt-3 text-xs text-muted-foreground">
+          <div className="-mx-2">{eventBlock}</div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex min-w-0 items-center gap-1.5" role="status">
+              <span className={`size-1.5 shrink-0 rounded-full ${isOnline ? "bg-[#0D9488]" : "bg-destructive"}`} aria-hidden="true" />
+              <span className="truncate">
+                {syncInProgress
+                  ? "Syncing…"
+                  : pendingCount > 0
+                    ? `${pendingCount} waiting to sync`
+                    : isOnline
+                      ? "Synced"
+                      : "Offline · saving on this device"}
+              </span>
+            </span>
+            <span className="flex shrink-0 [&_button]:size-8 [&_button]:border-0">
+              <ModeToggle />
+              <ThemeSelector />
+            </span>
+          </div>
+        </div>
+        <div>
+          <div className="min-w-0">
+            {guest ? (
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip="Leave guest access"
+                    aria-label="Leave guest access"
+                    onClick={() => signOut({ callbackUrl: "/login" })}
+                  >
+                    <LogOut aria-hidden="true" />
+                    <span>Leave guest access</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            ) : (
+              <NavUser user={userData} />
+            )}
+          </div>
+        </div>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

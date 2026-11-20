@@ -178,6 +178,17 @@ describe(`${provider} real database persistence`, () => {
     expect((await service.exportData(2027)).matchEntries[0].notes).toBe("Imported edit");
   });
 
+  it("saves a picklist by replacing its entries, starting from an empty list", async () => {
+    const id = await service.addPicklist({ eventCode: "picklist", year: 2026, competitionType: "FRC", picklistType: "pick1" });
+    const teams = async () => (await service.getPicklistEntries(id)).map((entry) => entry.teamNumber);
+    await service.reorderPicklistEntries(id, [{ teamNumber: 254, rank: 1 }, { teamNumber: 1678, rank: 2 }]);
+    expect(await teams()).toEqual([254, 1678]);
+    await service.reorderPicklistEntries(id, [{ teamNumber: 1678, rank: 1 }, { teamNumber: 492, rank: 2 }]);
+    expect(await teams()).toEqual([1678, 492]);
+    await service.reorderPicklistEntries(id, []);
+    expect(await teams()).toEqual([]);
+  });
+
   it("atomically reserves usernames and persists activation and password changes", async () => {
     const create = (id: string) => service.users!.create({ id, name: "Scout", username: "NewScout", passwordHash: "old-hash", role: "scout" });
     const results = await Promise.allSettled([create("one"), create("two")]);

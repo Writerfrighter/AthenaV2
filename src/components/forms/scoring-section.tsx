@@ -42,7 +42,6 @@ interface ScoringSectionProps {
 export function ScoringSection({
   title,
   description,
-  icon,
   section,
   scoringConfig,
   formData,
@@ -52,12 +51,9 @@ export function ScoringSection({
   onNumberChange,
 }: ScoringSectionProps) {
   return (
-    <Card className="border rounded-xl shadow-sm">
+    <Card variant="panel">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-primary/90">
-          {icon}
-          {title}
-        </CardTitle>
+        <CardTitle className="text-base font-semibold">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent className="space-y-6">
@@ -74,7 +70,7 @@ export function ScoringSection({
                   onInputChange("autonomous", "startPosition", value)
                 }
               >
-                <SelectTrigger className="focus:border-green-500 w-full">
+                <SelectTrigger className="h-12 w-full rounded-xl">
                   <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
@@ -101,7 +97,7 @@ export function ScoringSection({
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-6">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {Object.entries(scoringConfig)
             .filter(([, config]) => {
               if (!config.dependsOn) return true;

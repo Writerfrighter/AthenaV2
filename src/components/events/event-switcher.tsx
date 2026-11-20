@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CalendarDays, ChevronsUpDown, Plus, Edit, Trash2 } from "lucide-react";
+import { ChevronsUpDown, Plus, Edit, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -343,15 +343,10 @@ export function EventSwitcher() {
         <SidebarMenuItem>
           <SidebarMenuButton
             size="lg"
-            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            className="h-auto gap-1 rounded-md px-2 py-1 hover:bg-transparent hover:text-foreground data-[state=open]:bg-transparent"
             disabled
           >
-            <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-              <CalendarDays className="text-black dark:text-white" size={20} />
-            </div>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">Loading events...</span>
-            </div>
+            <span className="min-w-0 flex-1 truncate text-left font-mono text-xs text-muted-foreground">Loading events...</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
@@ -364,17 +359,10 @@ export function EventSwitcher() {
         <SidebarMenuItem>
           <SidebarMenuButton
             size="lg"
-            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            className="h-auto gap-1 rounded-md px-2 py-1 hover:bg-transparent hover:text-foreground data-[state=open]:bg-transparent"
             disabled
           >
-            <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-              <CalendarDays className="text-black dark:text-white" size={20} />
-            </div>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium text-red-500">
-                Error loading events
-              </span>
-            </div>
+            <span className="min-w-0 flex-1 truncate text-left font-mono text-xs text-muted-foreground text-destructive">Error loading events</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
@@ -389,23 +377,13 @@ export function EventSwitcher() {
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                className="h-auto gap-1 rounded-md px-2 py-1 hover:bg-transparent hover:text-foreground data-[state=open]:bg-transparent"
               >
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <CalendarDays
-                    className="text-black dark:text-white"
-                    size={20}
-                  />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
-                    {selectedEvent?.name ?? "Choose an event"}
-                  </span>
-                  <span className="truncate text-xs">
-                    {competitionType} {currentYear} · Change event / season
-                  </span>
-                </div>
-                <ChevronsUpDown className="ml-auto" />
+                <span className="min-w-0 flex-1 truncate text-left font-mono text-xs text-muted-foreground">
+                  {selectedEvent?.name ?? "Choose an event"} · {competitionType} {currentYear}
+                </span>
+                <ChevronsUpDown className="ml-auto size-3.5! text-muted-foreground" aria-hidden="true" />
+                <span className="sr-only">Change event or season</span>
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -448,7 +426,7 @@ export function EventSwitcher() {
                 <div key={event.name} className="relative">
                   <DropdownMenuItem
                     onClick={() => { setSelectedEvent(event); completeAction("event"); }}
-                    className={`gap-2 p-2 pr-16 ${event.eventCode === selectedEvent?.eventCode ? "bg-sidebar-accent" : ""}`}
+                    className={`gap-2 p-2 pr-16 ${event.eventCode === selectedEvent?.eventCode ? "bg-accent font-semibold" : ""}`}
                   >
                     {event.name}
                   </DropdownMenuItem>

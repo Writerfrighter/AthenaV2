@@ -1,10 +1,12 @@
 "use client";
 
 import { AppSidebar } from "@/components/navigation/app-sidebar";
-import { createContext, useContext, useState } from "react";
+import { useState } from "react";
+import {
+  AccountSettingsContext,
+  NotificationSettingsContext,
+} from "./settings-dialogs-context";
 import dynamic from "next/dynamic";
-import { ModeToggle } from "@/components/ui/light-dark-toggle";
-import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
@@ -15,7 +17,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ThemeSelector } from "@/components/settings/theme-selector";
 import { useSession } from "next-auth/react";
 import DashboardLoading from "./loading";
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
@@ -34,32 +35,6 @@ const NotificationSettingsDialog = dynamic(
     ),
   { ssr: false },
 );
-
-const AccountSettingsContext = createContext<
-  { openAccountSettings: () => void } | undefined
->(undefined);
-
-export function useAccountSettingsDialog() {
-  const ctx = useContext(AccountSettingsContext);
-  if (!ctx)
-    throw new Error(
-      "useAccountSettingsDialog must be used within AccountSettingsContext",
-    );
-  return ctx;
-}
-
-const NotificationSettingsContext = createContext<
-  { openNotificationSettings: () => void } | undefined
->(undefined);
-
-export function useNotificationSettingsDialog() {
-  const ctx = useContext(NotificationSettingsContext);
-  if (!ctx)
-    throw new Error(
-      "useNotificationSettingsDialog must be used within NotificationSettingsContext",
-    );
-  return ctx;
-}
 
 export default function DashboardShell({
   children,
@@ -82,23 +57,18 @@ export default function DashboardShell({
       <NotificationSettingsContext.Provider
         value={{ openNotificationSettings }}
       >
-        <SidebarProvider>
+        <SidebarProvider style={{ "--sidebar-width": "220px" } as React.CSSProperties}>
           <OnboardingProvider>
+          {/* red/blue alliance strip across the top */}
+          <div aria-hidden="true" className="fixed inset-x-0 top-0 z-50 flex h-[3px]">
+            <div className="flex-1 bg-[#E5484D]" />
+            <div className="flex-1 bg-[#3B7BF6]" />
+          </div>
           {isInitialLoading ? <DashboardSidebarLoading /> : <AppSidebar />}
           <SidebarInset>
-            <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-              {session?.guestEvent && <span className="text-xs text-muted-foreground">Guest · {session.guestEvent.name}</span>}
-              <SidebarTrigger className="-ml-1" />
-              <Separator
-                orientation="vertical"
-                className="mr-2 data-[orientation=vertical]:h-4"
-              />
-              <div className="ml-auto flex items-center gap-2">
-                <ModeToggle />
-                <ThemeSelector />
-              </div>
-            </header>
-            <div className="flex flex-1 flex-col gap-4 p-4">
+            {/* The design has no top bar: the menu button only appears where the sidebar is hidden. */}
+            <SidebarTrigger className="fixed top-3 left-3 z-40 bg-background md:hidden" />
+            <div className="flex w-full flex-1 flex-col gap-9 px-4 pt-14 pb-16 md:px-12 md:pt-8">
               {!isInitialLoading && pathname === "/dashboard" && <OnboardingChecklist />}
               {isInitialLoading ? <DashboardLoading /> : children}
             </div>
@@ -124,7 +94,7 @@ export default function DashboardShell({
 
 function DashboardSidebarLoading() {
   return (
-    <Sidebar collapsible="icon" variant="floating" aria-label="Loading navigation">
+    <Sidebar collapsible="offcanvas" className="pt-[3px]" aria-label="Loading navigation">
       <SidebarHeader>
         <Skeleton className="mx-auto h-4 w-40" />
       </SidebarHeader>

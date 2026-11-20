@@ -25,7 +25,7 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
 
   return (
     <form {...props} onSubmit={handleSubmit}>
-      <SidebarGroup className="py-0 ps-0">
+      <SidebarGroup className="p-0">
         <SidebarGroupContent className="relative">
           <Label htmlFor="search" className="sr-only">
             Search
@@ -33,7 +33,7 @@ export function SearchForm({ ...props }: React.ComponentProps<"form">) {
           <SidebarInput
             id="search"
             placeholder="Search a team..."
-            className={state == "collapsed" ? "pl-5" : "pl-8"}
+            className={`h-9 rounded-full bg-transparent ${state == "collapsed" ? "pl-5" : "pl-8"}`}
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"

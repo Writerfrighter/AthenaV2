@@ -1,4 +1,8 @@
-import type { YearConfig } from "@/lib/types";
+import type {
+  YearConfig,
+  ScoringDefinition,
+  PitScoutingFieldDefinition,
+} from "@/lib/types";
 
 export interface BuilderState {
   competitionType: "FRC" | "FTC";
@@ -221,3 +225,92 @@ export const DEFAULT_NEW_CONFIG: YearConfig = {
     },
   },
 };
+
+type AnyField = ScoringDefinition | PitScoutingFieldDefinition;
+export type FieldMode = "match" | "pit";
+
+/** The fields of one form section; match and pit share the same shape. */
+export function getSection<T extends AnyField = AnyField>(
+  config: YearConfig,
+  mode: FieldMode,
+  section: string,
+): Record<string, T> {
+  const root = (mode === "match" ? config.scoring : config.pitScouting) as unknown as
+    | Record<string, Record<string, T> | undefined>
+    | undefined;
+  return root?.[section] ?? {};
+}
+
+export function updateSection<T extends AnyField = AnyField>(
+  config: YearConfig,
+  mode: FieldMode,
+  section: string,
+  update: (fields: Record<string, T>) => Record<string, T>,
+): YearConfig {
+  const rootKey = mode === "match" ? "scoring" : "pitScouting";
+  return {
+    ...config,
+    [rootKey]: {
+      ...config[rootKey],
+      [section]: update(getSection<T>(config, mode, section)),
+    },
+  };
+}
+
+export function uniqueKey(taken: Record<string, unknown>, base: string): string {
+  let key = base;
+  for (let n = 2; key in taken; n++) key = `${base}_${n}`;
+  return key;
+}
+
+export function renameKey<T>(
+  record: Record<string, T>,
+  from: string,
+  to: string,
+): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [key === from ? to : key, value]),
+  );
+}
+
+/** Rename a field in place and repoint everything that references it. */
+export function renameField(
+  config: YearConfig,
+  mode: FieldMode,
+  section: string,
+  from: string,
+  to: string,
+): YearConfig {
+  const next = updateSection(config, mode, section, (fields) =>
+    Object.fromEntries(
+      Object.entries(fields).map(([key, definition]) => [
+        key === from ? to : key,
+        definition.dependsOn === from ? { ...definition, dependsOn: to } : definition,
+      ]),
+    ),
+  );
+  if (mode === "pit") {
+    const matchup = next.matchupCardConfig;
+    if (!matchup?.pitHighlights) return next;
+    return {
+      ...next,
+      matchupCardConfig: {
+        ...matchup,
+        pitHighlights: matchup.pitHighlights.map((highlight) =>
+          highlight.section === section && highlight.field === from
+            ? { ...highlight, field: to }
+            : highlight,
+        ),
+      },
+    };
+  }
+  // A qualified key ("teleop.fuel_scored") only ever appears as a reference,
+  // so swapping the exact string reaches every matchup, team page, insight and
+  // derived-metric use at once.
+  return JSON.parse(
+    JSON.stringify(next).replaceAll(
+      JSON.stringify(`${section}.${from}`),
+      JSON.stringify(`${section}.${to}`),
+    ),
+  );
+}

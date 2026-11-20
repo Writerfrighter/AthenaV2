@@ -1,5 +1,6 @@
 "use client";
 
+import { imageFileToDataUrl } from "@/lib/image-upload";
 import {
   Dialog,
   DialogContent,
@@ -132,13 +133,8 @@ export function AccountSettingsDialog({
       let avatarUrl = session?.user?.image;
 
       if (avatarFile) {
-        const reader = new FileReader();
-
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = reject;
-          reader.readAsDataURL(avatarFile);
-        });
+        // Scaled down first, so large photos and non-JPEG formats still upload
+        const dataUrl = await imageFileToDataUrl(avatarFile, 512, 500_000);
 
         const avatarResponse = await fetch("/api/users/me/avatar", {
           method: "POST",
@@ -301,7 +297,7 @@ export function AccountSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto lg:max-w-5xl">
         <DialogHeader>
           <DialogTitle>Account Settings</DialogTitle>
           <DialogDescription>
@@ -309,7 +305,7 @@ export function AccountSettingsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
+        <div className="mt-4 grid gap-6 lg:grid-cols-3 lg:gap-10">
           {/* Profile Information */}
           <div>
             <h3 className="text-lg font-semibold mb-3">Profile Information</h3>
@@ -385,7 +381,7 @@ export function AccountSettingsDialog({
             </form>
           </div>
 
-          <Separator />
+          <Separator className="lg:hidden" />
 
           {/* Change Password */}
           <div>
@@ -430,7 +426,7 @@ export function AccountSettingsDialog({
             </form>
           </div>
 
-          <Separator />
+          <Separator className="lg:hidden" />
 
           {/* Preferred Scouting Partners */}
           <div>

@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Target, Zap, Calendar } from "lucide-react";
+import { Zap, Calendar } from "lucide-react";
 import {
   getCombinedAlliancePosition,
   parseCombinedAlliancePosition,
@@ -115,14 +115,11 @@ export function MatchInfoSection({
   })();
 
   return (
-    <Card className="border rounded-xl shadow-sm">
+    <Card variant="panel">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-primary/90">
-          <Target className="h-5 w-5" />
-          Match Information
-        </CardTitle>
+        <CardTitle className="text-base font-semibold">Match information</CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 sm:flex sm:justify-between gap-4 sm:gap-10">
+      <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3 [&_[data-slot=input]]:h-12 [&_[data-slot=select-trigger]]:h-12!">
         <div className="space-y-2 w-full">
           <div className="flex items-center gap-2 h-5">
             <Label htmlFor="matchNumber">Match Number</Label>

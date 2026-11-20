@@ -13,6 +13,18 @@ export interface ApiKeys {
   nexusApiKey: string;
 }
 
+function readPersisted(): Partial<ApiKeys> {
+  if (!existsSync(/* turbopackIgnore: true */ API_KEYS_PATH)) return {};
+  try {
+    return JSON.parse(
+      readFileSync(/* turbopackIgnore: true */ API_KEYS_PATH, "utf8"),
+    ) as Partial<ApiKeys>;
+  } catch {
+    // An unreadable file counts as no persisted keys.
+    return {};
+  }
+}
+
 /**
  * Load API keys with this priority:
  *  1. .runtime/api-keys.json (persisted via the settings UI / json config)
@@ -20,17 +32,7 @@ export interface ApiKeys {
  *  3. Empty strings (keys simply not configured yet)
  */
 export function loadApiKeys(): ApiKeys {
-  // Start from persisted file
-  let persisted: Partial<ApiKeys> = {};
-  if (existsSync(/* turbopackIgnore: true */ API_KEYS_PATH)) {
-    try {
-      persisted = JSON.parse(
-        readFileSync(/* turbopackIgnore: true */ API_KEYS_PATH, "utf8"),
-      ) as Partial<ApiKeys>;
-    } catch {
-      // ignore parse errors
-    }
-  }
+  const persisted = readPersisted();
 
   const resolveKey = (
     persistedVal: string | undefined,
@@ -60,16 +62,7 @@ export function getApiKeyStatus(): Record<
   keyof ApiKeys,
   { configured: boolean; source: "env" | "persisted" | "none" }
 > {
-  let persisted: Partial<ApiKeys> = {};
-  if (existsSync(/* turbopackIgnore: true */ API_KEYS_PATH)) {
-    try {
-      persisted = JSON.parse(
-        readFileSync(/* turbopackIgnore: true */ API_KEYS_PATH, "utf8"),
-      ) as Partial<ApiKeys>;
-    } catch {
-      // ignore
-    }
-  }
+  const persisted = readPersisted();
 
   function status(
     persistedVal: string | undefined,
@@ -95,18 +88,7 @@ export function getApiKeyStatus(): Record<
 
 export async function saveApiKeys(keys: Partial<ApiKeys>): Promise<void> {
   // Merge with any existing persisted keys so we don't wipe unset fields
-  let existing: Partial<ApiKeys> = {};
-  if (existsSync(/* turbopackIgnore: true */ API_KEYS_PATH)) {
-    try {
-      existing = JSON.parse(
-        readFileSync(/* turbopackIgnore: true */ API_KEYS_PATH, "utf8"),
-      ) as Partial<ApiKeys>;
-    } catch {
-      // ignore
-    }
-  }
-
-  const merged: Partial<ApiKeys> = { ...existing };
+  const merged: Partial<ApiKeys> = readPersisted();
 
   // Only overwrite keys that were explicitly provided (non-undefined)
   (Object.keys(keys) as (keyof ApiKeys)[]).forEach((k) => {
