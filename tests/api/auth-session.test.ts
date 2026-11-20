@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { encode } from "next-auth/jwt";
 import { handlers } from "@/lib/auth/config";
@@ -131,6 +131,8 @@ describe("existing account sessions", () => {
   });
 
   it("rejects a deactivated user at the real credentials login", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    onTestFinished(() => errorLog.mockRestore());
     query.mockResolvedValue({
       recordset: [
         {
@@ -166,6 +168,10 @@ describe("existing account sessions", () => {
       }),
     );
     expect(response.headers.get("location")).toContain("CredentialsSignin");
+    expect(errorLog.mock.calls).toEqual([
+      [expect.stringMatching(/\[auth\]\[error\].*CredentialsSignin:/)],
+      [expect.stringMatching(/^\s+at /)],
+    ]);
     expect(
       response.headers
         .getSetCookie()

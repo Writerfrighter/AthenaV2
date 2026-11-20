@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, onTestFinished, vi } from "vitest";
 import { MockAuthSession, asNextRequest } from "../helpers/test-doubles";
 
 let authSession: MockAuthSession | null = {
@@ -124,7 +124,10 @@ describe("GET /api/scouting/admin/provider-options", () => {
     );
   });
   it("does not persist an unreachable provider", async () => {
-    mockConnectionCheck.mockRejectedValue(new Error("Firebase unavailable"));
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    onTestFinished(() => errorLog.mockRestore());
+    const connectionError = new Error("Firebase unavailable");
+    mockConnectionCheck.mockRejectedValue(connectionError);
     const route = await import("@/app/api/scouting/admin/provider-options/route");
     const response = await route.POST(asNextRequest(new Request("http://test/api/scouting/admin/provider-options", {
       method: "POST", headers: { "content-type": "application/json" },
@@ -132,5 +135,8 @@ describe("GET /api/scouting/admin/provider-options", () => {
     })));
     expect(response.status).toBe(500);
     expect(mockWriteFile).not.toHaveBeenCalled();
+    expect(errorLog.mock.calls).toEqual([
+      ["Error updating database configuration:", connectionError],
+    ]);
   });
 });

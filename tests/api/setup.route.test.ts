@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, onTestFinished, vi } from "vitest";
 import { asNextRequest } from "../helpers/test-doubles";
 
 const mockSavePersistedDatabaseConfig = vi.fn().mockResolvedValue(undefined);
@@ -81,8 +81,11 @@ describe("/api/setup/database", () => {
   });
 
   it("keeps the current configuration when a document connection check fails", async () => {
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    onTestFinished(() => errorLog.mockRestore());
+    const connectionError = new Error("Invalid credentials");
     useDocumentCandidate = true;
-    mockConnectionCheck.mockRejectedValue(new Error("Invalid credentials"));
+    mockConnectionCheck.mockRejectedValue(connectionError);
     const route = await import("@/app/api/setup/database/route");
     const response = await route.POST(asNextRequest(new Request("http://test/api/setup/database", {
       method: "POST", headers: { "Content-Type": "application/json", "X-Athena-Setup-Token": setupToken },
@@ -91,6 +94,7 @@ describe("/api/setup/database", () => {
     expect(response.status).toBe(500);
     expect(mockSavePersistedDatabaseConfig).not.toHaveBeenCalled();
     expect(mockConfigure).not.toHaveBeenCalled();
+    expect(errorLog.mock.calls).toEqual([["Database setup error:", connectionError]]);
     mockConnectionCheck.mockResolvedValue(undefined);
   });
 
