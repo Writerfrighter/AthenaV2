@@ -21,9 +21,29 @@ test("match: unsaved entry survives a reload and can be discarded", async ({ pag
   await expect(matchNotes(page)).toHaveValue("");
   await page.getByRole("tab", { name: /Auto/ }).click();
   await expect(page.locator("#matchNumber")).toHaveValue("12");
+  // The hand-entered team (no schedule here) is still worth keeping; the notes are not.
+  await expect.poll(() => page.evaluate(() => {
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith("athena-draft:"));
+    return keys.map((k) => JSON.parse(localStorage.getItem(k)!).data.notes);
+  })).toEqual([""]);
+
+  await page.reload();
+  await expect(page.locator("#matchNumber")).toHaveValue("12");
+  await expect(page.getByPlaceholder("Enter team number (e.g. 254)")).toHaveValue("254");
+  await page.getByRole("tab", { name: /Endgame/ }).click();
+  await expect(matchNotes(page)).toHaveValue("");
+});
+
+test("match: discarding scoring with no hand-entered team clears the draft", async ({ page }) => {
+  await prepare(page);
+  await page.goto("/scout/matchscout");
+  await page.getByRole("tab", { name: /Endgame/ }).click();
+  await matchNotes(page).fill("Competition regression test");
+  await page.waitForFunction(() => Object.keys(localStorage).some((k) => k.startsWith("athena-draft:match:")));
+  await page.reload();
+  await page.getByRole("button", { name: "Discard" }).click();
   await expect.poll(() => page.evaluate(() =>
     Object.keys(localStorage).filter((k) => k.startsWith("athena-draft:")).length)).toBe(0);
-
   await page.reload();
   await expect(page.locator("#matchNumber")).toBeVisible();
   await expect(recovered(page)).toHaveCount(0);
