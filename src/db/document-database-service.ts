@@ -12,6 +12,12 @@ const alreadyExists = (error: unknown) => {
   return code === 409 || code === 6 || code === "already-exists";
 };
 const entryIdentity = ["competitionType", "year", "eventCode", "teamNumber", "matchNumber"];
+const identity = (doc: object) => JSON.stringify(entryIdentity.map((field) => (doc as Document)[field] ?? null));
+const slotKey = (collection: string, entry: object) => `entry-${createHash("sha256").update(collection + identity(entry)).digest("hex")}`;
+const slotTaken = (entry: Omit<PitEntry, "id"> | Omit<MatchEntry, "id">) =>
+  "matchNumber" in entry
+    ? `Match scouting entry already exists for team ${entry.teamNumber} in match ${entry.matchNumber}`
+    : `Pit scouting entry already exists for team ${entry.teamNumber} at this event`;
 function duplicateUsername(): Error {
   const error = new Error("This username is already in use");
   error.name = "DuplicateUsernameError";
@@ -190,11 +196,10 @@ export class DocumentDatabaseService implements DatabaseService {
     throw new Error("Could not allocate a unique ID");
   }
   /** One storage key per scouting slot, so two concurrent submissions of the same entry cannot both commit. */
-  private async addEntry(collection: string, entry: Omit<PitEntry, "id"> | Omit<MatchEntry, "id">, duplicate: string): Promise<number> {
+  private async addEntry(collection: string, entry: Omit<PitEntry, "id"> | Omit<MatchEntry, "id">): Promise<number> {
     // Like the SQL unique constraints, entries without an event code are not deduplicated.
     if (!entry.eventCode) return this.add(collection, entry);
-    const identity = (doc: object) => JSON.stringify(entryIdentity.map((field) => (doc as Document)[field] ?? null));
-    const key = `entry-${createHash("sha256").update(collection + identity(entry)).digest("hex")}`;
+    const key = slotKey(collection, entry);
     // shortcut: numericId is random but no longer the storage key, so its uniqueness is probabilistic (48 bits), fine below millions of entries.
     const numericId = randomInt(1, 2 ** 48 - 1);
     try {
@@ -203,7 +208,7 @@ export class DocumentDatabaseService implements DatabaseService {
     } catch (error) {
       if (!alreadyExists(error)) throw error;
       const holder = await this.store.get(collection, key);
-      if (holder && identity(holder) === identity(entry)) throw new ScoutingError(409, duplicate);
+      if (holder && identity(holder) === identity(entry)) throw new ScoutingError(409, slotTaken(entry));
       // The entry first stored under this key was later edited to another team or match.
       return this.add(collection, entry);
     }
@@ -225,7 +230,7 @@ export class DocumentDatabaseService implements DatabaseService {
   private async remove(collection: string, filters: Document) {
     for (const doc of await this.store.list(collection, filters)) await this.store.remove(collection, doc.key);
   }
-  addPitEntry(entry: Omit<PitEntry, "id">) { return this.addEntry("pitEntries", entry, `Pit scouting entry already exists for team ${entry.teamNumber} at this event`); }
+  addPitEntry(entry: Omit<PitEntry, "id">) { return this.addEntry("pitEntries", entry); }
   getPitEntry(teamNumber: number, year: number, competitionType?: CompetitionType, eventCode?: string) { return this.one<PitEntry>("pitEntries", { teamNumber, year, ...(competitionType === undefined ? {} : { competitionType }), ...(eventCode ? { eventCode } : {}) }); }
   getPitEntryById(id: number) { return this.one<PitEntry>("pitEntries", { numericId: id }); }
   getMatchEntryById(id: number) { return this.one<MatchEntry>("matchEntries", { numericId: id }); }
@@ -233,7 +238,7 @@ export class DocumentDatabaseService implements DatabaseService {
   updatePitEntry(id: number, updates: Partial<PitEntry>) { return this.update("pitEntries", { numericId: id }, updates); }
   deletePitEntry(id: number) { return this.remove("pitEntries", { numericId: id }); }
   async checkPitScoutExists(teamNumber: number, eventCode: string, year: number, competitionType: CompetitionType) { return !!await this.one("pitEntries", { teamNumber, eventCode, year, competitionType }); }
-  addMatchEntry(entry: Omit<MatchEntry, "id">) { return this.addEntry("matchEntries", entry, `Match scouting entry already exists for team ${entry.teamNumber} in match ${entry.matchNumber}`); }
+  addMatchEntry(entry: Omit<MatchEntry, "id">) { return this.addEntry("matchEntries", entry); }
   getMatchEntries(teamNumber: number, year?: number, competitionType?: CompetitionType) { return this.rows<MatchEntry>("matchEntries", { teamNumber, year, competitionType }); }
   getAllMatchEntries(year?: number, eventCode?: string, competitionType?: CompetitionType) { return this.rows<MatchEntry>("matchEntries", { year, eventCode, competitionType }); }
   updateMatchEntry(id: number, updates: Partial<MatchEntry>) { return this.update("matchEntries", { numericId: id }, updates); }
@@ -298,9 +303,24 @@ export class DocumentDatabaseService implements DatabaseService {
   }
   async importData(data: { pitEntries?: PitEntry[]; matchEntries?: MatchEntry[] }) {
     // Allocate fresh IDs as SQL imports do, so repeated imports never alias existing rows.
-    // Imports keep their earlier behavior: random keys, no slot deduplication.
-    for (const entry of data.pitEntries ?? []) { const copy = { ...entry }; delete copy.id; await this.add("pitEntries", copy); }
-    for (const entry of data.matchEntries ?? []) { const copy = { ...entry }; delete copy.id; await this.add("matchEntries", copy); }
+    const rows = [
+      ...(data.pitEntries ?? []).map((entry) => ({ collection: "pitEntries", entry })),
+      ...(data.matchEntries ?? []).map((entry) => ({ collection: "matchEntries", entry })),
+    ].map(({ collection, entry }) => { const copy = { ...entry }; delete copy.id; return { collection, entry: copy }; });
+    // SQL rejects a whole import on any duplicate. Without a transaction, find
+    // every repeated or already-taken slot before the first write.
+    // shortcut: a live submission landing between this check and the writes still stops the import partway; rare during an import, revisit if imports run during matches.
+    const slotted = rows.filter((row) => row.entry.eventCode);
+    const keys = slotted.map((row) => slotKey(row.collection, row.entry));
+    const seen = new Set<string>();
+    keys.forEach((key, index) => {
+      if (seen.has(key)) throw new ScoutingError(409, slotTaken(slotted[index].entry));
+      seen.add(key);
+    });
+    const holders = await Promise.all(slotted.map((row, index) => this.store.get(row.collection, keys[index])));
+    const taken = slotted.find((row, index) => holders[index] && identity(holders[index]!) === identity(row.entry));
+    if (taken) throw new ScoutingError(409, slotTaken(taken.entry));
+    for (const { collection, entry } of rows) await this.addEntry(collection, entry);
   }
   async resetDatabase() {
     // Scouting entries only, as on every provider; accounts must survive.
