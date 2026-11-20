@@ -198,9 +198,10 @@ describe(`${provider} real database persistence`, () => {
     await service.updateUser(user!.id, { passwordHash: "new-hash" });
     await service.users!.setActive(user!.id, false);
     expect(await service.users!.list()).toEqual([]);
-    expect(await service.users!.getById(user!.id)).toMatchObject({ password_hash: "new-hash", sessionVersion: 1 });
+    // Each step signs out existing sessions: password change, deactivate, reactivate.
+    expect(await service.users!.getById(user!.id)).toMatchObject({ password_hash: "new-hash", sessionVersion: 2 });
     await service.users!.setActive(user!.id, true);
-    expect(await service.users!.getById(user!.id)).toMatchObject({ deactivatedAt: null, sessionVersion: 2 });
+    expect(await service.users!.getById(user!.id)).toMatchObject({ deactivatedAt: null, sessionVersion: 3 });
     expect(await service.users!.list()).toMatchObject([{ id: user!.id }]);
   });
 });
