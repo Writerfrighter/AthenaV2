@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useEffectEvent } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGameConfig, useCurrentGameConfig } from "@/hooks/use-game-config";
@@ -30,7 +30,7 @@ import { HttpError } from "@/lib/fetcher";
 import { ScoutSelector } from "@/components/scout-selector";
 import { FieldDrawingCanvas } from "@/components/forms/field-drawing-canvas";
 import { useFormDraft } from "@/hooks/use-form-draft";
-import { draftKey, sameFormValues } from "@/lib/form-drafts";
+import { draftKey, draftOwner, sameFormValues } from "@/lib/form-drafts";
 import { driveTrainSlug, normalizeDriveTrain, type PitEntry } from "@/lib/types";
 import type {
   DynamicPitData,
@@ -218,17 +218,20 @@ export function DynamicPitScoutForm() {
   }
 
   // Keep an unsubmitted entry across reloads and remounts.
-  const draftUser = session?.user?.id ?? (session?.guestEvent ? "guest" : null);
+  const draftUser = draftOwner(session?.user, !!session?.guestEvent, selectedScoutId);
   const pitDraftKey =
     editId || !gameConfig
       ? null
       : draftKey("pit", [draftUser, season, selectedEvent?.eventCode]);
   const isPitDraftDirty =
     !!gameConfig && !sameFormValues(formData, initializePitFormData(gameConfig));
-  const restoredDraftKey = useFormDraft<DynamicPitData>({
+  const restoredDraft = useFormDraft<DynamicPitData>({
     key: pitDraftKey,
     data: formData,
     isDirty: isPitDraftDirty,
+    onReset: () => {
+      if (gameConfig) setFormData(initializePitFormData(gameConfig));
+    },
     onRestore: (draft) => {
       if (!gameConfig) return;
       const defaults = initializePitFormData(gameConfig);
@@ -240,17 +243,21 @@ export function DynamicPitScoutForm() {
     },
   });
 
-  useEffect(() => {
-    if (!restoredDraftKey || !gameConfig) return;
+  // Announce each restore once; later config changes must not re-show it.
+  const announceRestoredDraft = useEffectEvent((id: string) => {
+    if (!gameConfig) return;
     toast.info("Recovered your unsaved pit entry", {
-      id: restoredDraftKey,
+      id,
       description: "Your in-progress data was restored after the page reloaded.",
       action: {
         label: "Discard",
         onClick: () => setFormData(initializePitFormData(gameConfig)),
       },
     });
-  }, [restoredDraftKey, gameConfig]);
+  });
+  useEffect(() => {
+    if (restoredDraft) announceRestoredDraft(restoredDraft.key);
+  }, [restoredDraft]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,

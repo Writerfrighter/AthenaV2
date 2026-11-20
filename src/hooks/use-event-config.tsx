@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   useMemo,
   ReactNode,
@@ -16,6 +17,7 @@ import { FtcEvent } from "@/lib/api/ftcevents-types";
 import type { CustomEvent } from "@/lib/types";
 import { indexedDBService } from "@/lib/indexeddb-service";
 import { useSession } from "next-auth/react";
+import { startActivePolling } from "@/lib/active-polling";
 
 interface EventContextType {
   events: Event[];
@@ -68,6 +70,26 @@ export function EventProvider({ children }: { children: ReactNode }) {
     });
   }, [scopeKey]);
 
+  // Retry after a failed or offline load: the fetch below otherwise only runs
+  // when the user or season changes.
+  const [retryCount, setRetryCount] = useState(0);
+  // Set for retries, which refresh quietly and keep the current list on failure.
+  const backgroundFetchRef = useRef(false);
+  const needsRetry = !!userId && (isOfflineData || error !== null);
+  useEffect(() => {
+    if (!needsRetry) return;
+    const retry = () => {
+      backgroundFetchRef.current = true;
+      setRetryCount((count) => count + 1);
+    };
+    window.addEventListener("online", retry);
+    const stopPolling = startActivePolling(retry, 60_000);
+    return () => {
+      window.removeEventListener("online", retry);
+      stopPolling();
+    };
+  }, [needsRetry]);
+
   // Fetch events from TBA API and custom events
   useEffect(() => {
     if (!userId) return;
@@ -75,55 +97,60 @@ export function EventProvider({ children }: { children: ReactNode }) {
     // Don't fetch until game config is initialized
     if (!isInitialized) return;
 
+    const background = backgroundFetchRef.current;
+    backgroundFetchRef.current = false;
     let cancelled = false;
     const fetchEvents = async () => {
       const isOnline =
         typeof navigator !== "undefined" ? navigator.onLine : true;
       const teamNumber = competitionType === "FRC" ? 492 : 3543;
 
-      // If offline, try to get cached data first
-      if (!isOnline) {
+      // Serve the last complete list; returns false when there is none.
+      const loadCachedEvents = async () => {
         try {
           const cachedData = await indexedDBService.getCachedEventList(
             teamNumber,
             competitionType,
             currentYear,
           );
-          if (cancelled) return;
-          if (cachedData && cachedData.events.length > 0) {
-            selectFromEvents(cachedData.events);
-            setIsOfflineData(true);
-            setIsLoading(false);
-            return;
-          }
+          if (cancelled || !cachedData || cachedData.events.length === 0) return false;
+          selectFromEvents(cachedData.events);
+          return true;
         } catch (cacheError) {
-          if (cancelled) return;
           console.warn("Failed to get cached events:", cacheError);
+          return false;
         }
+      };
 
-        // No cached data available while offline
-        selectFromEvents([]);
-        setError(
-          "Offline - no cached event data available. Connect to internet to download events.",
-        );
-        setIsLoading(false);
+      if (!isOnline) {
+        if (await loadCachedEvents()) {
+          setIsOfflineData(true);
+          setError(null);
+        } else if (!cancelled) {
+          if (!background) selectFromEvents([]);
+          setError(
+            "Offline - no cached event data available. Connect to internet to download events.",
+          );
+        }
+        if (!cancelled) setIsLoading(false);
         return;
       }
 
+      if (!background) setIsLoading(true);
       try {
-        setIsLoading(true);
-        setError(null);
-        setIsOfflineData(false);
-
         // Fetch events using unified API
         let apiEvents: Event[] = [];
-        let reachedServer = false;
+        let customEvents: Event[] = [];
+        let apiOk = false;
+        let customOk = false;
+        // Whether either request got an HTTP response (the server is reachable).
+        let answered = false;
         try {
           const eventsResponse = await fetch(
             `/api/teams/${teamNumber}/events/${currentYear}?competitionType=${competitionType}`,
           );
+          answered = true;
           if (eventsResponse.ok) {
-            reachedServer = true;
             const eventData = await eventsResponse.json();
             // Transform events to our Event format
             if (competitionType === "FRC") {
@@ -143,22 +170,18 @@ export function EventProvider({ children }: { children: ReactNode }) {
                 eventCode: ftcEvent.code || ftcEvent.eventId,
               }));
             }
+            apiOk = true;
           }
         } catch (apiError) {
-          console.warn(
-            "Failed to fetch events, continuing with custom events only:",
-            apiError,
-          );
+          console.warn("Failed to fetch events:", apiError);
         }
 
-        // Fetch custom events
-        let customEvents: Event[] = [];
         try {
           const customResponse = await fetch(
             `/api/events/custom-events?year=${currentYear}`,
           );
+          answered = true;
           if (customResponse.ok) {
-            reachedServer = true;
             const customEventData = await customResponse.json();
 
             // Transform custom events to our Event format
@@ -169,61 +192,50 @@ export function EventProvider({ children }: { children: ReactNode }) {
                 : `Custom Event: ${customEvent.year}`,
               eventCode: customEvent.eventCode,
             }));
+            customOk = true;
           }
         } catch (customError) {
           console.warn("Failed to fetch custom events:", customError);
         }
+        if (cancelled) return;
 
-        // Both requests failed (e.g. flaky venue Wi-Fi while navigator.onLine
-        // is still true): use the cached list instead of an empty one.
-        if (!reachedServer) throw new Error("Unable to reach event services");
-
-        // Combine API and custom events
         const allEvents = [...apiEvents, ...customEvents];
-        if (cancelled) return;
-        selectFromEvents(allEvents);
-
-        // Cache events for offline use
-        if (allEvents.length > 0) {
-          try {
-            await indexedDBService.cacheEventList(
-              teamNumber,
-              competitionType,
-              currentYear,
-              allEvents,
-            );
-          } catch (cacheError) {
-            console.warn("Failed to cache events:", cacheError);
+        if (apiOk && customOk) {
+          selectFromEvents(allEvents);
+          setError(null);
+          setIsOfflineData(false);
+          // Cache the complete list for offline use
+          if (allEvents.length > 0) {
+            try {
+              await indexedDBService.cacheEventList(
+                teamNumber,
+                competitionType,
+                currentYear,
+                allEvents,
+              );
+            } catch (cacheError) {
+              console.warn("Failed to cache events:", cacheError);
+            }
           }
-        }
-      } catch (err) {
-        if (cancelled) return;
-        console.error("Error fetching events:", err);
-
-        // Try to fall back to cached data on fetch error
-        try {
-          const cachedData = await indexedDBService.getCachedEventList(
-            teamNumber,
-            competitionType,
-            currentYear,
-          );
-          if (cancelled) return;
-          if (cachedData && cachedData.events.length > 0) {
-            selectFromEvents(cachedData.events);
-            setIsOfflineData(true);
-            setIsLoading(false);
-            return;
-          }
-        } catch (cacheError) {
-          if (cancelled) return;
-          console.warn(
-            "Failed to get cached events on error fallback:",
-            cacheError,
-          );
+          return;
         }
 
-        setError("Failed to load events");
-        selectFromEvents([]);
+        // Something failed (flaky venue Wi-Fi while navigator.onLine is still
+        // true, or a server error). A partial list would drop the selected
+        // event and overwrite the cache, so prefer the last complete list.
+        if (await loadCachedEvents()) {
+          // Offline only when the server could not be reached at all.
+          setIsOfflineData(!answered);
+          setError(answered ? "Some events could not be loaded; showing saved events." : null);
+          return;
+        }
+        if (cancelled) return;
+        if (!background) selectFromEvents(allEvents);
+        setError(
+          answered
+            ? "Failed to load all events"
+            : "Unable to reach event services",
+        );
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -233,7 +245,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [currentYear, competitionType, isInitialized, userId, selectFromEvents]);
+  }, [currentYear, competitionType, isInitialized, userId, selectFromEvents, retryCount]);
 
   // Save selected event to localStorage and cookies whenever it changes
   useEffect(() => {

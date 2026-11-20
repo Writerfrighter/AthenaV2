@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useEffectEvent, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGameConfig, useCurrentGameConfig } from "@/hooks/use-game-config";
@@ -38,7 +38,7 @@ import {
   setLastSubmittedMatch,
 } from "@/components/forms/match-form-utils";
 import { useFormDraft } from "@/hooks/use-form-draft";
-import { draftKey, sameFormValues } from "@/lib/form-drafts";
+import { draftKey, draftOwner, sameFormValues } from "@/lib/form-drafts";
 import type { MatchEntry } from "@/lib/types";
 import type { DynamicMatchData } from "@/lib/types";
 export function DynamicMatchScoutForm() {
@@ -244,20 +244,33 @@ export function DynamicMatchScoutForm() {
 
   // Keep an unsubmitted entry across reloads and remounts. Placed after the
   // assignment step so a restored draft wins over the schedule prefill.
-  const draftUser = session?.user?.id ?? (session?.guestEvent ? "guest" : null);
+  const draftUser = draftOwner(session?.user, !!session?.guestEvent, selectedScoutId);
   const matchDraftKey =
     editId || !gameConfig
       ? null
       : draftKey("match", [draftUser, season, selectedEvent?.eventCode]);
   const pristineMatch = gameConfig ? initializeFormData(gameConfig) : defaultData;
-  const isMatchDraftDirty = !sameFormValues(
-    [formData.autonomous, formData.teleop, formData.endgame, formData.fouls, formData.notes],
-    [pristineMatch.autonomous, pristineMatch.teleop, pristineMatch.endgame, pristineMatch.fouls, pristineMatch.notes],
-  );
-  const restoredDraftKey = useFormDraft<DynamicMatchData>({
+  // A team number the schedule would not have filled in was entered by hand.
+  const teamNumber = Number(formData.teamNumber);
+  const hasManualTeam =
+    !scheduleLoading &&
+    teamNumber > 0 &&
+    teamNumber !==
+      getTeamForPosition(Number(formData.matchNumber), formData.alliance, formData.alliancePosition || 1);
+  const isMatchDraftDirty =
+    hasManualTeam ||
+    !sameFormValues(
+      [formData.autonomous, formData.teleop, formData.endgame, formData.fouls, formData.notes],
+      [pristineMatch.autonomous, pristineMatch.teleop, pristineMatch.endgame, pristineMatch.fouls, pristineMatch.notes],
+    );
+  const restoredDraft = useFormDraft<DynamicMatchData>({
     key: matchDraftKey,
     data: formData,
     isDirty: isMatchDraftDirty,
+    onReset: () => {
+      setFormData(gameConfig ? initializeFormData(gameConfig) : defaultData);
+      setHasAppliedInitialAssignment(false);
+    },
     onRestore: (draft) => {
       const defaults = gameConfig ? initializeFormData(gameConfig) : defaultData;
       setFormData({
@@ -273,7 +286,7 @@ export function DynamicMatchScoutForm() {
   });
 
   // Reset scoring and notes but keep the match/team/alliance selection.
-  const clearScoring = useCallback(() => {
+  const clearScoring = () => {
     const freshData = gameConfig ? initializeFormData(gameConfig) : defaultData;
     setFormData((prev) => ({
       ...freshData,
@@ -282,16 +295,19 @@ export function DynamicMatchScoutForm() {
       alliance: prev.alliance,
       alliancePosition: prev.alliancePosition,
     }));
-  }, [gameConfig]);
+  };
 
-  useEffect(() => {
-    if (!restoredDraftKey) return;
+  // Announce each restore once; later config changes must not re-show it.
+  const announceRestoredDraft = useEffectEvent((id: string) => {
     toast.info("Recovered your unsaved match entry", {
-      id: restoredDraftKey,
+      id,
       description: "Your in-progress data was restored after the page reloaded.",
       action: { label: "Discard", onClick: clearScoring },
     });
-  }, [restoredDraftKey, clearScoring]);
+  });
+  useEffect(() => {
+    if (restoredDraft) announceRestoredDraft(restoredDraft.key);
+  }, [restoredDraft]);
 
   // Determine if current values match the scouting schedule assignment
   const isMatchFromScoutingSchedule =

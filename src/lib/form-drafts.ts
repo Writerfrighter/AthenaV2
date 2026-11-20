@@ -23,6 +23,22 @@ export function draftKey(
   return [DRAFT_PREFIX, kind, ...parts].join(":");
 }
 
+/**
+ * Who a draft belongs to. Tablet accounts are shared by several scouts, so
+ * their drafts are kept per selected scout (none until one is picked).
+ */
+export function draftOwner(
+  user: { id?: string | null; role?: string | null } | null | undefined,
+  isGuest: boolean,
+  selectedScoutId: string | null,
+): string | null {
+  if (user?.id) {
+    if (user.role !== "tablet") return user.id;
+    return selectedScoutId ? `${user.id}~${selectedScoutId}` : null;
+  }
+  return isGuest ? "guest" : null;
+}
+
 export function loadDraft<T>(key: string, now = Date.now()): T | null {
   try {
     const raw = localStorage.getItem(key);

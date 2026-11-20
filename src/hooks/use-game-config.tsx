@@ -55,13 +55,17 @@ const GameConfigContext = createContext<GameConfigContextType | undefined>(
 );
 
 export function GameConfigProvider({ children, initialConfig }: { children: ReactNode; initialConfig?: GameConfig }) {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const guest = session?.guestEvent;
+  // Session data stays set while next-auth refreshes it (status briefly reads
+  // "loading"), so key polling off the session rather than the status.
+  const hasSession = !!session;
+  const sessionUserId = session?.user?.id;
   const [liveConfig, setLiveConfig] = useState<GameConfig | null>(null);
   const config = liveConfig ?? initialConfig ?? gameConfig as unknown as GameConfig;
 
   useEffect(() => {
-    if (status !== "authenticated") return;
+    if (!hasSession) return;
     let disposed = false;
     let controller: AbortController | undefined;
     const refresh = async () => {
@@ -99,7 +103,7 @@ export function GameConfigProvider({ children, initialConfig }: { children: Reac
       window.removeEventListener(GAME_CONFIG_UPDATED, refresh);
       window.removeEventListener("storage", onStorage);
     };
-  }, [status, session?.user?.id]);
+  }, [hasSession, sessionUserId]);
   // True once rendering on the client, where the stored selections are readable
   const isInitialized = useSyncExternalStore(
     subscribeToNothing,
