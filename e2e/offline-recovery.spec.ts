@@ -41,7 +41,7 @@ for (const kind of ["pit", "match"] as const) {
     expect(submissions).toHaveLength(0);
 
     await page.reload();
-    await expect(page.getByRole("heading", { name: kind === "pit" ? "Pit Scouting" : "Match Scouting", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: new RegExp(`^${kind} scouting · `) })).toBeVisible();
     expect(await queue(page)).toEqual([saved]);
 
     // Ask the real worker to replay, even if the window's auto-sync is disabled.

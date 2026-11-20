@@ -26,7 +26,7 @@ test("tour teaches the existing program switch and persists checklist progress",
   await eventSelector.click();
   await page.getByRole("menuitem", { name: "E2E Competition", exact: true }).click();
   await expect(tour.getByRole("heading", { name: "Find your scouting assignment" })).toBeVisible();
-  await page.locator('[data-tour-target="competition"]').click();
+  await page.locator('[data-tour-target="competition"]').getByRole("button", { name: "Competition", exact: true }).click();
   await expect(tour.getByText("5 actions completed")).toBeVisible();
   await page.locator('[data-tour-target="settings"]').click();
   await expect(tour).toHaveCount(0);
@@ -91,5 +91,6 @@ test("checklists respect roles and remain separate for different accounts", asyn
   } }));
   await page.reload();
   await expect(page.getByRole("region", { name: "Get ready to scout" })).toBeVisible();
+  await page.getByRole("button", { name: "Show steps" }).click();
   await expect(page.getByRole("link", { name: "Review integrations", exact: true })).toBeVisible();
 });

@@ -113,10 +113,9 @@ test("protected scouting pages redirect signed-out visitors to login", async ({ 
 test("2026 pit multiselect values survive submission as arrays", async ({ page }) => {
   const { submissions } = await prepare(page, "FRC", 2026);
   await fill(page, "pit");
-  await page.getByRole("combobox").filter({ hasText: "Select intake method" }).click();
-  await page.getByRole("option", { name: "Ground pickup", exact: true }).click();
-  await page.getByRole("option", { name: "Outpost", exact: true }).click();
-  await page.keyboard.press("Escape");
+  const intake = page.getByRole("group", { name: "Intake Method" });
+  await intake.getByRole("button", { name: "Ground pickup", exact: true }).click();
+  await intake.getByRole("button", { name: "Outpost", exact: true }).click();
   await save(page, "pit").click();
   await expect(page.getByRole("status").filter({ hasText: "saved successfully" })).toBeVisible();
   expect(submissions[0].gameSpecificData).toMatchObject({ teleoperated_intakeType: ["Ground pickup", "Outpost"] });

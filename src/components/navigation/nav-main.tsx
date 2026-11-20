@@ -72,8 +72,8 @@ export function NavMain({
             className={`py-0 ${isCompetition ? competitionHighlight : ""}`}
             data-tour-target={isCompetition ? "competition" : undefined}
           >
-            <SidebarGroupLabel className="mt-4 h-6 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
-              {item.title}
+            <SidebarGroupLabel asChild={!!(isCompetition && competitionHighlight)} className="mt-4 h-6 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
+              {isCompetition && competitionHighlight ? <button type="button" onClick={() => completeAction("competition")}>{item.title}</button> : item.title}
             </SidebarGroupLabel>
             <SidebarMenu>
               {item.items.map((sub) => link(sub.title, sub.url, isCompetition ? () => completeAction("competition") : undefined))}

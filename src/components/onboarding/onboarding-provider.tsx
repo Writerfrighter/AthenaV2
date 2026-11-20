@@ -33,7 +33,7 @@ export const tourSteps = [
   { id: "event-open", target: "event", fallback: "event", title: "Open the event selector", description: "Click here to find your seasons and events for the selected program." },
   { id: "season", target: "season", fallback: "event", title: "Choose a season", description: "Open the season list and select a year. If the current year is already right, you can skip this step. Reopen the event selector if you closed it." },
   { id: "event", target: "event-options", fallback: "event", title: "Choose your event", description: "Select an event from this list, including the current event if it is already correct. If the list is empty, skip this step or ask an event manager to add an event." },
-  { id: "competition", target: "competition", fallback: "competition", title: "Find your scouting assignment", description: "Competition holds Schedule, Start Pit Scouting, and Start Match Scouting. Open one to continue." },
+  { id: "competition", target: "competition", fallback: "competition", title: "Find your scouting assignment", description: "Competition holds Schedule, Start Pit Scouting, and Start Match Scouting. Click the Competition heading to continue." },
   { id: "settings", target: "settings", fallback: "settings", title: "Find settings and offline tools", description: "Open Settings to finish. You can download offline data and replay this tour from Getting Started & Guided Tour anytime." },
 ] as const;
 
