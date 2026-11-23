@@ -35,7 +35,7 @@
     "react-day-picker": "^10.0.2",
     "react-dom": "19.2.0",
     "react-sortablejs": "^6.1.4",
-    "recharts": "3.8.0",
+    "recharts": "3.11.0",
     "sonner": "^2.0.8",
     "sortablejs": "^1.15.7",
     "tailwind-merge": "^3.7.0",
