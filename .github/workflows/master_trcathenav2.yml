@@ -79,7 +79,7 @@ jobs:
           path: deploy
 
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_CCD6125CF06F4AD881A3689B7BB0E9AF }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_D2CC0DBD42B84A74AB7ED9B75DC20F5C }}
