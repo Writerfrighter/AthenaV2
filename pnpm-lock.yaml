@@ -308,8 +308,8 @@ importers:
         specifier: ^21.0.4
         version: 21.0.4
       serwist:
-        specifier: ^9.5.13
-        version: 9.5.13(browserslist@4.29.5)(typescript@6.0.3)
+        specifier: ^9.5.15
+        version: 9.5.15(browserslist@4.29.5)(typescript@6.0.3)
       shadcn:
         specifier: ^4.23.0
         version: 4.23.0
@@ -2060,6 +2060,14 @@ packages:
 
   '@serwist/utils@9.5.13':
     resolution: {integrity: sha512-jJJSvl0pSc6udJ7pN2u0oduOfQqSY6oJNjbIc82YcVnkpzj1O+qFHYdrR6tu9bspa30Nc8ZVV+VncOcyguvk5w==}
+    peerDependencies:
+      browserslist: ^4.28.7
+    peerDependenciesMeta:
+      browserslist:
+        optional: true
+
+  '@serwist/utils@9.5.15':
+    resolution: {integrity: sha512-JhSSoiAfADr1Sn+zc9pdWjPL9WBqNe/3A99nkLj3yJRioqhR/p5WQovc1gJiDpptzAEJzB4qfFOObT0tsGf8Yw==}
     peerDependencies:
       browserslist: ^4.28.7
     peerDependenciesMeta:
@@ -4742,6 +4750,14 @@ packages:
       typescript:
         optional: true
 
+  serwist@9.5.15:
+    resolution: {integrity: sha512-k//vx8zoecklv5d3KIIq1afVJOn91uhyj/k/9loEsAETHw/v3o3W7WdTnBrMGgJHZjC6OHPpOSgENprkROiFQw==}
+    peerDependencies:
+      typescript: '>=5.0.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   set-function-length@1.2.2:
     resolution: {integrity: sha512-pgRc4hJ4/sNjWCSS9AmnS40x3bNMDTknHgL5UaMBTMyJnU90EgWh1Rz+MC9eFu4BuN/UwZjKQuY/1v3rM7HMfg==}
     engines: {node: '>= 0.4'}
@@ -7135,7 +7151,7 @@ snapshots:
     optionalDependencies:
       browserslist: 4.29.3
 
-  '@serwist/utils@9.5.13(browserslist@4.29.5)':
+  '@serwist/utils@9.5.15(browserslist@4.29.5)':
     optionalDependencies:
       browserslist: 4.29.5
 
@@ -10056,9 +10072,9 @@ snapshots:
     transitivePeerDependencies:
       - browserslist
 
-  serwist@9.5.13(browserslist@4.29.5)(typescript@6.0.3):
+  serwist@9.5.15(browserslist@4.29.5)(typescript@6.0.3):
     dependencies:
-      '@serwist/utils': 9.5.13(browserslist@4.29.5)
+      '@serwist/utils': 9.5.15(browserslist@4.29.5)
       idb: 8.0.3
     optionalDependencies:
       typescript: 6.0.3
