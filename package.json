@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
-    "@serwist/turbopack": "^9.5.13",
+    "@serwist/turbopack": "^9.5.15",
     "@tailwindcss/postcss": "^4.3.5",
     "@testing-library/react": "^16.3.3",
     "@types/mssql": "^12.3.0",
