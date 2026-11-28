@@ -21,7 +21,17 @@ import { useGameConfig } from "@/hooks/use-game-config";
 import { calculateDetailedGameStats } from "@/lib/statistics";
 import Link from "next/link";
 import type { MatchupCardProps } from "./matchup-alliance-panel";
-import type { MetricDisplayConfig } from "@/lib/types";
+import type { MetricDisplayConfig, TeamData, YearConfig } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+export type MatchupMetricList = "autoMetrics" | "teleopMetrics";
+
+/** Lets the config studio select and add metrics on the real card. */
+export interface MatchupCardEditor {
+  selected: { list: MatchupMetricList; index: number } | null;
+  onSelect: (list: MatchupMetricList, index: number) => void;
+  onAdd: (list: MatchupMetricList) => void;
+}
 
 // Icon mapping helper
 function renderDynamicIcon(iconName?: string) {
@@ -50,10 +60,33 @@ function renderDynamicIcon(iconName?: string) {
   }
 }
 
-export function ConfigurableMatchupCard({ teamNumber }: MatchupCardProps) {
-  const { teamData, loading, error } = useTeamData(teamNumber);
+/** The metrics a card shows when the config doesn't list its own. */
+export function defaultMatchupMetrics(
+  yearConfig: YearConfig | null | undefined,
+  list: MatchupMetricList,
+): MetricDisplayConfig[] {
+  const auto = list === "autoMetrics";
+  return Object.entries((auto ? yearConfig?.scoring.autonomous : yearConfig?.scoring.teleop) || {}).map(([k, v]) => ({
+    key: `${auto ? "autonomous" : "teleop"}.${k}`,
+    label: v.label.replace(auto ? /\s*\(Auto\)/i : /\s*\(Teleop\)/i, ""),
+    type: (v.type === "boolean" ? "badge" : "number") as "badge" | "number",
+    threshold: v.type === "boolean" ? (auto ? 80 : 50) : undefined,
+    unit: v.type === "boolean" ? "%" : undefined,
+  }));
+}
+
+export function ConfigurableMatchupCard({ teamNumber, configOverride, teamDataOverride, editor }: Pick<MatchupCardProps, "teamNumber"> & Partial<MatchupCardProps> & {
+  /** Studio preview: render this config and data instead of fetching. */
+  configOverride?: YearConfig;
+  teamDataOverride?: TeamData;
+  editor?: MatchupCardEditor;
+}) {
+  const fetched = useTeamData(teamDataOverride ? "" : teamNumber);
+  const { teamData, loading, error } = teamDataOverride
+    ? { teamData: teamDataOverride, loading: false, error: null }
+    : fetched;
   const { getCurrentYearConfig } = useGameConfig();
-  const yearConfig = getCurrentYearConfig();
+  const yearConfig = configOverride ?? getCurrentYearConfig();
 
 
   const stats = yearConfig
@@ -94,26 +127,8 @@ export function ConfigurableMatchupCard({ teamNumber }: MatchupCardProps) {
 
   const matchupConfig = yearConfig?.matchupCardConfig;
 
-  // Derive default metrics if no explicit matchupCardConfig
-  const autoMetrics: MetricDisplayConfig[] = matchupConfig?.autoMetrics ?? [
-    ...Object.entries(yearConfig?.scoring.autonomous || {}).map(([k, v]) => ({
-      key: `autonomous.${k}`,
-      label: v.label.replace(/\s*\(Auto\)/i, ""),
-      type: (v.type === "boolean" ? "badge" : "number") as "badge" | "number",
-      threshold: v.type === "boolean" ? 80 : undefined,
-      unit: v.type === "boolean" ? "%" : undefined,
-    })),
-  ];
-
-  const teleopMetrics: MetricDisplayConfig[] = matchupConfig?.teleopMetrics ?? [
-    ...Object.entries(yearConfig?.scoring.teleop || {}).map(([k, v]) => ({
-      key: `teleop.${k}`,
-      label: v.label.replace(/\s*\(Teleop\)/i, ""),
-      type: (v.type === "boolean" ? "badge" : "number") as "badge" | "number",
-      threshold: v.type === "boolean" ? 50 : undefined,
-      unit: v.type === "boolean" ? "%" : undefined,
-    })),
-  ];
+  const autoMetrics = matchupConfig?.autoMetrics ?? defaultMatchupMetrics(yearConfig, "autoMetrics");
+  const teleopMetrics = matchupConfig?.teleopMetrics ?? defaultMatchupMetrics(yearConfig, "teleopMetrics");
 
   const endgameStateKey = matchupConfig?.endgame?.stateKey;
   const endgameFieldName = endgameStateKey?.split(".").pop();
@@ -162,6 +177,57 @@ export function ConfigurableMatchupCard({ teamNumber }: MatchupCardProps) {
   const defensiveRate = stats?.rates[`${playstyleKey}.defensive`] ?? 0;
   const hasPlaystyle = offensiveRate > 0 || balancedRate > 0 || defensiveRate > 0;
 
+  const metricGrid = (list: MatchupMetricList, metrics: MetricDisplayConfig[]) => (
+    <div className="grid grid-cols-2 gap-2 text-sm">
+      {metrics.map((metric, index) => {
+        const val = stats?.getMetricValue(metric.key) ?? 0;
+        if (metric.hideIfZero && val === 0 && !editor) return null;
+        const value =
+          metric.type === "badge" ? (
+            <Badge variant={val > (metric.threshold ?? 50) ? "default" : "secondary"} className="text-xs h-5">
+              {val}
+              {metric.unit || ""}
+            </Badge>
+          ) : (
+            <span className="font-medium">{val}</span>
+          );
+        if (!editor) {
+          return (
+            <div key={`${metric.key}-${index}`} className="flex justify-between items-center">
+              <span className="text-muted-foreground">{metric.label}</span>
+              {value}
+            </div>
+          );
+        }
+        const on = editor.selected?.list === list && editor.selected.index === index;
+        return (
+          <button
+            key={`${metric.key}-${index}`}
+            type="button"
+            aria-pressed={on}
+            onClick={() => editor.onSelect(list, index)}
+            className={cn(
+              "-mx-1.5 flex items-center justify-between rounded-md border-[1.5px] px-1.5 py-0.5 text-left",
+              on ? "border-blue-600 bg-blue-50 dark:bg-blue-950/40" : "border-transparent hover:border-border",
+            )}
+          >
+            <span className="text-muted-foreground">{metric.label}</span>
+            {value}
+          </button>
+        );
+      })}
+      {editor && (
+        <button
+          type="button"
+          onClick={() => editor.onAdd(list)}
+          className="-mx-1.5 rounded-md border-[1.5px] border-dashed px-1.5 py-0.5 text-left text-blue-700 hover:bg-accent dark:text-blue-400"
+        >
+          + Add metric
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -207,33 +273,7 @@ export function ConfigurableMatchupCard({ teamNumber }: MatchupCardProps) {
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
                 {renderDynamicIcon(matchupConfig?.autoIcon)} Autonomous
               </h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {autoMetrics.map((metric) => {
-                  const val = stats.getMetricValue(metric.key);
-                  if (metric.hideIfZero && val === 0) return null;
-
-                  return (
-                    <div key={metric.key} className="flex justify-between items-center">
-                      <span className="text-muted-foreground">{metric.label}</span>
-                      {metric.type === "badge" ? (
-                        <Badge
-                          variant={
-                            val > (metric.threshold ?? 50)
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="text-xs h-5"
-                        >
-                          {val}
-                          {metric.unit || ""}
-                        </Badge>
-                      ) : (
-                        <span className="font-medium">{val}</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              {metricGrid("autoMetrics", autoMetrics)}
             </div>
 
             <Separator className="my-1" />
@@ -243,33 +283,7 @@ export function ConfigurableMatchupCard({ teamNumber }: MatchupCardProps) {
               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
                 {renderDynamicIcon(matchupConfig?.teleopIcon)} Teleop
               </h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {teleopMetrics.map((metric) => {
-                  const val = stats.getMetricValue(metric.key);
-                  if (metric.hideIfZero && val === 0) return null;
-
-                  return (
-                    <div key={metric.key} className="flex justify-between items-center">
-                      <span className="text-muted-foreground">{metric.label}</span>
-                      {metric.type === "badge" ? (
-                        <Badge
-                          variant={
-                            val > (metric.threshold ?? 50)
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="text-xs h-5"
-                        >
-                          {val}
-                          {metric.unit || ""}
-                        </Badge>
-                      ) : (
-                        <span className="font-medium">{val}</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              {metricGrid("teleopMetrics", teleopMetrics)}
             </div>
 
             <Separator className="my-1" />

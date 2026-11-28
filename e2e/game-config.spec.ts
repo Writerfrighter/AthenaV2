@@ -33,7 +33,8 @@ async function prepareEditor(page: Page) {
 }
 
 async function openJson(page: Page) {
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page.getByRole("button", { name: "More configuration actions" }).click();
+  await page.getByRole("menuitem", { name: "Edit as JSON" }).click();
   return page.getByRole("textbox", { name: "Configuration JSON" });
 }
 
@@ -50,7 +51,7 @@ test("loads saved data on entry, publishes changes to an open scout tab, and ret
   await json.fill(JSON.stringify(changed));
   await page.getByRole("button", { name: "Apply JSON to editor" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Unsaved changes" })).toBeVisible();
-  await page.getByRole("button", { name: "Save Config", exact: true }).click();
+  await page.getByRole("button", { name: "Save & publish", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "All changes saved" })).toBeVisible();
   await scout.bringToFront();
   await scout.evaluate(() => window.dispatchEvent(new Event("focus")));
@@ -65,7 +66,7 @@ test("failed initial reads show retry instead of editable bundled defaults", asy
   state.failLoad = true;
   await page.goto("/dashboard/admin/game-config");
   await expect(page.getByRole("alert").filter({ hasText: "Configuration unavailable" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Save Config", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Save & publish", exact: true })).toHaveCount(0);
   state.failLoad = false;
   await page.getByRole("button", { name: "Retry loading configurations" }).click();
   await expect(await openJson(page)).toHaveValue(/Saved server configuration/);
@@ -80,12 +81,12 @@ test("invalid JSON cannot be applied and a failed save keeps the draft for retry
   await json.fill(JSON.stringify({ ...state.config, gameName: "Retry draft" }));
   await page.getByRole("button", { name: "Apply JSON to editor" }).click();
   state.failSave = true;
-  await page.getByRole("button", { name: "Save Config", exact: true }).click();
+  await page.getByRole("button", { name: "Save & publish", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Unsaved changes" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Save Config", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Save & publish", exact: true })).toBeEnabled();
   expect(state.config.gameName).toBe("Saved server configuration");
   state.failSave = false;
-  await page.getByRole("button", { name: "Save Config", exact: true }).click();
+  await page.getByRole("button", { name: "Save & publish", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "All changes saved" })).toBeVisible();
   expect(state.config.gameName).toBe("Retry draft");
 });

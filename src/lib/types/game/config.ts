@@ -156,7 +156,16 @@ export interface TeamPageConfig {
       pointsLabel?: string;
     }[];
   }[];
+  /** Sections hidden from the page, and their order within each column. */
+  layout?: {
+    hidden?: TeamPageSectionId[];
+    order?: TeamPageSectionId[];
+  };
 }
+
+/** The team page sections a config can hide and reorder. */
+export type TeamPageSectionId =
+  | "kpi" | "autoPerformance" | "teleopPerformance" | "chart" | "endgame" | "penalties" | "custom";
 
 export interface YearConfig {
   competitionType: CompetitionType;

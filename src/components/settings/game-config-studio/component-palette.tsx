@@ -1,8 +1,4 @@
-"use client";
-
-import React from "react";
 import {
-  Plus,
   CheckSquare,
   Hash,
   ListFilter,
@@ -11,7 +7,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { ScoringDefinition, PitScoutingFieldDefinition } from "@/lib/types";
-import { heading, hint, panel } from "./fields";
 
 export type PaletteComponentType =
   | "multi-stepper"
@@ -66,37 +61,3 @@ export const PALETTE: Record<"match" | "pit", PaletteItem[]> = {
     { type: "pit-multiselect", name: "Multiple choice", icon: CheckSquare, key: "features", hint: "Pick any number of options", definition: { label: "Features", type: "multiselect", options: ["Auto align", "Vision tracking"] } },
   ],
 };
-
-export function ComponentPalette({ scoutingMode, onAddComponent }: {
-  scoutingMode: "match" | "pit";
-  onAddComponent: (type: PaletteComponentType) => void;
-}) {
-  return (
-    <div className={panel}>
-      <h2 className={heading}>Add a field</h2>
-      <p className={`${hint} mb-2`}>Click, or drag onto the form.</p>
-      <div className="flex flex-col">
-        {PALETTE[scoutingMode].map((item) => (
-          <button
-            key={item.type}
-            type="button"
-            draggable
-            onDragStart={(e: React.DragEvent) => {
-              e.dataTransfer.setData("application/athena-component", item.type);
-              e.dataTransfer.effectAllowed = "copy";
-            }}
-            onClick={() => onAddComponent(item.type)}
-            className="group flex cursor-grab items-center gap-3 border-t py-2.5 text-left active:cursor-grabbing"
-          >
-            <item.icon className="size-4 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm">{item.name}</span>
-              <span className={`block ${hint}`}>{item.hint}</span>
-            </span>
-            <Plus className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}

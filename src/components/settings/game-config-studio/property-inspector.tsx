@@ -1,11 +1,10 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { Copy, Trash2, X } from "lucide-react";
+import { ChevronRight, Copy, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import type {
   YearConfig,
   ScoringDefinition,
@@ -14,9 +13,10 @@ import type {
 import { getFieldType } from "@/components/forms/match-form-utils";
 import { MAX_FIELD_IMAGE_LENGTH } from "@/lib/game-config/config-validator";
 import { imageFileToDataUrl } from "@/lib/image-upload";
-import { getErrorMessage } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { getSection, renameField, renameKey, slugifyKey, updateSection } from "./types";
-import { Choice, Field, NumberField, TextField, heading, hint, panel } from "./fields";
+import { Choice, Field, Segmented, TextField, heading, hint, panel } from "./fields";
+import { findUsages, type UsageMode } from "./usages";
 
 export interface SelectedComponentInfo {
   mode: "match" | "pit";
@@ -32,6 +32,8 @@ interface PropertyInspectorProps {
   onSelectComponent: (comp: SelectedComponentInfo | null) => void;
   onDuplicateComponent: (comp: SelectedComponentInfo) => void;
   onDeleteComponent: (comp: SelectedComponentInfo) => void;
+  /** Opens another studio mode, from a "Used in" link. */
+  onNavigate: (mode: UsageMode) => void;
 }
 
 function AddRow({ placeholder, type, onAdd }: {
@@ -58,6 +60,7 @@ function AddRow({ placeholder, type, onAdd }: {
           e.preventDefault();
           submit();
         }}
+        className="border-dashed"
       />
       <Button type="button" variant="outline" onClick={submit}>Add</Button>
     </div>
@@ -68,7 +71,7 @@ function Chips({ items, onRemove }: { items: string[]; onRemove: (index: number)
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((item, index) => (
-        <span key={`${item}-${index}`} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs">
+        <span key={`${item}-${index}`} className="inline-flex h-8 items-center gap-1 rounded-lg bg-muted px-2.5 text-sm font-medium">
           {item}
           <button
             type="button"
@@ -76,10 +79,20 @@ function Chips({ items, onRemove }: { items: string[]; onRemove: (index: number)
             className="text-muted-foreground hover:text-destructive"
             onClick={() => onRemove(index)}
           >
-            <X className="size-3" />
+            <X className="size-3.5" />
           </button>
         </span>
       ))}
+    </div>
+  );
+}
+
+/** A labelled group of inspector controls. */
+function Group({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <span className="block text-xs font-medium text-muted-foreground">{label}</span>
+      {children}
     </div>
   );
 }
@@ -133,6 +146,24 @@ function FieldImage({ value, onChange }: {
   );
 }
 
+type MatchType = "number" | "boolean" | "select";
+
+/** What a match field becomes when its type changes; points and steps carry over where they still apply. */
+function convertMatchField(field: ScoringDefinition, to: MatchType): ScoringDefinition {
+  const base = { label: field.label, description: field.description, dependsOn: field.dependsOn };
+  if (to === "select") return { ...base, type: "select", pointValues: field.pointValues ?? { none: 0 } };
+  if (to === "boolean") return { ...base, type: "boolean", points: field.points ?? 0 };
+  return { ...base, type: "number", points: field.points ?? 0, increments: field.increments ?? [1] };
+}
+
+const PIT_TYPES = [
+  ["text", "Text"],
+  ["number", "Number"],
+  ["boolean", "Yes / No"],
+  ["select", "One"],
+  ["multiselect", "Several"],
+] as const;
+
 export function PropertyInspector({
   config,
   year,
@@ -141,6 +172,7 @@ export function PropertyInspector({
   onSelectComponent,
   onDuplicateComponent,
   onDeleteComponent,
+  onNavigate,
 }: PropertyInspectorProps) {
   if (!selectedComponent) {
     const positions = config.startPositions || [];
@@ -149,7 +181,7 @@ export function PropertyInspector({
         <div>
           <h2 className={heading}>Game</h2>
           <p className={hint}>
-            {config.competitionType} {year}. Use Rename to change the program or year.
+            {config.competitionType} {year}. Rename it from the ⋯ menu to change the program or year.
           </p>
         </div>
         <TextField
@@ -200,6 +232,10 @@ export function PropertyInspector({
     );
   }
 
+  const replace = (next: ScoringDefinition | PitScoutingFieldDefinition) =>
+    onUpdateConfig((prev) =>
+      updateSection(prev, mode, section, (current) => ({ ...current, [fieldKey]: next as (typeof current)[string] })),
+    );
   const update = (patch: Partial<ScoringDefinition> | Partial<PitScoutingFieldDefinition>) =>
     onUpdateConfig((prev) =>
       updateSection(prev, mode, section, (current) => ({
@@ -230,13 +266,14 @@ export function PropertyInspector({
   const match = mode === "match" ? (definition as ScoringDefinition) : null;
   const pit = mode === "pit" ? (definition as PitScoutingFieldDefinition) : null;
   const matchType = match ? getFieldType(match) : null;
+  const usages = findUsages(config, mode, section, fieldKey);
 
   let body: ReactNode = null;
 
   if (match && matchType === "select") {
     const options = match.pointValues || {};
     body = (
-      <Field label="Options and points">
+      <Group label="Options and points">
         {Object.entries(options).map(([option, points]) => (
           <div key={option} className="flex items-center gap-1.5">
             <Input
@@ -261,7 +298,7 @@ export function PropertyInspector({
             <Button
               type="button"
               variant="ghost"
-              size="icon-xs"
+              size="icon-sm"
               aria-label={`Remove ${option}`}
               className="text-muted-foreground hover:text-destructive"
               onClick={() => {
@@ -270,29 +307,35 @@ export function PropertyInspector({
                 update({ pointValues: next });
               }}
             >
-              <Trash2 />
+              <X />
             </Button>
           </div>
         ))}
         <AddRow
-          placeholder="Add an option"
+          placeholder="Type an option, press Enter"
           onAdd={(option) => {
             if (!(option in options)) update({ pointValues: { ...options, [option]: 0 } });
           }}
         />
-      </Field>
+      </Group>
     );
   } else if (match) {
     const increments = match.increments || [];
     body = (
-      <>
-        <NumberField
-          label={matchType === "boolean" ? "Points when achieved" : "Points each"}
-          value={match.points}
-          onChange={(points) => update({ points: points ?? 0 })}
-        />
+      <div className={cn("grid gap-3", matchType === "number" && "grid-cols-[96px_minmax(0,1fr)]")}>
+        <label className="space-y-1.5">
+          <span className="block text-xs font-medium text-muted-foreground">
+            {matchType === "boolean" ? "Points when yes" : "Points each"}
+          </span>
+          <Input
+            type="number"
+            step="any"
+            value={match.points ?? ""}
+            onChange={(e) => update({ points: e.target.value === "" ? 0 : Number(e.target.value) })}
+          />
+        </label>
         {matchType === "number" && (
-          <Field label="Step buttons">
+          <Group label="Buttons">
             <Chips
               items={(increments.length ? increments : [1]).map((step) => `+${step}`)}
               onRemove={(index) => {
@@ -310,40 +353,67 @@ export function PropertyInspector({
                 }
               }}
             />
-          </Field>
+          </Group>
         )}
-      </>
+      </div>
     );
   } else if (pit) {
     const options = pit.options || [];
     const hasOptions = pit.type === "select" || pit.type === "multiselect";
     body = (
       <>
-        <Choice
-          label="Answer type"
-          value={pit.type}
-          options={[
-            ["text", "Text"],
-            ["number", "Number"],
-            ["boolean", "Yes / No"],
-            ["select", "Single choice"],
-            ["multiselect", "Multiple choice"],
-          ]}
-          onChange={(type) => update({ type })}
-        />
+        <Group label="Answer type">
+          <div className="grid grid-cols-3 gap-1.5">
+            {PIT_TYPES.map(([type, text]) => (
+              <Button
+                key={type}
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-pressed={pit.type === type}
+                onClick={() => update({ type })}
+                className={cn(pit.type === type && "border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300")}
+              >
+                {text}
+              </Button>
+            ))}
+          </div>
+        </Group>
         {hasOptions && (
-          <Field label="Options">
-            <Chips
-              items={options}
-              onRemove={(index) => update({ options: options.filter((_, i) => i !== index) })}
-            />
+          <Group label="Options">
+            {options.map((option, index) => (
+              <div key={`${option}-${index}`} className="flex items-center gap-1.5">
+                <Input
+                  aria-label={`Option ${index + 1}`}
+                  defaultValue={option}
+                  onBlur={(e) => {
+                    const name = e.target.value.trim();
+                    if (name && name !== option && !options.includes(name)) {
+                      update({ options: options.map((o, i) => (i === index ? name : o)) });
+                    } else {
+                      e.target.value = option;
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Remove ${option}`}
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={() => update({ options: options.filter((_, i) => i !== index) })}
+                >
+                  <X />
+                </Button>
+              </div>
+            ))}
             <AddRow
-              placeholder="Add an option"
+              placeholder="Type an option, press Enter"
               onAdd={(option) => {
                 if (!options.includes(option)) update({ options: [...options, option] });
               }}
             />
-          </Field>
+          </Group>
         )}
       </>
     );
@@ -351,69 +421,117 @@ export function PropertyInspector({
 
   return (
     <div className={`${panel} space-y-4`}>
-      <div className="flex items-center gap-1">
-        <h2 className={`${heading} min-w-0 flex-1 truncate`}>
-          {mode === "match" ? "Match field" : "Pit question"}
-        </h2>
-        <Button variant="ghost" size="icon-xs" aria-label="Duplicate field" onClick={() => onDuplicateComponent(selectedComponent)}>
+      <div className="flex items-start gap-1">
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-[15px] font-semibold">{definition.label}</h2>
+          <p className={`${hint} truncate font-mono`}>{section}.{fieldKey}</p>
+        </div>
+        <Button variant="outline" size="icon-sm" aria-label="Duplicate field" onClick={() => onDuplicateComponent(selectedComponent)}>
           <Copy />
         </Button>
         <Button
-          variant="ghost"
-          size="icon-xs"
+          variant="outline"
+          size="icon-sm"
           aria-label="Delete field"
-          className="hover:text-destructive"
+          className="text-destructive hover:text-destructive"
           onClick={() => onDeleteComponent(selectedComponent)}
         >
           <Trash2 />
         </Button>
-        <Button variant="ghost" size="icon-xs" aria-label="Close" onClick={() => onSelectComponent(null)}>
+        <Button variant="ghost" size="icon-sm" aria-label="Close and show game settings" onClick={() => onSelectComponent(null)}>
           <X />
         </Button>
       </div>
 
-      <TextField label="Label" value={definition.label} onChange={(label) => update({ label })} />
+      <TextField
+        label={mode === "match" ? "Label scouts see" : "Question"}
+        value={definition.label}
+        onChange={(label) => update({ label })}
+      />
 
-      <Field label="Key">
-        <Input
-          key={fieldKey}
-          aria-label="Key"
-          defaultValue={fieldKey}
-          className="font-mono"
-          onBlur={(e) => {
-            if (!rename(e.target.value)) e.target.value = fieldKey;
-          }}
-        />
-        <p className={hint}>
-          Stored with every entry. Renaming updates references in this config, but
-          entries already recorded keep the old key.
-        </p>
-      </Field>
+      {match && matchType && (
+        <Group label="Field type">
+          <Segmented
+            label="Field type"
+            value={matchType}
+            options={[
+              ["number", "Counter"],
+              ["boolean", "Yes / No"],
+              ["select", "Choice"],
+            ]}
+            onChange={(to) => {
+              if (to !== matchType) replace(convertMatchField(match, to));
+            }}
+          />
+        </Group>
+      )}
 
       {body}
 
-      {canDepend && (
-        <Choice
-          label="Show"
-          value={definition.dependsOn || NO_DEPENDENCY}
-          options={[
-            [NO_DEPENDENCY, "Always"],
-            ...dependencies.map(([key, other]) => [key, `Only if "${other.label}" is yes`] as const),
-          ]}
-          onChange={(key) => update({ dependsOn: key === NO_DEPENDENCY ? undefined : key })}
+      {match && (
+        <TextField
+          label="Help text (optional)"
+          placeholder="Shown under the field"
+          value={match.description || ""}
+          onChange={(description) => update({ description })}
         />
       )}
 
-      {match && (
-        <Field label="Help text for scouts">
-          <Textarea
-            aria-label="Help text for scouts"
-            rows={2}
-            value={match.description || ""}
-            onChange={(e) => update({ description: e.target.value })}
-          />
-        </Field>
+      {canDepend && (
+        <details open={!!definition.dependsOn} className="border-t pt-3">
+          <summary className="cursor-pointer text-[13px] font-medium">Only show when…</summary>
+          <div className="mt-2 space-y-2">
+            <p className={hint}>Hide this until another yes/no answer in this section is yes.</p>
+            <Choice
+              label="Show"
+              value={definition.dependsOn || NO_DEPENDENCY}
+              options={[
+                [NO_DEPENDENCY, "Always"],
+                ...dependencies.map(([key, other]) => [key, `Only if "${other.label}" is yes`] as const),
+              ]}
+              onChange={(key) => update({ dependsOn: key === NO_DEPENDENCY ? undefined : key })}
+            />
+          </div>
+        </details>
       )}
+
+      <details className="border-t pt-3">
+        <summary className="cursor-pointer text-[13px] font-medium">Storage key</summary>
+        <div className="mt-2 space-y-2">
+          <Input
+            key={fieldKey}
+            aria-label="Key"
+            defaultValue={fieldKey}
+            className="font-mono"
+            onBlur={(e) => {
+              if (!rename(e.target.value)) e.target.value = fieldKey;
+            }}
+          />
+          <p className={hint}>
+            Stored with every entry. Renaming updates references in this config, but
+            entries already recorded keep the old key.
+          </p>
+        </div>
+      </details>
+
+      <div className="space-y-1 border-t pt-3">
+        <span className="block text-xs font-medium text-muted-foreground">{mode === "match" ? "Used in" : "Shown on"}</span>
+        {usages.length === 0 ? (
+          <p className={hint}>Not shown anywhere else yet.</p>
+        ) : (
+          usages.map((usage) => (
+            <button
+              key={usage.label}
+              type="button"
+              onClick={() => onNavigate(usage.mode)}
+              className="flex min-h-9 w-full items-center justify-between rounded-md text-left text-[13px] hover:underline"
+            >
+              {usage.label}
+              <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+            </button>
+          ))
+        )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { Trash2 } from "lucide-react";
+import type { MouseEvent, ReactNode } from "react";
+import { ChevronDown, Trash2, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/select";
 
 /** Shared look for the studio's side panels. */
-export const panel = "rounded-xl border p-4";
+export const panel = "rounded-xl border bg-card p-4";
 export const heading = "text-sm font-semibold";
 export const hint = "text-xs text-muted-foreground";
 
@@ -130,4 +131,56 @@ export function Item({ title, onRemove, children }: {
       {children}
     </div>
   );
+}
+
+/** A row of mutually exclusive choices, shown all at once. */
+export function Segmented<T extends string>({ label, value, options, onChange, className }: {
+  label: string;
+  value: T | undefined;
+  options: readonly (readonly [T, string] | readonly [T, string, LucideIcon])[];
+  onChange: (value: T) => void;
+  className?: string;
+}) {
+  return (
+    <div role="group" aria-label={label} className={cn("flex gap-0.5 rounded-lg bg-muted p-[3px]", className)}>
+      {options.map(([key, text, Icon]) => (
+        <button
+          key={key}
+          type="button"
+          aria-pressed={value === key}
+          onClick={() => onChange(key)}
+          className={cn(
+            "flex h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[13px] font-medium transition-colors",
+            value === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {Icon && <Icon className="size-4" aria-hidden="true" />}
+          {text}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** A collapsible settings panel. */
+export function Disclosure({ title, defaultOpen, children, className }: {
+  title: ReactNode;
+  defaultOpen?: boolean;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <details open={defaultOpen} className={cn(panel, "group", className)}>
+      <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold [&::-webkit-details-marker]:hidden">
+        {title}
+        <ChevronDown aria-hidden="true" className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="mt-3 space-y-3">{children}</div>
+    </details>
+  );
+}
+
+/** Stops links in a live preview from navigating away from unsaved edits. */
+export function blockLinks(event: MouseEvent) {
+  if ((event.target as HTMLElement).closest("a")) event.preventDefault();
 }

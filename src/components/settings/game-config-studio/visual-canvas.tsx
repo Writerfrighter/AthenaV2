@@ -1,22 +1,12 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Copy,
-  GripVertical,
-  Lock,
-  Plus,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
+import React, { useState } from "react";
+import { Lock, Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -34,88 +24,52 @@ import type {
   PitScoutingFieldDefinition,
 } from "@/lib/types";
 import type { SelectedComponentInfo } from "./property-inspector";
-import { PALETTE, type PaletteComponentType } from "./component-palette";
+import type { PaletteComponentType } from "./component-palette";
+import { AddFieldMenu, FORM_SECTIONS, TAB_LABELS, fieldKind } from "./form-outline";
 import { getSection } from "./types";
 import { hint } from "./fields";
 
 /** A value entered while trying the form out in test mode. */
 type TestValue = string | number | boolean | string[];
 
-const SECTIONS = {
-  match: [
-    ["autonomous", "Auto"],
-    ["teleop", "Teleop"],
-    ["endgame", "Endgame"],
-    ["fouls", "Fouls"],
-  ],
-  pit: [
-    ["autonomous", "Auto"],
-    ["teleoperated", "Teleop"],
-    ["driveTeam", "Drive team"],
-    ["endgame", "Endgame"],
-  ],
-} as const;
+export type PreviewDevice = "tablet" | "phone" | "desktop";
 
-const VIEWPORTS = {
-  responsive: "max-w-5xl",
-  tablet: "max-w-[768px]",
-  phone: "max-w-[420px]",
+const DEVICE_WIDTH: Record<PreviewDevice, string> = {
+  tablet: "max-w-[680px]",
+  phone: "max-w-[390px]",
+  desktop: "max-w-5xl",
 };
 
 interface VisualCanvasProps {
   config: YearConfig;
-  year: number;
   scoutingMode: "match" | "pit";
   activeSection: string;
   isTestMode: boolean;
-  viewportDevice: keyof typeof VIEWPORTS;
+  device: PreviewDevice;
   selectedComponent: SelectedComponentInfo | null;
   onSectionChange: (section: string) => void;
   onSelectComponent: (comp: SelectedComponentInfo | null) => void;
-  onDuplicateComponent: (comp: SelectedComponentInfo) => void;
-  onDeleteComponent: (comp: SelectedComponentInfo) => void;
-  onDropComponent: (type: PaletteComponentType, section: string) => void;
+  /** Adds a field to the section, after `afterKey` or at the end. */
+  onInsertComponent: (type: PaletteComponentType, section: string, afterKey?: string) => void;
   onReorderComponents: (section: string, newKeysOrder: string[]) => void;
 }
 
+/** The real scouting form inside a device frame, with fields selectable in place. */
 export function VisualCanvas({
   config,
-  year,
   scoutingMode,
   activeSection,
   isTestMode,
-  viewportDevice,
+  device,
   selectedComponent,
   onSectionChange,
   onSelectComponent,
-  onDuplicateComponent,
-  onDeleteComponent,
-  onDropComponent,
+  onInsertComponent,
   onReorderComponents,
 }: VisualCanvasProps) {
-  const [isPaletteDragOver, setIsPaletteDragOver] = useState(false);
-  const dragCounterRef = useRef(0);
   const [testData, setTestData] = useState<Record<string, TestValue>>({});
   const [draggedKey, setDraggedKey] = useState<string | null>(null);
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    const reset = () => {
-      dragCounterRef.current = 0;
-      setIsPaletteDragOver(false);
-      setDraggedKey(null);
-      setDropTargetKey(null);
-    };
-    window.addEventListener("dragend", reset);
-    window.addEventListener("drop", reset);
-    return () => {
-      window.removeEventListener("dragend", reset);
-      window.removeEventListener("drop", reset);
-    };
-  }, []);
-
-  const isPaletteDrag = (e: React.DragEvent) =>
-    e.dataTransfer.types.includes("application/athena-component");
 
   const fields = getSection(config, scoutingMode, activeSection);
   const keys = Object.keys(fields);
@@ -141,245 +95,217 @@ export function VisualCanvas({
     onReorderComponents(activeSection, next);
   };
 
-  const info = (fieldKey: string): SelectedComponentInfo => ({
-    mode: scoutingMode,
-    section: activeSection,
-    fieldKey,
-  });
+  const select = (fieldKey: string) => onSelectComponent({ mode: scoutingMode, section: activeSection, fieldKey });
+  const isSelected = (key: string) =>
+    !isTestMode &&
+    selectedComponent?.mode === scoutingMode &&
+    selectedComponent.section === activeSection &&
+    selectedComponent.fieldKey === key;
+
+  const framed = device !== "desktop";
 
   return (
-    <div
-      onDragEnter={(e) => {
-        if (!isPaletteDrag(e)) return;
-        e.preventDefault();
-        dragCounterRef.current += 1;
-        setIsPaletteDragOver(true);
-      }}
-      onDragOver={(e) => {
-        if (!isPaletteDrag(e)) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "copy";
-      }}
-      onDragLeave={(e) => {
-        if (!isPaletteDrag(e)) return;
-        dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
-        if (dragCounterRef.current === 0) setIsPaletteDragOver(false);
-      }}
-      onDrop={(e) => {
-        if (!isPaletteDrag(e)) return;
-        e.preventDefault();
-        const type = e.dataTransfer.getData("application/athena-component") as PaletteComponentType;
-        if (type) onDropComponent(type, activeSection);
-      }}
-      className={cn("relative mx-auto w-full rounded-xl border", VIEWPORTS[viewportDevice])}
-    >
-      <div className="flex flex-col gap-3 border-b p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <span className="font-mono text-xs text-muted-foreground">
-              {config.competitionType} {year} · {scoutingMode === "match" ? "match form" : "pit form"}
-            </span>
-            <p className={hint}>
-              {isTestMode
-                ? "Testing: use the form as a scout would. Nothing is saved."
-                : "Select a field to edit it. Drag the handle or use the arrows to reorder."}
-            </p>
-          </div>
-          {isTestMode && (
-            <Button size="sm" variant="outline" onClick={() => setTestData({})}>
-              <RotateCcw /> Reset values
-            </Button>
-          )}
-        </div>
-        <Tabs value={activeSection} onValueChange={onSectionChange}>
-          <TabsList>
-            {SECTIONS[scoutingMode].map(([id, label]) => (
-              <TabsTrigger key={id} value={id} className="flex-none">
-                {label}
-                <span className="font-mono text-[11px] opacity-70">
-                  {Object.keys(getSection(config, scoutingMode, id)).length}
-                </span>
-              </TabsTrigger>
+    <div className={cn("mx-auto w-full", DEVICE_WIDTH[device])}>
+      <div
+        className={cn(
+          framed ? "bg-neutral-800 p-3 dark:bg-neutral-700" : "border",
+          device === "phone" ? "rounded-[40px]" : framed ? "rounded-[28px]" : "rounded-xl",
+        )}
+      >
+        <div className={cn("overflow-hidden bg-background", device === "phone" ? "rounded-[30px]" : "rounded-2xl")}>
+          {/* Same tab bar as the real scouting form */}
+          <div
+            role="tablist"
+            aria-label="Form section"
+            className="grid border-b"
+            style={{ gridTemplateColumns: `repeat(${FORM_SECTIONS[scoutingMode].length}, minmax(0, 1fr))` }}
+          >
+            {FORM_SECTIONS[scoutingMode].map(([id]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={id === activeSection}
+                onClick={() => onSectionChange(id)}
+                className={cn(
+                  "py-3.5 text-[15px] transition-colors",
+                  id === activeSection
+                    ? "font-semibold text-foreground shadow-[inset_0_-2px_0_var(--primary)]"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {TAB_LABELS[id]}
+              </button>
             ))}
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <div className="relative min-h-[420px] space-y-5 p-4 sm:p-6">
-        {isPaletteDragOver && (
-          <div className="pointer-events-none absolute inset-2 z-30 flex items-center justify-center rounded-xl border border-dashed border-primary bg-primary/10 text-sm font-medium">
-            Drop to add to this section
           </div>
-        )}
 
-        {scoutingMode === "match" && activeSection === "autonomous" && (
-          <FixedFormSection title="Starting position">
-            <Select defaultValue={encodeStartPosition(config.startPositions?.[0] || "Center")}>
-              <SelectTrigger aria-label="Starting position" className="h-12 w-full rounded-xl sm:w-64">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(config.startPositions?.length ? config.startPositions : ["Left", "Center", "Right"]).map((position) => (
-                  <SelectItem key={position} value={encodeStartPosition(position)}>
-                    {position}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FixedFormSection>
-        )}
-
-        {scoutingMode === "pit" && (
-          <FixedFormSection title="Robot specifications">
-            <div className="grid grid-cols-3 gap-3">
-              {["Length (in)", "Width (in)", "Weight (lbs)"].map((label) => (
-                <div key={label} className="space-y-1">
-                  <Label className="text-xs">{label}</Label>
-                  <Input readOnly placeholder="0" />
-                </div>
-              ))}
-            </div>
-          </FixedFormSection>
-        )}
-
-        {keys.length === 0 ? (
-          <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-8 text-center">
-            <p className="text-sm font-medium">This section has no fields yet</p>
-            <p className={hint}>Drag a field in, or start with one of these.</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {PALETTE[scoutingMode].slice(0, 3).map((item) => (
-                <Button key={item.type} size="sm" variant="outline" onClick={() => onDropComponent(item.type, activeSection)}>
-                  <Plus /> {item.name}
+          <div className="relative min-h-[420px] space-y-5 p-4 sm:p-5">
+            {isTestMode && (
+              <div className="flex items-center justify-between gap-2">
+                <p className={hint}>Use the form as a scout would. Nothing is saved.</p>
+                <Button size="sm" variant="outline" onClick={() => setTestData({})}>
+                  <RotateCcw /> Reset values
                 </Button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className={scoutingMode === "match" ? "grid grid-cols-1 gap-4 sm:grid-cols-2" : "flex flex-col gap-2"}>
-            {visibleKeys.map((key) => {
-              const index = keys.indexOf(key);
-              const definition = fields[key];
-              const isNumber =
-                scoutingMode === "match" && getFieldType(definition as ScoringDefinition) === "number";
-              return (
-                <div
-                  key={key}
-                  onDragOver={(e) => {
-                    if (!e.dataTransfer.types.includes("application/athena-reorder")) return;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.dataTransfer.dropEffect = "move";
-                    setDropTargetKey(key);
-                  }}
-                  onDrop={(e) => {
-                    if (!draggedKey) return;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (draggedKey !== key) move(draggedKey, index);
-                  }}
-                  onClick={() => {
-                    if (!isTestMode) onSelectComponent(info(key));
-                  }}
-                  className={cn(
-                    "rounded-xl border bg-card transition-colors",
-                    isNumber && "sm:col-span-2",
-                    !isTestMode && "cursor-pointer",
-                    dropTargetKey === key && draggedKey && draggedKey !== key
-                      ? "border-primary bg-primary/5"
-                      : !isTestMode &&
-                          selectedComponent?.mode === scoutingMode &&
-                          selectedComponent.section === activeSection &&
-                          selectedComponent.fieldKey === key
-                        ? "border-foreground"
-                        : !isTestMode && "hover:border-foreground/40",
-                  )}
-                >
-                  {!isTestMode && (
-                    <div className="flex items-center gap-0.5 border-b px-1.5 py-1 text-muted-foreground">
-                      <span
-                        draggable
+              </div>
+            )}
+
+            {scoutingMode === "match" && activeSection === "autonomous" && (
+              <FixedFormSection title="Starting position">
+                <Select defaultValue={encodeStartPosition(config.startPositions?.[0] || "Center")}>
+                  <SelectTrigger aria-label="Starting position" className="h-12 w-full rounded-xl sm:w-64">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(config.startPositions?.length ? config.startPositions : ["Left", "Center", "Right"]).map((position) => (
+                      <SelectItem key={position} value={encodeStartPosition(position)}>
+                        {position}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FixedFormSection>
+            )}
+
+            {scoutingMode === "pit" && activeSection === "autonomous" && (
+              <FixedFormSection title="Robot specifications">
+                <div className="grid grid-cols-3 gap-3">
+                  {["Length (in)", "Width (in)", "Weight (lbs)"].map((label) => (
+                    <div key={label} className="space-y-1">
+                      <Label className="text-xs">{label}</Label>
+                      <Input readOnly placeholder="0" />
+                    </div>
+                  ))}
+                </div>
+              </FixedFormSection>
+            )}
+
+            {scoutingMode === "pit" && (
+              <h3 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                {FORM_SECTIONS.pit.find(([id]) => id === activeSection)?.[1]}
+              </h3>
+            )}
+
+            {keys.length === 0 ? (
+              <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-8 text-center">
+                <p className="text-sm font-medium">This section has no fields yet</p>
+                <AddFieldMenu mode={scoutingMode} onPick={(type) => onInsertComponent(type, activeSection)}>
+                  <Button size="sm" variant="outline"><Plus /> Add a field</Button>
+                </AddFieldMenu>
+              </div>
+            ) : (
+              <div className={scoutingMode === "match" ? "grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2" : "flex flex-col gap-4"}>
+                {visibleKeys.map((key) => {
+                  const index = keys.indexOf(key);
+                  const definition = fields[key];
+                  const selected = isSelected(key);
+                  const wide = scoutingMode === "match" && getFieldType(definition as ScoringDefinition) === "number";
+                  return (
+                    <div key={key} className={cn("flex flex-col gap-2", wide && "sm:col-span-2")}>
+                      {/* The tag button is the keyboard route to a field; clicking the card is a mouse shortcut. */}
+                      <div
+                        draggable={!isTestMode}
                         onDragStart={(e) => {
-                          e.stopPropagation();
                           setDraggedKey(key);
                           e.dataTransfer.setData("application/athena-reorder", key);
                           e.dataTransfer.effectAllowed = "move";
                         }}
-                        title="Drag to reorder"
-                        className="cursor-grab p-1 active:cursor-grabbing"
-                      >
-                        <GripVertical className="size-3.5" />
-                      </span>
-                      <button
-                        type="button"
-                        aria-label={`Edit ${definition.label}`}
-                        className="min-w-0 flex-1 truncate text-left font-mono text-[11px]"
-                      >
-                        {key}
-                        {definition.dependsOn && honoursDependsOn && (
-                          <span className="font-sans"> · shown if {definition.dependsOn}</span>
+                        onDragEnd={() => {
+                          setDraggedKey(null);
+                          setDropTargetKey(null);
+                        }}
+                        onDragOver={(e) => {
+                          if (!draggedKey) return;
+                          e.preventDefault();
+                          setDropTargetKey(key);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedKey && draggedKey !== key) move(draggedKey, index);
+                          setDraggedKey(null);
+                          setDropTargetKey(null);
+                        }}
+                        onClick={() => {
+                          if (!isTestMode) select(key);
+                        }}
+                        className={cn(
+                          "group relative rounded-xl border-[1.5px] bg-card p-4 transition-colors",
+                          !isTestMode && "cursor-pointer",
+                          selected
+                            ? "border-blue-600 ring-4 ring-blue-600/15"
+                            : dropTargetKey === key && draggedKey !== key
+                              ? "border-blue-400 bg-blue-50/50 dark:bg-blue-950/30"
+                              : isTestMode
+                                ? "border-transparent"
+                                : "border-transparent hover:border-border",
+                          draggedKey === key && "opacity-50",
                         )}
-                      </button>
-                      {(
-                        [
-                          ["Move earlier", ArrowLeft, index === 0, () => move(key, index - 1)],
-                          ["Move later", ArrowRight, index === keys.length - 1, () => move(key, index + 1)],
-                          ["Duplicate", Copy, false, () => onDuplicateComponent(info(key))],
-                          ["Delete", Trash2, false, () => onDeleteComponent(info(key))],
-                        ] as const
-                      ).map(([label, Icon, disabled, action]) => (
-                        <Button
-                          key={label}
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          aria-label={`${label}: ${definition.label}`}
-                          title={label}
-                          disabled={disabled}
-                          className={label === "Delete" ? "hover:text-destructive" : undefined}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            action();
-                          }}
-                        >
-                          <Icon />
-                        </Button>
-                      ))}
+                      >
+                        {!isTestMode && (
+                          <button
+                            type="button"
+                            aria-pressed={selected}
+                            aria-label={`Edit ${definition.label}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              select(key);
+                            }}
+                            className={cn(
+                              "absolute -top-3 left-3 z-10 flex h-6 items-center gap-1 rounded-md px-2 text-xs font-medium transition-opacity focus-visible:opacity-100",
+                              selected
+                                ? "bg-blue-600 text-white opacity-100"
+                                : "bg-foreground text-background opacity-0 group-hover:opacity-100",
+                            )}
+                          >
+                            {fieldKind(scoutingMode, definition)} · <span className="font-mono">{key}</span>
+                            {definition.dependsOn && honoursDependsOn && <span> · if {definition.dependsOn}</span>}
+                          </button>
+                        )}
+                        {/* inert while editing, so a click selects the field instead of operating it */}
+                        <div inert={!isTestMode}>
+                          {scoutingMode === "match" ? (
+                            <MatchPreview
+                              section={activeSection}
+                              fieldKey={key}
+                              definition={definition as ScoringDefinition}
+                              value={testData[testKey(key)]}
+                              onChange={(value) => setTestValue(key, value)}
+                            />
+                          ) : (
+                            <PitPreview
+                              field={definition as PitScoutingFieldDefinition}
+                              value={testData[testKey(key)]}
+                              onChange={(value) => setTestValue(key, value)}
+                            />
+                          )}
+                        </div>
+                      </div>
+                      {selected && (
+                        <AddFieldMenu mode={scoutingMode} onPick={(type) => onInsertComponent(type, activeSection, key)}>
+                          <button
+                            type="button"
+                            className="flex h-6 items-center gap-2 text-xs font-medium text-blue-700 before:h-px before:flex-1 before:bg-blue-200 after:h-px after:flex-1 after:bg-blue-200 dark:text-blue-400 dark:before:bg-blue-900 dark:after:bg-blue-900"
+                          >
+                            <Plus className="size-3.5" aria-hidden="true" /> Add a field here
+                          </button>
+                        </AddFieldMenu>
+                      )}
                     </div>
-                  )}
+                  );
+                })}
+              </div>
+            )}
 
-                  {/* inert while editing, so a click selects the field instead of operating it */}
-                  <div inert={!isTestMode} className="p-4">
-                    {scoutingMode === "match" ? (
-                      <MatchPreview
-                        section={activeSection}
-                        fieldKey={key}
-                        definition={definition as ScoringDefinition}
-                        value={testData[testKey(key)]}
-                        onChange={(value) => setTestValue(key, value)}
-                      />
-                    ) : (
-                      <PitPreview
-                        field={definition as PitScoutingFieldDefinition}
-                        value={testData[testKey(key)]}
-                        onChange={(value) => setTestValue(key, value)}
-                      />
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {scoutingMode === "pit" && activeSection === "autonomous" && (
+              <FixedFormSection title="Autonomous path drawing">
+                <FieldDrawingCanvas fieldImageSrc={config.fieldImage} initialData="" readOnly />
+              </FixedFormSection>
+            )}
+
+            <FixedFormSection title="Notes">
+              <Textarea readOnly placeholder="Additional observations..." className="min-h-20 resize-none" />
+            </FixedFormSection>
           </div>
-        )}
-
-        {scoutingMode === "pit" && activeSection === "autonomous" && (
-          <FixedFormSection title="Autonomous path drawing">
-            <FieldDrawingCanvas fieldImageSrc={config.fieldImage} initialData="" readOnly />
-          </FixedFormSection>
-        )}
-
-        <FixedFormSection title="Notes">
-          <Textarea readOnly placeholder="Additional observations..." className="min-h-20 resize-none" />
-        </FixedFormSection>
+        </div>
       </div>
     </div>
   );

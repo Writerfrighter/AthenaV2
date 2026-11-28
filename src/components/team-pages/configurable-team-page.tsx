@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import TeamImage from "@/components/team-pages-common/TeamImage";
@@ -14,7 +14,7 @@ import { useTeamInfo } from "@/hooks/use-event-teams";
 import Link from "next/link";
 import { flatCards } from "@/lib/utils";
 import { calculateDetailedGameStats, calculateEPA, extractScoutingNotes } from "@/lib/statistics";
-import type { TeamData, YearConfig } from "@/lib/types";
+import type { TeamData, TeamPageSectionId, YearConfig } from "@/lib/types";
 
 export interface TeamPageProps {
   teamNumber: string;
@@ -22,7 +22,26 @@ export interface TeamPageProps {
   configOverride?: YearConfig;
   teamDataOverride?: TeamData;
   yearOverride?: number;
+  /** Config studio: makes each section selectable in place. */
+  editor?: { selected: TeamPageSectionId; onSelect: (id: TeamPageSectionId) => void };
 }
+
+/** Every section a config can hide or reorder, in default order, with its name. */
+export const TEAM_PAGE_SECTIONS: [TeamPageSectionId, string][] = [
+  ["kpi", "Key numbers"],
+  ["autoPerformance", "Autonomous"],
+  ["teleopPerformance", "Teleop"],
+  ["chart", "Scoring breakdown"],
+  ["endgame", "Endgame"],
+  ["custom", "Custom sections"],
+  ["penalties", "Penalties and fouls"],
+];
+
+/** Sections share a column with these; order only applies within a column. */
+export const TEAM_PAGE_COLUMNS: TeamPageSectionId[][] = [
+  ["autoPerformance", "teleopPerformance", "chart"],
+  ["endgame", "custom", "penalties"],
+];
 
 function formatKpiValue(
   value: number,
@@ -37,6 +56,7 @@ export function ConfigurableTeamPage({
   configOverride,
   teamDataOverride,
   yearOverride,
+  editor,
 }: TeamPageProps) {
   const isPreview = !!teamDataOverride;
   const [searchNote, setSearchNote] = useState("");
@@ -232,6 +252,157 @@ export function ConfigurableTeamPage({
   if (pit?.length != null) pitFacts.push({ label: "Length", value: `${pit.length}"` });
   if (pit?.width != null) pitFacts.push({ label: "Width", value: `${pit.width}"` });
 
+  const perfSection = (phase: "auto" | "teleop") => {
+    const perf = phase === "auto" ? pageConfig?.autoPerformance : pageConfig?.teleopPerformance;
+    if (!perf?.metrics?.length) return null;
+    return (
+      <Section key={phase} title={phase === "auto" ? "Autonomous" : "Teleop"}>
+        {perf.metrics.map((m) => {
+          const val = stats ? stats.getMetricValue(m.key) : 0;
+          return <KV key={m.key} label={m.label} value={`${val}${m.unit || (m.type === "rate" ? "%" : "")}`} />;
+        })}
+        {perf.showPointsEstimate && stats && (
+          <KV
+            label={`Total ${phase === "auto" ? "auto" : "teleop"} points`}
+            value={`${phase === "auto" ? stats.points.autoEstimatedPoints : stats.points.teleopEstimatedPoints} pts`}
+            strong
+          />
+        )}
+      </Section>
+    );
+  };
+  const sectionNodes: Record<TeamPageSectionId, React.ReactNode> = {
+    kpi: (
+      <section aria-label="Key numbers" className="grid grid-cols-2 border-y sm:grid-cols-3 xl:grid-cols-6">
+        {kpis.map((k) => (
+          <div key={k.l} className="flex flex-col gap-1.5 py-5 pr-4">
+            <span className="text-sm text-muted-foreground">{k.l}</span>
+            <span className="text-[34px] font-semibold leading-none tracking-[-0.03em]">{k.v}</span>
+            <span className="font-mono text-xs text-muted-foreground">{k.s}</span>
+          </div>
+        ))}
+      </section>
+    ),
+    autoPerformance: perfSection("auto"),
+    teleopPerformance: perfSection("teleop"),
+    chart: (scoringBreakdownConfig && breakdownChartData.length > 0 && (
+        <Section title={scoringBreakdownConfig.title} description={scoringBreakdownConfig.description}>
+          <div className="flex flex-col gap-2.5 pt-1">
+            {breakdownChartData.map((item) => {
+              const max = Math.max(1, ...breakdownChartData.map((d) => d.value));
+              return (
+                <div key={item.name} className="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-3.5">
+                  <span className="truncate text-sm text-muted-foreground">{item.name}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="h-1.5 min-w-0.5 rounded-full" style={{ width: `${(item.value / max) * 100}%`, background: item.fill }} />
+                    <span className="font-mono text-xs">{item.value.toFixed(1)}</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )),
+    endgame: (pageConfig?.endgame && (
+        <Section
+          title={pageConfig.endgame.summaryTitle || pageConfig.endgame.title}
+          description={pageConfig.endgame.summaryDescription || pageConfig.endgame.description}
+        >
+          <StackBar
+            parts={endgameChartData.map((d, i) => ({ label: d.name, value: d.value, color: d.fill.startsWith("var(") ? PALETTE[i % PALETTE.length] : d.fill }))}
+            suffix={(d) => {
+              const pts = pageConfig.endgame.states.find((st) => st.label === d.label)?.points;
+              return pts != null ? ` (${pts} pts)` : "";
+            }}
+          />
+        </Section>
+      )),
+    custom: !!pageConfig?.customSections?.length && <>{pageConfig.customSections.map((section) => {
+        if (section.type === "distribution" && section.fieldKey && section.items) {
+          return (
+            <Section key={section.id} title={section.title} description={section.description}>
+              <StackBar
+                parts={section.items.map((item, i) => ({
+                  label: item.label,
+                  value: stats?.rates[`${section.fieldKey}.${item.key}`] || 0,
+                  color: PALETTE[i % PALETTE.length],
+                }))}
+              />
+            </Section>
+          );
+        }
+        if (section.type === "summaryCards" && section.items) {
+          return (
+            <Section key={section.id} title={section.title} description={section.description}>
+              {section.items.map((item) => {
+                const avg = stats ? stats.getMetricValue(item.key) : 0;
+                return (
+                  <KV
+                    key={item.key}
+                    label={item.label}
+                    value={item.pointsMultiplier ? `${avg.toFixed(1)} · ${(avg * item.pointsMultiplier).toFixed(1)} pts` : avg.toFixed(1)}
+                  />
+                );
+              })}
+            </Section>
+          );
+        }
+        return null;
+      })}</>,
+    penalties: (pageConfig?.penalties && (
+        <Section title={pageConfig.penalties.title} description={pageConfig.penalties.description}>
+          {breakdownRate !== undefined && (
+            <KV
+              label="Breakdown rate"
+              value={`${breakdownRate.toFixed(1)}%`}
+              alert={breakdownRate > (pageConfig.penalties.breakdownAlertThreshold ?? 15)}
+            />
+          )}
+          <KV label={pageConfig.penalties.minorLabel} value={(stats?.averages[pageConfig.penalties.minorKey] ?? 0).toFixed(1)} />
+          <KV
+            label={pageConfig.penalties.majorLabel}
+            value={(stats?.averages[pageConfig.penalties.majorKey] ?? 0).toFixed(1)}
+            alert={(stats?.averages[pageConfig.penalties.majorKey] ?? 0) > (pageConfig.penalties.techFoulAlertThreshold ?? 0.5)}
+          />
+          <KV label="Est. penalty points" value={`${stats ? stats.points.penaltyPoints.toFixed(1) : "0.0"} pts`} strong />
+        </Section>
+      )),
+  };
+  const hidden = new Set(pageConfig?.layout?.hidden ?? []);
+  const rank = (id: TeamPageSectionId) => {
+    const i = pageConfig?.layout?.order?.indexOf(id) ?? -1;
+    return i === -1 ? TEAM_PAGE_SECTIONS.findIndex(([s]) => s === id) + 100 : i;
+  };
+  const placed = (ids: TeamPageSectionId[]) =>
+    ids
+      .filter((id) => !hidden.has(id))
+      .sort((a, b) => rank(a) - rank(b))
+      .map((id) => {
+        const node = sectionNodes[id];
+        if (!node) return null;
+        if (!editor) return <Fragment key={id}>{node}</Fragment>;
+        const label = TEAM_PAGE_SECTIONS.find(([s]) => s === id)?.[1];
+        const on = editor.selected === id;
+        return (
+          // The tag button is the keyboard route; the click anywhere is a mouse shortcut.
+          <div
+            key={id}
+            onClick={() => editor.onSelect(id)}
+            className={`group relative -m-3 cursor-pointer rounded-xl border-[1.5px] p-3 ${on ? "border-blue-600 ring-4 ring-blue-600/15" : "border-transparent hover:border-border"}`}
+          >
+            <button
+              type="button"
+              aria-pressed={on}
+              onClick={(e) => { e.stopPropagation(); editor.onSelect(id); }}
+              className={`absolute -top-3 left-3 z-10 rounded-md bg-blue-600 px-2 py-0.5 text-xs font-medium text-white transition-opacity focus-visible:opacity-100 ${on ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+            >
+              {label}
+            </button>
+            {node}
+          </div>
+        );
+      });
+
   return (
     <div className={`flex flex-col gap-9 ${flatCards}`}>
       <header className="flex flex-wrap items-stretch gap-9">
@@ -275,15 +446,7 @@ export function ConfigurableTeamPage({
         )}
       </header>
 
-      <section aria-label="Key numbers" className="grid grid-cols-2 border-y sm:grid-cols-3 xl:grid-cols-6">
-        {kpis.map((k) => (
-          <div key={k.l} className="flex flex-col gap-1.5 py-5 pr-4">
-            <span className="text-sm text-muted-foreground">{k.l}</span>
-            <span className="text-[34px] font-semibold leading-none tracking-[-0.03em]">{k.v}</span>
-            <span className="font-mono text-xs text-muted-foreground">{k.s}</span>
-          </div>
-        ))}
-      </section>
+      {placed(["kpi"])}
 
       {yearConfig && teamData.matchEntries.length > 1 ? (
         <PerformanceOverTimeChart
@@ -297,113 +460,11 @@ export function ConfigurableTeamPage({
 
       <div className="grid gap-12 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
         <div className="flex flex-col gap-8">
-          {(["auto", "teleop"] as const).map((phase) => {
-            const perf = phase === "auto" ? pageConfig?.autoPerformance : pageConfig?.teleopPerformance;
-            if (!perf?.metrics?.length) return null;
-            return (
-              <Section key={phase} title={phase === "auto" ? "Autonomous" : "Teleop"}>
-                {perf.metrics.map((m) => {
-                  const val = stats ? stats.getMetricValue(m.key) : 0;
-                  return <KV key={m.key} label={m.label} value={`${val}${m.unit || (m.type === "rate" ? "%" : "")}`} />;
-                })}
-                {perf.showPointsEstimate && stats && (
-                  <KV
-                    label={`Total ${phase === "auto" ? "auto" : "teleop"} points`}
-                    value={`${phase === "auto" ? stats.points.autoEstimatedPoints : stats.points.teleopEstimatedPoints} pts`}
-                    strong
-                  />
-                )}
-              </Section>
-            );
-          })}
-
-          {scoringBreakdownConfig && breakdownChartData.length > 0 && (
-            <Section title={scoringBreakdownConfig.title} description={scoringBreakdownConfig.description}>
-              <div className="flex flex-col gap-2.5 pt-1">
-                {breakdownChartData.map((item) => {
-                  const max = Math.max(1, ...breakdownChartData.map((d) => d.value));
-                  return (
-                    <div key={item.name} className="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-3.5">
-                      <span className="truncate text-sm text-muted-foreground">{item.name}</span>
-                      <span className="flex items-center gap-2">
-                        <span className="h-1.5 min-w-0.5 rounded-full" style={{ width: `${(item.value / max) * 100}%`, background: item.fill }} />
-                        <span className="font-mono text-xs">{item.value.toFixed(1)}</span>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </Section>
-          )}
+          {placed(TEAM_PAGE_COLUMNS[0])}
         </div>
 
         <div className="flex flex-col gap-8">
-          {pageConfig?.endgame && (
-            <Section
-              title={pageConfig.endgame.summaryTitle || pageConfig.endgame.title}
-              description={pageConfig.endgame.summaryDescription || pageConfig.endgame.description}
-            >
-              <StackBar
-                parts={endgameChartData.map((d, i) => ({ label: d.name, value: d.value, color: d.fill.startsWith("var(") ? PALETTE[i % PALETTE.length] : d.fill }))}
-                suffix={(d) => {
-                  const pts = pageConfig.endgame.states.find((st) => st.label === d.label)?.points;
-                  return pts != null ? ` (${pts} pts)` : "";
-                }}
-              />
-            </Section>
-          )}
-
-          {pageConfig?.customSections?.map((section) => {
-            if (section.type === "distribution" && section.fieldKey && section.items) {
-              return (
-                <Section key={section.id} title={section.title} description={section.description}>
-                  <StackBar
-                    parts={section.items.map((item, i) => ({
-                      label: item.label,
-                      value: stats?.rates[`${section.fieldKey}.${item.key}`] || 0,
-                      color: PALETTE[i % PALETTE.length],
-                    }))}
-                  />
-                </Section>
-              );
-            }
-            if (section.type === "summaryCards" && section.items) {
-              return (
-                <Section key={section.id} title={section.title} description={section.description}>
-                  {section.items.map((item) => {
-                    const avg = stats ? stats.getMetricValue(item.key) : 0;
-                    return (
-                      <KV
-                        key={item.key}
-                        label={item.label}
-                        value={item.pointsMultiplier ? `${avg.toFixed(1)} · ${(avg * item.pointsMultiplier).toFixed(1)} pts` : avg.toFixed(1)}
-                      />
-                    );
-                  })}
-                </Section>
-              );
-            }
-            return null;
-          })}
-
-          {pageConfig?.penalties && (
-            <Section title={pageConfig.penalties.title} description={pageConfig.penalties.description}>
-              {breakdownRate !== undefined && (
-                <KV
-                  label="Breakdown rate"
-                  value={`${breakdownRate.toFixed(1)}%`}
-                  alert={breakdownRate > (pageConfig.penalties.breakdownAlertThreshold ?? 15)}
-                />
-              )}
-              <KV label={pageConfig.penalties.minorLabel} value={(stats?.averages[pageConfig.penalties.minorKey] ?? 0).toFixed(1)} />
-              <KV
-                label={pageConfig.penalties.majorLabel}
-                value={(stats?.averages[pageConfig.penalties.majorKey] ?? 0).toFixed(1)}
-                alert={(stats?.averages[pageConfig.penalties.majorKey] ?? 0) > (pageConfig.penalties.techFoulAlertThreshold ?? 0.5)}
-              />
-              <KV label="Est. penalty points" value={`${stats ? stats.points.penaltyPoints.toFixed(1) : "0.0"} pts`} strong />
-            </Section>
-          )}
+          {placed(TEAM_PAGE_COLUMNS[1])}
         </div>
 
         <Section title="From the pit">

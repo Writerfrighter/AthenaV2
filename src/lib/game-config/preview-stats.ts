@@ -23,13 +23,19 @@ function seededValue(seed: string, matchIndex: number): number {
  */
 export function buildPreviewStats(
   config: YearConfig,
+  teamNumber = PREVIEW_TEAM_NUMBER,
 ): DetailedGameStats | null {
-  return calculateDetailedGameStats(buildPreviewMatches(config), config);
+  return calculateDetailedGameStats(buildPreviewMatches(config, teamNumber), config);
 }
 
-const PREVIEW_TEAM_NUMBER = 492;
+export const PREVIEW_TEAM_NUMBER = 492;
 
-function buildPreviewMatches(config: YearConfig): MatchEntry[] {
+/** Extra sample teams, for previews that compare several (alliances, rankings). */
+export const PREVIEW_OTHER_TEAMS = [1678, 254, 2056, 4414] as const;
+
+function buildPreviewMatches(config: YearConfig, teamNumber = PREVIEW_TEAM_NUMBER): MatchEntry[] {
+  // The default team keeps its original seed so existing previews don't change.
+  const seedPrefix = teamNumber === PREVIEW_TEAM_NUMBER ? "" : `${teamNumber}:`;
   const sections = ["autonomous", "teleop", "endgame", "fouls"] as const;
 
   return Array.from({ length: PREVIEW_MATCH_COUNT }, (_, matchIndex) => {
@@ -42,7 +48,7 @@ function buildPreviewMatches(config: YearConfig): MatchEntry[] {
       const sectionData: Record<string, number | string | boolean> = {};
 
       for (const [fieldKey, definition] of Object.entries(fields)) {
-        const roll = seededValue(`${section}.${fieldKey}`, matchIndex);
+        const roll = seededValue(`${seedPrefix}${section}.${fieldKey}`, matchIndex);
         const fieldType = getFieldType(definition);
 
         if (fieldType === "boolean") {
@@ -64,7 +70,7 @@ function buildPreviewMatches(config: YearConfig): MatchEntry[] {
 
     return {
       matchNumber: matchIndex + 1,
-      teamNumber: PREVIEW_TEAM_NUMBER,
+      teamNumber,
       year: 2026,
       competitionType: config.competitionType,
       alliance: matchIndex % 2 === 0 ? "red" : "blue",
@@ -132,11 +138,11 @@ function buildPreviewPitEntry(config: YearConfig): PitEntry {
  * A complete synthetic team, so designer previews can render the real team
  * page component instead of a separate mock of it.
  */
-export function buildPreviewTeamData(config: YearConfig): TeamData {
-  const matchEntries = buildPreviewMatches(config);
+export function buildPreviewTeamData(config: YearConfig, teamNumber = PREVIEW_TEAM_NUMBER): TeamData {
+  const matchEntries = buildPreviewMatches(config, teamNumber);
 
   return {
-    teamNumber: PREVIEW_TEAM_NUMBER,
+    teamNumber,
     year: 2026,
     eventCode: "PREVIEW",
     matchEntries,
@@ -162,4 +168,36 @@ export function formatPreviewMetric(
   if (!key || !resolved) return "—";
   if (!stats) return "—";
   return String(stats.getMetricValue(key));
+}
+
+/** One row of the analysis page's per-team data, as the analysis API returns it. */
+export interface PreviewAnalysisTeam {
+  team: string;
+  matchesPlayed: number;
+  detailMetrics: Record<string, number>;
+}
+
+/**
+ * Sample teams in the analysis API's shape: numeric fields averaged per match,
+ * yes/no fields as a percentage, keyed "section.field" like the API.
+ */
+export function buildPreviewAnalysisTeams(config: YearConfig): PreviewAnalysisTeam[] {
+  return [PREVIEW_TEAM_NUMBER, ...PREVIEW_OTHER_TEAMS].map((teamNumber) => {
+    const matches = buildPreviewMatches(config, teamNumber);
+    const sums: Record<string, { total: number; count: number; bool: boolean }> = {};
+    for (const match of matches) {
+      for (const [section, fields] of Object.entries(match.gameSpecificData ?? {})) {
+        for (const [field, value] of Object.entries((fields ?? {}) as Record<string, unknown>)) {
+          if (typeof value !== "number" && typeof value !== "boolean") continue;
+          const entry = (sums[`${section}.${field}`] ??= { total: 0, count: 0, bool: typeof value === "boolean" });
+          entry.total += Number(value);
+          entry.count += 1;
+        }
+      }
+    }
+    const detailMetrics = Object.fromEntries(
+      Object.entries(sums).map(([key, { total, count, bool }]) => [key, bool ? (total / count) * 100 : total / count]),
+    );
+    return { team: String(teamNumber), matchesPlayed: matches.length, detailMetrics };
+  });
 }

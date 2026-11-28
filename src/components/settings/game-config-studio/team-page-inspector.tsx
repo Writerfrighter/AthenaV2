@@ -4,10 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Choice, Item, NumberField, TextField, Toggle, hint } from "./fields";
 import { DatapointPicker } from "./datapoint-picker";
 import { buildDatapointRegistry } from "@/lib/game-config/datapoint-registry";
-import type { TeamPageConfig, YearConfig } from "@/lib/types";
+import type { TeamPageConfig, TeamPageSectionId, YearConfig } from "@/lib/types";
 
-export type TeamPageSection =
-  | "kpi" | "autoPerformance" | "teleopPerformance" | "chart" | "endgame" | "penalties" | "custom";
+export type TeamPageSection = TeamPageSectionId;
 
 const CHART_COLORS = ["#f97316", "#ef4444", "#3b82f6", "#22c55e", "#a855f7", "#ec4899", "#14b8a6"];
 

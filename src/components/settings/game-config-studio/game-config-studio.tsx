@@ -22,22 +22,51 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Code, Copy, Monitor, Pencil, Plus, Save, Smartphone, Tablet, Trash2, TriangleAlert } from "lucide-react";
+import {
+  ChartLine,
+  ClipboardList,
+  Code,
+  Columns2,
+  Copy,
+  Ellipsis,
+  Monitor,
+  PanelsTopLeft,
+  Pencil,
+  Play,
+  Plus,
+  Save,
+  Smartphone,
+  Sparkles,
+  Tablet,
+  Trash2,
+  TriangleAlert,
+  Undo2,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import type { YearConfig } from "@/lib/types";
 import { getErrorMessage } from "@/lib/utils";
 import { DEFAULT_NEW_CONFIG, getSection, uniqueKey, updateSection } from "./types";
-import { ComponentPalette, PALETTE, PaletteComponentType } from "./component-palette";
-import { VisualCanvas } from "./visual-canvas";
+import { PALETTE, type PaletteComponentType } from "./component-palette";
+import { FormOutline } from "./form-outline";
+import { VisualCanvas, type PreviewDevice } from "./visual-canvas";
+import { Segmented, hint } from "./fields";
 import { PropertyInspector, SelectedComponentInfo } from "./property-inspector";
 import { VisualMatchupCanvas } from "./visual-matchup-canvas";
 import { VisualTeamPageCanvas } from "./visual-teampage-canvas";
 import { AnalysisEditor } from "./analysis-editor";
 import { BuilderJsonEditor } from "./builder-json-editor";
+import { AiDraftDialog } from "./ai-draft-dialog";
 import { validateYearConfig } from "@/lib/game-config/config-validator";
 
 interface ConfigOption {
@@ -50,12 +79,12 @@ interface ConfigOption {
 
 export type StudioDesignerMode = "match" | "pit" | "matchup" | "teampage" | "analysis";
 
-const MODES: [StudioDesignerMode, string][] = [
-  ["match", "Match form"],
-  ["pit", "Pit form"],
-  ["matchup", "Matchup card"],
-  ["teampage", "Team page"],
-  ["analysis", "Analysis"],
+const MODES: [StudioDesignerMode, string, LucideIcon][] = [
+  ["match", "Match form", ClipboardList],
+  ["pit", "Pit form", Wrench],
+  ["matchup", "Matchup card", Columns2],
+  ["teampage", "Team page", PanelsTopLeft],
+  ["analysis", "Analysis", ChartLine],
 ];
 
 async function loadConfigList(): Promise<ConfigOption[]> {
@@ -83,6 +112,16 @@ export function GameConfigStudio() {
   const [configList, setConfigList] = useState<ConfigOption[]>([]);
   const [selectedFile, setSelectedFile] = useState<string>("");
   const [currentConfig, setCurrentConfig] = useState<YearConfig>(() => structuredClone(DEFAULT_NEW_CONFIG));
+  // Latest config, so several edits in one event build on each other.
+  const configRef = useRef(currentConfig);
+  const [history, setHistory] = useState<YearConfig[]>([]);
+  const lastEditAt = useRef(0);
+  /** Replaces the config without recording an undo step (loads, saves, renames). */
+  const setConfig = useCallback((config: YearConfig) => {
+    configRef.current = config;
+    setCurrentConfig(config);
+    setHistory([]);
+  }, []);
   const [savedConfig, setSavedConfig] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -111,11 +150,44 @@ export function GameConfigStudio() {
   const [studioMode, setStudioMode] = useState<StudioDesignerMode>("match");
   const [activeSection, setActiveSection] = useState<string>("autonomous");
   const [isTestMode, setIsTestMode] = useState<boolean>(false);
-  const [viewportDevice, setViewportDevice] = useState<"responsive" | "tablet" | "phone">("responsive");
+  const [device, setDevice] = useState<PreviewDevice>("tablet");
   const [selectedComponent, setSelectedComponent] = useState<SelectedComponentInfo | null>(null);
+
+  /** Applies an edit and records an undo step; quick successive edits (typing) undo together. */
+  const editConfig = (updater: (prev: YearConfig) => YearConfig) => {
+    const previous = configRef.current;
+    const next = updater(previous);
+    if (next === previous) return;
+    const now = Date.now();
+    if (now - lastEditAt.current > 800) setHistory((steps) => [...steps.slice(-49), previous]);
+    lastEditAt.current = now;
+    configRef.current = next;
+    setCurrentConfig(next);
+  };
+
+  const handleUndo = () => {
+    const previous = history.at(-1);
+    if (!previous) return;
+    setHistory((steps) => steps.slice(0, -1));
+    configRef.current = previous;
+    setCurrentConfig(previous);
+    setSelectedComponent(null);
+    lastEditAt.current = 0;
+  };
+
+  const switchMode = (mode: StudioDesignerMode) => {
+    setStudioMode(mode);
+    setActiveSection("autonomous");
+    setSelectedComponent(null);
+    setIsTestMode(false);
+    // Match scouts work on tablets; pit scouts on phones.
+    if (mode === "match") setDevice("tablet");
+    if (mode === "pit") setDevice("phone");
+  };
 
   // Advanced Raw JSON Modal
   const [isJsonDialogOpen, setIsJsonDialogOpen] = useState<boolean>(false);
+  const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
 
   // Fetch configs list from server
   const fetchConfigs = async () => {
@@ -134,10 +206,10 @@ export function GameConfigStudio() {
       if (data.configs) setConfigList(data.configs);
       setSelectedFile(data.filename);
       if (!data.config) {
-        setCurrentConfig(structuredClone(DEFAULT_NEW_CONFIG));
+        setConfig(structuredClone(DEFAULT_NEW_CONFIG));
         return;
       }
-      setCurrentConfig(data.config);
+      setConfig(data.config);
       setSavedConfig(JSON.stringify(data.config));
       setCurrentYear(Number(data.filename.match(/-(\d{4})\.json$/i)?.[1]));
       setSelectedComponent(null);
@@ -146,7 +218,7 @@ export function GameConfigStudio() {
     }).finally(() => {
       if (version === loadVersion.current) setIsLoading(false);
     });
-  }, []);
+  }, [setConfig]);
 
   useEffect(() => {
     const requests = loadVersion;
@@ -212,7 +284,7 @@ export function GameConfigStudio() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create configuration");
 
-      setCurrentConfig(data.config);
+      setConfig(data.config);
       setSavedConfig(JSON.stringify(data.config));
       setCurrentYear(createYear);
       setSelectedFile(data.filename);
@@ -262,7 +334,7 @@ export function GameConfigStudio() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to rename configuration");
 
-      setCurrentConfig(data.config);
+      setConfig(data.config);
       setSavedConfig(JSON.stringify(data.config));
       setCurrentYear(renameYear);
       setSelectedFile(data.filename);
@@ -304,7 +376,7 @@ export function GameConfigStudio() {
     while (configList.some((config) => config.filename === `${currentConfig.competitionType}-${nextYear}.json`)) nextYear++;
     const cloned = JSON.parse(JSON.stringify(currentConfig)) as YearConfig;
     cloned.gameName = `${cloned.gameName || "GAME"}_COPY`;
-    setCurrentConfig(cloned);
+    setConfig(cloned);
     setCurrentYear(nextYear);
     setSelectedFile(`${cloned.competitionType}-${nextYear}.json`);
     setSelectedComponent(null);
@@ -351,25 +423,29 @@ export function GameConfigStudio() {
   const formMode = studioMode === "match" || studioMode === "pit" ? studioMode : null;
   const isSavedFile = configList.some((config) => config.filename === selectedFile);
 
-  // Add a field from the palette, by click or drop.
-  const handleAddComponent = (type: PaletteComponentType, sectionTarget?: string) => {
+  // Add a field to a section: at the end, or right after `afterKey`.
+  const handleAddComponent = (type: PaletteComponentType, sectionTarget?: string, afterKey?: string) => {
     if (!formMode) return;
     const section = sectionTarget || activeSection;
     const item = PALETTE[formMode].find((entry) => entry.type === type);
     if (!item) return;
     const fieldKey = uniqueKey(getSection(currentConfig, formMode, section), item.key);
-    setCurrentConfig((prev) =>
-      updateSection(prev, formMode, section, (fields) => ({
-        ...fields,
-        [fieldKey]: structuredClone(item.definition),
-      })),
+    editConfig((prev) =>
+      updateSection(prev, formMode, section, (fields) => {
+        const entries = Object.entries(fields);
+        const at = afterKey ? entries.findIndex(([key]) => key === afterKey) + 1 : entries.length;
+        entries.splice(at || entries.length, 0, [fieldKey, structuredClone(item.definition) as (typeof fields)[string]]);
+        return Object.fromEntries(entries);
+      }),
     );
+    setIsTestMode(false);
+    setActiveSection(section);
     setSelectedComponent({ mode: formMode, section, fieldKey });
   };
 
   const handleReorderComponents = (section: string, order: string[]) => {
     if (!formMode) return;
-    setCurrentConfig((prev) =>
+    editConfig((prev) =>
       updateSection(prev, formMode, section, (fields) =>
         Object.fromEntries(order.filter((key) => key in fields).map((key) => [key, fields[key]])),
       ),
@@ -381,7 +457,7 @@ export function GameConfigStudio() {
     const source = fields[comp.fieldKey];
     if (!source) return;
     const fieldKey = uniqueKey(fields, `${comp.fieldKey}_copy`);
-    setCurrentConfig((prev) =>
+    editConfig((prev) =>
       updateSection(prev, comp.mode, comp.section, (current) => ({
         ...current,
         [fieldKey]: { ...source, label: `${source.label} (Copy)` },
@@ -391,7 +467,7 @@ export function GameConfigStudio() {
   };
 
   const handleDeleteComponent = (comp: SelectedComponentInfo) => {
-    setCurrentConfig((prev) =>
+    editConfig((prev) =>
       updateSection(prev, comp.mode, comp.section, (fields) => {
         const next = { ...fields };
         delete next[comp.fieldKey];
@@ -423,123 +499,169 @@ export function GameConfigStudio() {
   }
 
   const sideColumn = "lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto";
+  const unsaved = !selectedFile ? null : !isSavedFile || isDirty;
 
   return (
     <div className="flex flex-col gap-5" inert={isSaving || isCreating || isRenaming || isDeleting}>
       {loadError && <p role="alert" className="text-destructive">{loadError}. Your previous configuration is still open.</p>}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Select value={selectedFile} onValueChange={handleSelectConfig}>
-          <SelectTrigger aria-label="Configuration" className="w-64">
-            <SelectValue placeholder="Select a configuration" />
-          </SelectTrigger>
-          <SelectContent>
-            {configList.map((cfg) => (
-              <SelectItem key={cfg.filename} value={cfg.filename}>
-                {cfg.competitionType} {cfg.year} · {cfg.gameName || cfg.filename}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button variant="outline" size="sm" onClick={openCreateDialog}><Plus /> New</Button>
-        <Button variant="outline" size="sm" onClick={openRenameDialog} disabled={!isSavedFile}><Pencil /> Rename</Button>
-        <Button variant="outline" size="sm" onClick={handleDuplicateCurrent} disabled={!selectedFile}><Copy /> Clone</Button>
-        <Button variant="outline" size="sm" onClick={() => setIsDeleteDialogOpen(true)} disabled={!isSavedFile}><Trash2 /> Delete</Button>
+      <header className="flex flex-col border-b">
+        {/* One picker, the rarely used actions behind ⋯, and one primary action */}
+        <div className="flex flex-wrap items-center gap-2 pb-3">
+          <Select value={selectedFile} onValueChange={handleSelectConfig}>
+            <SelectTrigger aria-label="Configuration" className="h-9 w-auto min-w-56 gap-2">
+              <SelectValue placeholder="Select a configuration" />
+            </SelectTrigger>
+            <SelectContent>
+              {configList.map((cfg) => (
+                <SelectItem key={cfg.filename} value={cfg.filename}>
+                  <span className="rounded-full bg-foreground px-1.5 text-[11px] font-semibold text-background">{cfg.competitionType}</span>
+                  {cfg.year} · {cfg.gameName || cfg.filename}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon-sm" aria-label="More configuration actions">
+                <Ellipsis />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuItem onSelect={openCreateDialog}><Plus /> New game year</DropdownMenuItem>
+              <DropdownMenuItem onSelect={openRenameDialog} disabled={!isSavedFile}><Pencil /> Rename</DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleDuplicateCurrent} disabled={!selectedFile}><Copy /> Clone as next year</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setIsAiDialogOpen(true)} disabled={!selectedFile}><Sparkles /> Draft with AI</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setIsJsonDialogOpen(true)}><Code /> Edit as JSON</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onSelect={() => setIsDeleteDialogOpen(true)} disabled={!isSavedFile}>
+                <Trash2 /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <div className="flex-1" />
 
-        <p role="status" className="ml-auto text-sm text-muted-foreground">
-          {!selectedFile
-            ? "No saved configurations. Choose New to create one."
-            : !isSavedFile
-              ? `Unsaved changes: saving creates ${selectedFile}`
-              : isDirty ? "Unsaved changes" : "All changes saved"}
-        </p>
-        <Button variant="outline" size="sm" onClick={() => setIsJsonDialogOpen(true)}><Code /> JSON</Button>
-        <Button size="sm" onClick={handleSaveToServer} disabled={isSaving || !isDirty}>
-          <Save /> {isSaving ? "Saving..." : "Save Config"}
-        </Button>
-      </div>
+          {referenceWarnings.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                  <TriangleAlert />
+                  {referenceWarnings.length} reference{referenceWarnings.length === 1 ? "" : "s"} to check
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-96">
+                <p className="mb-2 text-sm font-medium">These point at fields that don&apos;t exist</p>
+                <ul className="list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+                  {referenceWarnings.map((warning) => <li key={warning}>{warning}</li>)}
+                </ul>
+              </PopoverContent>
+            </Popover>
+          )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-        <Tabs
-          value={studioMode}
-          onValueChange={(mode) => {
-            setStudioMode(mode as StudioDesignerMode);
-            setActiveSection("autonomous");
-            setSelectedComponent(null);
-          }}
-        >
-          <TabsList>
-            {MODES.map(([mode, label]) => (
-              <TabsTrigger key={mode} value={mode} className="flex-none">{label}</TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+          <p role="status" className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            {unsaved !== null && (
+              <span aria-hidden="true" className={`size-2 rounded-full ${unsaved ? "bg-amber-500" : "bg-green-600"}`} />
+            )}
+            {!selectedFile
+              ? "No saved configurations. Choose New from the ⋯ menu."
+              : !isSavedFile
+                ? `Unsaved changes: saving creates ${selectedFile}`
+                : isDirty ? "Unsaved changes" : "All changes saved"}
+          </p>
+          <Button variant="outline" size="icon-sm" aria-label="Undo" title="Undo" onClick={handleUndo} disabled={history.length === 0}>
+            <Undo2 />
+          </Button>
+          <Button size="sm" onClick={handleSaveToServer} disabled={isSaving || !isDirty}>
+            <Save /> {isSaving ? "Saving..." : "Save & publish"}
+          </Button>
+        </div>
 
-        {formMode && (
-          <div className="flex items-center gap-4">
-            <ToggleGroup
-              type="single"
-              size="sm"
-              aria-label="Preview width"
-              value={viewportDevice}
-              onValueChange={(value) => {
-                if (value) setViewportDevice(value as typeof viewportDevice);
-              }}
-              className="hidden sm:flex"
+        {/* Named by where scouts and analysts see each part */}
+        <nav aria-label="What to design" className="-mb-px flex flex-wrap gap-1 overflow-x-auto">
+          {MODES.map(([mode, label, Icon]) => (
+            <button
+              key={mode}
+              type="button"
+              aria-current={studioMode === mode ? "page" : undefined}
+              onClick={() => switchMode(mode)}
+              className={`flex h-11 items-center gap-2 border-b-2 px-3.5 text-sm font-medium transition-colors ${
+                studioMode === mode ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <ToggleGroupItem value="responsive" aria-label="Full width"><Monitor /></ToggleGroupItem>
-              <ToggleGroupItem value="tablet" aria-label="Tablet width"><Tablet /></ToggleGroupItem>
-              <ToggleGroupItem value="phone" aria-label="Phone width"><Smartphone /></ToggleGroupItem>
-            </ToggleGroup>
-            <label className="flex items-center gap-2 text-sm">
-              <Switch
-                checked={isTestMode}
-                onCheckedChange={(on) => {
-                  setIsTestMode(on);
-                  if (on) setSelectedComponent(null);
-                }}
-              />
-              Test the form
-            </label>
-          </div>
-        )}
-      </div>
-
-      {referenceWarnings.length > 0 && (
-        <details className="border-b pb-3 text-sm">
-          <summary className="flex cursor-pointer items-center gap-2 font-medium">
-            <TriangleAlert className="size-4 text-amber-600" />
-            {referenceWarnings.length} reference{referenceWarnings.length === 1 ? "" : "s"} to check
-          </summary>
-          <ul className="mt-2 list-disc space-y-1 pl-9 text-xs text-muted-foreground">
-            {referenceWarnings.map((warning) => <li key={warning}>{warning}</li>)}
-          </ul>
-        </details>
-      )}
+              <Icon className="size-4" aria-hidden="true" />
+              {label}
+            </button>
+          ))}
+        </nav>
+      </header>
 
       {formMode ? (
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[240px_minmax(0,1fr)_300px]">
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
           <div className={sideColumn}>
-            <ComponentPalette scoutingMode={formMode} onAddComponent={(type) => handleAddComponent(type)} />
+            <FormOutline
+              config={currentConfig}
+              mode={formMode}
+              activeSection={activeSection}
+              selected={selectedComponent}
+              onSelectSection={(section) => {
+                setActiveSection(section);
+                setSelectedComponent(null);
+              }}
+              onSelectField={(section, fieldKey) => {
+                setIsTestMode(false);
+                setActiveSection(section);
+                setSelectedComponent({ mode: formMode, section, fieldKey });
+              }}
+              onAdd={(type, section) => handleAddComponent(type, section)}
+              onReorder={handleReorderComponents}
+            />
           </div>
-          <VisualCanvas
-            config={currentConfig}
-            year={currentYear}
-            scoutingMode={formMode}
-            activeSection={activeSection}
-            isTestMode={isTestMode}
-            viewportDevice={viewportDevice}
-            selectedComponent={selectedComponent}
-            onSectionChange={(section) => {
-              setActiveSection(section);
-              setSelectedComponent(null);
-            }}
-            onSelectComponent={setSelectedComponent}
-            onDuplicateComponent={handleDuplicateComponent}
-            onDeleteComponent={handleDeleteComponent}
-            onDropComponent={handleAddComponent}
-            onReorderComponents={handleReorderComponents}
-          />
+          <div className="flex min-w-0 flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Segmented
+                label="Preview mode"
+                className="w-auto"
+                value={isTestMode ? "try" : "edit"}
+                options={[
+                  ["edit", "Edit", Pencil],
+                  ["try", "Try it as a scout", Play],
+                ]}
+                onChange={(value) => {
+                  setIsTestMode(value === "try");
+                  if (value === "try") setSelectedComponent(null);
+                }}
+              />
+              <Segmented
+                label="Preview device"
+                className="hidden w-auto sm:flex"
+                value={device}
+                options={[
+                  ["tablet", "Tablet", Tablet],
+                  ["phone", "Phone", Smartphone],
+                  ["desktop", "Desktop", Monitor],
+                ]}
+                onChange={setDevice}
+              />
+            </div>
+            <VisualCanvas
+              config={currentConfig}
+              scoutingMode={formMode}
+              activeSection={activeSection}
+              isTestMode={isTestMode}
+              device={device}
+              selectedComponent={selectedComponent}
+              onSectionChange={(section) => {
+                setActiveSection(section);
+                setSelectedComponent(null);
+              }}
+              onSelectComponent={setSelectedComponent}
+              onInsertComponent={handleAddComponent}
+              onReorderComponents={handleReorderComponents}
+            />
+            {!isTestMode && (
+              <p className={`${hint} text-center`}>Click a field to edit it. Drag fields to reorder them.</p>
+            )}
+          </div>
           <div className={sideColumn}>
             <PropertyInspector
               // Remount per field so half-typed "add" inputs never carry over
@@ -547,20 +669,32 @@ export function GameConfigStudio() {
               config={currentConfig}
               year={currentYear}
               selectedComponent={selectedComponent}
-              onUpdateConfig={setCurrentConfig}
+              onUpdateConfig={editConfig}
               onSelectComponent={setSelectedComponent}
               onDuplicateComponent={handleDuplicateComponent}
               onDeleteComponent={handleDeleteComponent}
+              onNavigate={switchMode}
             />
           </div>
         </div>
       ) : studioMode === "matchup" ? (
-        <VisualMatchupCanvas config={currentConfig} onUpdateConfig={setCurrentConfig} />
+        <VisualMatchupCanvas config={currentConfig} onUpdateConfig={editConfig} />
       ) : studioMode === "teampage" ? (
-        <VisualTeamPageCanvas config={currentConfig} year={currentYear} onUpdateConfig={setCurrentConfig} />
+        <VisualTeamPageCanvas config={currentConfig} year={currentYear} onUpdateConfig={editConfig} />
       ) : (
-        <AnalysisEditor config={currentConfig} onUpdateConfig={setCurrentConfig} />
+        <AnalysisEditor config={currentConfig} onUpdateConfig={editConfig} />
       )}
+
+      <AiDraftDialog
+        open={isAiDialogOpen}
+        onOpenChange={setIsAiDialogOpen}
+        config={currentConfig}
+        year={currentYear}
+        onApply={(next) => {
+          editConfig(() => next);
+          setSelectedComponent(null);
+        }}
+      />
 
       <DeleteConfirmationDialog
         open={isDeleteDialogOpen}
@@ -658,7 +792,7 @@ export function GameConfigStudio() {
           <BuilderJsonEditor
             config={currentConfig}
             year={currentYear}
-            onUpdateConfig={setCurrentConfig}
+            onUpdateConfig={(next) => editConfig(() => next)}
             onApplied={() => setIsJsonDialogOpen(false)}
           />
         </DialogContent>
